@@ -6,5 +6,10 @@ export function createClient() {
       persistSession: true,
       autoRefreshToken: true,
     },
+    realtime: {
+      params: {
+        eventsPerSecond: 2,
+      },
+    },
   })
 }
