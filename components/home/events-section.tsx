@@ -91,7 +91,7 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
             >
               {events.map((event) => (
                 <SwiperSlide key={event.id}>
-                  <EventCard event={event} href={`/community/events/${event.id}`} />
+                  <EventCard event={event} href={`/events/${event.id}`} />
                 </SwiperSlide>
               ))}
             </Swiper>
@@ -103,7 +103,7 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
               <div key={event.id} className="w-full">
                 <EventCard
                   event={event}
-                  href={`/community/events/${event.id}`}
+                  href={`/events/${event.id}`}
                   className="w-full h-full"
                 />
               </div>

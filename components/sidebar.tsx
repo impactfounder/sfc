@@ -3,13 +3,12 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, LogIn, Shield, Plus, Bell, MessageSquare, Home, Users, Lightbulb } from "lucide-react"
+import { Calendar, LogOut, LogIn, Shield, Bell, MessageSquare, Home, Users, Lightbulb } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import NotificationsDropdown from "@/components/notifications-dropdown"
-import { LoginModal } from "@/components/login-modal"
 import Image from "next/image"
 
 const staticNavigation = [
@@ -31,7 +30,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [profile, setProfile] = useState<any>(null)
-  const [showLoginModal, setShowLoginModal] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -59,8 +57,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
       if (!session?.user) {
         setUserRole("member")
         setProfile(null)
-      } else {
-        setShowLoginModal(false)
       }
     })
 
@@ -75,7 +71,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
 
   const isAdmin = userRole === "admin" || userRole === "master"
 
-  // ★★★ 이 함수가 누락되어 에러가 발생했습니다. 다시 추가했습니다. ★★★
   const isLinkActive = (href: string, startsWith = false) => {
     return startsWith ? pathname.startsWith(href) : pathname === href
   }
@@ -122,8 +117,15 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
                   <div className="text-sm font-semibold text-slate-900 truncate">
                     {profile?.full_name || user.email?.split("@")[0]}
                   </div>
-                  <div className="text-xs text-slate-500 truncate">
-                    {userRole === "admin" || userRole === "master" ? "관리자" : "멤버"}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-500 truncate">
+                      {userRole === "admin" || userRole === "master" ? "관리자" : "멤버"}
+                    </span>
+                    {profile?.points !== undefined && profile.points !== null && (
+                      <span className="text-xs font-bold text-yellow-600 flex items-center gap-1">
+                        💎 {profile.points.toLocaleString()}P
+                      </span>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -137,18 +139,19 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
               </Button>
             </div>
           ) : (
-            <button
-              onClick={() => setShowLoginModal(true)}
-              className="w-full h-10 rounded-full bg-slate-800/10 hover:bg-slate-800/20 backdrop-blur-sm border border-slate-300/50 text-slate-700 hover:text-slate-900 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-sm hover:shadow"
-            >
-              <LogIn className="h-4 w-4" />
-              <span>로그인</span>
-            </button>
+            // ★ 변경됨: 모달 버튼 -> 페이지 링크
+            <Link href="/auth/login">
+              <Button
+                className="w-full h-10 rounded-full bg-slate-800/10 hover:bg-slate-800/20 text-slate-700 hover:text-slate-900 text-sm font-medium transition-all duration-300 shadow-sm hover:shadow border border-slate-300/50"
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                로그인
+              </Button>
+            </Link>
           )}
         </div>
       </div>
 
-      {/* 메인 네비게이션 */}
       <nav className="flex-1 px-2 py-4">
         <div className="space-y-0.5">
           {staticNavigation.map((item) => {
@@ -169,7 +172,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           })}
         </div>
 
-        {/* 게시판 섹션 */}
         <div className="mt-6 mb-3">
           <div className="px-3 mb-2">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">게시판</span>
@@ -196,17 +198,16 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           </div>
         </div>
 
-        {/* 이벤트 */}
         <div className="mt-6">
           <div className="px-3 mb-2">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">활동</span>
           </div>
           <div className="space-y-0.5">
             <Link
-              href="/community/events"
+              href="/events"
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-all",
-                isLinkActive("/community/events", true)
+                isLinkActive("/events", true)
                   ? "bg-slate-100 text-slate-900"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
               )}
@@ -216,8 +217,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
             </Link>
 
             {user && <NotificationsDropdown />}
-            
-            {/* 이벤트 만들기 버튼 삭제됨 */}
           </div>
         </div>
 
@@ -240,7 +239,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           </div>
         )}
       </nav>
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </div>
   )
 }

@@ -9,7 +9,7 @@ export function EventsSectionHeader() {
       <CardTitle>이벤트</CardTitle>
       <div className="hidden lg:block">
         <Button asChild size="sm">
-          <Link href="/community/events/new">
+          <Link href="/events/new">
             <Plus className="mr-2 h-4 w-4" />
             새 이벤트
           </Link>

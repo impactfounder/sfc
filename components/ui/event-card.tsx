@@ -65,17 +65,14 @@ export default function EventCard({ event, href, className, layout = "card" }: P
       {/* 콘텐츠 레이어 */}
       <div className="relative h-full flex flex-col justify-between p-6">
         
-        {/* 상단: 제목 */}
-        <div className="pt-1">
-          <span className="inline-block px-2.5 py-1 mb-3 text-[11px] font-bold border border-white/30 rounded-full bg-black/20 backdrop-blur-md text-white shadow-sm">
-            EVENT
-          </span>
+        {/* 상단: 제목 (EVENT 뱃지 제거 및 위치 상향 조정) */}
+        <div>
           <h3 className="text-2xl md:text-[28px] font-extrabold text-white leading-tight break-keep drop-shadow-lg shadow-black">
             {event.title}
           </h3>
         </div>
 
-        {/* 하단: 정보 영역 (간격을 gap-1.5 로 좁혀서 밀착시킴) */}
+        {/* 하단: 정보 영역 (좁은 간격 유지: gap-1.5) */}
         <div className="flex flex-col gap-1.5 pb-1"> 
           
           {/* 1. 프로필 라인 */}

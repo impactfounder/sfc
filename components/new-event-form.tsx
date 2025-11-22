@@ -210,7 +210,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       if (onSuccess) {
         onSuccess()
       } else {
-        router.push("/community/events")
+        router.push("/events")
       }
       router.refresh()
     } catch (error: unknown) {

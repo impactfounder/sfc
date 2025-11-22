@@ -119,6 +119,20 @@ export default function AdminDashboard() {
             </Card>
           </Link>
 
+          <Link href="/admin/events">
+            <Card className="border-slate-200 transition-shadow hover:shadow-md cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  이벤트 관리
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600">이벤트 목록 조회, 이벤트 삭제</p>
+              </CardContent>
+            </Card>
+          </Link>
+
           {isMaster && (
             <Link href="/admin/roles">
               <Card className="border-amber-200 bg-amber-50 transition-shadow hover:shadow-md cursor-pointer">

@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Calendar, Coins, MapPin, Users, CalendarDays } from "lucide-react"
+import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Award } from "lucide-react"
+import { BadgeManager } from "@/components/badge-manager"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState } from "react"
@@ -77,6 +78,36 @@ export default function ProfilePage() {
 
     loadData()
   }, [supabase, router])
+  
+  const [userBadges, setUserBadges] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!user) return
+
+    const loadBadges = async () => {
+      const { data } = await supabase
+        .from("user_badges")
+        .select(`
+          id,
+          badge_id,
+          is_visible,
+          badges:badge_id (
+            id,
+            name,
+            icon,
+            category,
+            description
+          )
+        `)
+        .eq("user_id", user.id)
+
+      if (data) {
+        setUserBadges(data as any)
+      }
+    }
+
+    loadBadges()
+  }, [user, supabase])
 
   if (loading) {
     return (
@@ -191,11 +222,24 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* 뱃지 섹션 */}
+        <Card className="mt-6 border-slate-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              내 뱃지
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user && <BadgeManager userId={user.id} />}
+          </CardContent>
+        </Card>
+
         {createdEvents && createdEvents.length > 0 && (
           <Card className="mt-6 border-slate-200">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>내가 만든 이벤트</CardTitle>
-              <Link href="/community/events" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground">
                 전체 보기 →
               </Link>
             </CardHeader>
@@ -204,7 +248,7 @@ export default function ProfilePage() {
                 {createdEvents.map((event) => (
                   <Link
                     key={event.id}
-                    href={`/community/events/${event.id}`}
+                    href={`/events/${event.id}`}
                     className="flex gap-4 rounded-lg border border-slate-200 p-4 transition-colors hover:bg-slate-50"
                   >
                     {event.thumbnail_url && (

@@ -111,7 +111,7 @@ export default function NotificationsDropdown() {
     if (notification.related_post_id) {
       router.push(`/community/posts/${notification.related_post_id}`)
     } else if (notification.related_event_id) {
-      router.push(`/community/events/${notification.related_event_id}`)
+      router.push(`/events/${notification.related_event_id}`)
     }
   }
 

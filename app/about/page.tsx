@@ -163,6 +163,134 @@ export default function AboutPage() {
               </p>
             </div>
 
+            {/* 뱃지 소개 섹션 */}
+            <div className="mb-12 md:mb-16">
+              <h2 className="mb-4 text-center text-2xl md:text-3xl font-bold text-slate-900">신뢰를 더하는 인증 뱃지</h2>
+              <p className="mb-8 text-center text-base md:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
+                SFC는 검증된 멤버들과의 만남을 지향합니다. 뱃지를 통해 서로의 신뢰도를 확인할 수 있습니다.
+              </p>
+
+              <div className="space-y-8">
+                {/* 자산/매출 뱃지 */}
+                <div>
+                  <h3 className="mb-4 text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">자산/매출</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">💰</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">자산 10억+</div>
+                        <div className="text-sm text-slate-600">순자산 10억 원 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">💎</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">자산 50억+</div>
+                        <div className="text-sm text-slate-600">순자산 50억 원 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">📈</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">매출 10억+</div>
+                        <div className="text-sm text-slate-600">연 매출 10억 원 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🚀</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">매출 50억+</div>
+                        <div className="text-sm text-slate-600">연 매출 50억 원 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🏢</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">매출 100억+</div>
+                        <div className="text-sm text-slate-600">연 매출 100억 원 이상</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 인플루언서 뱃지 */}
+                <div>
+                  <h3 className="mb-4 text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">인플루언서</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">📣</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">팔로워 1만+</div>
+                        <div className="text-sm text-slate-600">SNS 팔로워 1만 명 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🔥</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">팔로워 5만+</div>
+                        <div className="text-sm text-slate-600">SNS 팔로워 5만 명 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🌟</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">팔로워 10만+</div>
+                        <div className="text-sm text-slate-600">SNS 팔로워 10만 명 이상</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">👑</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">팔로워 20만+</div>
+                        <div className="text-sm text-slate-600">SNS 팔로워 20만 명 이상</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 특별 이력 뱃지 */}
+                <div>
+                  <h3 className="mb-4 text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">특별 이력</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🚪</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">EXIT 경험</div>
+                        <div className="text-sm text-slate-600">M&A 또는 IPO 엑싯 경험</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🔄</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">연쇄 창업가</div>
+                        <div className="text-sm text-slate-600">2회 이상 창업 경험</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">📺</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">연애프로그램</div>
+                        <div className="text-sm text-slate-600">TV/OTT 연애 리얼리티 출연</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow">
+                      <span className="text-3xl">🛡️</span>
+                      <div>
+                        <div className="font-semibold text-slate-900">커뮤니티 리더</div>
+                        <div className="text-sm text-slate-600">SFC 커뮤니티 운영진 및 리더</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-center">
+                  <p className="text-sm text-blue-700 font-medium">
+                    💡 관리자 검증을 통해 부여됩니다
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* CTA */}
             <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 p-8 md:p-12 text-center text-white">
               <h2 className="mb-4 text-2xl md:text-3xl font-bold">함께 성장할 준비가 되셨나요?</h2>
@@ -170,7 +298,7 @@ export default function AboutPage() {
                 무브먼트 강남에서 만나 SFC 커뮤니티와 함께 비즈니스를 성장시키세요
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Link href="/community/events">
+                <Link href="/events">
                   <Button size="lg" className="w-full sm:w-auto bg-white text-slate-900 hover:bg-slate-100">
                     이벤트 둘러보기
                   </Button>

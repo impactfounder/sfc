@@ -3,6 +3,12 @@ import type { FC } from "react"
 
 import { cn } from "@/lib/utils"
 import { formatRelativeTime } from "@/lib/format-time"
+import { UserBadges } from "@/components/user-badges"
+
+type Badge = {
+  icon: string
+  name: string
+}
 
 type Post = {
   id: string
@@ -14,7 +20,9 @@ type Post = {
   } | null
   profiles?: {
     full_name?: string | null
+    id?: string
   } | null
+  visible_badges?: Badge[]
 }
 
 type PostListItemProps = {
@@ -55,9 +63,14 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) =
           </p>
         )}
 
-        {/* 작성자 이름 */}
-        <div className="text-sm text-gray-500">
-          {post.profiles?.full_name || "익명"}
+        {/* 작성자 이름 및 뱃지 */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-gray-500 font-medium">
+            {post.profiles?.full_name || "익명"}
+          </span>
+          {post.visible_badges && post.visible_badges.length > 0 && (
+            <UserBadges badges={post.visible_badges} />
+          )}
         </div>
       </div>
     </Link>

@@ -25,7 +25,7 @@ export function EventsSection({ events }: EventsSectionProps) {
             <Calendar className="h-5 w-5" />
             다가오는 이벤트
           </CardTitle>
-          <Link href="/community/events">
+          <Link href="/events">
             <Button variant="ghost" size="sm">
               전체보기
             </Button>
@@ -43,7 +43,7 @@ export function EventsSection({ events }: EventsSectionProps) {
               return (
                 <Link
                   key={event.id}
-                  href={`/community/events/${event.id}`}
+                  href={`/events/${event.id}`}
                   className="block"
                 >
                   <div className="rounded-lg border border-slate-200 p-4 transition-shadow hover:shadow-md">

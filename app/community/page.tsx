@@ -92,7 +92,7 @@ export default async function CommunityDashboardPage() {
                       key={event.id}
                       event={event}
                       layout="poster"
-                      href={`/community/events/${event.id}`}
+                      href={`/events/${event.id}`}
                     />
                   ))
                 ) : (

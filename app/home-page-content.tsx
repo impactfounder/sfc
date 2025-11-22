@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { LoginModal } from "@/components/login-modal"
 import { NewEventForm } from "@/components/new-event-form"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -53,7 +52,6 @@ export function HomePageContent({
 }: HomePageContentProps) {
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [user, setUser] = useState<any>(null)
-  const [showLoginModal, setShowLoginModal] = useState(false)
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const router = useRouter()
 
@@ -67,7 +65,7 @@ export function HomePageContent({
 
   const handleCreateEvent = () => {
     if (!user) {
-      setShowLoginModal(true)
+      router.push("/auth/login")
       return
     }
     setShowCreateSheet(true)
@@ -93,7 +91,6 @@ export function HomePageContent({
         </div>
       </div>
 
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
 
       <Sheet open={showCreateSheet} onOpenChange={setShowCreateSheet}>
         <SheetContent side="bottom" className="h-[85vh] p-0" hideClose>

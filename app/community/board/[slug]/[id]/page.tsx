@@ -6,6 +6,7 @@ import { LikeButton } from "@/components/like-button";
 import { CommentSection } from "@/components/comment-section";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { UserBadges } from "@/components/user-badges";
 
 export default async function BoardPostDetailPage({
   params,
@@ -72,6 +73,31 @@ export default async function BoardPostDetailPage({
     .eq("post_id", id)
     .order("created_at", { ascending: true });
 
+  // 작성자의 노출된 뱃지 가져오기
+  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
+  if (post.author_id) {
+    const { data: badgesData } = await supabase
+      .from("user_badges")
+      .select(`
+        badges:badge_id (
+          icon,
+          name
+        )
+      `)
+      .eq("user_id", post.author_id)
+      .eq("is_visible", true)
+
+    if (badgesData) {
+      authorVisibleBadges = badgesData
+        .map((ub: any) => ub.badges)
+        .filter(Boolean)
+        .map((badge: any) => ({
+          icon: badge.icon,
+          name: badge.name,
+        }))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
@@ -109,9 +135,14 @@ export default async function BoardPostDetailPage({
                   {post.profiles?.full_name?.[0] || "U"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 truncate">
-                    {post.profiles?.full_name || "익명"}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-900 truncate">
+                      {post.profiles?.full_name || "익명"}
+                    </p>
+                    {authorVisibleBadges.length > 0 && (
+                      <UserBadges badges={authorVisibleBadges} />
+                    )}
+                  </div>
                   <p className="text-sm text-slate-500">
                     {new Date(post.created_at).toLocaleDateString("ko-KR", {
                       year: "numeric",

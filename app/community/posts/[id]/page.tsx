@@ -8,6 +8,7 @@ import { PostActions } from "@/components/post-actions"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { isMasterAdmin } from "@/lib/utils"
+import { UserBadges } from "@/components/user-badges"
 
 export default async function PostDetailPage({
   params,
@@ -74,6 +75,31 @@ export default async function PostDetailPage({
     isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
   }
 
+  // 작성자의 노출된 뱃지 가져오기
+  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
+  if (post.author_id) {
+    const { data: badgesData } = await supabase
+      .from("user_badges")
+      .select(`
+        badges:badge_id (
+          icon,
+          name
+        )
+      `)
+      .eq("user_id", post.author_id)
+      .eq("is_visible", true)
+
+    if (badgesData) {
+      authorVisibleBadges = badgesData
+        .map((ub: any) => ub.badges)
+        .filter(Boolean)
+        .map((badge: any) => ({
+          icon: badge.icon,
+          name: badge.name,
+        }))
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-4xl">
@@ -86,7 +112,12 @@ export default async function PostDetailPage({
                   {post.profiles?.full_name?.[0] || "U"}
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900">{post.profiles?.full_name || "Anonymous"}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-slate-900">{post.profiles?.full_name || "Anonymous"}</p>
+                    {authorVisibleBadges.length > 0 && (
+                      <UserBadges badges={authorVisibleBadges} />
+                    )}
+                  </div>
                   <p className="text-sm text-slate-500">
                     {new Date(post.created_at).toLocaleDateString("ko-KR", {
                       year: "numeric",

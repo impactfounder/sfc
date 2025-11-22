@@ -45,21 +45,20 @@ export default async function EventsPage() {
   const upcomingEvents = upcomingEventsResult.data
   const pastEvents = pastEventsResult.data
 
-  // 메인 페이지와 동일한 버튼 스타일
   const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
-      <div className="mx-auto max-w-6xl"> {/* 메인과 동일한 너비 적용 */}
+      <div className="mx-auto max-w-6xl">
         
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h1> {/* 메인과 폰트 크기 통일 */}
+            <h1 className="text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h1>
             <p className="mt-2 text-slate-600">다가오는 커뮤니티 이벤트를 찾아보고 참여하세요</p>
           </div>
           {user ? (
-            <Link href="/community/events/new">
+            <Link href="/events/new">
               <button className={buttonStyle}>
                 <Plus className="w-4 h-4" />
                 새 이벤트
@@ -79,7 +78,6 @@ export default async function EventsPage() {
         <div className="mb-12">
           <h2 className="mb-4 text-xl font-semibold text-slate-900">다가오는 이벤트</h2>
           {upcomingEvents && upcomingEvents.length > 0 ? (
-            // 메인 페이지와 동일한 그리드 설정 (gap-5 lg:gap-6)
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
               {upcomingEvents.map((event) => {
                 const eventData = {
@@ -100,7 +98,7 @@ export default async function EventsPage() {
                   <div key={event.id} className="w-full">
                     <EventCard 
                       event={eventData} 
-                      href={`/community/events/${event.id}`}
+                      href={`/events/${event.id}`}
                       className="w-full h-full"
                     />
                   </div>
@@ -114,7 +112,7 @@ export default async function EventsPage() {
                 <h3 className="mb-2 text-lg font-semibold text-slate-900">예정된 이벤트가 없습니다</h3>
                 <p className="mb-4 text-sm text-slate-600">첫 번째 이벤트를 만들어보세요</p>
                 {user ? (
-                  <Link href="/community/events/new">
+                  <Link href="/events/new">
                     <button className={buttonStyle}>이벤트 만들기</button>
                   </Link>
                 ) : (
@@ -151,7 +149,7 @@ export default async function EventsPage() {
                   <div key={event.id} className="w-full opacity-60 hover:opacity-100 transition-opacity">
                     <EventCard 
                       event={eventData}
-                      href={`/community/events/${event.id}`}
+                      href={`/events/${event.id}`}
                       className="w-full h-full"
                     />
                   </div>
@@ -164,3 +162,4 @@ export default async function EventsPage() {
     </div>
   )
 }
+
