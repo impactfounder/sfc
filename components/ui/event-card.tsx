@@ -43,7 +43,7 @@ export default function EventCard({ event, href, className, layout = "card" }: P
   const content = (
     <div
       className={cn(
-        "group relative w-full aspect-[4/5] overflow-hidden rounded-[20px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
+        "group relative w-full aspect-[4/5] overflow-hidden rounded-[24px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
         className
       )}
     >
@@ -59,28 +59,28 @@ export default function EventCard({ event, href, className, layout = "card" }: P
         <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
       )}
 
-      {/* 그라데이션 오버레이 (텍스트 가독성 확보) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent via-40% to-black/90" />
+      {/* 그라데이션 오버레이 */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent via-40% to-black/95" />
 
       {/* 콘텐츠 레이어 */}
-      <div className="relative h-full flex flex-col justify-between p-5">
+      <div className="relative h-full flex flex-col justify-between p-6">
         
         {/* 상단: 제목 */}
         <div className="pt-1">
-          <span className="inline-block px-2 py-0.5 mb-2 text-[10px] font-bold border border-white/30 rounded-full bg-black/20 backdrop-blur-sm text-white shadow-sm">
+          <span className="inline-block px-2.5 py-1 mb-3 text-[11px] font-bold border border-white/30 rounded-full bg-black/20 backdrop-blur-md text-white shadow-sm">
             EVENT
           </span>
-          <h3 className="text-2xl font-bold text-white leading-tight break-keep drop-shadow-lg">
+          <h3 className="text-2xl md:text-[28px] font-extrabold text-white leading-tight break-keep drop-shadow-lg shadow-black">
             {event.title}
           </h3>
         </div>
 
-        {/* 하단: 정보 영역 (간격을 좁혀서 밀도 있게 배치) */}
-        <div className="flex flex-col gap-1.5">
+        {/* 하단: 정보 영역 (간격을 gap-1.5 로 좁혀서 밀착시킴) */}
+        <div className="flex flex-col gap-1.5 pb-1"> 
           
-          {/* 1. 프로필 (크기 최적화 w-6 h-6) */}
-          <div className="flex items-center gap-2 mb-1">
-            <div className="relative h-6 w-6 flex-shrink-0 rounded-full border border-white/40 bg-white/10 overflow-hidden shadow-sm">
+          {/* 1. 프로필 라인 */}
+          <div className="flex items-center gap-2.5 mb-0.5">
+            <div className="relative h-8 w-8 flex-shrink-0 rounded-full border border-white/40 bg-white/10 overflow-hidden shadow-sm">
               {event.host_avatar_url ? (
                 <Image
                   src={event.host_avatar_url}
@@ -89,50 +89,50 @@ export default function EventCard({ event, href, className, layout = "card" }: P
                   className="object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
-                  <User className="w-3.5 h-3.5" />
+                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                  <User className="w-4 h-4" />
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-white/95 drop-shadow-md">
-              <span className="font-bold">{event.host_name || "호스트"}</span>
+            <div className="flex items-center gap-2 text-white drop-shadow-md">
+              <span className="font-bold text-[15px]">{event.host_name || "호스트"}</span>
               {event.host_bio && (
-                <>
-                  <span className="text-white/60 text-[10px] px-0.5">:</span>
-                  <span className="text-white/80 truncate max-w-[120px] font-medium text-xs">
+                <div className="flex items-center gap-2 opacity-90">
+                  <span className="w-0.5 h-3 bg-white/40 rounded-full"></span>
+                  <span className="truncate max-w-[130px] font-medium text-[13px]">
                     {event.host_bio}
                   </span>
-                </>
+                </div>
               )}
             </div>
           </div>
 
-          {/* 2. 날짜 & 시간 (아이콘 정렬) */}
-          <div className="flex items-center gap-3 pl-0.5 text-xs sm:text-sm font-medium text-white/90 drop-shadow-md">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-white/70" />
-              <span>{dateStr}</span>
+          {/* 2. 날짜 & 시간 라인 */}
+          <div className="flex items-center gap-3 pl-0.5 text-white/95 drop-shadow-md font-medium h-7">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-white/90" />
+              <span className="text-[15px]">{dateStr}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-white/70" />
-              <span>{timeStr}</span>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-white/90" />
+              <span className="text-[15px]">{timeStr}</span>
             </div>
           </div>
 
-          {/* 3. 장소 & 인원 버튼 (하단 라인 맞춤) */}
-          <div className="flex items-center justify-between pl-0.5 mt-0.5">
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-white/90 drop-shadow-md truncate max-w-[60%]">
-              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-white/70" />
-              <span className="truncate">{event.location || "장소 미정"}</span>
+          {/* 3. 장소 & 인원 라인 */}
+          <div className="flex items-center justify-between pl-0.5 h-7">
+            <div className="flex items-center gap-2 text-white/95 drop-shadow-md truncate max-w-[60%]">
+              <MapPin className="w-4 h-4 flex-shrink-0 text-white/90" />
+              <span className="truncate text-[15px] font-medium">{event.location || "장소 미정"}</span>
             </div>
 
             <div className={cn(
-              "flex items-center gap-1 px-2 py-1 rounded-md backdrop-blur-md text-[10px] sm:text-xs font-bold transition-colors shadow-sm",
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg backdrop-blur-md text-[13px] font-bold transition-colors shadow-sm",
               isFull 
-                ? "bg-red-500/80 border border-red-400/50 text-white" 
-                : "bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                ? "bg-red-500/90 border border-red-400/50 text-white" 
+                : "bg-white/15 border border-white/30 text-white hover:bg-white/25"
             )}>
-              <Users className="w-3 h-3" />
+              <Users className="w-3.5 h-3.5" />
               <span>
                 {current}/{max}
               </span>
