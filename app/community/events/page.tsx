@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, MapPin, Users, Plus } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Calendar, Plus } from "lucide-react"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+import EventCard from "@/components/ui/event-card"
 
 export default async function EventsPage() {
   const supabase = await createClient()
@@ -16,7 +16,9 @@ export default async function EventsPage() {
         *,
         profiles:created_by (
           id,
-          full_name
+          full_name,
+          avatar_url,
+          bio 
         ),
         event_registrations(count)
       `)
@@ -28,7 +30,9 @@ export default async function EventsPage() {
         *,
         profiles:created_by (
           id,
-          full_name
+          full_name,
+          avatar_url,
+          bio
         ),
         event_registrations(count)
       `)
@@ -41,28 +45,32 @@ export default async function EventsPage() {
   const upcomingEvents = upcomingEventsResult.data
   const pastEvents = pastEventsResult.data
 
+  // 메인 페이지와 동일한 버튼 스타일
+  const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
+
   return (
-    <div className="min-h-screen bg-slate-50 p-8 pt-20 md:pt-8">
-      <div className="mx-auto max-w-6xl">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
+      <div className="mx-auto max-w-6xl"> {/* 메인과 동일한 너비 적용 */}
+        
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">이벤트</h1>
+            <h1 className="text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h1> {/* 메인과 폰트 크기 통일 */}
             <p className="mt-2 text-slate-600">다가오는 커뮤니티 이벤트를 찾아보고 참여하세요</p>
           </div>
           {user ? (
             <Link href="/community/events/new">
-              <Button className="gap-2 h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white text-base">
-                <Plus className="h-5 w-5" />
-                이벤트 만들기
-              </Button>
+              <button className={buttonStyle}>
+                <Plus className="w-4 h-4" />
+                새 이벤트
+              </button>
             </Link>
           ) : (
             <Link href="/auth/login">
-              <Button className="gap-2 h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white text-base">
-                <Plus className="h-5 w-5" />
+              <button className={buttonStyle}>
+                <Plus className="w-4 h-4" />
                 로그인하고 이벤트 만들기
-              </Button>
+              </button>
             </Link>
           )}
         </div>
@@ -71,60 +79,31 @@ export default async function EventsPage() {
         <div className="mb-12">
           <h2 className="mb-4 text-xl font-semibold text-slate-900">다가오는 이벤트</h2>
           {upcomingEvents && upcomingEvents.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            // 메인 페이지와 동일한 그리드 설정 (gap-5 lg:gap-6)
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
               {upcomingEvents.map((event) => {
-                const registrationCount = event.event_registrations?.[0]?.count || 0
-                const eventDate = new Date(event.event_date)
-                const isFull = event.max_participants && registrationCount >= event.max_participants
+                const eventData = {
+                  id: event.id,
+                  title: event.title,
+                  thumbnail_url: event.thumbnail_url,
+                  event_date: event.event_date,
+                  event_time: null,
+                  location: event.location,
+                  max_participants: event.max_participants,
+                  current_participants: event.event_registrations?.[0]?.count || 0,
+                  host_name: event.profiles?.full_name,
+                  host_avatar_url: event.profiles?.avatar_url,
+                  host_bio: event.profiles?.bio,
+                }
 
                 return (
-                  <Link key={event.id} href={`/community/events/${event.id}`}>
-                    <Card className="h-full overflow-hidden border-slate-200 transition-shadow hover:shadow-lg">
-                      <div className="relative h-48 w-full bg-gradient-to-br from-blue-50 to-slate-100">
-                        <img
-                          src={
-                            event.thumbnail_url ||
-                            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop"
-                          }
-                          alt={event.title}
-                          className="h-full w-full object-cover"
-                        />
-                        {isFull && <Badge className="absolute top-3 right-3 bg-red-500">마감</Badge>}
-                      </div>
-
-                      <CardContent className="p-0">
-                        <div className="p-3">
-                          <h3 className="mb-2 h-14 line-clamp-2 text-lg font-semibold text-slate-900">{event.title}</h3>
-
-                          <div className="space-y-1 text-sm text-slate-600">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              <span>
-                                {eventDate.toLocaleDateString("ko-KR", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              <span className="line-clamp-1">{event.location}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4" />
-                              <span>
-                                {registrationCount}
-                                {event.max_participants && ` / ${event.max_participants}`} 명
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  <div key={event.id} className="w-full">
+                    <EventCard 
+                      event={eventData} 
+                      href={`/community/events/${event.id}`}
+                      className="w-full h-full"
+                    />
+                  </div>
                 )
               })}
             </div>
@@ -136,11 +115,11 @@ export default async function EventsPage() {
                 <p className="mb-4 text-sm text-slate-600">첫 번째 이벤트를 만들어보세요</p>
                 {user ? (
                   <Link href="/community/events/new">
-                    <Button>이벤트 만들기</Button>
+                    <button className={buttonStyle}>이벤트 만들기</button>
                   </Link>
                 ) : (
                   <Link href="/auth/login">
-                    <Button>로그인하고 이벤트 만들기</Button>
+                    <button className={buttonStyle}>로그인하고 이벤트 만들기</button>
                   </Link>
                 )}
               </CardContent>
@@ -152,24 +131,32 @@ export default async function EventsPage() {
         {pastEvents && pastEvents.length > 0 && (
           <div>
             <h2 className="mb-4 text-xl font-semibold text-slate-900">지난 이벤트</h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {pastEvents.map((event) => (
-                <Link key={event.id} href={`/community/events/${event.id}`}>
-                  <Card className="h-full border-slate-200 opacity-75 transition-all hover:opacity-100">
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm text-slate-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(event.event_date).toLocaleDateString("ko-KR")}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+              {pastEvents.map((event) => {
+                 const eventData = {
+                  id: event.id,
+                  title: event.title,
+                  thumbnail_url: event.thumbnail_url,
+                  event_date: event.event_date,
+                  event_time: null,
+                  location: event.location,
+                  max_participants: event.max_participants,
+                  current_participants: event.event_registrations?.[0]?.count || 0,
+                  host_name: event.profiles?.full_name,
+                  host_avatar_url: event.profiles?.avatar_url,
+                  host_bio: event.profiles?.bio,
+                }
+                
+                return (
+                  <div key={event.id} className="w-full opacity-60 hover:opacity-100 transition-opacity">
+                    <EventCard 
+                      event={eventData}
+                      href={`/community/events/${event.id}`}
+                      className="w-full h-full"
+                    />
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

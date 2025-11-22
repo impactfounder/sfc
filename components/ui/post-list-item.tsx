@@ -2,11 +2,12 @@ import Link from "next/link"
 import type { FC } from "react"
 
 import { cn } from "@/lib/utils"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatRelativeTime } from "@/lib/format-time"
 
 type Post = {
   id: string
   title: string
+  content?: string | null
   created_at: string
   board_categories?: {
     name?: string | null
@@ -20,26 +21,45 @@ type PostListItemProps = {
   post: Post
   href: string
   className?: string
-  subtitle?: string
 }
 
-export const PostListItem: FC<PostListItemProps> = ({ post, href, className, subtitle }) => {
+export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) => {
+  // content에서 HTML 태그 제거하고 텍스트만 추출
+  const getPlainText = (html?: string | null) => {
+    if (!html) return ""
+    return html.replace(/<[^>]*>/g, "").trim()
+  }
+
+  const contentPreview = getPlainText(post.content)
+
   return (
     <Link href={href} className={cn("block", className)}>
-      <Card className="gap-0 rounded-2xl border bg-white p-0 shadow-xs transition hover:border-primary/40 hover:shadow-sm">
-        <CardHeader className="px-5 py-4">
-          <CardDescription className="text-xs font-medium uppercase tracking-wide text-blue-600">
-            {post.board_categories?.name}
-          </CardDescription>
-          <CardTitle className="text-lg">{post.title}</CardTitle>
-          {subtitle && <CardDescription>{subtitle}</CardDescription>}
-        </CardHeader>
-        <CardContent className="px-5 pb-4 text-sm text-muted-foreground">
-          {post.profiles?.full_name || "익명"} · {new Date(post.created_at).toLocaleDateString("ko-KR")}
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:shadow-md transition cursor-pointer">
+        {/* 상단: 카테고리 pill 배지 */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+            {post.board_categories?.name || "게시판"}
+          </span>
+          <span className="text-sm text-gray-500 flex-shrink-0">{formatRelativeTime(post.created_at)}</span>
+        </div>
+
+        {/* 제목 (최대 2줄) */}
+        <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
+          {post.title}
+        </h3>
+
+        {/* 본문 미리보기 (최대 2줄) */}
+        {contentPreview && (
+          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed mb-2">
+            {contentPreview}
+          </p>
+        )}
+
+        {/* 작성자 이름 */}
+        <div className="text-sm text-gray-500">
+          {post.profiles?.full_name || "익명"}
+        </div>
+      </div>
     </Link>
   )
 }
-
-

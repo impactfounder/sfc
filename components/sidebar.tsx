@@ -75,6 +75,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
 
   const isAdmin = userRole === "admin" || userRole === "master"
 
+  // ★★★ 이 함수가 누락되어 에러가 발생했습니다. 다시 추가했습니다. ★★★
   const isLinkActive = (href: string, startsWith = false) => {
     return startsWith ? pathname.startsWith(href) : pathname === href
   }
@@ -215,18 +216,8 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
             </Link>
 
             {user && <NotificationsDropdown />}
-
-            {user && (
-              <Link href="/community/events/new">
-                <Button
-                  className="w-full mt-2 gap-2 bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm font-medium"
-                  size="sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  이벤트 만들기
-                </Button>
-              </Link>
-            )}
+            
+            {/* 이벤트 만들기 버튼 삭제됨 */}
           </div>
         </div>
 

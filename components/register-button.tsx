@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, Sparkles } from 'lucide-react'; // Sparkles 아이콘 추가
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -107,20 +107,19 @@ export function RegisterButton({
   if (isRegistered) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-700">
-          <CheckCircle className="h-5 w-5" />
-          <span className="font-medium">이 이벤트에 참석 신청했습니다</span>
+        <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 border border-slate-200 text-slate-700">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <span className="font-semibold text-sm">참석이 확정되었습니다</span>
         </div>
         {userId && (
           <Button
             variant="outline"
             onClick={handleRegister}
             disabled={isLoading}
-            className="w-full"
-            size="lg"
+            className="w-full h-12 border-slate-300 hover:bg-slate-50 text-slate-600"
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? "취소 중..." : "참석 신청 취소"}
+            {isLoading ? "취소 중..." : "신청 취소하기"}
           </Button>
         )}
       </div>
@@ -129,8 +128,8 @@ export function RegisterButton({
 
   if (isFull) {
     return (
-      <div className="rounded-lg bg-slate-100 p-4 text-center text-slate-600">
-        이벤트가 마감되었습니다
+      <div className="rounded-lg bg-slate-100 p-4 text-center text-slate-500 text-sm font-medium">
+        모집이 마감되었습니다
       </div>
     );
   }
@@ -139,30 +138,33 @@ export function RegisterButton({
     return (
       <div className="space-y-4">
         {!userId && (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-700">
-            💡 로그인하면 <strong>10포인트</strong>를 적립하고 이벤트 참여 이력을 관리할 수 있어요!
+          <div className="rounded-lg bg-gradient-to-r from-slate-50 to-white border border-slate-200 p-4">
+            <p className="text-sm text-slate-700 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              로그인하면 <span className="font-bold">이력 관리</span>가 가능해요!
+            </p>
           </div>
         )}
         
         <div className="space-y-3">
           <div>
-            <Label htmlFor="guestName" className="text-sm font-medium">이름</Label>
+            <Label htmlFor="guestName" className="text-sm font-semibold text-slate-700">이름</Label>
             <Input
               id="guestName"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
-              placeholder="홍길동"
-              className="mt-1.5"
+              placeholder="참석자 성함"
+              className="mt-1.5 h-11 bg-slate-50 focus:bg-white transition-colors"
             />
           </div>
           <div>
-            <Label htmlFor="guestContact" className="text-sm font-medium">연락처</Label>
+            <Label htmlFor="guestContact" className="text-sm font-semibold text-slate-700">연락처</Label>
             <Input
               id="guestContact"
               value={guestContact}
               onChange={(e) => setGuestContact(e.target.value)}
-              placeholder="010-1234-5678 또는 email@example.com"
-              className="mt-1.5"
+              placeholder="연락 받으실 이메일 또는 전화번호"
+              className="mt-1.5 h-11 bg-slate-50 focus:bg-white transition-colors"
             />
           </div>
         </div>
@@ -170,21 +172,19 @@ export function RegisterButton({
         <Button
           onClick={handleGuestRegister}
           disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-          size="lg"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 text-base shadow-md transition-all hover:shadow-lg"
         >
           {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-          {isLoading ? "신청 중..." : "신청하기"}
+          {isLoading ? "처리 중..." : "신청 완료하기"}
         </Button>
 
         {!userId && (
           <Button
             variant="outline"
-            className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
-            size="lg"
+            className="w-full h-12 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
             onClick={() => window.location.href = "/auth/login"}
           >
-            로그인하고 10포인트 받기
+            로그인하고 신청하기 (+10P)
           </Button>
         )}
       </div>
@@ -193,20 +193,13 @@ export function RegisterButton({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
-        <p className="text-green-700 font-medium">
-          ✨ 참가 신청 시 <span className="text-lg font-bold">10포인트</span>가 자동으로 적립됩니다
-        </p>
-      </div>
-      
       <Button
         onClick={handleRegister}
         disabled={isLoading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg h-14"
-        size="lg"
+        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5"
       >
         {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-        {isLoading ? "신청 중..." : "신청하기"}
+        {isLoading ? "신청 중..." : "지금 신청하기"}
       </Button>
     </div>
   );

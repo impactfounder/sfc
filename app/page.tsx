@@ -11,11 +11,11 @@ import { NewEventForm } from "@/components/new-event-form"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { AnnouncementBanner } from "@/components/home/announcement-banner"
 import { EventsSection } from "@/components/home/events-section"
 import { PostsSection } from "@/components/home/posts-section"
+import { EventCardEvent } from "@/components/ui/event-card" // 타입 import
 
 type TabValue = "events" | "community"
 
@@ -28,6 +28,7 @@ type BoardCategory = {
 type Post = {
   id: string
   title: string
+  content?: string | null
   created_at: string
   board_categories?: {
     name?: string | null
@@ -36,17 +37,6 @@ type Post = {
   profiles?: {
     full_name?: string | null
   } | null
-}
-
-type Event = {
-  id: string
-  title: string
-  thumbnail_url?: string | null
-  event_date: string
-  event_time?: string | null
-  location?: string | null
-  current_participants?: number | null
-  max_participants?: number | null
 }
 
 type Announcement = {
@@ -58,7 +48,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabValue>("events")
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
-  const [events, setEvents] = useState<Event[]>([])
+  const [events, setEvents] = useState<EventCardEvent[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([])
   const [user, setUser] = useState<any>(null)
@@ -72,12 +62,10 @@ export default function HomePage() {
     async function fetchData() {
       setIsLoading(true)
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
 
-      // Fetch board categories (only free, vangol, hightalk)
+      // 카테고리 가져오기
       const { data: categoriesData } = await supabase
         .from("board_categories")
         .select("id, name, slug")
@@ -86,7 +74,6 @@ export default function HomePage() {
         .order("order_index", { ascending: true })
 
       if (categoriesData) {
-        // Map old slugs to new slugs if needed
         const mappedCategories = categoriesData.map((cat) => {
           if (cat.slug === "free-board") return { ...cat, slug: "free" }
           if (cat.slug === "bangol") return { ...cat, slug: "vangol" }
@@ -95,7 +82,7 @@ export default function HomePage() {
         setBoardCategories(mappedCategories as BoardCategory[])
       }
 
-      // Fetch announcement (slug=announcement, limit 1)
+      // 공지사항 가져오기
       const { data: announcementData } = await supabase
         .from("posts")
         .select(`id, title, board_categories!inner(slug)`)
@@ -108,47 +95,55 @@ export default function HomePage() {
         setAnnouncement({ id: announcementData.id, title: announcementData.title })
       }
 
-      // Fetch events (event_date >= now(), limit 6)
+      // ★★★ 이벤트 가져오기 (최신 9개 & bio 포함) ★★★
       const { data: eventsData } = await supabase
         .from("events")
-        .select(`id, title, thumbnail_url, event_date, event_time, location, max_participants, event_registrations(count)`)
-        .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true })
-        .limit(6)
+        .select(`
+          *,
+          profiles:created_by (
+            id,
+            full_name,
+            avatar_url,
+            bio
+          ),
+          event_registrations(count)
+        `)
+        .gte("event_date", new Date().toISOString()) // 오늘 이후 이벤트만
+        .order("event_date", { ascending: true })    // 가까운 날짜 순
+        .limit(9)                                    // 9개 제한
 
       if (eventsData) {
-        const transformedEvents = eventsData.map((event) => ({
+        const transformedEvents = eventsData.map((event: any) => ({
           id: event.id,
           title: event.title,
           thumbnail_url: event.thumbnail_url,
           event_date: event.event_date,
-          event_time: event.event_time,
+          event_time: null, // EventCard 내부에서 처리함
           location: event.location,
           max_participants: event.max_participants,
           current_participants: event.event_registrations?.[0]?.count || 0,
+          host_name: event.profiles?.full_name || "알 수 없음",
+          host_avatar_url: event.profiles?.avatar_url || null,
+          host_bio: event.profiles?.bio || null, // bio 연결
         }))
-        setEvents(transformedEvents as Event[])
+        setEvents(transformedEvents)
       }
 
-      // Fetch posts (slug in ["free", "vangol", "hightalk"], exclude announcement, limit 50)
+      // 게시글 가져오기
       const { data: postsData } = await supabase
         .from("posts")
-        .select(`id, title, created_at, profiles:author_id(full_name), board_categories!inner(name, slug)`)
+        .select(`id, title, content, created_at, profiles:author_id(full_name), board_categories!inner(name, slug)`)
         .in("board_categories.slug", ["free", "vangol", "hightalk", "free-board", "bangol", "hightalk"])
         .neq("board_categories.slug", "announcement")
         .order("created_at", { ascending: false })
         .limit(50)
 
       if (postsData) {
-        // Map old slugs to new slugs
-        const mappedPosts = postsData.map((post) => {
-          if (post.board_categories?.slug === "free-board") {
-            return { ...post, board_categories: { ...post.board_categories, slug: "free" } }
-          }
-          if (post.board_categories?.slug === "bangol") {
-            return { ...post, board_categories: { ...post.board_categories, slug: "vangol" } }
-          }
-          return post
+        const mappedPosts = postsData.map((post: any) => {
+          let slug = post.board_categories?.slug
+          if (slug === "free-board") slug = "free"
+          if (slug === "bangol") slug = "vangol"
+          return { ...post, board_categories: { ...post.board_categories, slug } }
         })
         setPosts(mappedPosts as Post[])
       }
@@ -164,7 +159,6 @@ export default function HomePage() {
       setShowLoginModal(true)
       return
     }
-
     setShowCreateSheet(true)
   }
 
@@ -173,7 +167,6 @@ export default function HomePage() {
       router.push("/community/profile")
       return
     }
-
     setShowLoginModal(true)
   }
 
@@ -185,24 +178,20 @@ export default function HomePage() {
       </div>
 
       <div className="flex w-full flex-1 justify-center overflow-x-hidden pb-20 pt-20 lg:pb-10 lg:pt-12">
-        <div className="flex w-full max-w-6xl flex-col gap-6 px-4 lg:px-10">
-          {/* Announcement Banner */}
-          <AnnouncementBanner announcement={announcement} />
+        <div className="w-full flex flex-col gap-8">
+          {/* Announcement */}
+          {announcement && <AnnouncementBanner announcement={announcement} />}
 
           {/* Events Section */}
           <EventsSection events={events} onCreateEvent={handleCreateEvent} />
 
           {/* Posts Section */}
-          <Card>
-            <div className="p-6">
-              <PostsSection
-                posts={posts}
-                boardCategories={boardCategories}
-                selectedBoard={selectedBoard}
-                onBoardChange={setSelectedBoard}
-              />
-            </div>
-          </Card>
+          <PostsSection
+            posts={posts}
+            boardCategories={boardCategories}
+            selectedBoard={selectedBoard}
+            onBoardChange={setSelectedBoard}
+          />
         </div>
       </div>
 
@@ -216,7 +205,7 @@ export default function HomePage() {
       <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
 
       <Sheet open={showCreateSheet} onOpenChange={setShowCreateSheet}>
-        <SheetContent side="bottom" className="h-[80vh] p-0" hideClose>
+        <SheetContent side="bottom" className="h-[85vh] p-0" hideClose>
           <div className="flex h-full flex-col overflow-hidden">
             <SheetHeader className="flex flex-row items-center justify-between border-b px-6 py-5">
               <SheetTitle className="text-xl font-bold">새 이벤트 만들기</SheetTitle>
@@ -239,29 +228,6 @@ export default function HomePage() {
         </SheetContent>
       </Sheet>
     </div>
-  )
-}
-
-type AnnouncementBannerProps = {
-  announcement: Post
-}
-
-function AnnouncementBanner({ announcement }: AnnouncementBannerProps) {
-  return (
-    <Card className="gap-0 border-blue-100 bg-blue-50 text-blue-900 shadow-none">
-      <CardContent className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:px-6">
-        <div className="flex items-center gap-3">
-          <Bell className="size-5 flex-shrink-0 text-blue-600" />
-          <span className="text-sm font-medium uppercase tracking-wide text-blue-600">공지</span>
-        </div>
-        <Link
-          href={`/community/posts/${announcement.id}`}
-          className="text-base font-semibold hover:underline lg:text-lg"
-        >
-          {announcement.title}
-        </Link>
-      </CardContent>
-    </Card>
   )
 }
 

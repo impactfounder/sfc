@@ -20,10 +20,10 @@ export function FilterButtons({ categories, selectedSlug, onSelect }: FilterButt
       <button
         onClick={() => onSelect("all")}
         className={cn(
-          "px-5 py-2 rounded-2xl border font-medium transition whitespace-nowrap",
+          "px-4 py-1.5 rounded-full border font-medium transition whitespace-nowrap text-sm",
           selectedSlug === "all"
-            ? "border-transparent bg-black/80 text-white shadow"
-            : "border-[#e5e7eb] bg-white/40 backdrop-blur-md shadow-sm hover:bg-white/60 text-gray-800"
+            ? "bg-gray-900 text-white border-gray-900"
+            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
         )}
       >
         전체
@@ -33,10 +33,10 @@ export function FilterButtons({ categories, selectedSlug, onSelect }: FilterButt
           key={category.id}
           onClick={() => onSelect(category.slug)}
           className={cn(
-            "px-5 py-2 rounded-2xl border font-medium transition whitespace-nowrap",
+            "px-4 py-1.5 rounded-full border font-medium transition whitespace-nowrap text-sm",
             selectedSlug === category.slug
-              ? "border-transparent bg-black/80 text-white shadow"
-              : "border-[#e5e7eb] bg-white/40 backdrop-blur-md shadow-sm hover:bg-white/60 text-gray-800"
+              ? "bg-gray-900 text-white border-gray-900"
+              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
           )}
         >
           {category.name}
@@ -45,4 +45,3 @@ export function FilterButtons({ categories, selectedSlug, onSelect }: FilterButt
     </div>
   )
 }
-

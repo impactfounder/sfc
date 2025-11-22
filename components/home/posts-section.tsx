@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo } from "react"
+import { useState, useMemo } from "react"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { PostListItem } from "@/components/ui/post-list-item"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
-import { FilterButtons } from "./filter-buttons"
+import { Skeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
 
 type Post = {
@@ -29,35 +30,94 @@ type BoardCategory = {
 interface PostsSectionProps {
   posts: Post[]
   boardCategories: BoardCategory[]
-  selectedBoard: string
-  onBoardChange: (slug: string) => void
+  selectedBoard?: string
+  onBoardChange?: (slug: string) => void
+  isLoading?: boolean
 }
 
-export function PostsSection({
-  posts,
+export function PostsSection({ 
+  posts, 
   boardCategories,
-  selectedBoard,
+  selectedBoard = "all",
   onBoardChange,
+  isLoading = false 
 }: PostsSectionProps) {
+  
+  const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
+  const currentBoard = onBoardChange ? selectedBoard : internalSelectedBoard
+  const handleBoardChange = onBoardChange 
+    ? onBoardChange 
+    : (val: string) => setInternalSelectedBoard(val || "all")
+
   const filteredPosts = useMemo(() => {
-    if (selectedBoard === "all") {
+    if (currentBoard === "all") {
       return posts
     }
-    return posts.filter((post) => post.board_categories?.slug === selectedBoard)
-  }, [posts, selectedBoard])
+    return posts.filter(
+      (post) => post.board_categories?.slug === currentBoard
+    )
+  }, [posts, currentBoard])
+
+  // 중복 카테고리 제거 (slug 기준)
+  const uniqueCategories = useMemo(() => {
+    const unique = new Map();
+    boardCategories.forEach(cat => {
+      if (!unique.has(cat.slug)) {
+        unique.set(cat.slug, cat);
+      }
+    });
+    return Array.from(unique.values());
+  }, [boardCategories]);
 
   return (
-    <div className="space-y-4">
-      {/* Filter Buttons */}
-      <FilterButtons
-        categories={boardCategories}
-        selectedSlug={selectedBoard}
-        onSelect={onBoardChange}
-      />
+    <div className="w-full max-w-6xl mx-auto px-4 md:px-8 space-y-6">
+      
+      <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">최신 글</h2>
+
+      {/* 카테고리 필터 (업로드하신 이미지 스타일 적용) */}
+      <div className="overflow-x-auto pb-2 scrollbar-hide">
+        <ToggleGroup
+          type="single"
+          value={currentBoard}
+          onValueChange={handleBoardChange}
+          // ★ 컨테이너 스타일: 연한 회색 배경, 둥근 모서리, 내부 패딩
+          className="inline-flex items-center p-1.5 rounded-2xl bg-slate-100/80 w-auto"
+        >
+          <ToggleGroupItem 
+            value="all" 
+            aria-label="전체" 
+            // ★ 아이템 스타일: 선택 시 흰색 배경 + 그림자 + 파란 텍스트 / 비선택 시 회색 텍스트
+            className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+          >
+            전체
+          </ToggleGroupItem>
+          
+          {uniqueCategories.map((category) => (
+            <ToggleGroupItem
+              key={category.id}
+              value={category.slug}
+              aria-label={category.name}
+              className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+            >
+              {category.name}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
 
       {/* Posts List */}
       <div className="space-y-3">
-        {filteredPosts.length > 0 ? (
+        {isLoading ? (
+          [1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="w-full h-24 rounded-xl border border-gray-200 bg-white p-4">
+              <Skeleton className="h-6 w-3/4 mb-3" />
+              <div className="flex gap-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+          ))
+        ) : filteredPosts.length > 0 ? (
           filteredPosts.map((post) => {
             const boardSlug = post.board_categories?.slug || "free-board"
             return (
@@ -69,20 +129,21 @@ export function PostsSection({
             )
           })
         ) : (
-          <Empty className="bg-white/60">
-            <EmptyHeader>
-              <EmptyTitle>게시글이 없습니다</EmptyTitle>
-              <EmptyDescription>첫 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <Button asChild variant="outline">
-                <Link href="/community/posts/new">글 작성하기</Link>
-              </Button>
-            </EmptyContent>
-          </Empty>
+          <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-12">
+            <Empty className="bg-transparent">
+              <EmptyHeader>
+                <EmptyTitle>게시글이 없습니다</EmptyTitle>
+                <EmptyDescription>첫 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button asChild variant="outline" className="rounded-xl">
+                  <Link href="/community/posts/new">글 작성하기</Link>
+                </Button>
+              </EmptyContent>
+            </Empty>
+          </div>
         )}
       </div>
     </div>
   )
 }
-

@@ -1,13 +1,11 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
-import { Calendar, Clock, MapPin, Users } from "lucide-react"
-import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
-import { AspectRatio } from "@/components/ui/aspect-ratio"
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { MapPin, User, Users, Calendar, Clock } from "lucide-react"
 
-type Event = {
+export type EventCardEvent = {
   id: string
   title: string
   thumbnail_url?: string | null
@@ -16,135 +14,143 @@ type Event = {
   location?: string | null
   current_participants?: number | null
   max_participants?: number | null
+  host_name?: string | null
+  host_avatar_url?: string | null
+  host_bio?: string | null
 }
 
-const eventCardVariants = cva(
-  "rounded-2xl border bg-card text-card-foreground shadow-xs transition-shadow hover:shadow-sm",
-  {
-    variants: {
-      layout: {
-        poster: "flex flex-col gap-0 p-0",
-        square: "flex flex-col gap-0 p-0",
-        list: "flex flex-row items-center gap-4 p-3 sm:p-4",
-      },
-    },
-    defaultVariants: {
-      layout: "poster",
-    },
-  }
-)
-
-const mediaVariants = cva("relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 text-white", {
-  variants: {
-    layout: {
-      poster: "w-full rounded-none",
-      square: "w-full rounded-none",
-      list: "size-16 flex-shrink-0 rounded-lg",
-    },
-  },
-  defaultVariants: {
-    layout: "poster",
-  },
-})
-
-const contentVariants = cva("flex flex-col gap-3", {
-  variants: {
-    layout: {
-      poster: "p-5",
-      square: "p-5",
-      list: "flex-1 p-0",
-    },
-  },
-  defaultVariants: {
-    layout: "poster",
-  },
-})
-
-type EventCardProps = VariantProps<typeof eventCardVariants> & {
-  event: Event
+type Props = {
+  event: EventCardEvent
   href?: string
   className?: string
 }
 
-export function EventCard({ event, layout = "poster", href, className }: EventCardProps) {
-  const media = (
-    <div className={cn(mediaVariants({ layout }))}>
-      {layout === "list" ? (
-        <div className="relative size-full">
-          {renderImage(event)}
-        </div>
-      ) : (
-        <AspectRatio ratio={layout === "poster" ? 4 / 3 : 1} className="relative">
-          {renderImage(event)}
-        </AspectRatio>
+export default function EventCard({ event, href, className }: Props) {
+  const dateObj = new Date(event.event_date)
+  const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`
+  
+  // 시간 포맷팅
+  const timeStr = dateObj.toLocaleTimeString('ko-KR', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })
+
+  // 인원 계산
+  const current = event.current_participants || 0
+  const max = event.max_participants || 0
+  const isFull = max > 0 && current >= max
+
+  const content = (
+    <div
+      className={cn(
+        "group relative w-full aspect-[4/5] overflow-hidden rounded-[20px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
+        className
       )}
+    >
+      {/* 배경 이미지 */}
+      {event.thumbnail_url ? (
+        <Image
+          src={event.thumbnail_url}
+          alt={event.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
+      )}
+
+      {/* 그라데이션 오버레이 (가독성 강화) */}
+      {/* 상단은 조금 더 진하게, 중간은 투명하게, 하단은 텍스트 보호를 위해 아주 진하게 처리 */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent via-30% to-black/95" />
+
+      {/* 콘텐츠 레이어 */}
+      <div className="relative h-full flex flex-col justify-between p-5">
+        
+        {/* 상단: 제목 */}
+        <div>
+          <span className="inline-block px-2.5 py-0.5 mb-2 text-[10px] font-bold border border-white/40 rounded-full bg-black/30 backdrop-blur-md text-white shadow-sm">
+            EVENT
+          </span>
+          <h3 className="text-xl font-bold text-white leading-snug break-keep drop-shadow-md">
+            {event.title}
+          </h3>
+        </div>
+
+        {/* 하단: 정보 영역 */}
+        <div className="space-y-2.5">
+          
+          {/* 1. 프로필 (이름 : 소개) */}
+          <div className="flex items-center gap-2">
+            <div className="relative h-6 w-6 flex-shrink-0 rounded-full border border-white/40 bg-white/10 overflow-hidden shadow-sm">
+              {event.host_avatar_url ? (
+                <Image
+                  src={event.host_avatar_url}
+                  alt={event.host_name || "Host"}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-xs sm:text-sm truncate drop-shadow-md">
+              <span className="font-bold text-white">{event.host_name || "호스트"}</span>
+              <span className="text-white/70 px-0.5">:</span>
+              <span className="text-white/90 truncate max-w-[120px]">
+                {event.host_bio || "SFC 멤버"}
+              </span>
+            </div>
+          </div>
+
+          {/* 2. 날짜 & 시간 (아이콘 추가) */}
+          <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-white drop-shadow-md pl-0.5">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-white/90" />
+              <span>{dateStr}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-white/90" />
+              <span>{timeStr}</span>
+            </div>
+          </div>
+
+          {/* 3. 장소 (좌측) / 인원 버튼 (우측 하단) */}
+          <div className="flex items-end justify-between pt-0.5">
+            {/* 장소 텍스트 크기 키움 (text-xs -> text-xs sm:text-sm) */}
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-white drop-shadow-md truncate max-w-[60%] pb-1 pl-0.5">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-white/90" />
+              <span className="truncate">{event.location || "장소 미정"}</span>
+            </div>
+
+            {/* 인원 배지 */}
+            <div className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg backdrop-blur-md text-xs font-bold transition-colors shadow-sm",
+              isFull 
+                ? "bg-red-500/80 border border-red-400/50 text-white" 
+                : "bg-white/15 border border-white/30 text-white hover:bg-white/25"
+            )}>
+              <Users className="w-3 h-3" />
+              <span>
+                {current}
+                <span className="text-white/60 font-normal mx-0.5">/</span>
+                {max}명
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   )
 
-  const body = (
-    <Card className={cn(eventCardVariants({ layout }), className)}>
-      {media}
-      <CardContent className={contentVariants({ layout })}>
-        <div className="flex items-start justify-between gap-4">
-          <CardTitle className={cn("text-lg", layout === "list" && "text-base line-clamp-1")}>{event.title}</CardTitle>
-          {(event.current_participants || event.max_participants) && (
-            <CardDescription className="flex items-center gap-1 text-xs font-medium">
-              <Users className="size-4" />
-              {event.current_participants || 0}/{event.max_participants ?? 0}
-            </CardDescription>
-          )}
-        </div>
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Calendar className="size-4 flex-shrink-0" />
-            <span>{new Date(event.event_date).toLocaleDateString("ko-KR")}</span>
-          </div>
-          {event.event_time && (
-            <div className="flex items-center gap-2">
-              <Clock className="size-4 flex-shrink-0" />
-              <span>{event.event_time}</span>
-            </div>
-          )}
-          {event.location && (
-            <div className="flex items-center gap-2">
-              <MapPin className="size-4 flex-shrink-0" />
-              <span className="truncate">{event.location}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  if (!href) {
-    return body
-  }
+  if (!href) return content
 
   return (
     <Link href={href} className="block">
-      {body}
+      {content}
     </Link>
   )
 }
-
-function renderImage(event: Event) {
-  if (event.thumbnail_url) {
-    return (
-      <Image
-        src={event.thumbnail_url}
-        alt={event.title}
-        fill
-        sizes="(max-width:768px) 100vw, 33vw"
-        className="object-cover"
-        priority={false}
-      />
-    )
-  }
-
-  return (
-    <div className="flex h-full w-full items-center justify-center text-3xl font-semibold uppercase text-white">
-      {event.title?.[0] || "E"}
-    </div>
-  )
-}
-
