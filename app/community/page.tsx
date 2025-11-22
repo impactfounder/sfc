@@ -1,3 +1,4 @@
+"use client";
 import { createClient } from "@/lib/supabase/server"
 import dynamic from "next/dynamic"
 import { Skeleton } from "@/components/ui/skeleton"
