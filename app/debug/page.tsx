@@ -10,6 +10,8 @@ export default async function DebugPage() {
   const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL
   const hasKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const urlPreview = process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 50) || "NOT SET"
+  const keyPreview = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 30) || "NOT SET"
+  const keyLength = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0
 
   // 테스트 쿼리들
   const testQueries = {
@@ -46,7 +48,13 @@ export default async function DebugPage() {
           <h2 className="text-xl font-semibold mb-4">환경 변수</h2>
           <div className="space-y-2">
             <p>Supabase URL: {hasUrl ? `✅ ${urlPreview}...` : "❌ NOT SET"}</p>
-            <p>Anon Key: {hasKey ? "✅ SET" : "❌ NOT SET"}</p>
+            <p>Anon Key: {hasKey ? `✅ SET (길이: ${keyLength}자, 미리보기: ${keyPreview}...)` : "❌ NOT SET"}</p>
+            {hasKey && keyLength < 100 && (
+              <p className="text-red-600 text-sm">⚠️ API 키가 너무 짧습니다. 올바른 anon public 키인지 확인하세요.</p>
+            )}
+            {hasKey && keyLength > 100 && keyLength < 200 && (
+              <p className="text-yellow-600 text-sm">⚠️ API 키 길이가 정상 범위가 아닙니다. anon public 키 전체를 복사했는지 확인하세요.</p>
+            )}
           </div>
         </div>
 
