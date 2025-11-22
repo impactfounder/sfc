@@ -1,9 +1,12 @@
 // 디버깅용 페이지: 서버에서 실제로 데이터를 가져올 수 있는지 확인
-// 배포 사이트에서 /debug 접속하여 확인
+// 운영 환경에서는 이 페이지를 제거하거나 접근 제한을 두는 것을 권장합니다
 
 import { createClient } from "@/lib/supabase/server"
 
 export default async function DebugPage() {
+  // 운영 환경에서는 접근 제한 (선택사항)
+  const isProduction = process.env.NODE_ENV === 'production'
+  
   const supabase = await createClient()
 
   // 환경 변수 확인
@@ -42,18 +45,20 @@ export default async function DebugPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">디버깅 정보</h1>
+      {isProduction && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800 text-sm">⚠️ 운영 환경에서 디버깅 페이지가 활성화되어 있습니다. 보안을 위해 제거하거나 접근 제한을 권장합니다.</p>
+        </div>
+      )}
       
       <div className="space-y-6">
         <div className="p-6 bg-white rounded-lg border border-gray-200">
           <h2 className="text-xl font-semibold mb-4">환경 변수</h2>
           <div className="space-y-2">
             <p>Supabase URL: {hasUrl ? `✅ ${urlPreview}...` : "❌ NOT SET"}</p>
-            <p>Anon Key: {hasKey ? `✅ SET (길이: ${keyLength}자, 미리보기: ${keyPreview}...)` : "❌ NOT SET"}</p>
+            <p>Anon Key: {hasKey ? `✅ SET (길이: ${keyLength}자)` : "❌ NOT SET"}</p>
             {hasKey && keyLength < 100 && (
               <p className="text-red-600 text-sm">⚠️ API 키가 너무 짧습니다. 올바른 anon public 키인지 확인하세요.</p>
-            )}
-            {hasKey && keyLength > 100 && keyLength < 200 && (
-              <p className="text-yellow-600 text-sm">⚠️ API 키 길이가 정상 범위가 아닙니다. anon public 키 전체를 복사했는지 확인하세요.</p>
             )}
           </div>
         </div>
@@ -136,4 +141,3 @@ export default async function DebugPage() {
     </div>
   )
 }
-
