@@ -1,26 +1,21 @@
-"use client";
+"use client"
 
-import Link from "next/link"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Bell, Calendar, Plus, User, Users, X } from "lucide-react"
+import { Calendar, Plus, User, Users, X } from "lucide-react"
 
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { LoginModal } from "@/components/login-modal"
-import { EventCard } from "@/components/ui/event-card"
 import { NewEventForm } from "@/components/new-event-form"
-import { PostListItem } from "@/components/ui/post-list-item"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Card } from "@/components/ui/card"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { AnnouncementBanner } from "@/components/home/announcement-banner"
+import { EventsSection } from "@/components/home/events-section"
+import { PostsSection } from "@/components/home/posts-section"
 
 type TabValue = "events" | "community"
 
@@ -28,10 +23,6 @@ type BoardCategory = {
   id: string
   name: string
   slug: string
-}
-
-type Profile = {
-  full_name?: string | null
 }
 
 type Post = {
@@ -42,7 +33,9 @@ type Post = {
     name?: string | null
     slug?: string | null
   } | null
-  profiles?: Profile | null
+  profiles?: {
+    full_name?: string | null
+  } | null
 }
 
 type Event = {
@@ -56,10 +49,15 @@ type Event = {
   max_participants?: number | null
 }
 
+type Announcement = {
+  id: string
+  title: string
+}
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabValue>("events")
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
-  const [announcements, setAnnouncements] = useState<Post[]>([])
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([])
@@ -79,51 +77,87 @@ export default function HomePage() {
       } = await supabase.auth.getUser()
       setUser(user)
 
-      const { data: categoriesData } = await supabase.from("board_categories").select("*").order("name")
+      // Fetch board categories (only free, vangol, hightalk)
+      const { data: categoriesData } = await supabase
+        .from("board_categories")
+        .select("id, name, slug")
+        .in("slug", ["free", "vangol", "hightalk", "free-board", "bangol", "hightalk"])
+        .eq("is_active", true)
+        .order("order_index", { ascending: true })
+
       if (categoriesData) {
-        setBoardCategories(categoriesData as BoardCategory[])
+        // Map old slugs to new slugs if needed
+        const mappedCategories = categoriesData.map((cat) => {
+          if (cat.slug === "free-board") return { ...cat, slug: "free" }
+          if (cat.slug === "bangol") return { ...cat, slug: "vangol" }
+          return cat
+        })
+        setBoardCategories(mappedCategories as BoardCategory[])
       }
 
-      const { data: announcementsData } = await supabase
+      // Fetch announcement (slug=announcement, limit 1)
+      const { data: announcementData } = await supabase
         .from("posts")
-        .select(`*, profiles(full_name), board_categories!inner(name, slug)`)
+        .select(`id, title, board_categories!inner(slug)`)
         .eq("board_categories.slug", "announcement")
         .order("created_at", { ascending: false })
         .limit(1)
+        .maybeSingle()
 
+      if (announcementData) {
+        setAnnouncement({ id: announcementData.id, title: announcementData.title })
+      }
+
+      // Fetch events (event_date >= now(), limit 6)
       const { data: eventsData } = await supabase
         .from("events")
-        .select(`*, profiles(full_name), event_registrations(count)`)
-        .eq("status", "upcoming")
+        .select(`id, title, thumbnail_url, event_date, event_time, location, max_participants, event_registrations(count)`)
+        .gte("event_date", new Date().toISOString())
         .order("event_date", { ascending: true })
-        .limit(10)
+        .limit(6)
 
+      if (eventsData) {
+        const transformedEvents = eventsData.map((event) => ({
+          id: event.id,
+          title: event.title,
+          thumbnail_url: event.thumbnail_url,
+          event_date: event.event_date,
+          event_time: event.event_time,
+          location: event.location,
+          max_participants: event.max_participants,
+          current_participants: event.event_registrations?.[0]?.count || 0,
+        }))
+        setEvents(transformedEvents as Event[])
+      }
+
+      // Fetch posts (slug in ["free", "vangol", "hightalk"], exclude announcement, limit 50)
       const { data: postsData } = await supabase
         .from("posts")
-        .select(`*, profiles(full_name), board_categories!inner(name, slug)`)
+        .select(`id, title, created_at, profiles:author_id(full_name), board_categories!inner(name, slug)`)
+        .in("board_categories.slug", ["free", "vangol", "hightalk", "free-board", "bangol", "hightalk"])
         .neq("board_categories.slug", "announcement")
         .order("created_at", { ascending: false })
-        .limit(20)
+        .limit(50)
 
-      if (announcementsData) setAnnouncements(announcementsData as Post[])
-      if (eventsData) setEvents(eventsData as Event[])
-      if (postsData) setPosts(postsData as Post[])
+      if (postsData) {
+        // Map old slugs to new slugs
+        const mappedPosts = postsData.map((post) => {
+          if (post.board_categories?.slug === "free-board") {
+            return { ...post, board_categories: { ...post.board_categories, slug: "free" } }
+          }
+          if (post.board_categories?.slug === "bangol") {
+            return { ...post, board_categories: { ...post.board_categories, slug: "vangol" } }
+          }
+          return post
+        })
+        setPosts(mappedPosts as Post[])
+      }
 
       setIsLoading(false)
     }
 
     fetchData()
   }, [supabase])
-
-  const filteredPosts = useMemo(
-    () =>
-      selectedBoard === "all"
-        ? posts
-        : posts.filter((post: Post) => post.board_categories?.slug === selectedBoard),
-    [posts, selectedBoard]
-  )
-
-  const latestPosts = useMemo(() => posts.slice(0, 5), [posts])
 
   const handleCreateEvent = () => {
     if (!user) {
@@ -143,8 +177,6 @@ export default function HomePage() {
     setShowLoginModal(true)
   }
 
-  const announcement = announcements[0]
-
   return (
     <div className="flex min-h-screen bg-slate-50">
       <MobileHeader />
@@ -154,168 +186,23 @@ export default function HomePage() {
 
       <div className="flex w-full flex-1 justify-center overflow-x-hidden pb-20 pt-20 lg:pb-10 lg:pt-12">
         <div className="flex w-full max-w-6xl flex-col gap-6 px-4 lg:px-10">
-          {announcement && <AnnouncementBanner announcement={announcement} />}
+          {/* Announcement Banner */}
+          <AnnouncementBanner announcement={announcement} />
 
-          <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab((value as TabValue) ?? "events")} className="space-y-6">
-            <Card className="gap-0">
-              <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <CardTitle className="text-2xl font-bold">커뮤니티 허브</CardTitle>
-                  <CardDescription>이벤트와 커뮤니티 소식을 한눈에 확인하세요.</CardDescription>
-                </div>
-                <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                  <TabsList className="grid w-full grid-cols-2 bg-muted/40 p-1 md:w-auto">
-                    <TabsTrigger value="events" className="rounded-lg text-base data-[state=active]:bg-background">
-                      이벤트
-                    </TabsTrigger>
-                    <TabsTrigger value="community" className="rounded-lg text-base data-[state=active]:bg-background">
-                      커뮤니티
-                    </TabsTrigger>
-                  </TabsList>
-                  {activeTab === "events" && (
-                    <Button onClick={handleCreateEvent} size="lg" className="w-full md:w-auto">
-                      + 이벤트 만들기
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-            </Card>
+          {/* Events Section */}
+          <EventsSection events={events} onCreateEvent={handleCreateEvent} />
 
-            <TabsContent value="events" className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>이벤트</CardTitle>
-                      <CardDescription>다가오는 일정을 확인하세요.</CardDescription>
-                    </div>
-                    <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={handleCreateEvent}>
-                      새 이벤트
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoading ? (
-                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        {Array.from({ length: 3 }).map((_, index: number) => (
-                          <Skeleton key={index} className="h-56 rounded-2xl bg-white" />
-                        ))}
-                      </div>
-                    ) : events.length > 0 ? (
-                      <div className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                          {events.map((event: Event, index: number) => (
-                            <EventCard
-                              key={event.id}
-                              event={event}
-                              layout={index % 3 === 0 ? "poster" : "square"}
-                              href={`/community/events/${event.id}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <Empty className="bg-white/60">
-                        <EmptyHeader>
-                          <EmptyTitle>아직 예정된 이벤트가 없어요</EmptyTitle>
-                          <EmptyDescription>첫 번째 이벤트를 만들어 커뮤니티를 시작해보세요.</EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                          <Button onClick={handleCreateEvent}>이벤트 만들기</Button>
-                        </EmptyContent>
-                      </Empty>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="hidden lg:flex lg:flex-col">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>최신 글</CardTitle>
-                      <CardDescription>커뮤니티 소식을 빠르게 확인하세요.</CardDescription>
-                    </div>
-                    <Button asChild variant="link" className="px-0 text-sm">
-                      <Link href="/community/posts">더보기 →</Link>
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {latestPosts.length > 0 ? (
-                      latestPosts.map((post: Post) => (
-                        <PostListItem key={post.id} post={post} href={`/community/posts/${post.id}`} />
-                      ))
-                    ) : (
-                      <CardDescription className="text-center text-base text-muted-foreground">
-                        표시할 게시글이 없습니다.
-                      </CardDescription>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="community" className="space-y-6">
-              <Card className="gap-0">
-                <CardHeader>
-                  <CardTitle>게시판 필터</CardTitle>
-                  <CardDescription>관심 있는 카테고리를 선택하세요.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="w-full">
-                    <ToggleGroup
-                      type="single"
-                      value={selectedBoard}
-                      onValueChange={(value: string) => value && setSelectedBoard(value)}
-                      variant="outline"
-                      className="min-w-max rounded-full border bg-white/90 p-1"
-                    >
-                      <ToggleGroupItem value="all" className="rounded-full px-4">
-                        전체
-                      </ToggleGroupItem>
-                      {boardCategories.map((category: BoardCategory) => (
-                        <ToggleGroupItem key={category.id} value={category.slug} className="rounded-full px-4">
-                          {category.name}
-                        </ToggleGroupItem>
-                      ))}
-                    </ToggleGroup>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>최신 글</CardTitle>
-                    <CardDescription>
-                      {selectedBoard === "all"
-                        ? "전체 게시판에서 모아봤어요."
-                        : boardCategories.find((category: BoardCategory) => category.slug === selectedBoard)?.name || "게시판"}
-                    </CardDescription>
-                  </div>
-                  <Button asChild variant="link" className="px-0 text-sm">
-                    <Link href="/community/posts">더보기 →</Link>
-                  </Button>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {filteredPosts.length > 0 ? (
-                    filteredPosts.map((post: Post) => (
-                      <PostListItem key={post.id} post={post} href={`/community/posts/${post.id}`} />
-                    ))
-                  ) : (
-                    <Empty className="bg-white/60">
-                      <EmptyHeader>
-                        <EmptyTitle>게시글이 없습니다</EmptyTitle>
-                        <EmptyDescription>첫 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
-                      </EmptyHeader>
-                      <EmptyContent>
-                        <Button asChild variant="outline">
-                          <Link href="/community/posts/new">글 작성하기</Link>
-                        </Button>
-                      </EmptyContent>
-                    </Empty>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          {/* Posts Section */}
+          <Card>
+            <div className="p-6">
+              <PostsSection
+                posts={posts}
+                boardCategories={boardCategories}
+                selectedBoard={selectedBoard}
+                onBoardChange={setSelectedBoard}
+              />
+            </div>
+          </Card>
         </div>
       </div>
 
