@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck, Mail } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck } from 'lucide-react';
 import { RegisterButton } from "@/components/register-button";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -269,21 +269,17 @@ export default async function EventDetailPage({
               <CardContent className="p-6 flex flex-col h-full">
                 <CardHeader icon={ShieldCheck} title="호스트 소개" />
                 
-                <div className="flex items-start gap-4 mb-6 flex-1">
+                <div className="flex gap-4 mb-6 flex-1 items-start">
                   <Avatar className="h-12 w-12 border border-slate-100 shrink-0">
                     <AvatarImage src={event.profiles?.avatar_url || undefined} />
                     <AvatarFallback className="bg-slate-900 text-white font-bold">
                       {event.profiles?.full_name?.[0] || "H"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-bold text-slate-900 truncate">
+                  <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: '48px' }}>
+                    <p className="text-xl font-bold text-slate-900 truncate">
                       {event.profiles?.full_name || "알 수 없음"}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-sm text-slate-500">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span className="truncate">{event.profiles?.email || "비공개"}</span>
-                    </div>
                     {event.profiles?.bio && (
                       <p className="text-sm text-slate-600 mt-3 leading-relaxed line-clamp-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
                         {event.profiles.bio}

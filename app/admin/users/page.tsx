@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { UserManagement } from "@/components/user-management"
+import { isMasterAdmin, isAdmin } from "@/lib/utils"
 
 export default async function UsersManagementPage() {
   const supabase = await createClient()
@@ -16,11 +17,17 @@ export default async function UsersManagementPage() {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "master")) {
+  if (!profile || !isAdmin(profile.role, profile.email)) {
     redirect("/")
   }
+
+  const isMaster = isMasterAdmin(profile.role, profile.email)
 
   const { data: users } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
 
@@ -48,7 +55,14 @@ export default async function UsersManagementPage() {
           <CardContent>
             <div className="space-y-4">
               {users && users.length > 0 ? (
-                users.map((member) => <UserManagement key={member.id} user={member} currentUserId={user.id} />)
+                users.map((member) => (
+                  <UserManagement
+                    key={member.id}
+                    user={member}
+                    currentUserId={user.id}
+                    canChangeRole={isMaster}
+                  />
+                ))
               ) : (
                 <div className="py-12 text-center text-slate-500">회원이 없습니다</div>
               )}

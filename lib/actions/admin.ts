@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { isMasterAdmin } from "@/lib/utils"
 
 export async function updateUserRole(userId: string, role: string) {
   const supabase = await createClient()
@@ -14,11 +15,25 @@ export async function updateUserRole(userId: string, role: string) {
     throw new Error("Unauthorized")
   }
 
-  // Check if current user is admin or master
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+  // Check if current user is master admin (only master can change roles)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "master")) {
-    throw new Error("Unauthorized")
+  if (!profile || !isMasterAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only master admins can change user roles")
+  }
+
+  // Validate role value
+  if (!["member", "admin", "master"].includes(role)) {
+    throw new Error("Invalid role value")
+  }
+
+  // Prevent changing own role from master to something else
+  if (user.id === userId && profile.role === "master" && role !== "master") {
+    throw new Error("Cannot change your own master role")
   }
 
   // Update role
@@ -29,6 +44,7 @@ export async function updateUserRole(userId: string, role: string) {
   }
 
   revalidatePath("/admin/users")
+  revalidatePath("/admin/roles")
   return { success: true }
 }
 
@@ -44,9 +60,19 @@ export async function updateUserMembershipTier(userId: string, membershipTier: s
   }
 
   // Check if current user is admin or master
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "master")) {
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
     throw new Error("Unauthorized")
   }
 

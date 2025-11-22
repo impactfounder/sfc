@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Heart, MessageSquare } from "lucide-react"
 import { LikeButton } from "@/components/like-button"
 import { CommentSection } from "@/components/comment-section"
+import { PostActions } from "@/components/post-actions"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { PostActions } from "@/components/post-actions"
+import { isMasterAdmin } from "@/lib/utils"
 
 export default async function PostDetailPage({
   params,
@@ -59,7 +60,19 @@ export default async function PostDetailPage({
     .eq("post_id", id)
     .order("created_at", { ascending: true })
 
-  const isAuthor = user && post.author_id === user.id
+  // Check if user is author
+  const isAuthor = Boolean(user && post.author_id === user.id)
+
+  // Check if user is master admin
+  let isMaster = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, email")
+      .eq("id", user.id)
+      .single()
+    isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+  }
 
   return (
     <div className="p-8">
@@ -83,7 +96,9 @@ export default async function PostDetailPage({
                   </p>
                 </div>
               </div>
-              {isAuthor && <PostActions postId={post.id} />}
+              {(isAuthor || isMaster) && (
+                <PostActions postId={post.id} isAuthor={isAuthor} isMaster={isMaster} />
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -96,8 +111,8 @@ export default async function PostDetailPage({
                 <LikeButton
                   postId={post.id}
                   userId={user.id}
-                  initialLiked={!!userLike}
-                  initialCount={post.likes_count}
+                  initialLiked={userLike !== null}
+                  initialCount={post.likes_count || 0}
                 />
               ) : (
                 <Link href="/auth/login">

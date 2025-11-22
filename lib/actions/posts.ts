@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { isMasterAdmin } from "@/lib/utils"
 
 export async function deletePost(postId: string) {
   const supabase = await createClient()
@@ -14,10 +15,25 @@ export async function deletePost(postId: string) {
     throw new Error("Unauthorized")
   }
 
+  // Get user profile to check role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
   // Verify post ownership
   const { data: post } = await supabase.from("posts").select("author_id").eq("id", postId).single()
 
-  if (!post || post.author_id !== user.id) {
+  if (!post) {
+    throw new Error("Post not found")
+  }
+
+  // Check if user is author or master admin
+  const isAuthor = post.author_id === user.id
+  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+
+  if (!isAuthor && !isMaster) {
     throw new Error("Unauthorized")
   }
 
@@ -29,5 +45,6 @@ export async function deletePost(postId: string) {
   }
 
   revalidatePath("/community/posts")
+  revalidatePath(`/community/board`)
   return { success: true }
 }

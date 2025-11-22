@@ -18,9 +18,11 @@ type UserProfile = {
 export function UserManagement({
   user,
   currentUserId,
+  canChangeRole = false,
 }: {
   user: UserProfile
   currentUserId: string
+  canChangeRole?: boolean
 }) {
   const [role, setRole] = useState(user.role || "user")
   const [membershipTier, setMembershipTier] = useState(user.membership_tier || "basic")
@@ -116,19 +118,21 @@ export function UserManagement({
 
       {!isCurrentUser && (
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-slate-600 font-medium">권한</label>
-            <Select value={role} onValueChange={handleRoleChange} disabled={isUpdating}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">일반 회원</SelectItem>
-                <SelectItem value="admin">관리자</SelectItem>
-                <SelectItem value="master">MASTER</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {canChangeRole && (
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-slate-600 font-medium">권한</label>
+              <Select value={role} onValueChange={handleRoleChange} disabled={isUpdating}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">일반 회원</SelectItem>
+                  <SelectItem value="admin">관리자</SelectItem>
+                  <SelectItem value="master">MASTER</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <label className="text-xs text-slate-600 font-medium">등급</label>

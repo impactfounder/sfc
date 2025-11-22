@@ -17,7 +17,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { deletePost } from "@/lib/actions/posts"
 
-export function PostActions({ postId }: { postId: string }) {
+type PostActionsProps = {
+  postId: string
+  isAuthor: boolean
+  isMaster?: boolean
+}
+
+export function PostActions({ postId, isAuthor, isMaster = false }: PostActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
@@ -26,8 +32,8 @@ export function PostActions({ postId }: { postId: string }) {
     setIsDeleting(true)
     try {
       await deletePost(postId)
-      router.push("/community/posts")
       router.refresh()
+      router.push("/community/posts")
     } catch (error) {
       console.error("Failed to delete post:", error)
       alert("게시글 삭제에 실패했습니다.")
@@ -35,6 +41,16 @@ export function PostActions({ postId }: { postId: string }) {
       setIsDeleting(false)
     }
   }
+
+  // 작성자가 아니고 마스터 관리자도 아니면 아무것도 표시하지 않음
+  if (!isAuthor && !isMaster) {
+    return null
+  }
+
+  // 삭제 가능 여부 (작성자 또는 마스터)
+  const canDelete = isAuthor || isMaster
+  // 수정 가능 여부 (작성자만)
+  const canEdit = isAuthor
 
   return (
     <>
@@ -45,14 +61,18 @@ export function PostActions({ postId }: { postId: string }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => router.push(`/community/posts/${postId}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            수정
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteDialog(true)}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            삭제
-          </DropdownMenuItem>
+          {canEdit && (
+            <DropdownMenuItem onClick={() => router.push(`/community/posts/${postId}/edit`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              수정
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteDialog(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              삭제
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
