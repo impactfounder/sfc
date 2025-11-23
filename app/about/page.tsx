@@ -1,12 +1,17 @@
+"use client"
+
+import { useEffect, useState, ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
-import { MobileSidebar } from "@/components/mobile-sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent } from "@/components/ui/card"
-import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather } from "lucide-react"
+import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather, Home, Calendar, Plus, User, Users } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
+import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 
 // 뱃지 정보 (최종 개편안 반영 - UI 렌더링용)
 const BADGE_GROUPS = [
@@ -104,12 +109,35 @@ const BADGE_GROUPS = [
 ]
 
 
-export const metadata = {
-  title: "SFC 소개 | Seoul Founders Club",
-  description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서가 모여 네트워킹하고 성장하는 비즈니스 커뮤니티입니다.",
-}
-
 export default function AboutPage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      setUser(currentUser)
+    }
+    loadUser()
+  }, [supabase])
+
+  const handleCreateEvent = () => {
+    if (!user) {
+      router.push("/auth/login")
+      return
+    }
+    router.push("/events/new")
+  }
+
+  const handleProfileAction = () => {
+    if (user) {
+      router.push("/community/profile")
+      return
+    }
+    router.push("/auth/login")
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <div className="hidden md:block">
@@ -117,7 +145,6 @@ export default function AboutPage() {
       </div>
 
       <MobileHeader />
-      <MobileSidebar />
 
       <div className="flex-1 overflow-auto pt-16 md:pt-0">
         
@@ -299,7 +326,7 @@ export default function AboutPage() {
                             <span className="text-2xl pt-1 flex-shrink-0">{badge.icon}</span>
                             <div>
                               <div className="font-semibold text-slate-900 leading-tight">{badge.name}</div>
-                              <div className="text-xs text-slate-700 mt-0.5 leading-snug">{badge.desc}</div>
+                              <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-2">{badge.desc}</div>
                             </div>
                           </div>
                         </Card>
@@ -343,6 +370,68 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+
+      {/* 하단 메뉴바 */}
+      <MobileActionBar
+        onCreate={handleCreateEvent}
+        onProfile={handleProfileAction}
+        user={user}
+      />
     </div>
+  )
+}
+
+// 하단 메뉴바 컴포넌트
+type MobileActionBarProps = {
+  onCreate: () => void
+  onProfile: () => void
+  user: any
+}
+
+function MobileActionBar({ onCreate, onProfile, user }: MobileActionBarProps) {
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
+      <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
+        <NavButton 
+          icon={<Home className={cn("size-6 mb-1", "text-gray-400")} />} 
+          label="홈" 
+          isActive={false} 
+          onClick={() => window.location.href = "/"} 
+        />
+        <NavButton 
+          icon={<Calendar className={cn("size-6 mb-1", "text-gray-400")} />} 
+          label="이벤트" 
+          isActive={false} 
+          onClick={() => window.location.href = "/events"} 
+        />
+        <button type="button" onClick={onCreate} className="flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white mb-1 transform active:scale-95 transition-transform">
+            <Plus className="size-6" />
+          </div>
+          <span className="text-slate-900 font-semibold">만들기</span>
+        </button>
+        <NavButton 
+          icon={<Users className={cn("size-6 mb-1", "text-gray-400")} />} 
+          label="커뮤니티" 
+          isActive={false} 
+          onClick={() => window.location.href = "/community/posts"} 
+        />
+        <NavButton 
+          icon={<User className={cn("size-6 mb-1", "text-gray-400")} />} 
+          label={user ? "프로필" : "로그인"} 
+          onClick={onProfile} 
+        />
+      </div>
+    </nav>
+  )
+}
+
+type NavButtonProps = { icon: ReactNode, label: string, isActive?: boolean, onClick: () => void }
+function NavButton({ icon, label, isActive, onClick }: NavButtonProps) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex flex-col items-center justify-center transition-colors active:bg-gray-50", isActive ? "text-slate-900 font-bold" : "text-gray-400")}>
+      {icon}
+      <span>{label}</span>
+    </button>
   )
 }

@@ -24,10 +24,9 @@ export default function ProfilePage() {
   const [userPosts, setUserPosts] = useState<any[]>([])
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([])
   const [transactions, setTransactions] = useState<any[]>([])
-  const [globalError, setGlobalError] = useState<string | null>(null); // 에러 상태 추가
   
   // UI State
-  const [activeTab, setActiveTab] = useState<TabType>("posts")
+  const [activeTab, setActiveTab] = useState<TabType>("posts") // 기본값: 게시글
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -40,33 +39,43 @@ export default function ProfilePage() {
       }
 
       setUser(currentUser)
-
-      try { // ★ try 블록 시작
-        setGlobalError(null);
-
+      
+      // ===============================================
+      // 각 쿼리에 try/catch를 적용하여 실패해도 로딩이 멈추지 않도록 함
+      // ===============================================
+      
+      try {
         // 1. 프로필 조회
-        const { data: profileData, error: profileError } = await supabase.from("profiles").select("*").eq("id", currentUser.id).single()
-        if (profileError) throw profileError;
+        const { data: profileData, error } = await supabase.from("profiles").select("*").eq("id", currentUser.id).single()
+        if (error) console.error("Profile Fetch Error:", error)
         setProfile(profileData)
+      } catch (e) { console.error("Profile Fetch Failed:", e) }
 
+      try {
         // 2. 내가 만든 이벤트
-        const { data: myEvents } = await supabase
+        const { data: myEvents, error } = await supabase
           .from("events")
           .select(`*, profiles:created_by (full_name, avatar_url)`)
           .eq("created_by", currentUser.id)
           .order("created_at", { ascending: false })
+        if (error) console.error("Created Events Fetch Error:", error)
         setCreatedEvents(myEvents || [])
+      } catch (e) { console.error("Created Events Fetch Failed:", e) }
 
+      try {
         // 3. 작성한 게시글
-        const { data: myPosts } = await supabase
+        const { data: myPosts, error } = await supabase
           .from("posts")
           .select(`*, board_categories (name, slug), profiles:author_id (full_name, avatar_url)`)
           .eq("author_id", currentUser.id)
           .order("created_at", { ascending: false })
+        if (error) console.error("Posts Fetch Error:", error)
         setUserPosts(myPosts || [])
+      } catch (e) { console.error("Posts Fetch Failed:", e) }
 
-        // 4. 참석 신청한 이벤트 (가장 복잡한 쿼리)
-        const { data: myRegistrations } = await supabase
+      try {
+        // 4. 참석 신청한 이벤트 (상세 정보 포함)
+        const { data: myRegistrations, error } = await supabase
           .from("event_registrations")
           .select(`
             *,
@@ -77,26 +86,27 @@ export default function ProfilePage() {
           .eq("user_id", currentUser.id)
           .order("registered_at", { ascending: false })
         
+        if (error) console.error("Registrations Fetch Error:", error)
+        
         const flattenedRegistrations = myRegistrations?.map((reg: any) => ({
           ...reg.events,
           registration_date: reg.registered_at
         })) || []
         setRegisteredEvents(flattenedRegistrations)
+      } catch (e) { console.error("Registrations Fetch Failed:", e) }
 
+      try {
         // 5. 포인트 내역
-        const { data: myTransactions } = await supabase
+        const { data: myTransactions, error } = await supabase
           .from("point_transactions")
           .select("*")
           .eq("user_id", currentUser.id)
           .order("created_at", { ascending: false })
+        if (error) console.error("Transactions Fetch Error:", error)
         setTransactions(myTransactions || [])
+      } catch (e) { console.error("Transactions Fetch Failed:", e) }
 
-      } catch (e: any) { // ★ catch 블록: 에러 발생 시 로깅
-        console.error("Critical Profile Load Error:", e);
-        setGlobalError("데이터 로딩 중 치명적인 오류가 발생했습니다. 콘솔을 확인해주세요.");
-      } finally {
-        setLoading(false) // ★ finally 블록: 무조건 실행 보장
-      }
+      setLoading(false)
     }
 
     loadData()
@@ -112,7 +122,7 @@ export default function ProfilePage() {
 
   if (!user) return null
 
-  // 탭 변경 핸들러 및 StatCard 정의 (기존과 동일)
+  // 탭 변경 핸들러
   const StatCard = ({ 
     title, 
     count, 
@@ -155,19 +165,12 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-6xl">
         <h1 className="mb-8 text-2xl md:text-3xl font-bold tracking-tight text-slate-900">내 프로필</h1>
 
-        {/* Global Error Message */}
-        {globalError && (
-          <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-700 text-sm font-medium">
-            ⚠️ {globalError}
-          </div>
-        )}
-
         <div className="grid gap-6 lg:grid-cols-12">
           
-          {/* 1. 왼쪽: 프로필 정보 카드 */}
+          {/* 1. 왼쪽: 프로필 정보 카드 (가운데 정렬 + 뱃지 포함) - 4칸 */}
           <Card className="lg:col-span-4 h-fit border-slate-200 shadow-sm overflow-hidden">
             <CardContent className="p-8 flex flex-col items-center text-center">
-              {/* ... (프로필 이미지, 이름, 뱃지 영역은 기존과 동일) ... */}
+              {/* 프로필 이미지 */}
               <div className="mb-6 relative">
                 <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
                   {profile?.avatar_url ? (
@@ -184,11 +187,13 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+                {/* 멤버십 등급 표시 (예시) */}
                 <div className="absolute bottom-0 right-0 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-full border-2 border-white shadow-sm">
                   MEMBER
                 </div>
               </div>
 
+              {/* 이름 및 이메일 */}
               <h2 className="text-2xl font-bold text-slate-900 mb-1">
                 {profile?.full_name || "이름 없음"}
               </h2>
@@ -199,6 +204,7 @@ export default function ProfilePage() {
 
               <Separator className="w-full mb-6" />
 
+              {/* 내 뱃지 영역 (빈 공간 활용) */}
               <div className="w-full">
                 <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
                   <Medal className="h-4 w-4 text-slate-900" />
@@ -206,6 +212,7 @@ export default function ProfilePage() {
                 </div>
                 
                 <div className="bg-slate-50 rounded-xl p-4 grid grid-cols-3 gap-2">
+                  {/* 뱃지 아이템 예시 */}
                   <div className="flex flex-col items-center gap-1">
                     <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 border border-yellow-200">
                       <Crown className="h-5 w-5" />
@@ -234,10 +241,10 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* 2. 오른쪽: 통계 카드 및 리스트 영역 */}
+          {/* 2. 오른쪽: 통계 카드 및 리스트 영역 - 8칸 */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* 상단 통계 카드 */}
+            {/* 상단 통계 카드 (클릭 가능) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard 
                 title="포인트" 
@@ -323,7 +330,8 @@ export default function ProfilePage() {
                             {post.title}
                           </h3>
                           <div className="flex gap-3 mt-2 text-xs text-slate-500">
-                            {/* 추가 정보가 있다면 여기에 표시 */}
+                            <span>좋아요 {post.likes_count || 0}</span>
+                            <span>댓글 {post.comments_count || 0}</span>
                           </div>
                         </Link>
                       ))
@@ -333,38 +341,28 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* 3. 내가 만든 이벤트 리스트 */}
+                {/* 3. 만든 이벤트 리스트 */}
                 {activeTab === "created_events" && (
                   <div className="divide-y divide-slate-100">
                     {createdEvents.length > 0 ? (
                       createdEvents.map((event) => (
-                        <Link key={event.id} href={`/events/${event.id}`} className="flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors group">
-                          {event.thumbnail_url && (
-                            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-                              <Image
-                                src={event.thumbnail_url}
-                                alt={event.title}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
+                        <Link key={event.id} href={`/community/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors">
+                          <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden">
+                            {event.thumbnail_url ? (
+                              <Image src={event.thumbnail_url} alt="" width={64} height={64} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-slate-300"><Calendar className="h-6 w-6" /></div>
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-medium text-slate-900 group-hover:text-blue-600 transition-colors truncate">
-                              {event.title}
-                            </h3>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {new Date(event.event_date).toLocaleDateString()}
-                              </span>
-                              {event.location && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {event.location}
-                                </span>
-                              )}
-                            </div>
+                            <h3 className="font-medium text-slate-900 truncate mb-1">{event.title}</h3>
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                              <CalendarDays className="h-3 w-3" />
+                              {new Date(event.event_date).toLocaleDateString()}
+                            </p>
+                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                              {event.status === 'upcoming' ? '예정됨' : '종료됨'}
+                            </Badge>
                           </div>
                         </Link>
                       ))
@@ -374,37 +372,29 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* 4. 참석 신청한 이벤트 리스트 */}
+                {/* 4. 참석 신청 리스트 */}
                 {activeTab === "participated_events" && (
                   <div className="divide-y divide-slate-100">
                     {registeredEvents.length > 0 ? (
                       registeredEvents.map((event) => (
-                        <Link key={event.id} href={`/events/${event.id}`} className="flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors group">
-                          {event.thumbnail_url && (
-                            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-                              <Image
-                                src={event.thumbnail_url}
-                                alt={event.title}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
+                        <Link key={event.id} href={`/community/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors">
+                          <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden">
+                            {event.thumbnail_url ? (
+                              <Image src={event.thumbnail_url} alt="" width={64} height={64} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-slate-300"><Ticket className="h-6 w-6" /></div>
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-medium text-slate-900 group-hover:text-blue-600 transition-colors truncate">
-                              {event.title}
-                            </h3>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {new Date(event.event_date).toLocaleDateString()}
+                            <h3 className="font-medium text-slate-900 truncate mb-1">{event.title}</h3>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {new Date(event.event_date).toLocaleDateString()}</span>
+                              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location}</span>
+                            </div>
+                            <div className="mt-2">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700">
+                                신청 완료
                               </span>
-                              {event.location && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {event.location}
-                                </span>
-                              )}
                             </div>
                           </div>
                         </Link>
@@ -414,6 +404,7 @@ export default function ProfilePage() {
                     )}
                   </div>
                 )}
+
               </CardContent>
             </Card>
           </div>
@@ -423,14 +414,13 @@ export default function ProfilePage() {
   )
 }
 
-// EmptyState 컴포넌트
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-        <Calendar className="h-8 w-8 text-slate-400" />
+    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+      <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+        <Users className="h-5 w-5 text-slate-300" />
       </div>
-      <p className="text-slate-500 font-medium">{message}</p>
+      <p className="text-sm">{message}</p>
     </div>
   )
 }
