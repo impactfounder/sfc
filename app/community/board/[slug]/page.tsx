@@ -180,8 +180,8 @@ export default async function BoardPage({
             <div className="space-y-4">
               {posts.map((post: any) => (
                 <Link key={post.id} href={`/community/board/${slug}/${post.id}`}>
-                  <Card className="border-slate-200 hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
+                  <Card className="border-slate-200 bg-white hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">

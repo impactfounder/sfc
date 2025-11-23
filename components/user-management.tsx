@@ -1,8 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, Calendar, Coins, Shield, Crown } from "lucide-react"
+import { Mail, Calendar, Coins, Shield, Crown, Medal } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { BadgeManager } from "@/components/badge-manager"
 import { updateUserRole, updateUserMembershipTier } from "@/lib/actions/admin"
 
 type UserProfile = {
@@ -27,6 +30,7 @@ export function UserManagement({
   const [role, setRole] = useState(user.role || "user")
   const [membershipTier, setMembershipTier] = useState(user.membership_tier || "basic")
   const [isUpdating, setIsUpdating] = useState(false)
+  const [showBadgeManager, setShowBadgeManager] = useState(false)
 
   const handleRoleChange = async (newRole: string) => {
     setIsUpdating(true)
@@ -118,6 +122,16 @@ export function UserManagement({
 
       {!isCurrentUser && (
         <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBadgeManager(true)}
+            className="gap-2"
+          >
+            <Medal className="h-4 w-4" />
+            뱃지 관리
+          </Button>
+
           {canChangeRole && (
             <div className="flex flex-col gap-2">
               <label className="text-xs text-slate-600 font-medium">권한</label>
@@ -150,6 +164,21 @@ export function UserManagement({
           </div>
         </div>
       )}
+
+      {/* 뱃지 관리 모달 */}
+      <Sheet open={showBadgeManager} onOpenChange={setShowBadgeManager}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Medal className="h-5 w-5" />
+              뱃지 관리 및 등록
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <BadgeManager userId={user.id} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

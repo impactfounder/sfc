@@ -11,9 +11,12 @@ export async function requireAuth() {
   const supabase = await createClient()
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  // 인증 오류가 있거나 사용자가 없으면 로그인 페이지로 리디렉션
+  if (error || !user) {
+    console.error("Auth error in requireAuth:", error)
     redirect("/auth/login")
   }
 
