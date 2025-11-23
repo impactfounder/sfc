@@ -322,4 +322,115 @@ export default function ProfilePage() {
                           <h3 className="text-base font-medium text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                             {post.title}
                           </h3>
-                          <div className="flex gap-3 mt-2 text-xs text-slate-5
+                          <div className="flex gap-3 mt-2 text-xs text-slate-500">
+                            {/* 추가 정보가 있다면 여기에 표시 */}
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <EmptyState message="작성한 게시글이 없습니다." />
+                    )}
+                  </div>
+                )}
+
+                {/* 3. 내가 만든 이벤트 리스트 */}
+                {activeTab === "created_events" && (
+                  <div className="divide-y divide-slate-100">
+                    {createdEvents.length > 0 ? (
+                      createdEvents.map((event) => (
+                        <Link key={event.id} href={`/events/${event.id}`} className="flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors group">
+                          {event.thumbnail_url && (
+                            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                              <Image
+                                src={event.thumbnail_url}
+                                alt={event.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-medium text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                              {event.title}
+                            </h3>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(event.event_date).toLocaleDateString()}
+                              </span>
+                              {event.location && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <EmptyState message="만든 이벤트가 없습니다." />
+                    )}
+                  </div>
+                )}
+
+                {/* 4. 참석 신청한 이벤트 리스트 */}
+                {activeTab === "participated_events" && (
+                  <div className="divide-y divide-slate-100">
+                    {registeredEvents.length > 0 ? (
+                      registeredEvents.map((event) => (
+                        <Link key={event.id} href={`/events/${event.id}`} className="flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors group">
+                          {event.thumbnail_url && (
+                            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                              <Image
+                                src={event.thumbnail_url}
+                                alt={event.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-medium text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                              {event.title}
+                            </h3>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(event.event_date).toLocaleDateString()}
+                              </span>
+                              {event.location && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <EmptyState message="참석 신청한 이벤트가 없습니다." />
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// EmptyState 컴포넌트
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+        <Calendar className="h-8 w-8 text-slate-400" />
+      </div>
+      <p className="text-slate-500 font-medium">{message}</p>
+    </div>
+  )
+}
