@@ -95,15 +95,17 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
     setIsSigningOut(true)
     
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('로그아웃 오류:', error)
-      }
-      // 하드 리로드로 캐시 무시하고 완전 초기화
-      window.location.href = '/'
+      // 로그아웃 실행 (타임아웃 설정)
+      const signOutPromise = supabase.auth.signOut()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('로그아웃 타임아웃')), 3000)
+      )
+      
+      await Promise.race([signOutPromise, timeoutPromise])
     } catch (error) {
       console.error('로그아웃 오류:', error)
-      // 오류가 발생해도 강제 리로드
+    } finally {
+      // 무조건 리로드
       window.location.href = '/'
     }
   }
