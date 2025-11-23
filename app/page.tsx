@@ -344,11 +344,11 @@ export default function HomePage() {
       <MobileHeader />
       <div className="hidden lg:block"><Sidebar /></div>
 
-      <div className="flex w-full flex-1 justify-center overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
-        <div className="w-full flex flex-col gap-8">
+      <div className="flex-1 overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
+        <div className="w-full max-w-6xl mx-auto flex flex-col gap-8 px-4 md:px-8">
           {/* ★ 히어로 섹션 추가 (홈 탭일 때만 보임) */}
           {activeTab === 'home' && (
-            <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
+            <div className="w-full">
               {/* HeroSection에 로그인 핸들러 전달 */}
               <HeroSection user={user} onLogin={handleLogin} />
             </div>
