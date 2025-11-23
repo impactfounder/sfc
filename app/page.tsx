@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef, ReactNode } from "react"
+import { useEffect, useMemo, useState, useRef, useCallback, ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Calendar, Plus, User, Users, X, Home } from "lucide-react"
 
@@ -65,8 +65,8 @@ export default function HomePage() {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  useEffect(() => {
-    async function fetchData() {
+  // fetchData를 useCallback으로 감싸서 재사용 가능하게 함
+  const fetchData = useCallback(async () => {
       try {
         setIsLoading(true)
         const { data: { user } } = await supabase.auth.getUser()
@@ -215,7 +215,9 @@ export default function HomePage() {
         setIsLoading(false) // 항상 로딩 상태 해제
       }
     }
+  }, [supabase])
 
+  useEffect(() => {
     fetchData()
 
     // 인증 상태 변경 감지 - 사용자 상태가 변경되면 즉시 반영
@@ -241,7 +243,7 @@ export default function HomePage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, fetchData])
 
   // ★ 수정됨: 모달 대신 페이지 이동
   const handleCreateEvent = () => {
