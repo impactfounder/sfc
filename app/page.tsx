@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, ReactNode } from "react"
+import { useEffect, useMemo, useState, useRef, ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Calendar, Plus, User, Users, X, Home } from "lucide-react"
 
@@ -57,6 +57,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([])
   const [user, setUser] = useState<any>(null)
+  const userRef = useRef<any>(null) // 이전 사용자 상태 추적
   
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -69,6 +70,7 @@ export default function HomePage() {
       setIsLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      userRef.current = user
 
       // 카테고리
       const { data: categoriesData } = await supabase
@@ -201,8 +203,50 @@ export default function HomePage() {
     fetchData()
 
     // 인증 상태 변경 감지 - 사용자 상태가 변경되면 즉시 반영
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const previousUser = userRef.current
+      const currentUser = session?.user ?? null
+      userRef.current = currentUser
+      setUser(currentUser)
+      
+      // 로그인했을 때만 데이터 다시 가져오기 (SIGNED_IN 이벤트)
+      if (event === 'SIGNED_IN' && !previousUser && currentUser) {
+        setIsLoading(true)
+        // 데이터 다시 가져오기
+        const { data: eventsData } = await supabase
+          .from("events")
+          .select(`
+            *,
+            profiles:created_by (
+              id,
+              full_name,
+              avatar_url,
+              bio
+            ),
+            event_registrations(count)
+          `)
+          .gte("event_date", new Date().toISOString())
+          .order("event_date", { ascending: true })
+          .limit(9)
+
+        if (eventsData) {
+          const transformedEvents = eventsData.map((event: any) => ({
+            id: event.id,
+            title: event.title,
+            thumbnail_url: event.thumbnail_url,
+            event_date: event.event_date,
+            event_time: null,
+            location: event.location,
+            max_participants: event.max_participants,
+            current_participants: event.event_registrations?.[0]?.count || 0,
+            host_name: event.profiles?.full_name || "알 수 없음",
+            host_avatar_url: event.profiles?.avatar_url || null,
+            host_bio: event.profiles?.bio || null,
+          }))
+          setEvents(transformedEvents)
+        }
+        setIsLoading(false)
+      }
     })
 
     return () => subscription.unsubscribe()

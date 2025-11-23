@@ -47,13 +47,26 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
 
       {/* 1. 로딩 중일 때: 스켈레톤 UI 표시 */}
       {isLoading ? (
-        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="w-full aspect-[4/5] rounded-[20px] overflow-hidden">
-              <Skeleton className="w-full h-full" />
+        <>
+          {/* 모바일 스켈레톤 */}
+          <div className="md:hidden -mx-4 px-4">
+            <div className="flex gap-4 overflow-hidden">
+              {[1, 2].map((i) => (
+                <div key={i} className="w-[85%] flex-shrink-0 aspect-[4/5] rounded-[20px] overflow-hidden">
+                  <Skeleton className="w-full h-full" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+          {/* 데스크탑 스켈레톤 */}
+          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="w-full aspect-[4/5] rounded-[20px] overflow-hidden">
+                <Skeleton className="w-full h-full" />
+              </div>
+            ))}
+          </div>
+        </>
       ) : !hasEvents ? (
         /* 2. 로딩 끝났는데 데이터 없을 때: Empty UI 표시 */
         <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-10">
