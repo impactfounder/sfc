@@ -340,12 +340,14 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50">
       <MobileHeader />
       <div className="hidden lg:block"><Sidebar /></div>
 
-      <div className="flex w-full flex-1 flex-col items-center overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-8">
+      {/* 메인 콘텐츠 영역: flex 제거, padding-left로 사이드바 공간 확보 */}
+      <main className="pb-24 pt-20 lg:pb-10 lg:pt-0 lg:pl-[344px]">
+        {/* 중앙 정렬 컨테이너 */}
+        <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 flex flex-col gap-8">
           {/* ★ 히어로 섹션 추가 (홈 탭일 때만 보임) */}
           {activeTab === 'home' && (
             <div className="w-full">
@@ -371,7 +373,7 @@ export default function HomePage() {
             />
           )}
         </div>
-      </div>
+      </main>
 
       <MobileActionBar
         activeTab={activeTab}
