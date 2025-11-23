@@ -27,35 +27,41 @@ export default async function AdminDashboard() {
         </div>
 
         <div className="mb-8 grid gap-6 md:grid-cols-3">
-          <Card className="border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">전체 회원</CardTitle>
-              <Users className="h-4 w-4 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats.usersCount}</div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/users">
+            <Card className="border-slate-200 transition-shadow hover:shadow-md cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">전체 회원</CardTitle>
+                <Users className="h-4 w-4 text-slate-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900">{stats.usersCount}</div>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">전체 게시글</CardTitle>
-              <FileText className="h-4 w-4 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats.postsCount}</div>
-            </CardContent>
-          </Card>
+          <Link href="/community">
+            <Card className="border-slate-200 transition-shadow hover:shadow-md cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">전체 게시글</CardTitle>
+                <FileText className="h-4 w-4 text-slate-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900">{stats.postsCount}</div>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">전체 이벤트</CardTitle>
-              <Calendar className="h-4 w-4 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats.eventsCount}</div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/events">
+            <Card className="border-slate-200 transition-shadow hover:shadow-md cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">전체 이벤트</CardTitle>
+                <Calendar className="h-4 w-4 text-slate-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900">{stats.eventsCount}</div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">

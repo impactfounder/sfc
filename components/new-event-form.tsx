@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
 import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock } from "lucide-react"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
@@ -26,6 +27,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   const [unsplashQuery, setUnsplashQuery] = useState("")
   const [unsplashResults, setUnsplashResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -93,8 +95,8 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
     }
   }
 
-  const handleUnsplashSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUnsplashSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!unsplashQuery.trim()) return
     setIsSearching(true)
     try {
@@ -105,6 +107,13 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
     } finally {
       setIsSearching(false)
     }
+  }
+
+  const handleImageSelect = (imageUrl: string) => {
+    setThumbnailUrl(imageUrl)
+    setIsDialogOpen(false)
+    setUnsplashQuery("")
+    setUnsplashResults([])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -174,46 +183,88 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
           </div>
 
-          {/* Unsplash Search (Full Width below image) */}
-          <div className="space-y-3">
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          {/* Unsplash Search Button */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full gap-2" onClick={(e) => e.stopPropagation()}>
                 <Search className="h-4 w-4" />
-              </div>
-              <Input
-                placeholder="Unsplash 이미지 검색 (예: meeting, party)"
-                value={unsplashQuery}
-                onChange={(e) => setUnsplashQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleUnsplashSearch(e)}
-                className="pl-9 h-11 bg-white"
-              />
-              {unsplashQuery && (
-                <Button 
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="absolute right-1 top-1 h-9 w-9 p-0" 
-                  onClick={handleUnsplashSearch}
-                >
-                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "검색"}
-                </Button>
-              )}
-            </div>
-
-            {unsplashResults.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 p-2 bg-white border border-slate-200 rounded-xl max-h-[160px] overflow-y-auto">
-                {unsplashResults.map((img) => (
-                  <div 
-                    key={img.id} 
-                    className="aspect-square relative cursor-pointer rounded-md overflow-hidden hover:opacity-80"
-                    onClick={() => setThumbnailUrl(img.urls.regular)}
-                  >
-                    <img src={img.urls.small} alt="Unsplash" className="w-full h-full object-cover" />
+                Unsplash에서 검색
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>이미지 검색</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                {/* Search Input */}
+                <form onSubmit={handleUnsplashSearch} className="flex gap-2">
+                  <div className="relative flex-1">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Search className="h-4 w-4" />
+                    </div>
+                    <Input
+                      placeholder="검색어 입력 (예: meeting, party, business)"
+                      value={unsplashQuery}
+                      onChange={(e) => setUnsplashQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleUnsplashSearch(e)}
+                      className="pl-9 h-11"
+                    />
                   </div>
-                ))}
+                  <Button type="submit" disabled={isSearching || !unsplashQuery.trim()}>
+                    {isSearching ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        검색 중...
+                      </>
+                    ) : (
+                      "검색"
+                    )}
+                  </Button>
+                </form>
+
+                {/* Search Results */}
+                {isSearching && (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                  </div>
+                )}
+
+                {!isSearching && unsplashResults.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {unsplashResults.map((img) => (
+                      <div 
+                        key={img.id} 
+                        className="aspect-square relative cursor-pointer rounded-lg overflow-hidden border border-slate-200 hover:border-slate-400 hover:shadow-md transition-all group"
+                        onClick={() => handleImageSelect(img.urls.regular)}
+                      >
+                        <img 
+                          src={img.urls.small} 
+                          alt={img.alt_description || "Unsplash"} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" 
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!isSearching && unsplashQuery && unsplashResults.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                    <Search className="h-12 w-12 mb-4 opacity-50" />
+                    <p className="text-sm font-medium">검색 결과가 없습니다</p>
+                    <p className="text-xs mt-1">다른 검색어를 시도해보세요</p>
+                  </div>
+                )}
+
+                {!isSearching && !unsplashQuery && unsplashResults.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                    <ImageIcon className="h-12 w-12 mb-4 opacity-50" />
+                    <p className="text-sm">검색어를 입력하고 검색 버튼을 눌러주세요</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* [Right] Event Info Section (7 cols) */}
