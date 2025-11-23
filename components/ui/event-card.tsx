@@ -59,20 +59,23 @@ export default function EventCard({ event, href, className, layout = "card" }: P
         <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
       )}
 
-      {/* 그라데이션 오버레이 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent via-40% to-black/95" />
+      {/* 1. 전체적으로 살짝 어둡게 눌러주는 레이어 */}
+      <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:bg-black/30" />
+
+      {/* 2. 상단/하단 진한 그라데이션 */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent via-35% to-black/90" />
 
       {/* 콘텐츠 레이어 */}
       <div className="relative h-full flex flex-col justify-between p-6">
         
-        {/* 상단: 제목 (EVENT 뱃지 제거 및 위치 상향 조정) */}
-        <div>
-          <h3 className="text-2xl md:text-[28px] font-extrabold text-white leading-tight break-keep drop-shadow-lg shadow-black">
+        {/* 상단: 제목 (여백을 pt-6으로 늘려 시원하게 내림) */}
+        <div className="pt-6">
+          <h3 className="text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
             {event.title}
           </h3>
         </div>
 
-        {/* 하단: 정보 영역 (좁은 간격 유지: gap-1.5) */}
+        {/* 하단: 정보 영역 */}
         <div className="flex flex-col gap-1.5 pb-1"> 
           
           {/* 1. 프로필 라인 */}
@@ -92,11 +95,11 @@ export default function EventCard({ event, href, className, layout = "card" }: P
               )}
             </div>
             <div className="flex items-center gap-2 text-white drop-shadow-md">
-              <span className="font-bold text-[15px]">{event.host_name || "호스트"}</span>
+              <span className="font-bold text-base">{event.host_name || "호스트"}</span>
               {event.host_bio && (
                 <div className="flex items-center gap-2 opacity-90">
                   <span className="w-0.5 h-3 bg-white/40 rounded-full"></span>
-                  <span className="truncate max-w-[130px] font-medium text-[13px]">
+                  <span className="truncate max-w-[120px] font-medium text-sm">
                     {event.host_bio}
                   </span>
                 </div>

@@ -6,6 +6,7 @@ import { Calendar, Plus, User, Users, X, Home } from "lucide-react"
 
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
+import { LoginModal } from "@/components/login-modal" // LoginModal import 확인
 import { NewEventForm } from "@/components/new-event-form"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -16,7 +17,7 @@ import { EventsSection } from "@/components/home/events-section"
 import { PostsSection } from "@/components/home/posts-section"
 import { EventCardEvent } from "@/components/ui/event-card"
 
-// 탭 타입 정의 (홈, 이벤트, 커뮤니티)
+// 탭 타입 정의
 type TabValue = "home" | "events" | "community"
 
 type BoardCategory = {
@@ -60,22 +61,22 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   
   // 모달/시트 상태
+  const [showLoginModal, setShowLoginModal] = useState(false) // 로그인 모달 상태 추가
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  // 2. 데이터 가져오기 (Supabase)
+  // 2. 데이터 가져오기
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true)
 
-      // 유저 정보
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
 
-      // 게시판 카테고리
+      // 카테고리
       const { data: categoriesData } = await supabase
         .from("board_categories")
         .select("id, name, slug")
@@ -85,7 +86,6 @@ export default function HomePage() {
 
       if (categoriesData) {
         const mappedCategories = categoriesData.map((cat) => {
-          // 슬러그 정규화 (DB와 프론트엔드 싱크 맞춤)
           if (cat.slug === "free-board") return { ...cat, slug: "free" }
           if (cat.slug === "bangol") return { ...cat, slug: "vangol" }
           return cat
@@ -93,7 +93,7 @@ export default function HomePage() {
         setBoardCategories(mappedCategories as BoardCategory[])
       }
 
-      // 최신 공지사항 (1개)
+      // 공지사항
       const { data: announcementData } = await supabase
         .from("posts")
         .select(`id, title, board_categories!inner(slug)`)
@@ -106,7 +106,7 @@ export default function HomePage() {
         setAnnouncement({ id: announcementData.id, title: announcementData.title })
       }
 
-      // 예정된 이벤트 (최신순 9개)
+      // 이벤트
       const { data: eventsData } = await supabase
         .from("events")
         .select(`
@@ -140,7 +140,7 @@ export default function HomePage() {
         setEvents(transformedEvents)
       }
 
-      // 최신 게시글 (50개) - 뱃지 정보 포함
+      // 게시글
       const { data: postsData } = await supabase
         .from("posts")
         .select(`
@@ -161,14 +161,12 @@ export default function HomePage() {
         .limit(50)
 
       if (postsData) {
-        // 각 게시글 작성자의 노출된 뱃지 정보 가져오기
         const postsWithBadges = await Promise.all(
           postsData.map(async (post: any) => {
             let slug = post.board_categories?.slug
             if (slug === "free-board") slug = "free"
             if (slug === "bangol") slug = "vangol"
 
-            // 작성자의 노출된 뱃지 가져오기
             let visibleBadges: Array<{ icon: string; name: string }> = []
             if (post.author_id) {
               const { data: badgesData } = await supabase
@@ -200,7 +198,6 @@ export default function HomePage() {
             }
           })
         )
-
         setPosts(postsWithBadges as Post[])
       }
 
@@ -210,10 +207,10 @@ export default function HomePage() {
     fetchData()
   }, [supabase])
 
-  // 3. 핸들러 함수들
+  // 3. 핸들러
   const handleCreateEvent = () => {
     if (!user) {
-      router.push("/auth/login")
+      setShowLoginModal(true) // 페이지 이동 대신 모달 띄우기
       return
     }
     setShowCreateSheet(true)
@@ -224,7 +221,7 @@ export default function HomePage() {
       router.push("/community/profile")
       return
     }
-    router.push("/auth/login")
+    setShowLoginModal(true) // 페이지 이동 대신 모달 띄우기
   }
 
   // 4. 렌더링
@@ -232,36 +229,38 @@ export default function HomePage() {
     <div className="flex min-h-screen bg-slate-50">
       <MobileHeader />
       
-      {/* 데스크탑 사이드바 */}
       <div className="hidden lg:block">
         <Sidebar />
       </div>
 
-      {/* 메인 컨텐츠 영역 */}
       <div className="flex w-full flex-1 justify-center overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
         <div className="w-full flex flex-col gap-8">
           
-          {/* 탭: 홈 또는 이벤트일 때 표시 */}
           {(activeTab === 'home' || activeTab === 'events') && (
             <>
               {announcement && <AnnouncementBanner announcement={announcement} />}
-              <EventsSection events={events} onCreateEvent={handleCreateEvent} />
+              {/* ★ 수정된 부분: isLoading 전달 */}
+              <EventsSection 
+                events={events} 
+                onCreateEvent={handleCreateEvent} 
+                isLoading={isLoading} 
+              />
             </>
           )}
 
-          {/* 탭: 홈 또는 커뮤니티일 때 표시 */}
           {(activeTab === 'home' || activeTab === 'community') && (
+            /* ★ 수정된 부분: isLoading 전달 */
             <PostsSection
               posts={posts}
               boardCategories={boardCategories}
               selectedBoard={selectedBoard}
               onBoardChange={setSelectedBoard}
+              isLoading={isLoading}
             />
           )}
         </div>
       </div>
 
-      {/* 모바일 하단 메뉴바 (5개 탭) */}
       <MobileActionBar
         activeTab={activeTab}
         onTabChange={(tab: TabValue) => {
@@ -273,8 +272,8 @@ export default function HomePage() {
         user={user}
       />
 
+      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
 
-      {/* 이벤트 생성 시트 */}
       <Sheet open={showCreateSheet} onOpenChange={setShowCreateSheet}>
         <SheetContent side="bottom" className="h-[85vh] p-0" hideClose>
           <div className="flex h-full flex-col overflow-hidden">
@@ -302,10 +301,7 @@ export default function HomePage() {
   )
 }
 
-// ------------------------------------------------------------------
-// 하위 컴포넌트: 모바일 하단 액션바
-// ------------------------------------------------------------------
-
+// 하단바 컴포넌트
 type MobileActionBarProps = {
   activeTab: TabValue
   onTabChange: (tab: TabValue) => void
@@ -319,7 +315,6 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
       <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
         
-        {/* 1. 홈 */}
         <NavButton
           icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />}
           label="홈"
@@ -327,7 +322,6 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
           onClick={() => onTabChange("home")}
         />
 
-        {/* 2. 이벤트 */}
         <NavButton
           icon={<Calendar className={cn("size-6 mb-1", activeTab === "events" ? "text-slate-900" : "text-gray-400")} />}
           label="이벤트"
@@ -335,7 +329,6 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
           onClick={() => onTabChange("events")}
         />
 
-        {/* 3. 만들기 (+) - 중앙 강조 */}
         <button
           type="button"
           onClick={onCreate}
@@ -347,7 +340,6 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
           <span className="text-slate-900 font-semibold">만들기</span>
         </button>
 
-        {/* 4. 커뮤니티 */}
         <NavButton
           icon={<Users className={cn("size-6 mb-1", activeTab === "community" ? "text-slate-900" : "text-gray-400")} />}
           label="커뮤니티"
@@ -355,7 +347,6 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
           onClick={() => onTabChange("community")}
         />
 
-        {/* 5. 프로필/로그인 */}
         <NavButton
           icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />}
           label={user ? "프로필" : "로그인"}
