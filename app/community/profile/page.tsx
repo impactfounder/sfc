@@ -111,84 +111,125 @@ export default function ProfilePage() {
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
 
         if (userError || !currentUser) {
+          setLoading(false) // 로딩 상태 먼저 해제
           router.push("/")
           return
         }
 
         setUser(currentUser)
 
-        // 병렬로 모든 데이터 가져오기
-        const [
-          { data: profileData, error: profileError },
-          { data: myEvents, error: eventsError },
-          { data: myPosts, error: postsError },
-          { data: myRegistrations, error: registrationsError },
-          { data: myTransactions, error: transactionsError },
-          { data: badgesData, error: badgesError }
-        ] = await Promise.all([
-          supabase.from("profiles").select("*").eq("id", currentUser.id).single(),
-          supabase
-            .from("events")
-            .select(`*, profiles:created_by (full_name, avatar_url)`)
-            .eq("created_by", currentUser.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("posts")
-            .select(`*, board_categories (name, slug), profiles:author_id (full_name, avatar_url)`)
-            .eq("author_id", currentUser.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("event_registrations")
-            .select(`
-              *,
-              events (
-                id, title, thumbnail_url, event_date, location, status, max_participants
-              )
-            `)
-            .eq("user_id", currentUser.id)
-            .order("registered_at", { ascending: false }),
-          supabase
-            .from("point_transactions")
-            .select("*")
-            .eq("user_id", currentUser.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("user_badges")
-            .select(`
-              badges:badge_id (
-                icon,
-                name
-              )
-            `)
-            .eq("user_id", currentUser.id)
-            .eq("is_visible", true)
+        // 근본 원인: Promise.all은 하나의 쿼리가 무한 대기하면 전체가 블로킹됨
+        // 해결: 각 쿼리를 개별 try-catch로 감싸서 독립적으로 처리
+        let profileData: any = null
+        let myEvents: any[] = []
+        let myPosts: any[] = []
+        let myRegistrations: any[] = []
+        let myTransactions: any[] = []
+        let badgesData: any[] = []
+
+        // 각 쿼리를 독립적으로 실행 (하나가 실패해도 나머지는 계속 진행)
+        await Promise.all([
+          (async () => {
+            try {
+              const result = await supabase.from("profiles").select("*").eq("id", currentUser.id).single()
+              if (!result.error) profileData = result.data
+            } catch (error: any) {
+              console.error('프로필 로드 오류:', error)
+            }
+          })(),
+          (async () => {
+            try {
+              const result = await supabase
+                .from("events")
+                .select(`*, profiles:created_by (full_name, avatar_url)`)
+                .eq("created_by", currentUser.id)
+                .order("created_at", { ascending: false })
+              if (!result.error) myEvents = result.data || []
+            } catch (error: any) {
+              console.error('이벤트 로드 오류:', error)
+            }
+          })(),
+          (async () => {
+            try {
+              const result = await supabase
+                .from("posts")
+                .select(`*, board_categories (name, slug), profiles:author_id (full_name, avatar_url)`)
+                .eq("author_id", currentUser.id)
+                .order("created_at", { ascending: false })
+              if (!result.error) myPosts = result.data || []
+            } catch (error: any) {
+              console.error('게시글 로드 오류:', error)
+            }
+          })(),
+          (async () => {
+            try {
+              const result = await supabase
+                .from("event_registrations")
+                .select(`
+                  *,
+                  events (
+                    id, title, thumbnail_url, event_date, location, status, max_participants
+                  )
+                `)
+                .eq("user_id", currentUser.id)
+                .order("registered_at", { ascending: false })
+              if (!result.error) myRegistrations = result.data || []
+            } catch (error: any) {
+              console.error('등록 이벤트 로드 오류:', error)
+            }
+          })(),
+          (async () => {
+            try {
+              const result = await supabase
+                .from("point_transactions")
+                .select("*")
+                .eq("user_id", currentUser.id)
+                .order("created_at", { ascending: false })
+              if (!result.error) myTransactions = result.data || []
+            } catch (error: any) {
+              console.error('포인트 내역 로드 오류:', error)
+            }
+          })(),
+          (async () => {
+            try {
+              const result = await supabase
+                .from("user_badges")
+                .select(`
+                  badges:badge_id (
+                    icon,
+                    name
+                  )
+                `)
+                .eq("user_id", currentUser.id)
+                .eq("is_visible", true)
+              if (!result.error) badgesData = result.data || []
+            } catch (error: any) {
+              console.error('뱃지 로드 오류:', error)
+            }
+          })()
         ])
 
-        // 에러 로깅 (치명적이지 않은 에러는 무시하고 계속 진행)
-        if (profileError) console.error('프로필 로드 오류:', profileError)
-        if (eventsError) console.error('이벤트 로드 오류:', eventsError)
-        if (postsError) console.error('게시글 로드 오류:', postsError)
-        if (registrationsError) console.error('등록 이벤트 로드 오류:', registrationsError)
-        if (transactionsError) console.error('포인트 내역 로드 오류:', transactionsError)
-        if (badgesError) console.error('뱃지 로드 오류:', badgesError)
-
-        // 데이터 설정
+        // 데이터 설정 (에러가 있어도 사용 가능한 데이터는 설정)
         setProfile(profileData || null)
-        setCreatedEvents(myEvents || [])
-        setUserPosts(myPosts || [])
+        setCreatedEvents(Array.isArray(myEvents) ? myEvents : [])
+        setUserPosts(Array.isArray(myPosts) ? myPosts : [])
         
-        const flattenedRegistrations = myRegistrations?.map((reg: any) => ({
-          ...reg.events,
-          registration_date: reg.registered_at
-        })).filter((reg: any) => reg.id) || []
+        const flattenedRegistrations = Array.isArray(myRegistrations) 
+          ? myRegistrations.map((reg: any) => ({
+              ...reg.events,
+              registration_date: reg.registered_at
+            })).filter((reg: any) => reg?.id) 
+          : []
         setRegisteredEvents(flattenedRegistrations)
         
-        setTransactions(myTransactions || [])
+        setTransactions(Array.isArray(myTransactions) ? myTransactions : [])
         
-        const mappedBadges = badgesData
-          ?.map((ub: any) => ub.badges)
-          .filter(Boolean)
-          .map((badge: any) => ({ icon: badge.icon, name: badge.name })) || []
+        const mappedBadges = Array.isArray(badgesData)
+          ? badgesData
+              .map((ub: any) => ub.badges)
+              .filter(Boolean)
+              .map((badge: any) => ({ icon: badge.icon, name: badge.name }))
+          : []
         setVisibleBadges(mappedBadges)
 
       } catch (error) {
@@ -204,7 +245,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="text-lg text-slate-500 animate-pulse">로딩중...</div>
       </div>
     )
