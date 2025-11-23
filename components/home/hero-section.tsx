@@ -76,17 +76,17 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
         </h1>
         
         {/* 부제 */}
-        <p className="text-slate-300 text-sm leading-relaxed max-w-lg mx-auto mb-4">
+        <p className="text-slate-300 text-sm leading-relaxed max-w-lg mx-auto mb-3"> {/* mb-4 -> mb-3 */}
           신뢰기반 검증을 통해 아이디어와 콘텐츠가 자본과 연결되는 커뮤니티입니다.
         </p>
         
-        {/* CTA Button Block */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
+        {/* CTA Button Block (h-12로 축소) */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-lg"> {/* gap-4 -> gap-3 */}
           
           <Button 
             onClick={onLogin}
             size="lg" 
-            className="w-full sm:w-auto h-14 px-10 text-lg bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
+            className="w-full sm:w-auto h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl" // ★ 높이 h-12
           >
             3초 만에 시작하기
             <ArrowRight className="ml-2 w-5 h-5" />
@@ -97,16 +97,16 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto h-14 px-10 text-lg border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold"
+              className="w-full sm:w-auto h-12 px-8 text-base border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold" // ★ 높이 h-12
             >
               커뮤니티 소개
             </Button>
           </Link>
         </div>
 
-        {/* 혜택 체크리스트 (★ 모바일에서 숨김) */}
-        <div className="mt-4 w-full max-w-sm hidden sm:block">
-          <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left">
+        {/* 혜택 체크리스트 (★ 완벽한 중앙 정렬 및 모바일에서 숨김) */}
+        <div className="mt-3 w-full max-w-sm text-left hidden sm:block"> {/* mt-4 -> mt-3, 모바일 hidden */}
+          <ul className="text-white text-sm space-y-1 mx-auto w-fit text-left"> {/* w-fit, mx-auto로 중앙 정렬 */}
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
               <span>사업가·창작자·투자자의 실시간 네트워크</span>
