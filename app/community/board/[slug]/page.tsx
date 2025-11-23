@@ -57,13 +57,22 @@ export default async function BoardPage({
               <p className="mt-2 text-slate-600">{displayDescription}</p>
             )}
           </div>
-          {user && slug !== "announcements" && (
-            <Link href={`/community/board/${slug}/new`}>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                글쓰기
-              </Button>
-            </Link>
+          {slug !== "announcements" && (
+            user ? (
+              <Link href={`/community/board/${slug}/new`}>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  글쓰기
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/auth/login">
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  로그인하고 글쓰기
+                </Button>
+              </Link>
+            )
           )}
         </div>
 
