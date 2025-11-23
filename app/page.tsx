@@ -67,19 +67,19 @@ export default function HomePage() {
 
   // fetchData를 useCallback으로 감싸서 재사용 가능하게 함
   const fetchData = useCallback(async () => {
-      try {
-        setIsLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
-        userRef.current = user
+    try {
+    setIsLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    setUser(user)
+    userRef.current = user
 
-        // 근본 원인: 모든 쿼리를 순차 실행하고 에러 처리가 없음
-        // 해결: 1) 병렬 처리로 속도 개선
-        //       2) 게시글 뱃지를 배치로 가져와서 N+1 문제 해결
-        //       3) try-catch-finally로 에러 처리
+    // 근본 원인: 모든 쿼리를 순차 실행하고 에러 처리가 없음
+    // 해결: 1) 병렬 처리로 속도 개선
+    //       2) 게시글 뱃지를 배치로 가져와서 N+1 문제 해결
+    //       3) try-catch-finally로 에러 처리
 
-        // 병렬로 기본 데이터 가져오기
-        const [categoriesResult, announcementResult, eventsResult, postsResult] = await Promise.all([
+    // 병렬로 기본 데이터 가져오기
+    const [categoriesResult, announcementResult, eventsResult, postsResult] = await Promise.all([
           supabase
             .from("board_categories")
             .select("id, name, slug")
@@ -128,92 +128,91 @@ export default function HomePage() {
             .limit(50)
         ])
 
-        // 카테고리 처리
-        if (categoriesResult.data) {
-          const mappedCategories = categoriesResult.data.map((cat) => {
-            if (cat.slug === "free-board") return { ...cat, slug: "free" }
-            if (cat.slug === "bangol") return { ...cat, slug: "vangol" }
-            return cat
-          })
-          setBoardCategories(mappedCategories as BoardCategory[])
-        }
+    // 카테고리 처리
+    if (categoriesResult.data) {
+      const mappedCategories = categoriesResult.data.map((cat) => {
+        if (cat.slug === "free-board") return { ...cat, slug: "free" }
+        if (cat.slug === "bangol") return { ...cat, slug: "vangol" }
+        return cat
+      })
+      setBoardCategories(mappedCategories as BoardCategory[])
+    }
 
-        // 공지사항 처리
-        if (announcementResult.data) {
-          setAnnouncement({ id: announcementResult.data.id, title: announcementResult.data.title })
-        }
+    // 공지사항 처리
+    if (announcementResult.data) {
+      setAnnouncement({ id: announcementResult.data.id, title: announcementResult.data.title })
+    }
 
-        // 이벤트 처리
-        if (eventsResult.data) {
-          const transformedEvents = eventsResult.data.map((event: any) => ({
-            id: event.id,
-            title: event.title,
-            thumbnail_url: event.thumbnail_url,
-            event_date: event.event_date,
-            event_time: null,
-            location: event.location,
-            max_participants: event.max_participants,
-            current_participants: event.event_registrations?.[0]?.count || 0,
-            host_name: event.profiles?.full_name || "알 수 없음",
-            host_avatar_url: event.profiles?.avatar_url || null,
-            host_bio: event.profiles?.bio || null,
-          }))
-          setEvents(transformedEvents)
-        }
+    // 이벤트 처리
+    if (eventsResult.data) {
+      const transformedEvents = eventsResult.data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        thumbnail_url: event.thumbnail_url,
+        event_date: event.event_date,
+        event_time: null,
+        location: event.location,
+        max_participants: event.max_participants,
+        current_participants: event.event_registrations?.[0]?.count || 0,
+        host_name: event.profiles?.full_name || "알 수 없음",
+        host_avatar_url: event.profiles?.avatar_url || null,
+        host_bio: event.profiles?.bio || null,
+      }))
+      setEvents(transformedEvents)
+    }
 
-        // 게시글 처리 (N+1 문제 해결: 배치로 뱃지 가져오기)
-        if (postsResult.data) {
-          // 모든 고유한 author_id 추출
-          const authorIds = [...new Set(postsResult.data.map((post: any) => post.author_id).filter(Boolean))]
-          
-          // 배치로 모든 뱃지 가져오기 (한 번의 쿼리)
-          const badgesMap = new Map<string, Array<{ icon: string; name: string }>>()
-          if (authorIds.length > 0) {
-            const { data: allBadgesData } = await supabase
-              .from("user_badges")
-              .select(`
-                user_id,
-                badges:badge_id (
-                  icon,
-                  name
-                )
-              `)
-              .in("user_id", authorIds)
-              .eq("is_visible", true)
+    // 게시글 처리 (N+1 문제 해결: 배치로 뱃지 가져오기)
+    if (postsResult.data) {
+      // 모든 고유한 author_id 추출
+      const authorIds = [...new Set(postsResult.data.map((post: any) => post.author_id).filter(Boolean))]
+      
+      // 배치로 모든 뱃지 가져오기 (한 번의 쿼리)
+      const badgesMap = new Map<string, Array<{ icon: string; name: string }>>()
+      if (authorIds.length > 0) {
+        const { data: allBadgesData } = await supabase
+          .from("user_badges")
+          .select(`
+            user_id,
+            badges:badge_id (
+              icon,
+              name
+            )
+          `)
+          .in("user_id", authorIds)
+          .eq("is_visible", true)
 
-            if (allBadgesData) {
-              allBadgesData.forEach((ub: any) => {
-                if (ub.badges && ub.user_id) {
-                  const existing = badgesMap.get(ub.user_id) || []
-                  badgesMap.set(ub.user_id, [...existing, { icon: ub.badges.icon, name: ub.badges.name }])
-                }
-              })
-            }
-          }
-
-          // 게시글에 뱃지 매핑
-          const postsWithBadges = postsResult.data.map((post: any) => {
-            let slug = post.board_categories?.slug
-            if (slug === "free-board") slug = "free"
-            if (slug === "bangol") slug = "vangol"
-
-            const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
-
-            return {
-              ...post,
-              board_categories: { ...post.board_categories, slug },
-              visible_badges: visibleBadges,
+        if (allBadgesData) {
+          allBadgesData.forEach((ub: any) => {
+            if (ub.badges && ub.user_id) {
+              const existing = badgesMap.get(ub.user_id) || []
+              badgesMap.set(ub.user_id, [...existing, { icon: ub.badges.icon, name: ub.badges.name }])
             }
           })
-          setPosts(postsWithBadges as Post[])
         }
-
-      } catch (error) {
-        console.error('데이터 로드 중 오류 발생:', error)
-        // 에러가 발생해도 기본 데이터는 표시
-      } finally {
-        setIsLoading(false) // 항상 로딩 상태 해제
       }
+
+      // 게시글에 뱃지 매핑
+      const postsWithBadges = postsResult.data.map((post: any) => {
+        let slug = post.board_categories?.slug
+        if (slug === "free-board") slug = "free"
+        if (slug === "bangol") slug = "vangol"
+
+        const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
+
+        return {
+          ...post,
+          board_categories: { ...post.board_categories, slug },
+          visible_badges: visibleBadges,
+        }
+      })
+      setPosts(postsWithBadges as Post[])
+    }
+
+    } catch (error) {
+      console.error('데이터 로드 중 오류 발생:', error)
+      // 에러가 발생해도 기본 데이터는 표시
+    } finally {
+      setIsLoading(false) // 항상 로딩 상태 해제
     }
   }, [supabase])
 
