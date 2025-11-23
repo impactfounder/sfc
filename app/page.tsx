@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState, useRef, useCallback, ReactNode } from "re
 import { useRouter } from "next/navigation"
 import { Calendar, Plus, User, Users, X, Home } from "lucide-react"
 
-import { Sidebar } from "@/components/sidebar"
-import { MobileHeader } from "@/components/mobile-header"
+import { DashboardLayout } from "@/components/dashboard-layout"
 import { NewEventForm } from "@/components/new-event-form"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -340,44 +339,30 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <MobileHeader />
-      <div className="hidden lg:block"><Sidebar /></div>
-
-      {/* 메인 콘텐츠 영역 */}
-      {/* 1. lg:pl-[344px]: 사이드바 너비만큼 왼쪽 공간 확보 */}
-      {/* 2. w-full: 화면 전체 너비 사용 */}
-      <main className="flex-1 w-full pt-20 pb-24 lg:pt-8 lg:pb-10 lg:pl-[344px]">
-        
-        {/* 중앙 정렬 컨테이너 (여기가 핵심입니다!) */}
-        {/* 1. mx-auto: 좌우 자동 여백 (가운데 정렬) */}
-        {/* 2. max-w-7xl: 콘텐츠 최대 너비 제한 */}
-        {/* 3. w-full: 부모 영역 꽉 채우기 */}
-        <div className="mx-auto w-full max-w-7xl px-4 md:px-8 flex flex-col gap-8">
-          
-          {/* 여기에 Hero, Banner, Events, Posts 컴포넌트 배치 */}
-          {activeTab === 'home' && (
-            <HeroSection user={user} onLogin={handleLogin} />
-          )}
-          {(activeTab === 'home' || activeTab === 'events') && (
-            <>
-              {announcement && <AnnouncementBanner announcement={announcement} />}
-              <div id="events-section">
-                <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
-              </div>
-            </>
-          )}
-          {(activeTab === 'home' || activeTab === 'community') && (
-            <PostsSection
-              posts={posts}
-              boardCategories={boardCategories}
-              selectedBoard={selectedBoard}
-              onBoardChange={setSelectedBoard}
-              isLoading={isLoading}
-            />
-          )}
-        </div>
-      </main>
+    <DashboardLayout>
+      <div className="flex flex-col gap-8">
+        {/* Hero, Banner, Events, Posts 등 콘텐츠 */}
+        {activeTab === 'home' && (
+          <HeroSection user={user} onLogin={handleLogin} />
+        )}
+        {(activeTab === 'home' || activeTab === 'events') && (
+          <>
+            {announcement && <AnnouncementBanner announcement={announcement} />}
+            <div id="events-section">
+              <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+            </div>
+          </>
+        )}
+        {(activeTab === 'home' || activeTab === 'community') && (
+          <PostsSection
+            posts={posts}
+            boardCategories={boardCategories}
+            selectedBoard={selectedBoard}
+            onBoardChange={setSelectedBoard}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
 
       <MobileActionBar
         activeTab={activeTab}
@@ -417,7 +402,7 @@ export default function HomePage() {
           </div>
         </SheetContent>
       </Sheet>
-    </div>
+    </DashboardLayout>
   )
 }
 
