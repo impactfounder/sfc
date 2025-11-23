@@ -3,7 +3,7 @@
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent } from "@/components/ui/card"
-import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather } from "lucide-react"
+import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather, Home, Calendar, Plus, Users, User } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
@@ -107,12 +107,6 @@ const BADGE_GROUPS = [
     gridCols: "lg:grid-cols-3",
   },
 ]
-
-
-export const metadata = {
-  title: "SFC 소개 | Seoul Founders Club",
-  description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서가 모여 네트워킹하고 성장하는 비즈니스 커뮤니티입니다.",
-}
 
 type MobileActionBarProps = { activeTab: TabValue, onTabChange: (tab: TabValue) => void, onCreate: () => void, onProfile: () => void, user: any }
 type TabValue = "home" | "events" | "community"
