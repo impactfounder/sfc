@@ -319,7 +319,7 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
           <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white mb-1 transform active:scale-95 transition-transform">
             <Plus className="size-6" />
           </div>
-          <span className="text-slate-900 font-semibold">만들기</span>
+          <span className="text-[10px] text-slate-900 font-semibold">만들기</span>
         </button>
         <NavButton icon={<Users className={cn("size-6 mb-1", activeTab === "community" ? "text-slate-900" : "text-gray-400")} />} label="커뮤니티" isActive={activeTab === "community"} onClick={() => onTabChange("community")} />
         <NavButton icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />} label={user ? "프로필" : "로그인"} onClick={onProfile} />

@@ -324,9 +324,9 @@ export default function AboutPage() {
                         >
                           <div className="flex items-start gap-4">
                             <span className="text-2xl pt-1 flex-shrink-0">{badge.icon}</span>
-                            <div>
-                              <div className="font-semibold text-slate-900 leading-tight">{badge.name}</div>
-                              <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-2">{badge.desc}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-slate-900 leading-tight line-clamp-1">{badge.name}</div>
+                              <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">{badge.desc}</div>
                             </div>
                           </div>
                         </Card>
@@ -408,7 +408,7 @@ function MobileActionBar({ onCreate, onProfile, user }: MobileActionBarProps) {
           <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white mb-1 transform active:scale-95 transition-transform">
             <Plus className="size-6" />
           </div>
-          <span className="text-slate-900 font-semibold">만들기</span>
+          <span className="text-[10px] text-slate-900 font-semibold">만들기</span>
         </button>
         <NavButton 
           icon={<Users className={cn("size-6 mb-1", "text-gray-400")} />} 
