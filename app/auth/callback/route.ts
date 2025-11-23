@@ -82,33 +82,41 @@ export async function GET(request: Request) {
       cookie.name.includes('supabase')
     );
 
-    if (!hasAuthCookie) {
-      console.error("[auth/callback] CRITICAL: No auth cookies found after session exchange!");
-      console.error("[auth/callback] All cookies:", responseCookies.map(c => c.name));
-      
-      // 쿠키가 설정되지 않았다면 명시적으로 설정 시도
-      // Supabase는 보통 sb-{project-ref}-auth-token 형식의 쿠키를 사용
-      const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1]
-      if (projectRef && data.session.access_token) {
-        const cookieName = `sb-${projectRef}-auth-token`
-        response.cookies.set(cookieName, JSON.stringify({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          expires_at: data.session.expires_at,
-          expires_in: data.session.expires_in,
-          token_type: data.session.token_type,
-          user: data.session.user,
-        }), {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7, // 7일
-        })
-        console.log(`[auth/callback] Manually set auth cookie: ${cookieName}`)
+    // @supabase/ssr이 쿠키를 설정하지 못하는 경우가 있으므로 항상 명시적으로 설정
+    // Supabase SSR은 sb-{project-ref}-auth-token 형식의 쿠키를 사용
+    const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1]
+    
+    if (!projectRef) {
+      console.error("[auth/callback] Failed to extract project ref from URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    } else if (data.session) {
+      // 세션 데이터를 JSON으로 직렬화하여 쿠키에 저장
+      // @supabase/ssr이 기대하는 형식과 동일하게 설정
+      const sessionData = {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at,
+        expires_in: data.session.expires_in,
+        token_type: data.session.token_type,
+        user: data.session.user,
       }
-    } else {
-      console.log("[auth/callback] Auth cookies set successfully");
+      
+      const cookieName = `sb-${projectRef}-auth-token`
+      const cookieValue = JSON.stringify(sessionData)
+      
+      // 쿠키 설정 (@supabase/ssr이 읽을 수 있는 형식)
+      response.cookies.set(cookieName, cookieValue, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7일
+      })
+      
+      console.log(`[auth/callback] Set auth cookie: ${cookieName} (${cookieValue.length} chars)`)
+      
+      if (!hasAuthCookie) {
+        console.warn("[auth/callback] @supabase/ssr did not set cookies automatically, using manual fallback");
+      }
     }
 
     return response;
