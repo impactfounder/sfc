@@ -18,65 +18,63 @@ export default async function BoardPostDetailPage({
 
   const categorySlug = slug === "announcements" ? "announcement" : slug;
 
-  const { data: category } = await supabase
-    .from("board_categories")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .single();
+  // 병렬로 초기 데이터 가져오기
+  const [categoryResult, userResult, postResult] = await Promise.all([
+    slug !== "announcements" ? supabase
+      .from("board_categories")
+      .select("*")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .single() : Promise.resolve({ data: null }),
+    supabase.auth.getUser(),
+    supabase
+      .from("posts")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("id", id)
+      .eq("category", categorySlug)
+      .single()
+  ]);
+
+  const { data: category } = categoryResult;
+  const { data: { user } } = userResult;
+  const { data: post } = postResult;
 
   if (!category && slug !== "announcements") {
     notFound();
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: post } = await supabase
-    .from("posts")
-    .select(`
-      *,
-      profiles:author_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq("id", id)
-    .eq("category", categorySlug)
-    .single();
-
   if (!post) {
     notFound();
   }
 
-  let userLike = null;
-  if (user) {
-    const { data } = await supabase
+  // 병렬로 나머지 데이터 가져오기
+  const [userLikeResult, commentsResult, badgesResult] = await Promise.all([
+    user ? supabase
       .from("post_likes")
       .select("id")
       .eq("post_id", id)
       .eq("user_id", user.id)
-      .single();
-    userLike = data;
-  }
-
-  const { data: comments } = await supabase
-    .from("comments")
-    .select(`
-      *,
-      profiles:author_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq("post_id", id)
-    .order("created_at", { ascending: true });
-
-  // 작성자의 노출된 뱃지 가져오기
-  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
-  if (post.author_id) {
-    const { data: badgesData } = await supabase
+      .single() : Promise.resolve({ data: null }),
+    supabase
+      .from("comments")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("post_id", id)
+      .order("created_at", { ascending: true }),
+    post.author_id ? supabase
       .from("user_badges")
       .select(`
         badges:badge_id (
@@ -85,17 +83,22 @@ export default async function BoardPostDetailPage({
         )
       `)
       .eq("user_id", post.author_id)
-      .eq("is_visible", true)
+      .eq("is_visible", true) : Promise.resolve({ data: null })
+  ]);
 
-    if (badgesData) {
-      authorVisibleBadges = badgesData
-        .map((ub: any) => ub.badges)
-        .filter(Boolean)
-        .map((badge: any) => ({
-          icon: badge.icon,
-          name: badge.name,
-        }))
-    }
+  const userLike = userLikeResult.data;
+  const { data: comments } = commentsResult;
+
+  // 작성자의 노출된 뱃지 가져오기
+  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
+  if (badgesResult.data) {
+    authorVisibleBadges = badgesResult.data
+      .map((ub: any) => ub.badges)
+      .filter(Boolean)
+      .map((badge: any) => ({
+        icon: badge.icon,
+        name: badge.name,
+      }))
   }
 
   return (

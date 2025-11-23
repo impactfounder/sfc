@@ -18,67 +18,47 @@ export default async function PostDetailPage({
   const { id } = await params
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // 병렬로 데이터 가져오기
+  const [userResult, postResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("posts")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("id", id)
+      .single()
+  ])
 
-  // Fetch post with author information
-  const { data: post } = await supabase
-    .from("posts")
-    .select(`
-      *,
-      profiles:author_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq("id", id)
-    .single()
+  const { data: { user } } = userResult
+  const { data: post } = postResult
 
   if (!post) {
     notFound()
   }
 
-  // Check if user has liked this post (only if logged in)
-  let userLike = null
-  if (user) {
-    const { data } = await supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).single()
-    userLike = data
-  }
-
-  // Fetch comments
-  const { data: comments } = await supabase
-    .from("comments")
-    .select(`
-      *,
-      profiles:author_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq("post_id", id)
-    .order("created_at", { ascending: true })
-
-  // Check if user is author
-  const isAuthor = Boolean(user && post.author_id === user.id)
-
-  // Check if user is master admin
-  let isMaster = false
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, email")
-      .eq("id", user.id)
-      .single()
-    isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
-  }
-
-  // 작성자의 노출된 뱃지 가져오기
-  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
-  if (post.author_id) {
-    const { data: badgesData } = await supabase
+  // 병렬로 나머지 데이터 가져오기
+  const [userLikeResult, commentsResult, profileResult, badgesResult] = await Promise.all([
+    user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).single() : Promise.resolve({ data: null }),
+    supabase
+      .from("comments")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("post_id", id)
+      .order("created_at", { ascending: true }),
+    user ? supabase.from("profiles").select("role, email").eq("id", user.id).single() : Promise.resolve({ data: null }),
+    post.author_id ? supabase
       .from("user_badges")
       .select(`
         badges:badge_id (
@@ -87,17 +67,29 @@ export default async function PostDetailPage({
         )
       `)
       .eq("user_id", post.author_id)
-      .eq("is_visible", true)
+      .eq("is_visible", true) : Promise.resolve({ data: null })
+  ])
 
-    if (badgesData) {
-      authorVisibleBadges = badgesData
-        .map((ub: any) => ub.badges)
-        .filter(Boolean)
-        .map((badge: any) => ({
-          icon: badge.icon,
-          name: badge.name,
-        }))
-    }
+  const userLike = userLikeResult.data
+  const { data: comments } = commentsResult
+  const { data: profile } = profileResult
+
+  // Check if user is author
+  const isAuthor = Boolean(user && post.author_id === user.id)
+
+  // Check if user is master admin
+  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+
+  // 작성자의 노출된 뱃지 가져오기
+  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
+  if (badgesResult.data) {
+    authorVisibleBadges = badgesResult.data
+      .map((ub: any) => ub.badges)
+      .filter(Boolean)
+      .map((badge: any) => ({
+        icon: badge.icon,
+        name: badge.name,
+      }))
   }
 
   return (
