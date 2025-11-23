@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus, MessageSquare, ThumbsUp } from 'lucide-react';
+import { isAdmin } from "@/lib/utils";
 
 export default async function BoardPage({
   params,
@@ -38,6 +39,17 @@ export default async function BoardPage({
   const user = userResult.data.user;
   const posts = postsResult.data;
 
+  // 관리자 여부 확인
+  let isUserAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, email")
+      .eq("id", user.id)
+      .single();
+    isUserAdmin = isAdmin(profile?.role, profile?.email);
+  }
+
   if (!category && slug !== "announcements") {
     notFound();
   }
@@ -57,7 +69,17 @@ export default async function BoardPage({
               <p className="mt-2 text-slate-600">{displayDescription}</p>
             )}
           </div>
-          {slug !== "announcements" && (
+          {/* 공지사항은 관리자만, 그 외 게시판은 로그인한 사용자 모두 */}
+          {slug === "announcements" ? (
+            isUserAdmin && (
+              <Link href={`/community/board/${slug}/new`}>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  글쓰기
+                </Button>
+              </Link>
+            )
+          ) : (
             user ? (
               <Link href={`/community/board/${slug}/new`}>
                 <Button className="gap-2">
