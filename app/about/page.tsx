@@ -101,6 +101,7 @@ const BADGE_GROUPS = [
     icon: "🛡️",
     color: "bg-purple-100/50 text-purple-700",
     badges: [
+      { name: "선착순 100인", desc: "SFC 초기 가입 멤버 (로열티)", icon: "👑" },
       { name: "커뮤니티 리더", desc: "SFC 커뮤니티 운영진 및 리더", icon: "🛡️" },
       { name: "우수활동 회원", desc: "커뮤니티 내 활동 지수 상위 1% 회원", icon: "🌟" },
     ],

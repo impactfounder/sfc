@@ -56,6 +56,7 @@ INSERT INTO badges (name, icon, category, description) VALUES
 ('수의사', '🐾', 'professional', '대한민국 수의사 면허 인증'),
 ('약사', '💊', 'professional', '대한민국 약사 면허 인증'),
 
--- [7] 커뮤니티 (Community) - 2 tiers (운영진 + 활동 회원)
+-- [7] 커뮤니티 (Community) - 3 tiers (선착순 100인 + 운영진 + 활동 회원)
+('선착순 100인', '👑', 'community', 'SFC 초기 가입 멤버 (로열티)'),
 ('커뮤니티 리더', '🛡️', 'community', 'SFC 커뮤니티 운영진 및 리더'),
 ('우수활동 회원', '🌟', 'community', '커뮤니티 내 활동 지수 상위 1% 회원');
