@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Sparkles, Check, Users, Zap, Target } from "lucide-react"
+import { Sparkles, Check, Users, Zap, Target } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -80,32 +80,8 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
           신뢰기반 검증을 통해 아이디어와 콘텐츠가 자본과 연결되는 커뮤니티입니다.
         </p>
         
-        {/* CTA Button Block (★ w-full, h-12로 최종 축소) */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
-          
-          <Button 
-            onClick={onLogin}
-            size="lg" 
-            className="w-full sm:w-auto h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl" // ★ 높이 h-12
-          >
-            3초 만에 시작하기
-            <ArrowRight className="ml-2 w-5 h-5" />
-          </Button>
-
-          {/* 커뮤니티 소개 버튼 */}
-          <Link href="/about" className="w-full sm:w-auto">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full h-12 px-8 text-base border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold" // ★ 높이 h-12
-            >
-              커뮤니티 소개
-            </Button>
-          </Link>
-        </div>
-
-        {/* 혜택 체크리스트 (Hidden on Mobile) */}
-        <div className="mt-4 w-full max-w-sm hidden sm:block">
+        {/* 혜택 체크리스트 */}
+        <div className="mb-6 w-full max-w-sm">
           <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left">
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
@@ -120,6 +96,26 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
               <span>나만의 프로필 기반 추천 연결</span>
             </li>
           </ul>
+        </div>
+
+        {/* CTA Button Block - 히어로 하단에 위치 */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
+          <Button 
+            onClick={onLogin}
+            size="lg" 
+            className="w-full sm:w-auto h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
+          >
+            3초 만에 시작하기
+          </Button>
+
+          <Link href="/about" className="w-full sm:w-auto">
+            <Button
+              size="lg"
+              className="w-full h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
+            >
+              커뮤니티 소개
+            </Button>
+          </Link>
         </div>
 
       </div>
