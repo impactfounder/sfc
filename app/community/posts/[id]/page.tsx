@@ -44,7 +44,7 @@ export default async function PostDetailPage({
 
   // 병렬로 나머지 데이터 가져오기
   const [userLikeResult, commentsResult, profileResult, badgesResult] = await Promise.all([
-    user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).single() : Promise.resolve({ data: null }),
+    user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     supabase
       .from("comments")
       .select(`
@@ -57,7 +57,7 @@ export default async function PostDetailPage({
       `)
       .eq("post_id", id)
       .order("created_at", { ascending: true }),
-    user ? supabase.from("profiles").select("role, email").eq("id", user.id).single() : Promise.resolve({ data: null }),
+    user ? supabase.from("profiles").select("role, email").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     post.author_id ? supabase
       .from("user_badges")
       .select(`

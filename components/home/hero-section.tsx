@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Sparkles, Check, Users, Zap, Target } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { cn } from "@/lib/utils" // cn import 추가 (혹시 몰라 추가합니다)
 
 interface HeroSectionProps {
   user: any
@@ -45,7 +46,7 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
     )
   }
 
-  // 2. 비로그인 유저 (최종 컴팩트 버전)
+  // 2. 비로그인 유저 (수정된 간소화 버전)
   return (
     <div className="mb-10 relative w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md">
       {/* 배경 이미지 및 오버레이 */}
@@ -54,67 +55,47 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
           src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&w=2070&auto=format&fit=crop"
           alt="Community Background"
           fill
-          className="object-cover opacity-40"
+          className="object-cover opacity-30" // ★ opacity를 40 -> 30으로 낮춰 배경을 더 어둡게
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/70 to-transparent" />
+        {/* ★ 오버레이 강도 높여 텍스트 가독성 확보 */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-slate-900/95" /> 
       </div>
 
-      {/* 컨텐츠 영역 (padding: py-4 md:py-6으로 최소화) */}
-      <div className="relative z-10 px-6 py-4 md:py-6 flex flex-col items-center text-center max-w-4xl mx-auto">
+      {/* 컨텐츠 영역 (padding: py-10 md:py-16으로 늘려 시원하게) */}
+      <div className="relative z-10 px-6 py-10 md:py-16 flex flex-col items-center text-center max-w-4xl mx-auto">
         
-        {/* 상단 뱃지 */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/30 text-white backdrop-blur-md mb-2 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[11px] font-bold tracking-wider">지금 100+명의 리더들이 실시간 활동 중</span>
-        </div>
-
-        {/* 메인 카피 */}
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 leading-snug tracking-tight drop-shadow-md">
-          당신의 영향력을 확장시키는
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"> 성장 네트워크.</span>
+        {/* ★ 상단 뱃지 제거 (복잡함 감소) */}
+        
+        {/* ★ 메인 카피: 1줄로 압축 */}
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 leading-snug tracking-tight drop-shadow-md">
+          검증된 리더들의 성장 네트워크,
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 block sm:inline"> SFC.</span>
         </h1>
         
-        {/* 부제 */}
-        <p className="text-slate-300 text-sm leading-relaxed max-w-lg mx-auto mb-4">
-          신뢰기반 검증을 통해 아이디어와 콘텐츠가 자본과 연결되는 커뮤니티입니다.
+        {/* ★ 부제: 메시지 명확화 */}
+        <p className="text-slate-300 text-base leading-relaxed max-w-lg mx-auto mb-8">
+          사업가, 투자자, 인플루언서가 모여 신뢰를 기반으로 함께 성장합니다.
         </p>
         
-        {/* 혜택 체크리스트 */}
-        <div className="mb-6 w-full max-w-sm">
-          <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left">
-            <li className="flex items-start gap-2">
-              <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-              <span>사업가·창작자·투자자의 실시간 네트워크</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-              <span>단독 이벤트·모임 참여 기회 제공</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-              <span>나만의 프로필 기반 추천 연결</span>
-            </li>
-          </ul>
-        </div>
-
-        {/* CTA Button Block - 히어로 하단에 위치 */}
+        {/* ★ 혜택 체크리스트 전체 제거 */}
+        
+        {/* ★ CTA Button Block - 1개만 강조 */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
           <Button 
             onClick={onLogin}
             size="lg" 
-            className="w-full sm:w-auto h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
+            className="w-full sm:w-auto h-14 px-10 text-lg bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
           >
-            3초 만에 시작하기
+            SFC와 함께 시작하기
           </Button>
 
-          <Link href="/about" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
-            >
+          {/* 커뮤니티 소개 버튼은 하위로 이동하거나 제거 */}
+          <Link href="/about" className="w-full sm:w-auto hidden sm:block">
+            {/* <Button variant="ghost" className="h-14 px-10 text-white hover:bg-white/10 text-base">
               커뮤니티 소개
-            </Button>
+            </Button> 
+            */}
           </Link>
         </div>
 

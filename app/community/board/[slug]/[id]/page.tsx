@@ -61,7 +61,7 @@ export default async function BoardPostDetailPage({
       .select("id")
       .eq("post_id", id)
       .eq("user_id", user.id)
-      .single() : Promise.resolve({ data: null }),
+      .maybeSingle() : Promise.resolve({ data: null }),
     supabase
       .from("comments")
       .select(`
