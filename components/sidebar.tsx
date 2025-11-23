@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { Calendar, LogOut, LogIn, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import NotificationsDropdown from "@/components/notifications-dropdown"
 import Image from "next/image"
@@ -108,9 +108,40 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
     return startsWith ? pathname.startsWith(href) : pathname === href
   }
 
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // 사이드바에 마우스가 올라가 있을 때만 스크롤 처리
+  useEffect(() => {
+    const sidebar = sidebarRef.current
+    if (!sidebar) return
+
+    const handleWheel = (e: WheelEvent) => {
+      // 사이드바가 스크롤 가능한 상태인지 확인
+      const isScrollable = sidebar.scrollHeight > sidebar.clientHeight
+      const isAtTop = sidebar.scrollTop === 0
+      const isAtBottom = sidebar.scrollTop + sidebar.clientHeight >= sidebar.scrollHeight - 1
+
+      // 스크롤 가능하고, 위/아래 끝에 도달하지 않았으면 사이드바만 스크롤
+      if (isScrollable) {
+        if ((e.deltaY < 0 && !isAtTop) || (e.deltaY > 0 && !isAtBottom)) {
+          e.stopPropagation()
+        }
+      }
+    }
+
+    sidebar.addEventListener('wheel', handleWheel, { passive: false })
+
+    return () => {
+      sidebar.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
+
   return (
     <>
-      <div className="flex h-full w-64 flex-col bg-white border-r border-slate-200 overflow-y-scroll scrollbar-hide">
+      <div 
+        ref={sidebarRef}
+        className="flex h-full w-64 flex-col bg-white border-r border-slate-200 overflow-y-scroll scrollbar-hide"
+      >
         <div className="border-b border-slate-100">
           
           {/* 로고 & 타이틀 */}
