@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Calendar, Plus, User, Users, X, Home } from "lucide-react"
 
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import { LoginModal } from "@/components/login-modal" // LoginModal import 확인
 import { NewEventForm } from "@/components/new-event-form"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -15,9 +14,9 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/comp
 import { AnnouncementBanner } from "@/components/home/announcement-banner"
 import { EventsSection } from "@/components/home/events-section"
 import { PostsSection } from "@/components/home/posts-section"
+import { HeroSection } from "@/components/home/hero-section"
 import { EventCardEvent } from "@/components/ui/event-card"
 
-// 탭 타입 정의
 type TabValue = "home" | "events" | "community"
 
 type BoardCategory = {
@@ -51,7 +50,6 @@ type Announcement = {
 }
 
 export default function HomePage() {
-  // 1. 상태 관리
   const [activeTab, setActiveTab] = useState<TabValue>("home")
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
@@ -60,19 +58,15 @@ export default function HomePage() {
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([])
   const [user, setUser] = useState<any>(null)
   
-  // 모달/시트 상태
-  const [showLoginModal, setShowLoginModal] = useState(false) // 로그인 모달 상태 추가
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  // 2. 데이터 가져오기
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true)
-
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
 
@@ -207,49 +201,52 @@ export default function HomePage() {
     fetchData()
   }, [supabase])
 
-  // 3. 핸들러
+  // ★ 수정됨: 모달 대신 페이지 이동
   const handleCreateEvent = () => {
     if (!user) {
-      setShowLoginModal(true) // 페이지 이동 대신 모달 띄우기
+      router.push("/auth/login")
       return
     }
     setShowCreateSheet(true)
   }
 
+  // ★ 수정됨: 모달 대신 페이지 이동
   const handleProfileAction = () => {
     if (user) {
       router.push("/community/profile")
       return
     }
-    setShowLoginModal(true) // 페이지 이동 대신 모달 띄우기
+    router.push("/auth/login")
   }
 
-  // 4. 렌더링
+  // 로그인 페이지로 이동 함수
+  const handleLogin = () => {
+    router.push("/auth/login")
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <MobileHeader />
-      
-      <div className="hidden lg:block">
-        <Sidebar />
-      </div>
+      <div className="hidden lg:block"><Sidebar /></div>
 
       <div className="flex w-full flex-1 justify-center overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
         <div className="w-full flex flex-col gap-8">
-          
+          {/* ★ 히어로 섹션 추가 (홈 탭일 때만 보임) */}
+          {activeTab === 'home' && (
+            <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
+              {/* HeroSection에 로그인 핸들러 전달 */}
+              <HeroSection user={user} onLogin={handleLogin} />
+            </div>
+          )}
           {(activeTab === 'home' || activeTab === 'events') && (
             <>
               {announcement && <AnnouncementBanner announcement={announcement} />}
-              {/* ★ 수정된 부분: isLoading 전달 */}
-              <EventsSection 
-                events={events} 
-                onCreateEvent={handleCreateEvent} 
-                isLoading={isLoading} 
-              />
+              <div id="events-section">
+                <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+              </div>
             </>
           )}
-
           {(activeTab === 'home' || activeTab === 'community') && (
-            /* ★ 수정된 부분: isLoading 전달 */
             <PostsSection
               posts={posts}
               boardCategories={boardCategories}
@@ -272,27 +269,29 @@ export default function HomePage() {
         user={user}
       />
 
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
+      {/* LoginModal 관련 코드는 제거됨 */}
 
       <Sheet open={showCreateSheet} onOpenChange={setShowCreateSheet}>
-        <SheetContent side="bottom" className="h-[85vh] p-0" hideClose>
-          <div className="flex h-full flex-col overflow-hidden">
-            <SheetHeader className="flex flex-row items-center justify-between border-b px-6 py-5">
-              <SheetTitle className="text-xl font-bold">새 이벤트 만들기</SheetTitle>
+        <SheetContent side="bottom" className="h-[95vh] p-0 rounded-t-2xl overflow-hidden" hideClose>
+          <div className="flex h-full flex-col">
+            <SheetHeader className="flex flex-row items-center justify-between border-b px-6 py-4 bg-white z-10">
+              <SheetTitle className="text-xl font-bold">새 이벤트</SheetTitle>
               <SheetClose asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100">
                   <X className="size-5" />
                 </Button>
               </SheetClose>
             </SheetHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              <NewEventForm
-                userId={user?.id || ""}
-                onSuccess={() => {
-                  setShowCreateSheet(false)
-                  window.location.reload()
-                }}
-              />
+            <div className="flex-1 overflow-y-auto bg-slate-50">
+              <div className="max-w-5xl mx-auto p-6 md:p-8">
+                <NewEventForm
+                  userId={user?.id || ""}
+                  onSuccess={() => {
+                    setShowCreateSheet(false)
+                    window.location.reload()
+                  }}
+                />
+              </div>
             </div>
           </div>
         </SheetContent>
@@ -301,7 +300,7 @@ export default function HomePage() {
   )
 }
 
-// 하단바 컴포넌트
+// 하단 메뉴바 컴포넌트
 type MobileActionBarProps = {
   activeTab: TabValue
   onTabChange: (tab: TabValue) => void
@@ -314,66 +313,25 @@ function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
       <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
-        
-        <NavButton
-          icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />}
-          label="홈"
-          isActive={activeTab === "home"}
-          onClick={() => onTabChange("home")}
-        />
-
-        <NavButton
-          icon={<Calendar className={cn("size-6 mb-1", activeTab === "events" ? "text-slate-900" : "text-gray-400")} />}
-          label="이벤트"
-          isActive={activeTab === "events"}
-          onClick={() => onTabChange("events")}
-        />
-
-        <button
-          type="button"
-          onClick={onCreate}
-          className="flex flex-col items-center justify-center"
-        >
+        <NavButton icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />} label="홈" isActive={activeTab === "home"} onClick={() => onTabChange("home")} />
+        <NavButton icon={<Calendar className={cn("size-6 mb-1", activeTab === "events" ? "text-slate-900" : "text-gray-400")} />} label="이벤트" isActive={activeTab === "events"} onClick={() => onTabChange("events")} />
+        <button type="button" onClick={onCreate} className="flex flex-col items-center justify-center">
           <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white mb-1 transform active:scale-95 transition-transform">
             <Plus className="size-6" />
           </div>
           <span className="text-slate-900 font-semibold">만들기</span>
         </button>
-
-        <NavButton
-          icon={<Users className={cn("size-6 mb-1", activeTab === "community" ? "text-slate-900" : "text-gray-400")} />}
-          label="커뮤니티"
-          isActive={activeTab === "community"}
-          onClick={() => onTabChange("community")}
-        />
-
-        <NavButton
-          icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />}
-          label={user ? "프로필" : "로그인"}
-          onClick={onProfile}
-        />
+        <NavButton icon={<Users className={cn("size-6 mb-1", activeTab === "community" ? "text-slate-900" : "text-gray-400")} />} label="커뮤니티" isActive={activeTab === "community"} onClick={() => onTabChange("community")} />
+        <NavButton icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />} label={user ? "프로필" : "로그인"} onClick={onProfile} />
       </div>
     </nav>
   )
 }
 
-type NavButtonProps = {
-  icon: ReactNode
-  label: string
-  isActive?: boolean
-  onClick: () => void
-}
-
+type NavButtonProps = { icon: ReactNode, label: string, isActive?: boolean, onClick: () => void }
 function NavButton({ icon, label, isActive, onClick }: NavButtonProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center justify-center transition-colors active:bg-gray-50",
-        isActive ? "text-slate-900 font-bold" : "text-gray-400"
-      )}
-    >
+    <button type="button" onClick={onClick} className={cn("flex flex-col items-center justify-center transition-colors active:bg-gray-50", isActive ? "text-slate-900 font-bold" : "text-gray-400")}>
       {icon}
       <span>{label}</span>
     </button>

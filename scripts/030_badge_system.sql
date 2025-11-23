@@ -1,94 +1,61 @@
 -- 뱃지 시스템 테이블 생성 및 데이터 시딩
--- 회원의 신뢰도를 나타내는 인증 뱃지 시스템
+-- 최종 개편안 (개인자산/기업매출 분리, 30억/50억 티어 추가) 반영
 
--- 뱃지 테이블 생성
-CREATE TABLE IF NOT EXISTS badges (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  icon TEXT NOT NULL, -- 이모지 또는 아이콘 이름
-  category TEXT NOT NULL, -- asset, revenue, influence, achievement, community
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- 1. 테이블 구조는 기존과 동일하게 유지
 
--- 사용자 뱃지 테이블 생성
-CREATE TABLE IF NOT EXISTS user_badges (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  badge_id UUID NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
-  is_visible BOOLEAN DEFAULT true, -- 외부 노출 여부
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, badge_id)
-);
+-- 2. RLS 정책은 기존과 동일하게 유지 (모두에게 조회 가능, 본인 및 관리자만 수정 가능)
 
--- RLS 정책 설정
-ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
-
--- 뱃지 테이블: 모든 사용자가 조회 가능
-DROP POLICY IF EXISTS "Badges are viewable by everyone" ON badges;
-CREATE POLICY "Badges are viewable by everyone" ON badges
-  FOR SELECT
-  USING (true);
-
--- 사용자 뱃지 테이블: 모든 사용자가 조회 가능 (노출된 뱃지만)
-DROP POLICY IF EXISTS "User badges are viewable by everyone" ON user_badges;
-CREATE POLICY "User badges are viewable by everyone" ON user_badges
-  FOR SELECT
-  USING (is_visible = true OR auth.uid() = user_id);
-
--- 사용자는 자신의 뱃지 노출 여부를 수정할 수 있음
-DROP POLICY IF EXISTS "Users can update their own badge visibility" ON user_badges;
-CREATE POLICY "Users can update their own badge visibility" ON user_badges
-  FOR UPDATE
-  USING (auth.uid() = user_id);
-
--- 관리자는 모든 사용자의 뱃지를 부여/삭제할 수 있음
-DROP POLICY IF EXISTS "Admins can manage user badges" ON user_badges;
-CREATE POLICY "Admins can manage user badges" ON user_badges
-  FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE profiles.id = auth.uid() 
-      AND profiles.role IN ('admin', 'master')
-    )
-  );
-
--- 뱃지 데이터 초기화 (기존 데이터 삭제 후 다시 삽입)
+-- 3. 뱃지 데이터 초기화
 DELETE FROM user_badges;
 DELETE FROM badges;
 
 INSERT INTO badges (name, icon, category, description) VALUES
--- 1. 자산 (Asset)
-('자산 10억+', '💰', 'asset', '순자산 10억 원 이상 인증 회원'),
-('자산 50억+', '💎', 'asset', '순자산 50억 원 이상 인증 회원'),
 
--- 2. 매출 (Revenue)
-('매출 10억+', '📈', 'revenue', '연 매출 10억 원 이상 기업 대표'),
-('매출 50억+', '🚀', 'revenue', '연 매출 50억 원 이상 기업 대표'),
-('매출 100억+', '🏢', 'revenue', '연 매출 100억 원 이상 기업 대표'),
+-- [1] 개인 자산 (Asset) - 3 tiers (5억, 10억, 50억)
+('자산 5억+', '💰', 'personal_asset', '순자산 5억 원 이상 인증'),
+('자산 10억+', '💎', 'personal_asset', '순자산 10억 원 이상 인증'),
+('자산 50억+', '💎', 'personal_asset', '순자산 50억 원 이상 인증'),
 
--- 3. SNS 영향력 (Influence)
-('팔로워 1만+', '📣', 'influence', 'SNS 팔로워 1만 명 이상 보유'),
-('팔로워 5만+', '🔥', 'influence', 'SNS 팔로워 5만 명 이상 보유'),
-('팔로워 10만+', '🌟', 'influence', 'SNS 팔로워 10만 명 이상 보유'),
-('팔로워 20만+', '👑', 'influence', 'SNS 팔로워 20만 명 이상 보유'),
+-- [2] 기업 매출 (Revenue) - 3 tiers (10억, 50억, 100억)
+('매출 10억+', '📈', 'corporate_revenue', '연 매출 10억 원 이상 인증'),
+('매출 50억+', '📈', 'corporate_revenue', '연 매출 50억 원 이상 인증'),
+('매출 100억+', '📈', 'corporate_revenue', '연 매출 100억 원 이상 인증'),
 
--- 4. 기타 성과 (Achievement)
-('EXIT 경험', '🚪', 'achievement', 'M&A 또는 IPO 엑싯 경험 보유'),
-('연쇄 창업가', '🔄', 'achievement', '2회 이상 창업 경험 보유'),
-('연애프로그램', '📺', 'achievement', 'TV/OTT 연애 리얼리티 프로그램 출연'),
+-- [3] 투자 규모 (Investment Tier) - 6 tiers (1억 ~ 100억)
+('투자 1억+', '💰', 'investment', '누적 투자 집행액 1억 원 이상'),
+('투자 5억+', '💰', 'investment', '누적 투자 집행액 5억 원 이상'),
+('투자 10억+', '💰', 'investment', '누적 투자 집행액 10억 원 이상'),
+('투자 30억+', '💰', 'investment', '누적 투자 집행액 30억 원 이상'),
+('투자 50억+', '💰', 'investment', '누적 투자 집행액 50억 원 이상'),
+('투자 100억+', '💰', 'investment', '누적 투자 집행액 100억 원 이상'),
 
--- 5. 커뮤니티 (Community)
-('커뮤니티 리더', '🛡️', 'community', 'SFC 커뮤니티 운영진 및 리더');
+-- [4] 기업가치 (Valuation Tier) - 6 tiers (30억 ~ 유니콘)
+('기업가치 30억+', '🏙️', 'valuation', '최근 투자 유치 기준 기업가치 30억 원 이상'),
+('기업가치 50억+', '🏙️', 'valuation', '최근 투자 유치 기준 기업가치 50억 원 이상'),
+('기업가치 100억+', '🏙️', 'valuation', '최근 투자 유치 기준 기업가치 100억 원 이상'),
+('기업가치 300억+', '🏙️', 'valuation', '최근 투자 유치 기준 기업가치 300억 원 이상'),
+('기업가치 1000억+', '🏙️', 'valuation', '최근 투자 유치 기준 기업가치 1000억 원 이상'),
+('유니콘+', '🦄', 'valuation', '기업가치 1조 원 이상 (유니콘)'),
 
--- 인덱스 생성 (성능 최적화)
-CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON user_badges(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_badges_badge_id ON user_badges(badge_id);
-CREATE INDEX IF NOT EXISTS idx_user_badges_visible ON user_badges(user_id, is_visible) WHERE is_visible = true;
+-- [5] 인플루언서 (Influence Tier) - 6 tiers (1만 ~ 100만)
+('팔로워 1만+', '📣', 'influence', 'SNS 팔로워 1만 명 이상'),
+('팔로워 5만+', '🔥', 'influence', 'SNS 팔로워 5만 명 이상'),
+('팔로워 10만+', '⭐', 'influence', 'SNS 팔로워 10만 명 이상'),
+('팔로워 20만+', '👑', 'influence', 'SNS 팔로워 20만 명 이상'),
+('팔로워 50만+', '🚀', 'influence', 'SNS 팔로워 50만 명 이상'),
+('팔로워 100만+', '🌌', 'influence', 'SNS 팔로워 100만 명 이상'),
 
--- 확인 쿼리
--- SELECT * FROM badges ORDER BY category, name;
--- SELECT ub.*, b.name, b.icon, b.category FROM user_badges ub JOIN badges b ON ub.badge_id = b.id WHERE ub.user_id = auth.uid();
+-- [6] 전문직 (Professional License) - 9 tiers
+('변호사', '⚖️', 'professional', '대한민국 변호사 자격 인증'),
+('공인회계사', '📘', 'professional', '대한민국 공인회계사 자격 인증'),
+('세무사', '🧾', 'professional', '대한민국 세무사 자격 인증'),
+('변리사', '💡', 'professional', '대한민국 변리사 자격 인증'),
+('노무사', '🤝', 'professional', '대한민국 공인노무사 자격 인증'),
+('의사', '🩺', 'professional', '대한민국 의사 면허 인증'),
+('한의사', '🌿', 'professional', '대한민국 한의사 면허 인증'),
+('수의사', '🐾', 'professional', '대한민국 수의사 면허 인증'),
+('약사', '💊', 'professional', '대한민국 약사 면허 인증'),
 
+-- [7] 커뮤니티 (Community) - 2 tiers (운영진 + 활동 회원)
+('커뮤니티 리더', '🛡️', 'community', 'SFC 커뮤니티 운영진 및 리더'),
+('우수활동 회원', '🌟', 'community', '커뮤니티 내 활동 지수 상위 1% 회원');
