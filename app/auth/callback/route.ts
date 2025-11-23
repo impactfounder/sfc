@@ -10,8 +10,9 @@ export async function GET(request: NextRequest) {
   if (code) {
     const cookieStore = await cookies();
 
-    // 1. 최종 리디렉션 URL 결정
-    const forwardedHost = request.headers.get("x-forwarded-host"); // Vercel 배포 환경 대응
+    // 1. 먼저 어디로 이동할지 결정합니다.
+    // Vercel 배포 환경을 고려하여 URL을 생성합니다.
+    const forwardedHost = request.headers.get("x-forwarded-host"); 
     const isLocalEnv = process.env.NODE_ENV === "development";
 
     let redirectUrl: URL;
@@ -23,10 +24,10 @@ export async function GET(request: NextRequest) {
       redirectUrl = new URL(next, origin);
     }
 
-    // 2. 쿠키를 담을 Response 객체 생성 (딱 한 번만 생성)
+    // 2. 리디렉션할 Response 객체를 '미리' 만듭니다.
     const response = NextResponse.redirect(redirectUrl);
 
-    // 3. Supabase 클라이언트 생성 및 쿠키 설정 연결
+    // 3. Supabase 클라이언트를 만들면서, 위에서 만든 response에 쿠키를 심도록 설정합니다.
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            // 여기서 위에서 만든 response 객체에 쿠키를 심습니다.
+            // ★ 여기가 핵심: 만들어둔 response 객체에 쿠키를 설정합니다.
             cookiesToSet.forEach(({ name, value, options }) => {
               response.cookies.set(name, value, options);
             });
@@ -45,11 +46,11 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // 4. 코드 교환 (이 과정에서 setAll이 실행되어 response에 쿠키가 들어감)
+    // 4. 인증 코드를 세션으로 교환합니다. (이때 setAll이 실행되어 쿠키가 심어짐)
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // 5. 쿠키가 포함된 response 반환
+      // 5. 쿠키가 심어진 그 response를 그대로 반환합니다.
       return response;
     }
   }
