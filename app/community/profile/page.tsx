@@ -178,20 +178,31 @@ export default function ProfilePage() {
           })(),
           (async () => {
             try {
-              const result = await supabase
+              // 근본 원인: event_registrations 쿼리에서 events를 join하는 부분이 느림
+              // 해결: 타임아웃 추가 및 필요한 필드만 선택
+              const queryPromise = supabase
                 .from("event_registrations")
                 .select(`
                   registered_at,
-                  events (
+                  events!inner (
                     id, title, thumbnail_url, event_date, location
                   )
                 `)
                 .eq("user_id", currentUser.id)
                 .order("registered_at", { ascending: false })
                 .limit(20) // 최근 20개만
+              
+              // 타임아웃 설정 (5초)
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('쿼리 타임아웃')), 5000)
+              )
+              
+              const result = await Promise.race([queryPromise, timeoutPromise]) as any
               if (!result.error) myRegistrations = result.data || []
             } catch (error: any) {
               console.error('등록 이벤트 로드 오류:', error)
+              // 타임아웃이나 에러가 발생해도 빈 배열로 설정하여 계속 진행
+              myRegistrations = []
             }
           })(),
           (async () => {
@@ -454,7 +465,7 @@ export default function ProfilePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent 
-                  className="p-0 max-h-[600px] overflow-y-auto" 
+                  className="p-0 h-[600px] overflow-y-scroll" 
                   style={{ scrollbarGutter: 'stable' }}
                 >
                   
