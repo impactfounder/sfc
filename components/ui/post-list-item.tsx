@@ -47,7 +47,7 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) =
 
   return (
     <Link href={href} className={cn("block", className)}>
-      <div className="flex flex-col bg-white border rounded-xl p-5 hover:shadow-sm transition-shadow">
+      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
         {/* 상단 (Header) - 메타 정보 */}
         <div className="flex justify-between items-center mb-3">
           {/* 좌측: 카테고리 뱃지 (조건부 렌더링) */}
@@ -59,18 +59,18 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) =
             )}
           </div>
           {/* 우측: 작성일 */}
-          <span className="text-xs text-slate-400">{formatRelativeTime(post.created_at)}</span>
+          <span className="text-sm text-slate-400">{formatRelativeTime(post.created_at)}</span>
         </div>
 
         {/* 중단 (Body) - 본문 */}
         <div className="flex-1 mb-3">
           {/* 제목 */}
-          <h3 className="text-lg font-bold text-slate-900 mb-1 line-clamp-2">
+          <h3 className="text-xl font-bold text-slate-900 mb-1 line-clamp-2">
             {post.title}
           </h3>
           {/* 내용 미리보기 */}
           {contentPreview && (
-            <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+            <p className="text-slate-600 line-clamp-2 leading-relaxed">
               {contentPreview}
             </p>
           )}
@@ -78,7 +78,7 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) =
 
         {/* 하단 (Footer) - 작성자 */}
         <div className="mt-auto">
-          <span className="text-xs font-medium text-slate-500">
+          <span className="text-sm font-medium text-slate-700">
             {post.profiles?.full_name || "익명"}
           </span>
         </div>
