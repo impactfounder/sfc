@@ -67,15 +67,15 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
         
         {/* ★ 상단 뱃지 제거 (복잡함 감소) */}
         
-        {/* ★ 메인 카피: 1줄로 압축 */}
+        {/* ★ 메인 카피 */}
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 leading-snug tracking-tight drop-shadow-md">
-          검증된 리더들의 성장 네트워크,
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 block sm:inline"> SFC.</span>
+          당신의 영향력을 확장시키는{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">성장 커뮤니티</span>
         </h1>
         
         {/* ★ 부제: 메시지 명확화 */}
         <p className="text-slate-300 text-base leading-relaxed max-w-lg mx-auto mb-8">
-          사업가, 투자자, 인플루언서가 모여 신뢰를 기반으로 함께 성장합니다.
+          사업가, 투자자, 인플루언서가 모여 신뢰를 기반으로 함께 <strong className="text-white">연결됩니다.</strong>
         </p>
         
         {/* ★ 혜택 체크리스트 전체 제거 */}
@@ -87,7 +87,7 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
             size="lg" 
             className="w-full sm:w-auto h-14 px-10 text-lg bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl"
           >
-            SFC와 함께 시작하기
+            시작하기
           </Button>
 
           {/* 커뮤니티 소개 버튼은 하위로 이동하거나 제거 */}
