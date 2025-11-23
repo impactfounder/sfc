@@ -104,16 +104,49 @@ export async function GET(request: Request) {
       const cookieName = `sb-${projectRef}-auth-token`
       const cookieValue = JSON.stringify(sessionData)
       
+      // 환경에 따라 secure 설정 (로컬 개발 환경에서는 false)
+      const isSecure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
+      const isHttps = requestUrl.protocol === "https:"
+      
       // 쿠키 설정 (@supabase/ssr이 읽을 수 있는 형식)
+      // 중요: secure는 HTTPS에서만 true로 설정
       response.cookies.set(cookieName, cookieValue, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
-        sameSite: "lax",
+        secure: isSecure && isHttps, // HTTPS인 경우에만 secure
+        sameSite: "lax" as const,
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7일
+        // 도메인은 명시하지 않음 (기본값 사용)
       })
       
-      console.log(`[auth/callback] Set auth cookie: ${cookieName} (${cookieValue.length} chars)`)
+      console.log(`[auth/callback] Set auth cookie: ${cookieName} (${cookieValue.length} chars)`, {
+        secure: isSecure && isHttps,
+        sameSite: "lax",
+        path: "/",
+        protocol: requestUrl.protocol,
+        host: requestUrl.host,
+      })
+      
+      // 추가로 개별 토큰 쿠키도 설정 (일부 Supabase 클라이언트가 이를 기대할 수 있음)
+      if (data.session.access_token) {
+        response.cookies.set(`sb-${projectRef}-auth-token.access_token`, data.session.access_token, {
+          httpOnly: true,
+          secure: isSecure && isHttps,
+          sameSite: "lax" as const,
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+        })
+      }
+      
+      if (data.session.refresh_token) {
+        response.cookies.set(`sb-${projectRef}-auth-token.refresh_token`, data.session.refresh_token, {
+          httpOnly: true,
+          secure: isSecure && isHttps,
+          sameSite: "lax" as const,
+          path: "/",
+          maxAge: 60 * 60 * 24 * 30, // 30일
+        })
+      }
       
       if (!hasAuthCookie) {
         console.warn("[auth/callback] @supabase/ssr did not set cookies automatically, using manual fallback");
