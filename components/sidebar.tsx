@@ -52,6 +52,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [profile, setProfile] = useState<any>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -85,15 +86,25 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (isSigningOut) return // 이미 로그아웃 중이면 무시
+    
+    setIsSigningOut(true)
+    
     try {
-      await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('로그아웃 오류:', error)
+      }
       // 하드 리로드로 캐시 무시하고 완전 초기화
-      window.location.replace('/')
+      window.location.href = '/'
     } catch (error) {
       console.error('로그아웃 오류:', error)
       // 오류가 발생해도 강제 리로드
-      window.location.replace('/')
+      window.location.href = '/'
     }
   }
 
@@ -200,10 +211,11 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
                 <Button
                   variant="outline"
                   className="w-full justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-9 text-sm bg-transparent"
-                  onClick={handleSignOut} // ★ 하드 리로드 적용
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  로그아웃
+                  {isSigningOut ? '로그아웃 중...' : '로그아웃'}
                 </Button>
               </div>
             ) : (
