@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
+  // /auth/callback은 middleware를 통과하지 않도록 처리
+  if (request.nextUrl.pathname.startsWith("/auth/callback")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,

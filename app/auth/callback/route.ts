@@ -49,12 +49,15 @@ export async function GET(request: NextRequest) {
     // 4. 인증 코드를 세션으로 교환합니다. (이때 setAll이 실행되어 쿠키가 심어짐)
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
-      // 5. 쿠키가 심어진 그 response를 그대로 반환합니다.
-      return response;
+    if (error) {
+      console.error("[auth/callback] Error exchanging code:", error.message);
+      return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(error.message)}`, origin));
     }
+
+    // 5. 쿠키가 심어진 그 response를 그대로 반환합니다.
+    return response;
   }
 
-  // 로그인 실패 시 에러 페이지로 이동
-  return NextResponse.redirect(new URL("/auth/login?error=auth_failed", origin));
+  // code가 없으면 로그인 페이지로 이동
+  return NextResponse.redirect(new URL("/auth/login?error=no_code", origin));
 }
