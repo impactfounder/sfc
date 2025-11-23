@@ -21,7 +21,7 @@
   }
   body {
     /* ★ 수정: 스크롤바 점프 방지: overflow-y-scroll 추가 (항상 스크롤바가 공간을 차지하도록 강제) */
-    @apply bg-background text-foreground overflow-y-scroll; 
+    @apply bg-white text-slate-900 overflow-y-scroll; 
   }
 }
 
