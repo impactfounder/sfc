@@ -1,9 +1,10 @@
 import { requireAdmin } from "@/lib/auth/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { UserManagement } from "@/components/user-management"
+import { UserManagementRow } from "@/components/user-management"
 
 export default async function UsersManagementPage() {
   const { supabase, user, isMaster } = await requireAdmin()
@@ -11,7 +12,7 @@ export default async function UsersManagementPage() {
   const { data: users } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
+    <div className="min-h-screen bg-white p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
           <Link href="/admin">
@@ -32,20 +33,32 @@ export default async function UsersManagementPage() {
             <CardTitle>회원 목록 ({users?.length || 0}명)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {users && users.length > 0 ? (
-                users.map((member) => (
-                  <UserManagement
-                    key={member.id}
-                    user={member}
-                    currentUserId={user.id}
-                    canChangeRole={isMaster}
-                  />
-                ))
-              ) : (
-                <div className="py-12 text-center text-slate-500">회원이 없습니다</div>
-              )}
-            </div>
+            {users && users.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>이름</TableHead>
+                    <TableHead>이메일</TableHead>
+                    <TableHead>포인트</TableHead>
+                    <TableHead>등급</TableHead>
+                    <TableHead>가입일</TableHead>
+                    <TableHead className="text-right">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((member) => (
+                    <UserManagementRow
+                      key={member.id}
+                      user={member}
+                      currentUserId={user.id}
+                      canChangeRole={isMaster}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="py-12 text-center text-slate-500">회원이 없습니다</div>
+            )}
           </CardContent>
         </Card>
       </div>
