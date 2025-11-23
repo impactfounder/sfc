@@ -30,7 +30,7 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
   const hasEvents = events && events.length > 0
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
+    <div className="w-full">
       {/* 헤더 */}
       <div className="flex items-center justify-between w-full mb-6">
         <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h2>

@@ -70,7 +70,7 @@ export function PostsSection({
   }, [boardCategories]);
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 md:px-8 space-y-6">
+    <div className="w-full space-y-6">
       
       <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">최신 글</h2>
 

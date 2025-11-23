@@ -14,8 +14,7 @@ export function AnnouncementBanner({ announcement }: AnnouncementBannerProps) {
   if (!announcement) return null
 
   return (
-    // 이벤트/게시글 섹션과 동일한 레이아웃 규격(max-w-6xl, margin auto)을 적용하여 라인을 맞춤
-    <div className="w-full max-w-6xl mx-auto px-4 md:px-8">
+    <div className="w-full">
       <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm py-3 px-5 flex items-center gap-3 transition-shadow hover:shadow-md">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
           <Bell className="w-4 h-4" />
