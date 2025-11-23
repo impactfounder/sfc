@@ -5,7 +5,7 @@ export async function createClient() {
   const cookieStore = await cookies()
 
   // @supabase/ssr의 createServerClient를 사용하여 쿠키 자동 처리
-  const supabase = createServerClient(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -26,13 +26,4 @@ export async function createClient() {
       },
     }
   )
-
-  // 세션 새로고침 시도 (만료된 토큰 자동 갱신)
-  try {
-    await supabase.auth.getSession()
-  } catch (error) {
-    // 세션 가져오기 실패는 무시 (익명 사용자로 처리)
-  }
-
-  return supabase
 }

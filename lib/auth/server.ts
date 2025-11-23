@@ -11,6 +11,7 @@ export async function requireAuth() {
   const supabase = await createClient()
   
   // getUser를 사용하여 JWT 토큰 검증 (쿠키에서 자동으로 읽음)
+  // getUser는 쿠키에서 access_token을 읽고 Supabase 서버에서 검증합니다
   const {
     data: { user },
     error,
@@ -18,7 +19,14 @@ export async function requireAuth() {
 
   // 인증 오류가 있거나 사용자가 없으면 로그인 페이지로 리디렉션
   if (error || !user) {
-    console.error("Auth error in requireAuth:", error?.message || "No user found")
+    // 디버깅을 위한 상세 로그 (프로덕션에서는 제거 가능)
+    if (process.env.NODE_ENV === "development") {
+      console.error("Auth error in requireAuth:", {
+        error: error?.message,
+        errorCode: error?.status,
+        hasUser: !!user,
+      })
+    }
     redirect("/auth/login")
   }
 
