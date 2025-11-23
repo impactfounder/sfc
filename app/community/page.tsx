@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { EventCard } from "@/components/ui/event-card"
-import { AnnouncementBanner } from "./_components/announcement-banner"
+import { AnnouncementBanner } from "@/components/home/announcement-banner"
 import { EventsSectionHeader } from "./_components/events-section-header"
 import { PostsSection } from "./_components/posts-section"
 
