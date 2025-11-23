@@ -86,11 +86,15 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   }, [supabase])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    // router.push("/")
-    // router.refresh()
-    // ★ 수정: 하드 리로드로 캐시 무시하고 초기화
-    window.location.href = '/'
+    try {
+      await supabase.auth.signOut()
+      // 하드 리로드로 캐시 무시하고 완전 초기화
+      window.location.replace('/')
+    } catch (error) {
+      console.error('로그아웃 오류:', error)
+      // 오류가 발생해도 강제 리로드
+      window.location.replace('/')
+    }
   }
 
   const handleLogin = () => {

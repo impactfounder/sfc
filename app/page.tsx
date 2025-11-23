@@ -199,6 +199,13 @@ export default function HomePage() {
     }
 
     fetchData()
+
+    // 인증 상태 변경 감지 - 사용자 상태가 변경되면 즉시 반영
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
   }, [supabase])
 
   // ★ 수정됨: 모달 대신 페이지 이동
