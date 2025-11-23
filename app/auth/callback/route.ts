@@ -23,17 +23,20 @@ export async function GET(request: Request) {
             try {
               cookiesToSet.forEach(({ name, value, options }) => {
                 // NextResponse를 사용하여 쿠키 설정
+                // Vercel 환경에서도 작동하도록 명시적 설정
                 response.cookies.set(name, value, {
                   ...options,
                   httpOnly: options?.httpOnly ?? true,
-                  secure: options?.secure ?? process.env.NODE_ENV === "production",
+                  secure: options?.secure ?? (process.env.NODE_ENV === "production" || process.env.VERCEL === "1"),
                   sameSite: (options?.sameSite as "lax" | "strict" | "none") ?? "lax",
                   path: options?.path ?? "/",
                   maxAge: options?.maxAge ?? 60 * 60 * 24 * 7, // 7일
+                  // Vercel에서도 작동하도록 도메인 명시하지 않음 (기본값 사용)
                 });
+                console.log(`[auth/callback] Set cookie: ${name.substring(0, 20)}... (${value.length} chars)`);
               });
             } catch (error) {
-              console.error("Error setting cookies:", error);
+              console.error("[auth/callback] Error setting cookies:", error);
             }
           },
         },
@@ -43,35 +46,69 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (error) {
-      console.error("Error exchanging code for session:", error);
+      console.error("[auth/callback] Error exchanging code for session:", error);
       return NextResponse.redirect(new URL(`/auth/login?error=auth_failed&message=${encodeURIComponent(error.message)}`, requestUrl.origin));
     }
 
     // 세션이 성공적으로 설정되었는지 확인
     if (!data.session) {
-      console.error("No session after exchangeCodeForSession");
+      console.error("[auth/callback] No session after exchangeCodeForSession");
       return NextResponse.redirect(new URL("/auth/login?error=no_session", requestUrl.origin));
     }
 
     // 세션 확인을 위해 쿠키가 제대로 설정되었는지 로그
-    if (process.env.NODE_ENV === "development") {
-      console.log("Session created successfully:", {
-        userId: data.session.user.id,
-        expiresAt: data.session.expires_at,
-        cookieCount: response.cookies.getAll().length,
-      });
-    }
+    const responseCookies = response.cookies.getAll();
+    console.log("[auth/callback] Session created successfully:", {
+      userId: data.session.user.id,
+      expiresAt: data.session.expires_at,
+      cookieCount: responseCookies.length,
+      cookieNames: responseCookies.map(c => c.name),
+      cookieDetails: responseCookies.map(c => ({
+        name: c.name,
+        hasValue: !!c.value,
+        valueLength: c.value?.length || 0,
+        httpOnly: c.httpOnly,
+        secure: c.secure,
+        sameSite: c.sameSite,
+        path: c.path,
+      })),
+    });
 
     // 쿠키가 제대로 설정되었는지 확인
-    const responseCookies = response.cookies.getAll();
     const hasAuthCookie = responseCookies.some(cookie => 
       cookie.name.includes('auth-token') || 
       cookie.name.includes('access-token') ||
-      cookie.name.includes('refresh-token')
+      cookie.name.includes('refresh-token') ||
+      cookie.name.includes('supabase')
     );
 
-    if (!hasAuthCookie && process.env.NODE_ENV === "development") {
-      console.warn("Warning: No auth cookies found after session exchange");
+    if (!hasAuthCookie) {
+      console.error("[auth/callback] CRITICAL: No auth cookies found after session exchange!");
+      console.error("[auth/callback] All cookies:", responseCookies.map(c => c.name));
+      
+      // 쿠키가 설정되지 않았다면 명시적으로 설정 시도
+      // Supabase는 보통 sb-{project-ref}-auth-token 형식의 쿠키를 사용
+      const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1]
+      if (projectRef && data.session.access_token) {
+        const cookieName = `sb-${projectRef}-auth-token`
+        response.cookies.set(cookieName, JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at,
+          expires_in: data.session.expires_in,
+          token_type: data.session.token_type,
+          user: data.session.user,
+        }), {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 7일
+        })
+        console.log(`[auth/callback] Manually set auth cookie: ${cookieName}`)
+      }
+    } else {
+      console.log("[auth/callback] Auth cookies set successfully");
     }
 
     return response;

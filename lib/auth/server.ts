@@ -10,6 +10,22 @@ import { isAdmin, isMasterAdmin } from "@/lib/utils"
 export async function requireAuth() {
   const supabase = await createClient()
   
+  // 디버깅: 쿠키 확인
+  const cookieStore = await import("next/headers").then(m => m.cookies())
+  const allCookies = cookieStore.getAll()
+  const authCookies = allCookies.filter(c => 
+    c.name.includes('auth') || 
+    c.name.includes('access') || 
+    c.name.includes('refresh') ||
+    c.name.includes('supabase')
+  )
+  
+  console.log("[requireAuth] Cookie check:", {
+    totalCookies: allCookies.length,
+    authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 })),
+    allCookieNames: allCookies.map(c => c.name),
+  })
+  
   // getUser를 사용하여 JWT 토큰 검증 (쿠키에서 자동으로 읽음)
   // getUser는 쿠키에서 access_token을 읽고 Supabase 서버에서 검증합니다
   const {
@@ -19,16 +35,23 @@ export async function requireAuth() {
 
   // 인증 오류가 있거나 사용자가 없으면 로그인 페이지로 리디렉션
   if (error || !user) {
-    // 디버깅을 위한 상세 로그 (프로덕션에서는 제거 가능)
-    if (process.env.NODE_ENV === "development") {
-      console.error("Auth error in requireAuth:", {
-        error: error?.message,
-        errorCode: error?.status,
-        hasUser: !!user,
-      })
-    }
+    // 디버깅을 위한 상세 로그
+    console.error("[requireAuth] Auth error:", {
+      error: error?.message,
+      errorCode: error?.status,
+      errorName: error?.name,
+      hasUser: !!user,
+      authCookiesCount: authCookies.length,
+      cookieNames: allCookies.map(c => c.name),
+      cookieValues: authCookies.map(c => ({ name: c.name, valuePreview: c.value?.substring(0, 20) || "empty" })),
+    })
     redirect("/auth/login")
   }
+
+  console.log("[requireAuth] Auth successful:", {
+    userId: user.id,
+    email: user.email,
+  })
 
   return { user, supabase }
 }

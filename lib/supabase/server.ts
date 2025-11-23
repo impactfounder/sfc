@@ -4,6 +4,21 @@ import { cookies } from "next/headers"
 export async function createClient() {
   const cookieStore = await cookies()
 
+  // 디버깅: 쿠키 확인
+  const allCookies = cookieStore.getAll()
+  const authCookies = allCookies.filter(c => 
+    c.name.includes('auth') || 
+    c.name.includes('access') || 
+    c.name.includes('refresh') ||
+    c.name.includes('supabase')
+  )
+  
+  if (authCookies.length > 0) {
+    console.log("[createClient] Found auth cookies:", authCookies.map(c => c.name))
+  } else {
+    console.log("[createClient] No auth cookies found. Total cookies:", allCookies.length)
+  }
+
   // @supabase/ssr의 createServerClient를 사용하여 쿠키 자동 처리
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +36,7 @@ export async function createClient() {
           } catch (error) {
             // 서버 컴포넌트에서는 쿠키를 설정할 수 없으므로 무시
             // 클라이언트 컴포넌트나 Route Handler에서만 설정 가능
+            console.error("[createClient] Error setting cookies in server component:", error)
           }
         },
       },
