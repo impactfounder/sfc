@@ -28,20 +28,20 @@ export default async function CommunitiesPage() {
     .order("created_at", { ascending: false })
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8 lg:pl-[344px]">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-6xl">
         
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">소모임</h1>
-            <p className="mt-2 text-slate-600">관심사가 같은 멤버들과 함께하는 소모임을 찾아보세요</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">SFC커뮤니티</h1>
+            <p className="mt-2 text-slate-600">관심사가 같은 멤버들과 함께하는 커뮤니티를 찾아보세요</p>
           </div>
           {user ? (
             <Link href="/communities/new">
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                소모임 만들기
+                커뮤니티 만들기
               </Button>
             </Link>
           ) : (
@@ -54,7 +54,7 @@ export default async function CommunitiesPage() {
           )}
         </div>
 
-        {/* 소모임 리스트 */}
+        {/* 커뮤니티 리스트 */}
         {communities && communities.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {communities.map((community: any) => (
@@ -100,11 +100,11 @@ export default async function CommunitiesPage() {
           <Card className="border-slate-200">
             <CardContent className="py-12 text-center">
               <Users className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">아직 소모임이 없습니다</h3>
-              <p className="mb-4 text-sm text-slate-600">첫 번째 소모임을 만들어보세요</p>
+              <h3 className="mb-2 text-lg font-semibold text-slate-900">아직 커뮤니티가 없습니다</h3>
+              <p className="mb-4 text-sm text-slate-600">첫 번째 커뮤니티를 만들어보세요</p>
               {user ? (
                 <Link href="/communities/new">
-                  <Button>소모임 만들기</Button>
+                  <Button>커뮤니티 만들기</Button>
                 </Link>
               ) : (
                 <Link href="/auth/login">

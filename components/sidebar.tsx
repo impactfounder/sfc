@@ -17,15 +17,14 @@ const navigationSections = [
     title: "소개", 
     links: [
       { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen },
-      { name: "멤버 (Member)", href: "/member", icon: Users }
+      { name: "SFC멤버", href: "/member", icon: Users }
     ],
     groupStyle: "major"
   },
   { 
     title: "핵심 활동", 
     links: [
-      { name: "이벤트", href: "/events", icon: Calendar },
-      { name: "소모임", href: "/communities", icon: Ticket }
+      { name: "이벤트", href: "/events", icon: Calendar }
     ],
     groupStyle: "major"
   },
@@ -40,6 +39,7 @@ const navigationSections = [
   { 
     title: "커뮤니티", // 브랜드성
     links: [
+      { name: "SFC커뮤니티", href: "/communities", icon: Ticket },
       { name: "반골", href: "/community/board/bangol", icon: Users },
       { name: "하이토크", href: "/community/board/hightalk", icon: Lightbulb }
     ],

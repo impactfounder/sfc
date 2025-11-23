@@ -73,12 +73,12 @@ export default async function MemberPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8 lg:pl-[344px]">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-6xl">
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">멤버 (Member)</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">SFC멤버</h1>
           <p className="mt-2 text-slate-600">SFC 커뮤니티의 멤버들을 만나보세요</p>
         </div>
 

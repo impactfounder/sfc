@@ -28,13 +28,18 @@ export async function requireAuth() {
 export async function requireAdmin() {
   const { user, supabase } = await requireAuth()
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role, email")
     .eq("id", user.id)
     .single()
 
-  if (!profile || !isAdmin(profile.role, profile.email)) {
+  if (profileError || !profile) {
+    console.error("Profile fetch error:", profileError)
+    redirect("/")
+  }
+
+  if (!isAdmin(profile.role, profile.email)) {
     redirect("/")
   }
 
