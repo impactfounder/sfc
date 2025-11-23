@@ -15,7 +15,7 @@ export default function CommunityLayout({
 
       <MobileHeader />
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full md:pt-0 pt-16">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full md:pt-0 pt-16 md:pl-[344px]">
         <div className="max-w-full overflow-x-hidden">{children}</div>
       </main>
     </div>

@@ -161,7 +161,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
     <>
       <div 
         ref={sidebarRef}
-        className="flex h-full w-64 flex-col bg-white border-r border-slate-200 overflow-y-scroll scrollbar-hide"
+        className="fixed inset-y-0 left-6 z-50 flex h-screen w-80 flex-col bg-white border-r border-slate-200 overflow-y-scroll scrollbar-hide rounded-r-2xl shadow-sm"
       >
         <div className="border-b border-slate-100">
           

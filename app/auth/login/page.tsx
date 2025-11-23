@@ -38,13 +38,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <div className="hidden lg:block fixed inset-y-0 left-0 z-50">
+      <div className="hidden lg:block fixed inset-y-0 left-6 z-50">
         <Sidebar />
       </div>
 
       <MobileHeader />
 
-      <div className="flex-1 flex flex-col lg:pl-64">
+      <div className="flex-1 flex flex-col lg:pl-[344px]">
         <main className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] lg:min-h-screen">
           
           <Card className="w-full max-w-[380px] p-8 border-none shadow-xl rounded-2xl bg-white">

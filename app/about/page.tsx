@@ -195,7 +195,7 @@ export default function AboutPage() {
       <MobileHeader />
       {/* MobileSidebar는 제거됨 */}
 
-      <div className="flex-1 overflow-auto pt-16 md:pt-0 pb-16"> {/* pb-16 추가 */}
+      <div className="flex-1 overflow-auto pt-16 md:pt-0 pb-16 md:pl-[344px]"> {/* pb-16 추가 */}
         
         {/* HERO: SFC는 어떤 사람들의 커뮤니티인가 */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 md:px-8 py-12 md:py-20 text-white">

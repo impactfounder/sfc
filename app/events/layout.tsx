@@ -18,7 +18,7 @@ export default function EventsLayout({
       <MobileHeader />
 
       {/* 3. 메인 콘텐츠 영역 */}
-      <main className="flex-1 overflow-y-auto w-full pt-16 md:pt-0">
+      <main className="flex-1 overflow-y-auto w-full pt-16 md:pt-0 md:pl-[344px]">
         <div className="max-w-full overflow-x-hidden">{children}</div>
       </main>
     </div>

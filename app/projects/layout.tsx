@@ -15,7 +15,7 @@ export default function ProjectsLayout({
 
       <MobileHeader />
 
-      <main className="flex-1 overflow-y-auto w-full pt-16 md:pt-0">{children}</main>
+      <main className="flex-1 overflow-y-auto w-full pt-16 md:pt-0 md:pl-[344px]">{children}</main>
     </div>
   )
 }
