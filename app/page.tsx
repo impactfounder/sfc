@@ -209,6 +209,14 @@ export default function HomePage() {
       userRef.current = currentUser
       setUser(currentUser)
       
+      // 로그아웃 이벤트 처리 - 사용자 상태 즉시 초기화
+      if (event === 'SIGNED_OUT' || (!currentUser && previousUser)) {
+        setUser(null)
+        userRef.current = null
+        // 페이지 리로드가 일어나므로 여기서는 상태만 초기화
+        return
+      }
+      
       // 로그인했을 때만 데이터 다시 가져오기 (SIGNED_IN 이벤트)
       if (event === 'SIGNED_IN' && !previousUser && currentUser) {
         setIsLoading(true)

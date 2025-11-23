@@ -16,7 +16,7 @@ const navigationSections = [
   { 
     title: "소개", 
     links: [
-      { name: "SEOUL FOUNDERS CLUB 소개", href: "/about", icon: BookOpen } 
+      { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen } 
     ],
     groupStyle: "major"
   },
@@ -98,16 +98,24 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
       // 로그아웃 실행 (타임아웃 설정)
       const signOutPromise = supabase.auth.signOut()
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('로그아웃 타임아웃')), 3000)
+        setTimeout(() => reject(new Error('로그아웃 타임아웃')), 2000)
       )
       
       await Promise.race([signOutPromise, timeoutPromise])
     } catch (error) {
       console.error('로그아웃 오류:', error)
-    } finally {
-      // 무조건 리로드
-      window.location.href = '/'
     }
+    
+    // 세션 스토리지 및 로컬 스토리지 클리어
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch (e) {
+      console.error('스토리지 클리어 오류:', e)
+    }
+    
+    // 캐시 무시하고 완전히 리로드 (히스토리 스택에 남지 않음)
+    window.location.replace('/?logout=' + Date.now())
   }
 
   const handleLogin = () => {
