@@ -344,8 +344,8 @@ export default function HomePage() {
       <MobileHeader />
       <div className="hidden lg:block"><Sidebar /></div>
 
-      <div className="flex-1 overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
-        <div className="w-full max-w-6xl mx-auto flex flex-col gap-8 px-4 md:px-8">
+      <div className="flex w-full flex-1 flex-col items-center overflow-x-hidden pb-24 pt-20 lg:pb-10 lg:pt-12">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-8">
           {/* ★ 히어로 섹션 추가 (홈 탭일 때만 보임) */}
           {activeTab === 'home' && (
             <div className="w-full">
