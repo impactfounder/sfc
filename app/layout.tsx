@@ -80,7 +80,9 @@ export default function RootLayout({
     <html lang="ko">
       <body className={inter.className}>
         <DailyLoginChecker />
-        {children}
+        <div className="mx-auto max-w-7xl">
+          {children}
+        </div>
       </body>
     </html>
   )
