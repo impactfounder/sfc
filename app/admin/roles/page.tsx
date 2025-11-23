@@ -1,5 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from 'next/navigation';
+import { requireMaster } from "@/lib/auth/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -7,22 +6,7 @@ import { ArrowLeft, Shield, Crown } from 'lucide-react';
 import { RoleManager } from "@/components/role-manager";
 
 export default async function RolesManagementPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/auth/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== 'master') {
-    redirect("/admin");
-  }
+  const { supabase, user } = await requireMaster();
 
   const { data: users } = await supabase
     .from("profiles")
@@ -31,7 +15,7 @@ export default async function RolesManagementPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
           <Link href="/admin">

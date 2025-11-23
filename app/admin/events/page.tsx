@@ -1,34 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { requireAdmin } from "@/lib/auth/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, Calendar, MapPin, Users, User, Settings, Trash2 } from "lucide-react"
 import { DeleteEventButton } from "@/components/delete-event-button"
-import { isAdmin } from "@/lib/utils"
 import Image from "next/image"
 
 export default async function AdminEventsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  // Check if user is admin or master
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile || !isAdmin(profile.role, profile.email)) {
-    redirect("/")
-  }
+  const { supabase } = await requireAdmin()
 
   // Fetch all events
   const { data: events } = await supabase
@@ -59,7 +38,7 @@ export default async function AdminEventsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
           <Link href="/admin">

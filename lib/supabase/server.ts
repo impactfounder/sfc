@@ -1,33 +1,29 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 export async function createClient() {
   const cookieStore = await cookies()
 
-  // 쿠키에서 세션 토큰 가져오기
-  const accessToken = cookieStore.get("sb-access-token")?.value
-  const refreshToken = cookieStore.get("sb-refresh-token")?.value
-
-  // 인증이 없어도 anon key로 접근 가능하도록 설정
-  // 인증 토큰이 있으면 헤더에 포함, 없으면 익명 사용자로 접근
-  const supabase = createSupabaseClient(
+  // @supabase/ssr의 createServerClient를 사용하여 쿠키 자동 처리
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch (error) {
+            // 서버 컴포넌트에서는 쿠키를 설정할 수 없으므로 무시
+            // 클라이언트 컴포넌트나 Route Handler에서만 설정 가능
+          }
+        },
       },
-      global: {
-        headers: accessToken
-          ? {
-              Authorization: `Bearer ${accessToken}`,
-            }
-          : {},
-      },
-    },
+    }
   )
-
-  return supabase
 }

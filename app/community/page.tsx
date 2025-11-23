@@ -1,76 +1,24 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
-import { EventCard } from "@/components/ui/event-card"
+import EventCard from "@/components/ui/event-card"
 import { AnnouncementBanner } from "@/components/home/announcement-banner"
 import { EventsSectionHeader } from "./_components/events-section-header"
-import { PostsSection } from "./_components/posts-section"
+import { PostsSection } from "@/components/home/posts-section"
+import { getLatestAnnouncement } from "@/lib/queries/announcements"
+import { getUpcomingEvents } from "@/lib/queries/events"
+import { getLatestPosts } from "@/lib/queries/posts"
+import { getBoardCategories } from "@/lib/queries/board-categories"
 
 export default async function CommunityDashboardPage() {
   const supabase = await createClient()
 
-  // Fetch announcement
-  const { data: announcementData } = await supabase
-    .from("posts")
-    .select(`
-      id,
-      title,
-      board_categories!inner (slug)
-    `)
-    .eq("board_categories.slug", "announcement")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const announcement = announcementData || null
-
-  // Fetch upcoming events
-  const { data: upcomingEvents } = await supabase
-    .from("events")
-    .select(`
-      id,
-      title,
-      thumbnail_url,
-      event_date,
-      event_time,
-      location,
-      max_participants,
-      event_registrations (count)
-    `)
-    .gte("event_date", new Date().toISOString())
-    .order("event_date", { ascending: true })
-    .limit(9)
-
-  // Fetch all posts for filtering
-  const { data: allPosts } = await supabase
-    .from("posts")
-    .select(`
-      id,
-      title,
-      created_at,
-      profiles:author_id (full_name),
-      board_categories (name, slug)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(50)
-
-  // Fetch board categories for filter
-  const { data: boardCategories } = await supabase
-    .from("board_categories")
-    .select("id, name, slug")
-    .eq("is_active", true)
-    .order("order_index", { ascending: true })
-
-  // Transform events data for EventCard
-  const eventsForDisplay = (upcomingEvents || []).map((event) => ({
-    id: event.id,
-    title: event.title,
-    thumbnail_url: event.thumbnail_url,
-    event_date: event.event_date,
-    event_time: event.event_time,
-    location: event.location,
-    max_participants: event.max_participants,
-    current_participants: event.event_registrations?.[0]?.count || 0,
-  }))
+  // Fetch data using query helpers
+  const [announcement, eventsForDisplay, transformedPosts, boardCategories] = await Promise.all([
+    getLatestAnnouncement(supabase),
+    getUpcomingEvents(supabase, 9),
+    getLatestPosts(supabase, 50),
+    getBoardCategories(supabase),
+  ])
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -108,7 +56,7 @@ export default async function CommunityDashboardPage() {
           <Card>
             <CardContent className="pt-6">
               <PostsSection
-                posts={allPosts || []}
+                posts={transformedPosts}
                 boardCategories={boardCategories || []}
               />
             </CardContent>

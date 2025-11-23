@@ -7,6 +7,75 @@ import { CommentSection } from "@/components/comment-section";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserBadges } from "@/components/user-badges";
+import type { Metadata } from "next";
+
+// 전체 공개 게시판 slug 목록
+const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
+
+// 동적 metadata 생성
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; id: string }>;
+}): Promise<Metadata> {
+  const { slug, id } = await params;
+  const supabase = await createClient();
+  
+  const categorySlug = slug === "announcements" ? "announcement" : slug;
+  
+  const { data: post } = await supabase
+    .from("posts")
+    .select(`
+      title,
+      content,
+      created_at,
+      profiles:author_id (
+        full_name
+      )
+    `)
+    .eq("id", id)
+    .eq("category", categorySlug)
+    .single();
+
+  if (!post) {
+    return {
+      title: "게시글을 찾을 수 없습니다",
+    };
+  }
+
+  const isPublic = PUBLIC_BOARDS.includes(slug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+  const cleanContent = post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "";
+  const title = `${post.title} | Seoul Founders Club`;
+  const description = cleanContent || `${post.title} - Seoul Founders Club 게시글`;
+  const authorName = (post.profiles as any)?.full_name || "익명";
+
+  return {
+    title,
+    description,
+    openGraph: isPublic ? {
+      title,
+      description,
+      url: `${siteUrl}/community/board/${slug}/${id}`,
+      siteName: "Seoul Founders Club",
+      type: "article",
+      publishedTime: post.created_at,
+      authors: authorName !== "익명" ? [authorName] : undefined,
+    } : undefined,
+    twitter: isPublic ? {
+      card: "summary_large_image",
+      title,
+      description,
+    } : undefined,
+    robots: isPublic ? {
+      index: true,
+      follow: true,
+    } : {
+      index: false,
+      follow: false,
+    },
+  };
+}
 
 export default async function BoardPostDetailPage({
   params,
@@ -101,8 +170,38 @@ export default async function BoardPostDetailPage({
       }))
   }
 
+  // 구조화된 데이터 (JSON-LD) - 전체 공개 게시판만
+  const isPublic = PUBLIC_BOARDS.includes(slug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+  
+  const structuredData = isPublic ? {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
+    "url": `${siteUrl}/community/board/${slug}/${id}`,
+    "author": {
+      "@type": "Person",
+      "name": post.profiles?.full_name || "익명"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Seoul Founders Club",
+      "url": siteUrl
+    },
+    "datePublished": post.created_at,
+    "dateModified": post.updated_at || post.created_at,
+  } : null;
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <>
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      )}
+      <div className="min-h-screen bg-slate-50">
       <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
         <div className="flex items-center px-4 py-3">
           <Link href={`/community/board/${slug}`}>
@@ -202,6 +301,7 @@ export default async function BoardPostDetailPage({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,71 +1,25 @@
-"use client"
-
-import { createClient } from "@/lib/supabase/client"
+import { requireAdmin } from "@/lib/auth/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FileText, Calendar, Shield } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 
-export default function AdminDashboard() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [isMaster, setIsMaster] = useState(false)
-  const [stats, setStats] = useState({
-    usersCount: 0,
-    postsCount: 0,
-    eventsCount: 0,
-  })
+export default async function AdminDashboard() {
+  const { supabase, isMaster } = await requireAdmin()
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
+  const [usersResult, postsResult, eventsResult] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("posts").select("*", { count: "exact", head: true }),
+    supabase.from("events").select("*", { count: "exact", head: true }),
+  ])
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/auth/login")
-        return
-      }
-
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-
-      if (!profile || (profile.role !== "admin" && profile.role !== "master")) {
-        router.push("/")
-        return
-      }
-
-      setIsMaster(profile.role === "master")
-
-      const [usersResult, postsResult, eventsResult] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("posts").select("*", { count: "exact", head: true }),
-        supabase.from("events").select("*", { count: "exact", head: true }),
-      ])
-
-      setStats({
-        usersCount: usersResult.count || 0,
-        postsCount: postsResult.count || 0,
-        eventsCount: eventsResult.count || 0,
-      })
-
-      setLoading(false)
-    }
-
-    checkAuth()
-  }, [router])
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-slate-600">로딩 중...</div>
-      </div>
-    )
+  const stats = {
+    usersCount: usersResult.count || 0,
+    postsCount: postsResult.count || 0,
+    eventsCount: eventsResult.count || 0,
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">관리자 대시보드</h1>

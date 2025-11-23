@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, LogIn, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen } from "lucide-react"
+import { Calendar, LogOut, LogIn, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo, useRef } from "react"
@@ -16,14 +16,16 @@ const navigationSections = [
   { 
     title: "소개", 
     links: [
-      { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen } 
+      { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen },
+      { name: "멤버 (Member)", href: "/member", icon: Users }
     ],
     groupStyle: "major"
   },
   { 
     title: "핵심 활동", 
     links: [
-      { name: "이벤트", href: "/events", icon: Calendar }
+      { name: "이벤트", href: "/events", icon: Calendar },
+      { name: "소모임", href: "/communities", icon: Ticket }
     ],
     groupStyle: "major"
   },

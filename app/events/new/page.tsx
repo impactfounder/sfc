@@ -1,18 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { requireAuth } from "@/lib/auth/server"
 import { NewEventForm } from "@/components/new-event-form"
 
 export default async function NewEventPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
+  const { user } = await requireAuth()
   const userId = user.id
 
   return (
