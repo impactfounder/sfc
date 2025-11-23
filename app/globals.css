@@ -33,4 +33,8 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* 스크롤바 레이아웃 시프트 방지 */
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
 }

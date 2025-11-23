@@ -127,23 +127,37 @@ export default function ProfilePage() {
         let myTransactions: any[] = []
         let badgesData: any[] = []
 
-        // 각 쿼리를 독립적으로 실행 (하나가 실패해도 나머지는 계속 진행)
+        // 근본 원인: 모든 쿼리에 limit이 없어서 전체 데이터를 가져옴
+        // 해결: 1) 프로필 정보를 먼저 로드하여 즉시 표시
+        //       2) 나머지 데이터는 limit을 추가하여 최적화
+        //       3) 필요한 필드만 선택하여 네트워크 트래픽 감소
+        
+        // 1단계: 프로필 정보만 먼저 로드 (즉시 표시)
+        try {
+          const profileResult = await supabase
+            .from("profiles")
+            .select("id, full_name, avatar_url, role, points, bio, created_at")
+            .eq("id", currentUser.id)
+            .single()
+          if (!profileResult.error) {
+            profileData = profileResult.data
+            setProfile(profileData) // 즉시 프로필 정보 표시
+            setUser(currentUser)
+          }
+        } catch (error: any) {
+          console.error('프로필 로드 오류:', error)
+        }
+
+        // 2단계: 나머지 데이터를 병렬로 로드 (limit 추가 및 필드 최적화)
         await Promise.all([
-          (async () => {
-            try {
-              const result = await supabase.from("profiles").select("*").eq("id", currentUser.id).single()
-              if (!result.error) profileData = result.data
-            } catch (error: any) {
-              console.error('프로필 로드 오류:', error)
-            }
-          })(),
           (async () => {
             try {
               const result = await supabase
                 .from("events")
-                .select(`*, profiles:created_by (full_name, avatar_url)`)
+                .select(`id, title, thumbnail_url, event_date, location, created_at`)
                 .eq("created_by", currentUser.id)
                 .order("created_at", { ascending: false })
+                .limit(20) // 최근 20개만
               if (!result.error) myEvents = result.data || []
             } catch (error: any) {
               console.error('이벤트 로드 오류:', error)
@@ -153,9 +167,10 @@ export default function ProfilePage() {
             try {
               const result = await supabase
                 .from("posts")
-                .select(`*, board_categories (name, slug), profiles:author_id (full_name, avatar_url)`)
+                .select(`id, title, created_at, board_categories (name, slug)`)
                 .eq("author_id", currentUser.id)
                 .order("created_at", { ascending: false })
+                .limit(20) // 최근 20개만
               if (!result.error) myPosts = result.data || []
             } catch (error: any) {
               console.error('게시글 로드 오류:', error)
@@ -166,13 +181,14 @@ export default function ProfilePage() {
               const result = await supabase
                 .from("event_registrations")
                 .select(`
-                  *,
+                  registered_at,
                   events (
-                    id, title, thumbnail_url, event_date, location, status, max_participants
+                    id, title, thumbnail_url, event_date, location
                   )
                 `)
                 .eq("user_id", currentUser.id)
                 .order("registered_at", { ascending: false })
+                .limit(20) // 최근 20개만
               if (!result.error) myRegistrations = result.data || []
             } catch (error: any) {
               console.error('등록 이벤트 로드 오류:', error)
@@ -182,9 +198,10 @@ export default function ProfilePage() {
             try {
               const result = await supabase
                 .from("point_transactions")
-                .select("*")
+                .select("id, amount, description, created_at")
                 .eq("user_id", currentUser.id)
                 .order("created_at", { ascending: false })
+                .limit(50) // 최근 50개만
               if (!result.error) myTransactions = result.data || []
             } catch (error: any) {
               console.error('포인트 내역 로드 오류:', error)
@@ -202,6 +219,7 @@ export default function ProfilePage() {
                 `)
                 .eq("user_id", currentUser.id)
                 .eq("is_visible", true)
+                .limit(10) // 최대 10개만
               if (!result.error) badgesData = result.data || []
             } catch (error: any) {
               console.error('뱃지 로드 오류:', error)
@@ -435,7 +453,10 @@ export default function ProfilePage() {
                     {activeTab === "participated_events" && <><Ticket className="h-5 w-5 text-purple-500" /> 참석 신청</>}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent 
+                  className="p-0 max-h-[600px] overflow-y-auto" 
+                  style={{ scrollbarGutter: 'stable' }}
+                >
                   
                   {/* 1. 포인트 내역 리스트 */}
                   {activeTab === "points" && (
