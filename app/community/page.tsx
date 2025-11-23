@@ -21,7 +21,7 @@ export default async function CommunityDashboardPage() {
   ])
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
         <div className="space-y-8">
           {/* Announcement Banner */}

@@ -144,7 +144,7 @@ export default async function BoardPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       )}
-      <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8 lg:pl-[344px]">
+      <div className="min-h-screen bg-white p-4 md:p-8 pt-20 md:pt-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
