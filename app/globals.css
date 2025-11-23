@@ -17,7 +17,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-slate-200;
   }
   body {
     /* ★ 수정: 스크롤바 점프 방지: overflow-y-scroll 추가 (항상 스크롤바가 공간을 차지하도록 강제) */
