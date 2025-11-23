@@ -206,7 +206,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           </Link>
 
           {/* 유저 프로필 & 로그인 버튼 */}
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center">
             {user ? (
               <div className="space-y-2">
                 <Link
