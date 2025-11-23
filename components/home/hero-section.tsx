@@ -104,9 +104,9 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
           </Link>
         </div>
 
-        {/* 혜택 체크리스트 (★ 중앙 정렬 수정) */}
-        <div className="mt-4 w-full max-w-md">
-          <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left"> {/* w-fit, mx-auto, text-left로 묶어 중앙 정렬 + 내용 정렬 */}
+        {/* 혜택 체크리스트 (★ 모바일에서 숨김) */}
+        <div className="mt-4 w-full max-w-sm hidden sm:block">
+          <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left">
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
               <span>사업가·창작자·투자자의 실시간 네트워크</span>

@@ -2,8 +2,7 @@ import { Sidebar } from "@/components/sidebar"
 import { MobileSidebar } from "@/components/mobile-sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent } from "@/components/ui/card"
-// Briefcase, DollarSign, Feather 아이콘을 기존 import에 추가했습니다.
-import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather } from "lucide-react" 
+import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
@@ -197,7 +196,7 @@ export default function AboutPage() {
                     <div>
                       <h3 className="mb-2 text-lg font-semibold text-slate-900">정기 밋업 및 워크샵</h3>
                       <p className="text-slate-600 leading-relaxed">
-                        CEO 밋업, Investment Night 등
+                        무브먼트 강남 HQ에서의 주 5일 데일리 프로그램 운영 (CEO 밋업, Investment Night 등)
                       </p>
                     </div>
                   </div>
@@ -244,15 +243,15 @@ export default function AboutPage() {
                         <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100/50 border border-blue-200">
                             <Briefcase className="h-6 w-6 text-blue-600" />
                         </div>
-                        <h3 className="text-xl font-semibold text-slate-900">창업자 & 경영자</h3>
+                        <h3 className="text-xl font-semibold text-slate-900">사업가 & 경영자</h3>
                         <p className="text-slate-600 text-sm">성장 단계의 스타트업 대표, C-Level 경영진</p>
                     </div>
                     <div className="space-y-2">
                         <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100/50 border border-amber-200">
                             <DollarSign className="h-6 w-6 text-amber-600" />
                         </div>
-                        <h3 className="text-xl font-semibold text-slate-900">투자자 & 전문직직</h3>
-                        <p className="text-slate-600 text-sm">VC, 엔젤 투자자, 회계사, 변호사 등 전문직직</p>
+                        <h3 className="text-xl font-semibold text-slate-900">투자자 & 전문직</h3>
+                        <p className="text-slate-600 text-sm">VC, 엔젤 투자자, 회계사, 변호사 등 전문 지식인</p>
                     </div>
                     <div className="space-y-2">
                         <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100/50 border border-purple-200">
