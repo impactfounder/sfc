@@ -52,8 +52,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [profile, setProfile] = useState<any>(null)
-  
-  const [showLoginModal, setShowLoginModal] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {

@@ -1,7 +1,6 @@
 import type React from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import { MobileSidebar } from "@/components/mobile-sidebar"
 
 export default function EventsLayout({
   children,
@@ -15,9 +14,8 @@ export default function EventsLayout({
         <Sidebar />
       </div>
 
-      {/* 2. 모바일 헤더 및 햄버거 메뉴 (MobileSidebar) */}
+      {/* 2. 모바일 헤더 */}
       <MobileHeader />
-      <MobileSidebar />
 
       {/* 3. 메인 콘텐츠 영역 */}
       <main className="flex-1 overflow-y-auto w-full pt-16 md:pt-0">

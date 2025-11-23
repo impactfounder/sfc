@@ -1,6 +1,5 @@
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import { MobileSidebar } from "@/components/mobile-sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function PrivacyPage() {
@@ -11,7 +10,6 @@ export default function PrivacyPage() {
       </div>
 
       <MobileHeader />
-      <MobileSidebar />
 
       <div className="flex-1 flex flex-col lg:pl-64 pt-16 lg:pt-0">
         <div className="max-w-4xl mx-auto p-6 w-full">

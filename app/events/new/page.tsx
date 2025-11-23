@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 import { NewEventForm } from "@/components/new-event-form"
 
 export default async function NewEventPage() {
@@ -8,7 +9,11 @@ export default async function NewEventPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const userId = user?.id || "temp-user-id"
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  const userId = user.id
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 pt-20 md:pt-12">

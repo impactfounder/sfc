@@ -373,14 +373,13 @@ export default function AboutPage() {
                           className={`p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md ${group.color}`} // p-3으로 패딩 축소
                         >
                           <div className="flex items-start gap-3"> {/* gap 축소 */}
-                            <div className="flex-shrink-0 text-xl pt-1 text-slate-700">
-                              {/* 아이콘을 심플한 점으로 대체 */}
-                              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block align-middle mt-2" />
+                            {/* 웹에서만 아이콘 표시, 모바일에서는 숨김 */}
+                            <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                              <span className="text-2xl">{badge.icon}</span>
                             </div>
-                            <div className="flex-1">
-                              {/* line-clamp 제거 및 텍스트 강제 압축 */}
-                              <div className="font-semibold text-slate-900 leading-tight">{badge.name}</div>
-                              <div className="text-xs text-slate-700 mt-0.5 leading-snug">{badge.desc}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-slate-900 leading-tight line-clamp-1">{badge.name}</div>
+                              <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">{badge.desc}</div>
                             </div>
                           </div>
                         </Card>

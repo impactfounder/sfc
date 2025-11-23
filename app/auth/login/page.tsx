@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import { MobileSidebar } from "@/components/mobile-sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import Image from "next/image"
@@ -44,7 +43,6 @@ export default function LoginPage() {
       </div>
 
       <MobileHeader />
-      <MobileSidebar />
 
       <div className="flex-1 flex flex-col lg:pl-64">
         <main className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] lg:min-h-screen">
