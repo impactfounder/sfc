@@ -73,18 +73,34 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
 
     loadUser()
 
+    // 근본 원인: onAuthStateChange가 페이지 이동 시에도 트리거되어 
+    // session이 일시적으로 null이 되면서 프로필이 초기화됨
+    // 해결: SIGNED_OUT 이벤트일 때만 프로필 초기화
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (!session?.user) {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // 로그아웃 이벤트일 때만 프로필 초기화
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
         setUserRole("member")
         setProfile(null)
+      } else if (session?.user) {
+        // 로그인 상태가 유지되면 사용자 정보만 업데이트 (프로필은 유지)
+        setUser(session.user)
+        // 프로필 정보가 없을 때만 다시 로드
+        if (!profile) {
+          supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data: profileData }) => {
+            if (profileData) {
+              setProfile(profileData)
+              setUserRole(profileData.role || "member")
+            }
+          })
+        }
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, profile])
 
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -139,8 +155,10 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
     const handleWheel = (e: WheelEvent) => {
       // 사이드바가 스크롤 가능한 상태인지 확인
       const isScrollable = sidebar.scrollHeight > sidebar.clientHeight
-      const isAtTop = sidebar.scrollTop === 0
-      const isAtBottom = sidebar.scrollTop + sidebar.clientHeight >= sidebar.scrollHeight - 1
+      const isAtTop = sidebar.scrollTop <= 1 // 여유를 둠
+      // 근본 원인: isAtBottom 계산이 부정확하여 스크롤이 끝까지 내려가지 않음
+      // 해결: 여유를 두고 정확한 계산
+      const isAtBottom = sidebar.scrollTop + sidebar.clientHeight >= sidebar.scrollHeight - 5
 
       // 스크롤 가능하고, 위/아래 끝에 도달하지 않았으면 사이드바만 스크롤
       if (isScrollable) {
@@ -240,7 +258,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           </div>
         </div>
 
-        <nav className="flex-1 px-2 py-4">
+        <nav className="flex-1 px-2 py-4 pb-8">
           
           {/* 1. 홈 (Top Level) */}
           <div className="space-y-0.5 mb-6">
