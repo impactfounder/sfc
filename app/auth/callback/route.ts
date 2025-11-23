@@ -20,6 +20,7 @@ export async function GET(request: Request) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
+            console.log(`[auth/callback] setAll called with ${cookiesToSet.length} cookies`);
             try {
               cookiesToSet.forEach(({ name, value, options }) => {
                 // NextResponse를 사용하여 쿠키 설정
@@ -33,10 +34,10 @@ export async function GET(request: Request) {
                   maxAge: options?.maxAge ?? 60 * 60 * 24 * 7, // 7일
                   // Vercel에서도 작동하도록 도메인 명시하지 않음 (기본값 사용)
                 });
-                console.log(`[auth/callback] Set cookie: ${name.substring(0, 20)}... (${value.length} chars)`);
+                console.log(`[auth/callback] Set cookie via setAll: ${name} (${value.length} chars)`);
               });
             } catch (error) {
-              console.error("[auth/callback] Error setting cookies:", error);
+              console.error("[auth/callback] Error setting cookies in setAll:", error);
             }
           },
         },
