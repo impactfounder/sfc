@@ -111,14 +111,13 @@ export default function ProfilePage() {
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
 
         if (userError || !currentUser) {
-          console.error('사용자 인증 오류:', userError)
           router.push("/")
           return
         }
 
         setUser(currentUser)
 
-        // 병렬로 데이터 가져오기
+        // 병렬로 모든 데이터 가져오기
         const [
           { data: profileData, error: profileError },
           { data: myEvents, error: eventsError },
@@ -165,13 +164,13 @@ export default function ProfilePage() {
             .eq("is_visible", true)
         ])
 
-        // 에러 로깅 (치명적이지 않은 에러는 무시)
-        if (profileError) console.error('프로필 조회 오류:', profileError)
-        if (eventsError) console.error('이벤트 조회 오류:', eventsError)
-        if (postsError) console.error('게시글 조회 오류:', postsError)
-        if (registrationsError) console.error('이벤트 신청 조회 오류:', registrationsError)
-        if (transactionsError) console.error('포인트 내역 조회 오류:', transactionsError)
-        if (badgesError) console.error('뱃지 조회 오류:', badgesError)
+        // 에러 로깅 (치명적이지 않은 에러는 무시하고 계속 진행)
+        if (profileError) console.error('프로필 로드 오류:', profileError)
+        if (eventsError) console.error('이벤트 로드 오류:', eventsError)
+        if (postsError) console.error('게시글 로드 오류:', postsError)
+        if (registrationsError) console.error('등록 이벤트 로드 오류:', registrationsError)
+        if (transactionsError) console.error('포인트 내역 로드 오류:', transactionsError)
+        if (badgesError) console.error('뱃지 로드 오류:', badgesError)
 
         // 데이터 설정
         setProfile(profileData || null)
@@ -193,7 +192,8 @@ export default function ProfilePage() {
         setVisibleBadges(mappedBadges)
 
       } catch (error) {
-        console.error('데이터 로딩 오류:', error)
+        console.error('데이터 로드 중 오류 발생:', error)
+        // 에러가 발생해도 로딩 상태는 해제
       } finally {
         setLoading(false)
       }
