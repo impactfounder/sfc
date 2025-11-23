@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PostListItem } from "@/components/ui/post-list-item";
 import Link from "next/link";
 import { Plus, MessageSquare, ThumbsUp } from 'lucide-react';
 import { isAdmin } from "@/lib/utils";
@@ -81,6 +82,10 @@ export default async function BoardPage({
         profiles:author_id (
           id,
           full_name
+        ),
+        board_categories:board_category_id (
+          name,
+          slug
         )
       `)
       .eq("category", slug === "announcements" ? "announcement" : slug)
@@ -179,45 +184,21 @@ export default async function BoardPage({
           {posts && posts.length > 0 ? (
             <div className="space-y-4">
               {posts.map((post: any) => (
-                <Link key={post.id} href={`/community/board/${slug}/${post.id}`}>
-                  <Card className="border-slate-200 bg-white hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-slate-900 mb-2 line-clamp-2">
-                            {post.title}
-                          </h3>
-                          {post.content && (
-                            <p className="text-sm text-slate-600 line-clamp-2 mb-3">
-                              {post.content.replace(/<[^>]*>/g, "").substring(0, 150)}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span>{post.profiles?.full_name || "익명"}</span>
-                            <span>•</span>
-                            <time dateTime={post.created_at}>
-                              {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </time>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 text-slate-400">
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="h-4 w-4" />
-                            <span className="text-xs">{post.comments_count || 0}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp className="h-4 w-4" />
-                            <span className="text-xs">{post.likes_count || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <PostListItem
+                  key={post.id}
+                  post={{
+                    id: post.id,
+                    title: post.title,
+                    content: post.content,
+                    created_at: post.created_at,
+                    profiles: post.profiles,
+                    board_categories: post.board_categories || {
+                      name: category.name,
+                      slug: slug === "announcements" ? "announcement" : slug,
+                    },
+                  }}
+                  href={`/community/board/${slug}/${post.id}`}
+                />
               ))}
             </div>
           ) : (
