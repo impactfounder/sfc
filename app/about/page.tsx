@@ -1,15 +1,15 @@
 "use client"
 
-import { useEffect, useState, ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { Card, CardContent } from "@/components/ui/card"
-import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather, Home, Calendar, Plus, User, Users } from "lucide-react"
+import { Users2, Lightbulb, TrendingUp, Target, Award, Building2, Shield, Briefcase, DollarSign, Feather } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
+import { useRouter } from "next/navigation"
+import { useState, useEffect, useMemo, type ReactNode } from "react" 
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -24,7 +24,7 @@ const BADGE_GROUPS = [
       { name: "자산 10억+", desc: "순자산 10억 원 이상", icon: "💎" },
       { name: "자산 50억+", desc: "순자산 50억 원 이상", icon: "💎" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3", 
   },
   {
     title: "기업 매출 (Revenue)",
@@ -35,7 +35,7 @@ const BADGE_GROUPS = [
       { name: "매출 50억+", desc: "연 매출 50억 원 이상", icon: "📈" },
       { name: "매출 100억+", desc: "연 매출 100억 원 이상", icon: "📈" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3", 
   },
   {
     title: "투자 규모 (Investment Tier)",
@@ -49,7 +49,7 @@ const BADGE_GROUPS = [
       { name: "투자 50억+", desc: "누적 투자 집행액 50억 원 이상", icon: "💰" },
       { name: "투자 100억+", desc: "누적 투자 집행액 100억 원 이상", icon: "💰" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3", 
   },
   {
     title: "기업 가치 (Valuation Tier)",
@@ -63,7 +63,7 @@ const BADGE_GROUPS = [
       { name: "기업가치 1000억+", desc: "1000억 원 이상", icon: "🏙️" },
       { name: "유니콘+", desc: "기업가치 1조 원 이상", icon: "🦄" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3", 
   },
   {
     title: "인플루언서 (Influence Tier)",
@@ -77,7 +77,7 @@ const BADGE_GROUPS = [
       { name: "팔로워 50만+", desc: "SNS 팔로워 50만 명 이상", icon: "🚀" },
       { name: "팔로워 100만+", desc: "SNS 팔로워 100만 명 이상", icon: "🌌" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3", 
   },
   {
     title: "전문직 (Professional License)",
@@ -94,7 +94,7 @@ const BADGE_GROUPS = [
       { name: "수의사", desc: "대한민국 수의사 면허 인증", icon: "🐾" },
       { name: "약사", desc: "대한민국 약사 면허 인증", icon: "💊" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3",
   },
   { // 커뮤니티 섹션
     title: "커뮤니티 활동",
@@ -104,18 +104,71 @@ const BADGE_GROUPS = [
       { name: "커뮤니티 리더", desc: "SFC 커뮤니티 운영진 및 리더", icon: "🛡️" },
       { name: "우수활동 회원", desc: "커뮤니티 내 활동 지수 상위 1% 회원", icon: "🌟" },
     ],
-    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
+    gridCols: "lg:grid-cols-3",
   },
 ]
 
 
+export const metadata = {
+  title: "SFC 소개 | Seoul Founders Club",
+  description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서가 모여 네트워킹하고 성장하는 비즈니스 커뮤니티입니다.",
+}
+
+type MobileActionBarProps = { activeTab: TabValue, onTabChange: (tab: TabValue) => void, onCreate: () => void, onProfile: () => void, user: any }
+type TabValue = "home" | "events" | "community"
+
+function NavButton({ icon, label, isActive, onClick }: any) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center justify-center transition-colors active:bg-gray-50 pt-1",
+        isActive ? "text-slate-900 font-bold" : "text-gray-400"
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: MobileActionBarProps) {
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
+      <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
+        
+        <NavButton icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />} label="홈" isActive={activeTab === "home"} onClick={() => onTabChange("home")} />
+        <NavButton icon={<Calendar className={cn("size-6 mb-1", activeTab === "events" ? "text-slate-900" : "text-gray-400")} />} label="이벤트" isActive={activeTab === "events"} onClick={() => onTabChange("events")} />
+
+        <button
+          type="button"
+          onClick={onCreate}
+          className="flex flex-col items-center justify-center pt-0.5" 
+        >
+          <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white transform active:scale-95 transition-transform">
+            <Plus className="size-6" />
+          </div>
+          <span className="text-slate-900 font-semibold text-[10px]">만들기</span>
+        </button>
+
+        <NavButton icon={<Users className={cn("size-6 mb-1", activeTab === "community" ? "text-slate-900" : "text-gray-400")} />} label="커뮤니티" isActive={activeTab === "community"} onClick={() => onTabChange("community")} />
+        <NavButton icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />} label={user ? "프로필" : "로그인"} onClick={onProfile} />
+      </div>
+    </nav>
+  )
+}
+
+
 export default function AboutPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<any>(null)
-
+  
+  const [activeTab] = useState<"home" | "events" | "community">("home") 
+  
   useEffect(() => {
-    async function loadUser() {
+    const loadUser = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       setUser(currentUser)
     }
@@ -123,20 +176,21 @@ export default function AboutPage() {
   }, [supabase])
 
   const handleCreateEvent = () => {
-    if (!user) {
-      router.push("/auth/login")
-      return
-    }
-    router.push("/events/new")
+    if (!user) { router.push("/auth/login"); return }
+    router.push("/events/new") // /events/new로 이동 (시트 대신 페이지)
   }
 
   const handleProfileAction = () => {
-    if (user) {
-      router.push("/community/profile")
-      return
-    }
+    if (user) { router.push("/community/profile"); return }
     router.push("/auth/login")
   }
+
+  const handleTabChange = (tab: "home" | "events" | "community") => {
+    if (tab === 'home') router.push('/');
+    else if (tab === 'events') router.push('/events');
+    else if (tab === 'community') router.push('/community/board/free'); // 기본 게시판으로 이동
+  };
+
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -145,12 +199,14 @@ export default function AboutPage() {
       </div>
 
       <MobileHeader />
+      {/* MobileSidebar는 제거됨 */}
 
-      <div className="flex-1 overflow-auto pt-16 md:pt-0">
+      <div className="flex-1 overflow-auto pt-16 md:pt-0 pb-16"> {/* pb-16 추가 */}
         
         {/* HERO: SFC는 어떤 사람들의 커뮤니티인가 */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 md:px-8 py-12 md:py-20 text-white">
           <div className="mx-auto max-w-4xl text-center">
+            {/* ... (Intro Content) ... */}
             <div className="mb-6 flex justify-center">
               <Image
                 src="/images/logo.png"
@@ -299,7 +355,7 @@ export default function AboutPage() {
             </div>
 
 
-            {/* 4. 인증 뱃지 시스템 (FLEXIBLE) - 그리드 통일 */}
+            {/* 4. 인증 뱃지 시스템 (그리드 통일) */}
             <div className="mb-12 md:mb-16">
               <h2 className="mb-8 text-center text-3xl font-bold text-slate-900">
                 신뢰를 더하는 인증 뱃지 시스템
@@ -315,18 +371,22 @@ export default function AboutPage() {
                       {group.title}
                     </h3>
 
-                    {/* ★ 모든 그룹 모바일 2단, 데스크탑 3단으로 통일 */}
+                    {/* 모바일 2단, 데스크탑 3단으로 통일 */}
                     <div className={`grid gap-4 grid-cols-2 lg:grid-cols-3`}>
                       {group.badges.map((badge, index) => (
                         <Card 
                           key={index} 
-                          className={`p-4 shadow-sm border-slate-200 transition-shadow hover:shadow-md ${group.color}`}
+                          className={`p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md ${group.color}`} // p-3으로 패딩 축소
                         >
-                          <div className="flex items-start gap-4">
-                            <span className="text-2xl pt-1 flex-shrink-0">{badge.icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-slate-900 leading-tight line-clamp-1">{badge.name}</div>
-                              <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">{badge.desc}</div>
+                          <div className="flex items-start gap-3"> {/* gap 축소 */}
+                            <div className="flex-shrink-0 text-xl pt-1 text-slate-700">
+                              {/* 아이콘을 심플한 점으로 대체 */}
+                              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block align-middle mt-2" />
+                            </div>
+                            <div className="flex-1">
+                              {/* line-clamp 제거 및 텍스트 강제 압축 */}
+                              <div className="font-semibold text-slate-900 leading-tight">{badge.name}</div>
+                              <div className="text-xs text-slate-700 mt-0.5 leading-snug">{badge.desc}</div>
                             </div>
                           </div>
                         </Card>
@@ -370,68 +430,6 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
-
-      {/* 하단 메뉴바 */}
-      <MobileActionBar
-        onCreate={handleCreateEvent}
-        onProfile={handleProfileAction}
-        user={user}
-      />
     </div>
-  )
-}
-
-// 하단 메뉴바 컴포넌트
-type MobileActionBarProps = {
-  onCreate: () => void
-  onProfile: () => void
-  user: any
-}
-
-function MobileActionBar({ onCreate, onProfile, user }: MobileActionBarProps) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
-      <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
-        <NavButton 
-          icon={<Home className={cn("size-6 mb-1", "text-gray-400")} />} 
-          label="홈" 
-          isActive={false} 
-          onClick={() => window.location.href = "/"} 
-        />
-        <NavButton 
-          icon={<Calendar className={cn("size-6 mb-1", "text-gray-400")} />} 
-          label="이벤트" 
-          isActive={false} 
-          onClick={() => window.location.href = "/events"} 
-        />
-        <button type="button" onClick={onCreate} className="flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white mb-1 transform active:scale-95 transition-transform">
-            <Plus className="size-6" />
-          </div>
-          <span className="text-[10px] text-slate-900 font-semibold">만들기</span>
-        </button>
-        <NavButton 
-          icon={<Users className={cn("size-6 mb-1", "text-gray-400")} />} 
-          label="커뮤니티" 
-          isActive={false} 
-          onClick={() => window.location.href = "/community/posts"} 
-        />
-        <NavButton 
-          icon={<User className={cn("size-6 mb-1", "text-gray-400")} />} 
-          label={user ? "프로필" : "로그인"} 
-          onClick={onProfile} 
-        />
-      </div>
-    </nav>
-  )
-}
-
-type NavButtonProps = { icon: ReactNode, label: string, isActive?: boolean, onClick: () => void }
-function NavButton({ icon, label, isActive, onClick }: NavButtonProps) {
-  return (
-    <button type="button" onClick={onClick} className={cn("flex flex-col items-center justify-center transition-colors active:bg-gray-50", isActive ? "text-slate-900 font-bold" : "text-gray-400")}>
-      {icon}
-      <span>{label}</span>
-    </button>
   )
 }

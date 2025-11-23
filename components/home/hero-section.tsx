@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Sparkles, Check, Users, Zap, Target } from "lucide-react" // 필요한 아이콘 임포트
+import { ArrowRight, Sparkles, Check, Users, Zap, Target } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -11,11 +11,10 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ user, onLogin }: HeroSectionProps) {
-  // 1. 로그인한 유저 (최종 버튼 구성)
+  // 1. 로그인한 유저
   if (user) {
     return (
       <div className="mb-8 rounded-2xl bg-slate-900 text-white p-6 md:p-8 shadow-lg overflow-hidden relative">
-        {/* 배경 데코레이션 */}
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -31,38 +30,22 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
               오늘도 새로운 기회와 연결될 준비가 되셨나요?
             </p>
           </div>
-          
-          {/* ★ 버튼 영역 (3개로 확장) */}
-          <div className="flex gap-3 flex-wrap justify-end shrink-0">
-            
-            {/* 1. 이벤트 보러가기 (메인 CTA) */}
-            <Link href="/events">
-              <Button className="bg-white text-slate-900 hover:bg-slate-100 font-semibold border-none h-10 text-sm shadow-md">
-                이벤트 보러가기
-              </Button>
-            </Link>
-
-            {/* 2. 커뮤니티 보러가기 */}
-            <Link href="/community/posts">
-              <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 h-10 text-sm">
-                커뮤니티 보러가기
-              </Button>
-            </Link>
-
-            {/* 3. 내 프로필 */}
+          <div className="flex gap-3 shrink-0">
+            <Button onClick={() => document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white text-slate-900 hover:bg-slate-100 font-semibold border-none h-10 text-sm">
+              이벤트 참여
+            </Button>
             <Link href="/community/profile">
               <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 h-10 text-sm">
                 내 프로필
               </Button>
             </Link>
-
           </div>
         </div>
       </div>
     )
   }
 
-  // 2. 비로그인 유저 (유지)
+  // 2. 비로그인 유저 (최종 컴팩트 버전)
   return (
     <div className="mb-10 relative w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md">
       {/* 배경 이미지 및 오버레이 */}
@@ -93,36 +76,36 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
         </h1>
         
         {/* 부제 */}
-        <p className="text-slate-300 text-base leading-relaxed max-w-lg mx-auto mb-4">
+        <p className="text-slate-300 text-sm leading-relaxed max-w-lg mx-auto mb-4">
           신뢰기반 검증을 통해 아이디어와 콘텐츠가 자본과 연결되는 커뮤니티입니다.
         </p>
         
-        {/* CTA Button Block */}
+        {/* CTA Button Block (★ w-full, h-12로 최종 축소) */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
           
           <Button 
             onClick={onLogin}
             size="lg" 
-            className="w-full sm:w-auto h-14 px-10 text-lg bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-2xl"
+            className="w-full sm:w-auto h-12 px-8 text-base bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl" // ★ 높이 h-12
           >
             3초 만에 시작하기
             <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
 
           {/* 커뮤니티 소개 버튼 */}
-          <Link href="/about">
+          <Link href="/about" className="w-full sm:w-auto">
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto h-14 px-10 text-lg border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold"
+              className="w-full h-12 px-8 text-base border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold" // ★ 높이 h-12
             >
               커뮤니티 소개
             </Button>
           </Link>
         </div>
 
-        {/* 혜택 체크리스트 */}
-        <div className="mt-4 w-full max-w-sm text-left">
+        {/* 혜택 체크리스트 (Hidden on Mobile) */}
+        <div className="mt-4 w-full max-w-sm hidden sm:block">
           <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left">
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />

@@ -10,13 +10,13 @@ import { useEffect, useState, useMemo } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import NotificationsDropdown from "@/components/notifications-dropdown"
 import Image from "next/image"
-// LoginModal import와 상태를 모두 제거했습니다.
 
 const navigationSections = [
+// ... (navigationSections 배열은 기존과 동일)
   { 
     title: "소개", 
     links: [
-      { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen } 
+      { name: "SEOUL FOUNDERS CLUB 소개", href: "/about", icon: BookOpen } 
     ],
     groupStyle: "major"
   },
@@ -53,7 +53,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const [userRole, setUserRole] = useState<string>("member")
   const [profile, setProfile] = useState<any>(null)
   
-  // showLoginModal 상태 제거
+  const [showLoginModal, setShowLoginModal] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -89,12 +89,15 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
+    // router.push("/")
+    // router.refresh()
+    // ★ 수정: 하드 리로드로 캐시 무시하고 초기화
+    window.location.href = '/'
   }
 
   const handleLogin = () => {
-    router.push("/auth/login") // ★ 로그인 페이지로 이동하도록 로직 변경
+    // 모달을 없애기로 했으므로 페이지 이동으로 통일
+    router.push("/auth/login") 
   }
 
   const isAdmin = userRole === "admin" || userRole === "master"
@@ -164,7 +167,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
                 <Button
                   variant="outline"
                   className="w-full justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-9 text-sm bg-transparent"
-                  onClick={handleSignOut}
+                  onClick={handleSignOut} // ★ 하드 리로드 적용
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   로그아웃
@@ -172,7 +175,7 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
               </div>
             ) : (
               <Button
-                onClick={handleLogin} // ★ 페이지 이동 함수 연결
+                onClick={handleLogin}
                 className="w-full h-10 rounded-full bg-slate-800/10 hover:bg-slate-800/20 text-slate-700 hover:text-slate-900 text-sm font-medium transition-all duration-300 shadow-sm hover:shadow border border-slate-300/50"
               >
                 <LogIn className="mr-2 h-4 w-4" />
