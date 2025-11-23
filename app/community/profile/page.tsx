@@ -105,80 +105,98 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      try {
+        setLoading(true)
+        
+        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
 
-      if (!currentUser) {
-        router.push("/")
-        return
+        if (userError || !currentUser) {
+          console.error('사용자 인증 오류:', userError)
+          router.push("/")
+          return
+        }
+
+        setUser(currentUser)
+
+        // 병렬로 데이터 가져오기
+        const [
+          { data: profileData, error: profileError },
+          { data: myEvents, error: eventsError },
+          { data: myPosts, error: postsError },
+          { data: myRegistrations, error: registrationsError },
+          { data: myTransactions, error: transactionsError },
+          { data: badgesData, error: badgesError }
+        ] = await Promise.all([
+          supabase.from("profiles").select("*").eq("id", currentUser.id).single(),
+          supabase
+            .from("events")
+            .select(`*, profiles:created_by (full_name, avatar_url)`)
+            .eq("created_by", currentUser.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("posts")
+            .select(`*, board_categories (name, slug), profiles:author_id (full_name, avatar_url)`)
+            .eq("author_id", currentUser.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("event_registrations")
+            .select(`
+              *,
+              events (
+                id, title, thumbnail_url, event_date, location, status, max_participants
+              )
+            `)
+            .eq("user_id", currentUser.id)
+            .order("registered_at", { ascending: false }),
+          supabase
+            .from("point_transactions")
+            .select("*")
+            .eq("user_id", currentUser.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("user_badges")
+            .select(`
+              badges:badge_id (
+                icon,
+                name
+              )
+            `)
+            .eq("user_id", currentUser.id)
+            .eq("is_visible", true)
+        ])
+
+        // 에러 로깅 (치명적이지 않은 에러는 무시)
+        if (profileError) console.error('프로필 조회 오류:', profileError)
+        if (eventsError) console.error('이벤트 조회 오류:', eventsError)
+        if (postsError) console.error('게시글 조회 오류:', postsError)
+        if (registrationsError) console.error('이벤트 신청 조회 오류:', registrationsError)
+        if (transactionsError) console.error('포인트 내역 조회 오류:', transactionsError)
+        if (badgesError) console.error('뱃지 조회 오류:', badgesError)
+
+        // 데이터 설정
+        setProfile(profileData || null)
+        setCreatedEvents(myEvents || [])
+        setUserPosts(myPosts || [])
+        
+        const flattenedRegistrations = myRegistrations?.map((reg: any) => ({
+          ...reg.events,
+          registration_date: reg.registered_at
+        })).filter((reg: any) => reg.id) || []
+        setRegisteredEvents(flattenedRegistrations)
+        
+        setTransactions(myTransactions || [])
+        
+        const mappedBadges = badgesData
+          ?.map((ub: any) => ub.badges)
+          .filter(Boolean)
+          .map((badge: any) => ({ icon: badge.icon, name: badge.name })) || []
+        setVisibleBadges(mappedBadges)
+
+      } catch (error) {
+        console.error('데이터 로딩 오류:', error)
+      } finally {
+        setLoading(false)
       }
-
-      setUser(currentUser)
-
-      // 1. 프로필 조회
-      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", currentUser.id).single()
-      setProfile(profileData)
-
-      // 2. 내가 만든 이벤트
-      const { data: myEvents } = await supabase
-        .from("events")
-        .select(`*, profiles:created_by (full_name, avatar_url)`)
-        .eq("created_by", currentUser.id)
-        .order("created_at", { ascending: false })
-      setCreatedEvents(myEvents || [])
-
-      // 3. 작성한 게시글
-      const { data: myPosts } = await supabase
-        .from("posts")
-        .select(`*, board_categories (name, slug), profiles:author_id (full_name, avatar_url)`)
-        .eq("author_id", currentUser.id)
-        .order("created_at", { ascending: false })
-      setUserPosts(myPosts || [])
-
-      // 4. 참석 신청한 이벤트 (상세 정보 포함)
-      const { data: myRegistrations } = await supabase
-        .from("event_registrations")
-        .select(`
-          *,
-          events (
-            id, title, thumbnail_url, event_date, location, status, max_participants
-          )
-        `)
-        .eq("user_id", currentUser.id)
-        .order("registered_at", { ascending: false })
-      
-      const flattenedRegistrations = myRegistrations?.map((reg: any) => ({
-        ...reg.events,
-        registration_date: reg.registered_at
-      })) || []
-      setRegisteredEvents(flattenedRegistrations)
-
-      // 5. 포인트 내역
-      const { data: myTransactions } = await supabase
-        .from("point_transactions")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false })
-      setTransactions(myTransactions || [])
-
-      // 6. 노출 뱃지 목록
-      const { data: badgesData } = await supabase
-        .from("user_badges")
-        .select(`
-          badges:badge_id (
-            icon,
-            name
-          )
-        `)
-        .eq("user_id", currentUser.id)
-        .eq("is_visible", true)
-      
-      const mappedBadges = badgesData
-        ?.map((ub: any) => ub.badges)
-        .filter(Boolean)
-        .map((badge: any) => ({ icon: badge.icon, name: badge.name })) || []
-      setVisibleBadges(mappedBadges)
-
-      setLoading(false)
     }
 
     loadData()
