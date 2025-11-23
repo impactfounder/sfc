@@ -19,7 +19,7 @@ const BADGE_GROUPS = [
       { name: "자산 10억+", desc: "순자산 10억 원 이상", icon: "💎" },
       { name: "자산 50억+", desc: "순자산 50억 원 이상", icon: "💎" },
     ],
-    gridCols: "lg:grid-cols-3", 
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
   {
     title: "기업 매출 (Revenue)",
@@ -30,7 +30,7 @@ const BADGE_GROUPS = [
       { name: "매출 50억+", desc: "연 매출 50억 원 이상", icon: "📈" },
       { name: "매출 100억+", desc: "연 매출 100억 원 이상", icon: "📈" },
     ],
-    gridCols: "lg:grid-cols-3", 
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
   {
     title: "투자 규모 (Investment Tier)",
@@ -44,7 +44,7 @@ const BADGE_GROUPS = [
       { name: "투자 50억+", desc: "누적 투자 집행액 50억 원 이상", icon: "💰" },
       { name: "투자 100억+", desc: "누적 투자 집행액 100억 원 이상", icon: "💰" },
     ],
-    gridCols: "lg:grid-cols-3", 
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
   {
     title: "기업 가치 (Valuation Tier)",
@@ -58,7 +58,7 @@ const BADGE_GROUPS = [
       { name: "기업가치 1000억+", desc: "1000억 원 이상", icon: "🏙️" },
       { name: "유니콘+", desc: "기업가치 1조 원 이상", icon: "🦄" },
     ],
-    gridCols: "lg:grid-cols-3", 
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
   {
     title: "인플루언서 (Influence Tier)",
@@ -72,7 +72,7 @@ const BADGE_GROUPS = [
       { name: "팔로워 50만+", desc: "SNS 팔로워 50만 명 이상", icon: "🚀" },
       { name: "팔로워 100만+", desc: "SNS 팔로워 100만 명 이상", icon: "🌌" },
     ],
-    gridCols: "lg:grid-cols-3", 
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
   {
     title: "전문직 (Professional License)",
@@ -89,7 +89,7 @@ const BADGE_GROUPS = [
       { name: "수의사", desc: "대한민국 수의사 면허 인증", icon: "🐾" },
       { name: "약사", desc: "대한민국 약사 면허 인증", icon: "💊" },
     ],
-    gridCols: "lg:grid-cols-3",
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
   { // 커뮤니티 섹션
     title: "커뮤니티 활동",
@@ -99,7 +99,7 @@ const BADGE_GROUPS = [
       { name: "커뮤니티 리더", desc: "SFC 커뮤니티 운영진 및 리더", icon: "🛡️" },
       { name: "우수활동 회원", desc: "커뮤니티 내 활동 지수 상위 1% 회원", icon: "🌟" },
     ],
-    gridCols: "lg:grid-cols-3",
+    gridCols: "grid-cols-2 lg:grid-cols-3", // ★ grid-cols-2 추가
   },
 ]
 
@@ -250,7 +250,7 @@ export default function AboutPage() {
                         <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100/50 border border-amber-200">
                             <DollarSign className="h-6 w-6 text-amber-600" />
                         </div>
-                        <h3 className="text-xl font-semibold text-slate-900">투자자 & 전문직</h3>
+                        <h3 className="text-xl font-semibold text-slate-900">투자자 & 전문가</h3>
                         <p className="text-slate-600 text-sm">VC, 엔젤 투자자, 회계사, 변호사 등 전문 지식인</p>
                     </div>
                     <div className="space-y-2">
@@ -288,8 +288,8 @@ export default function AboutPage() {
                       {group.title}
                     </h3>
 
-                    {/* 모든 그룹 3단 그리드로 통일 */}
-                    <div className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3`}>
+                    {/* ★ 모든 그룹 모바일 2단, 데스크탑 3단으로 통일 */}
+                    <div className={`grid gap-4 grid-cols-2 lg:grid-cols-3`}>
                       {group.badges.map((badge, index) => (
                         <Card 
                           key={index} 

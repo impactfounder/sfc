@@ -45,7 +45,7 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
     )
   }
 
-  // 2. 비로그인 유저 (최종 컨버전 최적화 버전)
+  // 2. 비로그인 유저 (최종 컴팩트 버전)
   return (
     <div className="mb-10 relative w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md">
       {/* 배경 이미지 및 오버레이 */}
@@ -80,12 +80,36 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
           신뢰기반 검증을 통해 아이디어와 콘텐츠가 자본과 연결되는 커뮤니티입니다.
         </p>
         
-        {/* 혜택 체크리스트 (순서 변경) */}
-        <div className="mt-0 w-full max-w-sm text-left hidden sm:block"> 
+        {/* CTA Button Block (★ w-full, h-14 통일) */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
+          
+          <Button 
+            onClick={onLogin}
+            size="lg" 
+            className="w-full sm:w-auto h-14 px-8 text-lg bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl" // ★ 높이 h-14
+          >
+            3초 만에 시작하기
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Button>
+
+          {/* 커뮤니티 소개 버튼 (Link에 w-full 적용) */}
+          <Link href="/about" className="w-full sm:w-auto"> {/* ★ w-full sm:w-auto 추가 */}
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full h-14 px-8 text-lg border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold" // ★ 높이 h-14
+            >
+              커뮤니티 소개
+            </Button>
+          </Link>
+        </div>
+
+        {/* 혜택 체크리스트 */}
+        <div className="mt-4 w-full max-w-sm">
           <ul className="text-white text-sm space-y-2 mx-auto w-fit text-left">
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-              <span>사업가·투자자·크리에이터의 실시간 네트워크</span>
+              <span>사업가·창작자·투자자의 실시간 네트워크</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
@@ -97,30 +121,6 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
             </li>
           </ul>
         </div>
-        
-        {/* CTA Button Block (순서 변경 및 디자인 통일) */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-lg mt-4">
-          
-          <Button 
-            onClick={onLogin}
-            size="lg" 
-            className="w-full sm:w-auto h-14 px-8 text-lg bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-xl" // ★ h-14 유지
-          >
-            3초 만에 시작하기 {/* ★ 화살표 제거 */}
-          </Button>
-
-          {/* 커뮤니티 소개 버튼 */}
-          <Link href="/about">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto h-14 px-8 text-lg border-slate-900 bg-white text-slate-900 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-300 rounded-full font-semibold" // ★ h-14 유지
-            >
-              커뮤니티 소개
-            </Button>
-          </Link>
-        </div>
-
 
       </div>
     </div>
