@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PostsSection } from "@/components/home/posts-section";
 import { getLatestPosts } from "@/lib/queries/posts";
@@ -73,15 +72,25 @@ export default async function BoardPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  // URL 슬러그를 DB 슬러그로 매핑 (철저한 검증)
+  // ★ URL 슬러그를 DB에 저장된 실제 슬러그로 변환 (매핑)
+  // 사용자가 /free로 접속해도, 시스템은 /free-board 데이터를 찾아야 함
   let dbSlug = slug;
-  if (slug === 'free') dbSlug = 'free-board';
-  if (slug === 'announcements') dbSlug = 'announcement';
+  if (slug === 'free') {
+    dbSlug = 'free-board'; // ★ 핵심: URL 'free' → DB 'free-board'
+  }
+  if (slug === 'announcements') {
+    dbSlug = 'announcement'; // URL 'announcements' → DB 'announcement'
+  }
+
+  // 디버깅: 슬러그 매핑 확인
+  if (slug !== dbSlug) {
+    console.log(`[BoardPage] 🔄 슬러그 매핑: "${slug}" → "${dbSlug}"`);
+  }
 
   // 매핑 검증: 유효한 슬러그인지 확인
   const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk'];
   if (!validSlugs.includes(dbSlug)) {
-    console.error(`[BoardPage] 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
+    console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
     notFound();
   }
 
@@ -89,11 +98,11 @@ export default async function BoardPage({
     supabase
       .from("board_categories")
       .select("*")
-      .eq("slug", dbSlug)
+      .eq("slug", dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
       .eq("is_active", true)
       .single(),
     supabase.auth.getUser(),
-    getLatestPosts(supabase, 50, dbSlug) // DB 슬러그를 전달하여 해당 카테고리 글만 가져오기
+    getLatestPosts(supabase, 50, dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
   ]);
 
   const category = categoryResult.data;
@@ -198,16 +207,12 @@ export default async function BoardPage({
             )}
           </div>
 
-          {/* Posts Section - 카드형 피드로 통일 */}
-          <Card>
-            <CardContent className="pt-6">
-              <PostsSection
-                posts={postsWithMembership}
-                boardCategories={[]}
-                hideTabs={true}
-              />
-            </CardContent>
-          </Card>
+          {/* Posts Section - 투명 배경으로 통일 */}
+          <PostsSection
+            posts={postsWithMembership}
+            boardCategories={[]}
+            hideTabs={true}
+          />
         </div>
       </div>
     </>

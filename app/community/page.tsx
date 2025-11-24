@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent } from "@/components/ui/card"
 import { PostsSection } from "@/components/home/posts-section"
 import { getLatestPosts } from "@/lib/queries/posts"
 import { getBoardCategories } from "@/lib/queries/board-categories"
@@ -38,15 +37,11 @@ export default async function CommunityDashboardPage() {
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
-        {/* Latest Posts Section - 피드에만 집중 */}
-        <Card>
-          <CardContent className="pt-6">
-            <PostsSection
-              posts={postsWithMembership}
-              boardCategories={filteredBoardCategories}
-            />
-          </CardContent>
-        </Card>
+        {/* Latest Posts Section - 투명 배경으로 통일 */}
+        <PostsSection
+          posts={postsWithMembership}
+          boardCategories={filteredBoardCategories}
+        />
       </div>
     </div>
   )

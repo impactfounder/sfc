@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { PostListItem } from "@/components/ui/post-list-item"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LayoutGrid, List } from "lucide-react"
@@ -91,30 +91,29 @@ export function PostsSection({
   }, [boardCategories]);
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4 bg-transparent">
       
-      {/* 헤더: 제목 + 뷰 모드 토글 */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">최신 글</h2>
-        <div className="flex items-center gap-2">
+      {/* 우측 상단: 뷰 모드 토글 (작고 세련되게) */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg p-1">
           <Button
             type="button"
-            variant={viewMode === "feed" ? "default" : "outline"}
+            variant={viewMode === "feed" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewMode("feed")}
-            className="h-9 px-3"
+            className="h-8 px-3 text-xs"
           >
-            <LayoutGrid className="h-4 w-4 mr-1.5" />
+            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
             피드형
           </Button>
           <Button
             type="button"
-            variant={viewMode === "list" ? "default" : "outline"}
+            variant={viewMode === "list" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewMode("list")}
-            className="h-9 px-3"
+            className="h-8 px-3 text-xs"
           >
-            <List className="h-4 w-4 mr-1.5" />
+            <List className="h-3.5 w-3.5 mr-1.5" />
             리스트형
           </Button>
         </div>
@@ -179,14 +178,19 @@ export function PostsSection({
             )
           })
         ) : (
-          <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-12">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-16">
             <Empty className="bg-transparent">
               <EmptyHeader>
-                <EmptyTitle>게시글이 없습니다</EmptyTitle>
-                <EmptyDescription>첫 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
+                <EmptyMedia variant="icon">
+                  <svg className="h-16 w-16 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </EmptyMedia>
+                <EmptyTitle className="text-xl font-semibold text-slate-900">아직 조용하네요 🍃</EmptyTitle>
+                <EmptyDescription className="text-slate-500">가장 먼저 대화를 시작해보세요!</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button asChild variant="outline" className="rounded-xl">
+                <Button asChild className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6">
                   <Link href="/community/posts/new">글 작성하기</Link>
                 </Button>
               </EmptyContent>

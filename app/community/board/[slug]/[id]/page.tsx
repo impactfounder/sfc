@@ -21,8 +21,12 @@ export async function generateMetadata({
   const { slug, id } = await params;
   const supabase = await createClient();
   
-  const categorySlug = slug === "announcements" ? "announcement" : slug;
+  // ★ URL 슬러그를 DB 슬러그로 변환 (필수!)
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
   
+  // ★ ID로만 조회 (ID는 고유하므로 category 조건 불필요)
   const { data: post } = await supabase
     .from("posts")
     .select(`
@@ -34,7 +38,6 @@ export async function generateMetadata({
       )
     `)
     .eq("id", id)
-    .eq("category", categorySlug)
     .single();
 
   if (!post) {
@@ -85,14 +88,17 @@ export default async function BoardPostDetailPage({
   const { slug, id } = await params;
   const supabase = await createClient();
 
-  const categorySlug = slug === "announcements" ? "announcement" : slug;
+  // ★ URL 슬러그를 DB 슬러그로 변환 (필수!)
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
 
   // 병렬로 초기 데이터 가져오기
   const [categoryResult, userResult, postResult] = await Promise.all([
     slug !== "announcements" ? supabase
       .from("board_categories")
       .select("*")
-      .eq("slug", slug)
+      .eq("slug", dbSlug) // ★ dbSlug 사용
       .eq("is_active", true)
       .single() : Promise.resolve({ data: null }),
     supabase.auth.getUser(),

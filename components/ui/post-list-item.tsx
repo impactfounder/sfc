@@ -53,13 +53,13 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
   const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
   const isGroupOnly = post.visibility === "group" && !isMember
 
-  // 리스트형 뷰 (본문 미리보기 숨김, 높이 좁게, 목록다운 밀도감)
+  // 리스트형 뷰 (본문 미리보기 숨김, 높이 슬림, 목록다운 밀도감)
   if (viewMode === "list") {
     return (
       <Link href={href} className={cn("block", className)}>
-        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg py-3 px-4 hover:shadow-md transition-all duration-200">
-          {/* 좌측: 커뮤니티 이름 뱃지 (필수) */}
-          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold flex-shrink-0">
+        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg py-2.5 px-4 hover:bg-slate-50 transition-all duration-200">
+          {/* 좌측: 커뮤니티 이름 뱃지 (모던한 파스텔톤) */}
+          <span className="bg-blue-100 text-blue-700 rounded-md px-2.5 py-1 text-xs font-semibold flex-shrink-0">
             {categoryName}
           </span>
           
@@ -96,25 +96,18 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
   // 피드형 뷰 (카드 형태, 그림자, 본문 3줄 미리보기)
   return (
     <Link href={href} className={cn("block", className)}>
-      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
-        {/* 헤더: 커뮤니티 이름 뱃지 (필수) + 작성자 및 시간 */}
-        <div className="flex justify-between items-center mb-3">
-          {/* 좌측: 커뮤니티 이름 뱃지 (필수) */}
+      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+        {/* 상단: 커뮤니티 이름 뱃지 (필수) */}
+        <div className="mb-4">
           <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
             {categoryName}
           </span>
-          {/* 우측: 작성자 및 시간 */}
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>{post.profiles?.full_name || "익명"}</span>
-            <span>·</span>
-            <span>{formatRelativeTime(post.created_at)}</span>
-          </div>
         </div>
 
         {/* 본문: 제목 + 내용 미리보기 */}
         <div className="flex-1 mb-4 relative">
           {/* 제목 */}
-          <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+          <h3 className="text-xl font-bold text-slate-900 mb-3 leading-relaxed line-clamp-2">
             {post.title}
           </h3>
           
@@ -148,15 +141,24 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
           )}
         </div>
 
-        {/* 푸터: 좋아요, 댓글 아이콘 */}
-        <div className="flex items-center gap-4 text-sm text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Heart className="h-4 w-4" />
-            <span>{post.likes_count || 0}</span>
+        {/* 푸터: 작성자/날짜 + 좋아요, 댓글 아이콘 */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          {/* 좌측: 작성자 및 시간 (작고 연한 회색) */}
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span>{post.profiles?.full_name || "익명"}</span>
+            <span>·</span>
+            <span>{formatRelativeTime(post.created_at)}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <MessageSquare className="h-4 w-4" />
-            <span>{post.comments_count || 0}</span>
+          {/* 우측: 좋아요, 댓글 아이콘 */}
+          <div className="flex items-center gap-4 text-sm text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <Heart className="h-4 w-4" />
+              <span>{post.likes_count || 0}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="h-4 w-4" />
+              <span>{post.comments_count || 0}</span>
+            </div>
           </div>
         </div>
       </div>
