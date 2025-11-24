@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef, useCallback, ReactNode } from "react"
+import { useEffect, useMemo, useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Calendar, Plus, User, Users, X, Home } from "lucide-react"
+import { X } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { NewEventForm } from "@/components/new-event-form"
@@ -16,7 +16,6 @@ import { PostsSection } from "@/components/home/posts-section"
 import { HeroSection } from "@/components/home/hero-section"
 import { EventCardEvent } from "@/components/ui/event-card"
 
-type TabValue = "home" | "events" | "community"
 
 type BoardCategory = {
   id: string
@@ -49,7 +48,6 @@ type Announcement = {
 }
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabValue>("home")
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
   const [events, setEvents] = useState<EventCardEvent[]>([])
@@ -315,22 +313,12 @@ export default function HomePage() {
     return () => subscription.unsubscribe()
   }, [supabase, fetchData])
 
-  // ★ 수정됨: 모달 대신 페이지 이동
   const handleCreateEvent = () => {
     if (!user) {
       router.push("/auth/login")
       return
     }
     setShowCreateSheet(true)
-  }
-
-  // ★ 수정됨: 모달 대신 페이지 이동
-  const handleProfileAction = () => {
-    if (user) {
-      router.push("/community/profile")
-      return
-    }
-    router.push("/auth/login")
   }
 
   // 로그인 페이지로 이동 함수
@@ -342,38 +330,20 @@ export default function HomePage() {
     <DashboardLayout>
       <div className="flex flex-col gap-8">
         {/* Hero, Banner, Events, Posts 등 콘텐츠 */}
-        {activeTab === 'home' && (
-          <HeroSection user={user} onLogin={handleLogin} />
-        )}
-        {(activeTab === 'home' || activeTab === 'events') && (
-          <>
-            {announcement && <AnnouncementBanner announcement={announcement} />}
-            <div id="events-section">
-              <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
-            </div>
-          </>
-        )}
-        {(activeTab === 'home' || activeTab === 'community') && (
-          <PostsSection
-            posts={posts}
-            boardCategories={boardCategories}
-            selectedBoard={selectedBoard}
-            onBoardChange={setSelectedBoard}
-            isLoading={isLoading}
-          />
-        )}
+        <HeroSection user={user} onLogin={handleLogin} />
+        {announcement && <AnnouncementBanner announcement={announcement} />}
+        <div id="events-section">
+          <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+        </div>
+        <PostsSection
+          posts={posts}
+          boardCategories={boardCategories}
+          selectedBoard={selectedBoard}
+          onBoardChange={setSelectedBoard}
+          isLoading={isLoading}
+        />
       </div>
 
-      <MobileActionBar
-        activeTab={activeTab}
-        onTabChange={(tab: TabValue) => {
-          setActiveTab(tab)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-        }}
-        onCreate={handleCreateEvent}
-        onProfile={handleProfileAction}
-        user={user}
-      />
 
       {/* LoginModal 관련 코드는 제거됨 */}
 
@@ -403,43 +373,5 @@ export default function HomePage() {
         </SheetContent>
       </Sheet>
     </DashboardLayout>
-  )
-}
-
-// 하단 메뉴바 컴포넌트
-type MobileActionBarProps = {
-  activeTab: TabValue
-  onTabChange: (tab: TabValue) => void
-  onCreate: () => void
-  onProfile: () => void
-  user: any
-}
-
-function MobileActionBar({ activeTab, onTabChange, onCreate, onProfile, user }: MobileActionBarProps) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
-      <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
-        <NavButton icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />} label="홈" isActive={activeTab === "home"} onClick={() => onTabChange("home")} />
-        <NavButton icon={<Calendar className={cn("size-6 mb-1", activeTab === "events" ? "text-slate-900" : "text-gray-400")} />} label="이벤트" isActive={activeTab === "events"} onClick={() => onTabChange("events")} />
-        <button type="button" onClick={onCreate} className="flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white mb-1 transform active:scale-95 transition-transform">
-            <Plus className="size-6" />
-          </div>
-          <span className="text-[10px] text-slate-900 font-semibold">만들기</span>
-        </button>
-        <NavButton icon={<Users className={cn("size-6 mb-1", activeTab === "community" ? "text-slate-900" : "text-gray-400")} />} label="커뮤니티" isActive={activeTab === "community"} onClick={() => onTabChange("community")} />
-        <NavButton icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />} label={user ? "프로필" : "로그인"} onClick={onProfile} />
-      </div>
-    </nav>
-  )
-}
-
-type NavButtonProps = { icon: ReactNode, label: string, isActive?: boolean, onClick: () => void }
-function NavButton({ icon, label, isActive, onClick }: NavButtonProps) {
-  return (
-    <button type="button" onClick={onClick} className={cn("flex flex-col items-center justify-center transition-colors active:bg-gray-50", isActive ? "text-slate-900 font-bold" : "text-gray-400")}>
-      {icon}
-      <span>{label}</span>
-    </button>
   )
 }

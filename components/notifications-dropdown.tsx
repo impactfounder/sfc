@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Bell } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface Notification {
   id: string
@@ -25,7 +28,6 @@ export default function NotificationsDropdown() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -77,16 +79,6 @@ export default function NotificationsDropdown() {
     }
   }, [])
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   async function markAsRead(notificationId: string) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId)
@@ -118,27 +110,38 @@ export default function NotificationsDropdown() {
   if (!user) return null
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-all text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-        aria-label="알림"
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-8 w-8"
+          aria-label="알림"
+        >
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+              {unreadCount > 9 && (
+                <span className="text-[6px] text-white font-bold leading-none">9+</span>
+              )}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent 
+        className="w-96 p-0" 
+        align="end"
+        side="bottom"
+        sideOffset={8}
       >
-        <Bell className="w-5 h-5 flex-shrink-0" />
-        <span>알림</span>
-        {unreadCount > 0 && (
-          <span className="ml-auto w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="absolute left-0 top-full mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[500px] overflow-hidden flex flex-col">
+        <div className="flex flex-col max-h-[500px]">
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-bold text-lg">알림</h3>
             {unreadCount > 0 && (
-              <button onClick={markAllAsRead} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <button 
+                onClick={markAllAsRead} 
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
                 모두 읽음
               </button>
             )}
@@ -156,9 +159,10 @@ export default function NotificationsDropdown() {
                   <button
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors border-b last:border-b-0 ${
-                      !notification.is_read ? "bg-blue-50" : ""
-                    }`}
+                    className={cn(
+                      "w-full p-4 text-left hover:bg-gray-50 transition-colors border-b last:border-b-0",
+                      !notification.is_read && "bg-blue-50"
+                    )}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -176,7 +180,9 @@ export default function NotificationsDropdown() {
                           })}
                         </p>
                       </div>
-                      {!notification.is_read && <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" />}
+                      {!notification.is_read && (
+                        <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" />
+                      )}
                     </div>
                   </button>
                 ))}
@@ -184,8 +190,8 @@ export default function NotificationsDropdown() {
             )}
           </div>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 

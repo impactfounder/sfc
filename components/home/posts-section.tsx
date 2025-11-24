@@ -11,7 +11,11 @@ import Link from "next/link"
 type Post = {
   id: string
   title: string
+  content?: string | null
   created_at: string
+  visibility?: "public" | "group"
+  likes_count?: number
+  comments_count?: number
   board_categories?: {
     name?: string | null
     slug?: string | null
@@ -19,6 +23,10 @@ type Post = {
   profiles?: {
     full_name?: string | null
   } | null
+  communities?: {
+    name?: string | null
+  } | null
+  isMember?: boolean
 }
 
 type BoardCategory = {
@@ -125,6 +133,7 @@ export function PostsSection({
                 key={post.id}
                 post={post}
                 href={`/community/board/${boardSlug}/${post.id}`}
+                isMember={post.isMember ?? true}
               />
             )
           })

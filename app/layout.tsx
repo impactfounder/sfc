@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { DailyLoginChecker } from "@/components/daily-login-checker"
+import { MobileActionBar } from "@/components/mobile-action-bar"
+import { cn } from "@/lib/utils"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -78,9 +80,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={inter.className}>
+      <body className={cn(inter.className, "pb-16 lg:pb-0")}>
         <DailyLoginChecker />
         {children}
+        <MobileActionBar />
       </body>
     </html>
   )

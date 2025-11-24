@@ -76,7 +76,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => editor.chain().focus().toggleBold().run()}
+          onClick={(e) => {
+            e.preventDefault()
+            editor.chain().focus().toggleBold().run()
+          }}
           className={`h-8 w-8 p-0 ${editor.isActive("bold") ? "bg-slate-200" : ""}`}
         >
           <Bold className="h-4 w-4" />
@@ -85,7 +88,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
+          onClick={(e) => {
+            e.preventDefault()
+            editor.chain().focus().toggleItalic().run()
+          }}
           className={`h-8 w-8 p-0 ${editor.isActive("italic") ? "bg-slate-200" : ""}`}
         >
           <Italic className="h-4 w-4" />
@@ -95,7 +101,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={(e) => {
+            e.preventDefault()
+            editor.chain().focus().toggleBulletList().run()
+          }}
           className={`h-8 w-8 p-0 ${editor.isActive("bulletList") ? "bg-slate-200" : ""}`}
         >
           <List className="h-4 w-4" />
@@ -104,7 +113,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={(e) => {
+            e.preventDefault()
+            editor.chain().focus().toggleOrderedList().run()
+          }}
           className={`h-8 w-8 p-0 ${editor.isActive("orderedList") ? "bg-slate-200" : ""}`}
         >
           <ListOrdered className="h-4 w-4" />
@@ -114,7 +126,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={(e) => {
+            e.preventDefault()
+            fileInputRef.current?.click()
+          }}
           disabled={isUploading}
           className="h-8 w-8 p-0"
         >

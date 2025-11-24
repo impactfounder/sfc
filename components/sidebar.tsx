@@ -223,8 +223,16 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">
-                      {profile?.full_name || user.email?.split("@")[0]}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-slate-900 truncate">
+                        {profile?.full_name || user.email?.split("@")[0]}
+                      </div>
+                      {/* 알림 아이콘 버튼 */}
+                      {user && (
+                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <NotificationsDropdown />
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-slate-500 truncate">
@@ -314,7 +322,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">기타</span>
             </div>
             <div className="space-y-0.5">
-              {user && <NotificationsDropdown />}
               {isAdmin && (
                 <Link
                   href="/admin"

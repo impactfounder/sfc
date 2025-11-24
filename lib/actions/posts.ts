@@ -4,6 +4,54 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { isMasterAdmin } from "@/lib/utils"
 
+export async function createPost(data: {
+  title: string
+  content: string
+  visibility?: "public" | "group"
+  boardCategoryId?: string
+  communityId?: string
+  category?: string
+}) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  const insertData: any = {
+    title: data.title.trim(),
+    content: data.content.trim(),
+    author_id: user.id,
+    visibility: data.visibility || "public",
+  }
+
+  if (data.boardCategoryId) {
+    insertData.board_category_id = data.boardCategoryId
+  }
+
+  if (data.communityId) {
+    insertData.community_id = data.communityId
+  }
+
+  if (data.category) {
+    insertData.category = data.category
+  }
+
+  const { error } = await supabase.from("posts").insert(insertData).select("id").single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community")
+  revalidatePath("/community/posts")
+  return { success: true }
+}
+
 export async function deletePost(postId: string) {
   const supabase = await createClient()
 

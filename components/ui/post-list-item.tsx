@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { FC } from "react"
+import { Heart, MessageSquare, Lock } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { formatRelativeTime } from "@/lib/format-time"
@@ -14,6 +15,9 @@ type Post = {
   title: string
   content?: string | null
   created_at: string
+  visibility?: "public" | "group"
+  likes_count?: number
+  comments_count?: number
   board_categories?: {
     name?: string | null
     slug?: string | null
@@ -23,15 +27,19 @@ type Post = {
     id?: string
   } | null
   visible_badges?: Badge[]
+  communities?: {
+    name?: string | null
+  } | null
 }
 
 type PostListItemProps = {
   post: Post
   href: string
   className?: string
+  isMember?: boolean // 해당 커뮤니티 멤버 여부
 }
 
-export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) => {
+export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isMember = true }) => {
   // content에서 HTML 태그 제거하고 텍스트만 추출
   const getPlainText = (html?: string | null) => {
     if (!html) return ""
@@ -40,47 +48,74 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className }) =
 
   const contentPreview = getPlainText(post.content)
   
-  // 카테고리가 'announcement'이거나 없으면 뱃지를 렌더링하지 않음
-  const categorySlug = post.board_categories?.slug
-  const categoryName = post.board_categories?.name
-  const shouldShowCategory = categorySlug && categorySlug !== "announcement" && categoryName
+  // 카테고리/커뮤니티 이름 결정
+  const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
+  const isGroupOnly = post.visibility === "group" && !isMember
 
   return (
     <Link href={href} className={cn("block", className)}>
-      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-        {/* 상단 (Header) - 메타 정보 */}
+      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
+        {/* 헤더: 커뮤니티 이름 + 작성자 및 시간 */}
         <div className="flex justify-between items-center mb-3">
-          {/* 좌측: 카테고리 뱃지 (조건부 렌더링) */}
-          <div>
-            {shouldShowCategory && (
-              <span className="bg-blue-50 text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                {categoryName}
-              </span>
-            )}
+          {/* 좌측: 커뮤니티 이름 뱃지 */}
+          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
+            {categoryName}
+          </span>
+          {/* 우측: 작성자 및 시간 */}
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>{post.profiles?.full_name || "익명"}</span>
+            <span>·</span>
+            <span>{formatRelativeTime(post.created_at)}</span>
           </div>
-          {/* 우측: 작성일 */}
-          <span className="text-sm text-slate-400">{formatRelativeTime(post.created_at)}</span>
         </div>
 
-        {/* 중단 (Body) - 본문 */}
-        <div className="flex-1 mb-3">
+        {/* 본문: 제목 + 내용 미리보기 */}
+        <div className="flex-1 mb-4 relative">
           {/* 제목 */}
-          <h3 className="text-xl font-bold text-slate-900 mb-1 line-clamp-2">
+          <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
             {post.title}
           </h3>
+          
           {/* 내용 미리보기 */}
           {contentPreview && (
-            <p className="text-slate-600 line-clamp-2 leading-relaxed">
-              {contentPreview}
-            </p>
+            <div className="relative">
+              <p
+                className={cn(
+                  "text-slate-600 leading-relaxed",
+                  isGroupOnly ? "line-clamp-3 blur-sm select-none" : "line-clamp-3"
+                )}
+              >
+                {contentPreview}
+              </p>
+              
+              {/* 그룹 전용 오버레이 */}
+              {isGroupOnly && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
+                  <div className="flex flex-col items-center gap-2 text-center px-4">
+                    <Lock className="h-6 w-6 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-700">
+                      🔒 {categoryName} 멤버 전용 글입니다
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      가입하면 전체 내용을 볼 수 있습니다
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* 하단 (Footer) - 작성자 */}
-        <div className="mt-auto">
-          <span className="text-sm font-medium text-slate-700">
-            {post.profiles?.full_name || "익명"}
-          </span>
+        {/* 푸터: 좋아요, 댓글 아이콘 */}
+        <div className="flex items-center gap-4 text-sm text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <Heart className="h-4 w-4" />
+            <span>{post.likes_count || 0}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <MessageSquare className="h-4 w-4" />
+            <span>{post.comments_count || 0}</span>
+          </div>
         </div>
       </div>
     </Link>

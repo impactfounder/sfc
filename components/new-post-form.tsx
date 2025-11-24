@@ -7,29 +7,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createClient } from "@/lib/supabase/client";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { createPost } from "@/lib/actions/posts";
 
-export function NewPostForm({ userId }: { userId: string }) {
+export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: string; boardCategoryId?: string; communityId?: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "group">("group"); // 기본값: 그룹 공개
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
     try {
-      const { error } = await supabase.from("posts").insert({
+      await createPost({
         title,
         content,
-        author_id: userId,
+        visibility,
+        boardCategoryId,
+        communityId,
       });
-
-      if (error) throw error;
 
       router.push("/community/posts");
       router.refresh();
@@ -67,6 +68,40 @@ export function NewPostForm({ userId }: { userId: string }) {
               rows={10}
               className="mt-2"
             />
+          </div>
+
+          <div>
+            <Label>공개 설정</Label>
+            <RadioGroup
+              value={visibility}
+              onValueChange={(value) => setVisibility(value as "public" | "group")}
+              className="mt-2"
+            >
+              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                <RadioGroupItem value="public" id="public" />
+                <Label htmlFor="public" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span>🌍</span>
+                    <div>
+                      <div className="font-medium text-slate-900">전체 공개</div>
+                      <div className="text-xs text-slate-500">SFC 멤버 누구나 볼 수 있습니다.</div>
+                    </div>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                <RadioGroupItem value="group" id="group" />
+                <Label htmlFor="group" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span>🔒</span>
+                    <div>
+                      <div className="font-medium text-slate-900">그룹 공개</div>
+                      <div className="text-xs text-slate-500">이 커뮤니티 멤버만 볼 수 있습니다.</div>
+                    </div>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {error && (

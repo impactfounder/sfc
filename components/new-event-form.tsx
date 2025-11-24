@@ -77,6 +77,20 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
     setEndTime(`${hours}:${minutes}`)
   }, [userId])
 
+  // startDate 변경 시 endDate 자동 설정 (사용자가 수동으로 수정 가능)
+  useEffect(() => {
+    if (startDate && !endDate) {
+      setEndDate(startDate)
+    } else if (startDate && endDate) {
+      // startDate가 endDate보다 늦으면 endDate를 startDate로 업데이트
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      if (start > end) {
+        setEndDate(startDate)
+      }
+    }
+  }, [startDate, endDate])
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -128,16 +142,22 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       const startDateTime = new Date(`${startDate}T${startTime}`)
       const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`) : null
 
-      const { error } = await supabase.from("events").insert({
+      const insertData: any = {
         title,
         description, // Rich Text Content
         start_date: startDateTime.toISOString(),
-        end_date: endDateTime?.toISOString(),
         location,
         max_participants: maxParticipants ? parseInt(maxParticipants) : null,
         thumbnail_url: thumbnailUrl,
         created_by: currentUserId,
-      })
+      }
+
+      // end_date가 있으면 추가
+      if (endDateTime) {
+        insertData.end_date = endDateTime.toISOString()
+      }
+
+      const { error } = await supabase.from("events").insert(insertData)
 
       if (error) throw error
       if (onSuccess) onSuccess()
