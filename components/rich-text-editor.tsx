@@ -34,7 +34,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-relaxed text-slate-900",
+          "prose prose-slate prose-sm lg:prose-lg max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-relaxed text-slate-900",
       },
     },
   })
@@ -54,12 +54,16 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
         body: formData,
       })
 
-      if (!response.ok) throw new Error("업로드 실패")
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`업로드 실패: ${response.status} ${errorText}`)
+      }
 
       const data = await response.json()
       editor.chain().focus().setImage({ src: data.url }).run()
     } catch (error) {
-      console.error("Image upload error:", error)
+      console.error("이미지 업로드 에러:", error)
+      alert("이미지 업로드에 실패했습니다.")
     } finally {
       setIsUploading(false)
     }

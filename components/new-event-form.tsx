@@ -103,6 +103,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       const data = await response.json()
       setThumbnailUrl(data.url)
     } catch (error) {
+      console.error("이미지 업로드 실패:", error)
       alert("이미지 업로드 실패")
     } finally {
       setIsUploading(false)
@@ -142,12 +143,17 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       const startDateTime = new Date(`${startDate}T${startTime}`)
       const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`) : null
 
+      const maxParticipantsValue = maxParticipants ? parseInt(maxParticipants) : null
+      if (maxParticipantsValue !== null && isNaN(maxParticipantsValue)) {
+        throw new Error("최대 인원은 유효한 숫자여야 합니다.")
+      }
+
       const insertData: any = {
         title,
         description, // Rich Text Content
         start_date: startDateTime.toISOString(),
         location,
-        max_participants: maxParticipants ? parseInt(maxParticipants) : null,
+        max_participants: maxParticipantsValue,
         thumbnail_url: thumbnailUrl,
         created_by: currentUserId,
       }
