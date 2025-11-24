@@ -47,8 +47,7 @@ export async function getLatestPosts(
       likes_count,
       comments_count,
       profiles:author_id (full_name),
-      board_categories:board_category_id (name, slug),
-      communities:community_id (name)
+      board_categories:board_category_id (name, slug)
     `)
     .not("board_category_id", "is", null) // board_category_id가 null이 아닌 게시글만
 
@@ -104,9 +103,8 @@ export async function getLatestPosts(
     board_categories: Array.isArray(post.board_categories)
       ? post.board_categories[0]
       : post.board_categories,
-    communities: Array.isArray(post.communities)
-      ? post.communities[0]
-      : post.communities,
+    // communities 조인 제거 (community_id 컬럼이 posts 테이블에 없음)
+    communities: null,
   }))
 
   // board_categories가 없는 게시글 필터링 (null 체크)

@@ -27,18 +27,13 @@ export default async function CommunityDashboardPage() {
   )
 
   // 각 게시글의 커뮤니티 멤버십 확인 (나중에 최적화 가능)
-  const postsWithMembership = await Promise.all(
-    transformedPosts.map(async (post: any) => {
-      // community_id가 있고 visibility가 'group'인 경우에만 체크
-      if (post.communities && post.visibility === "group" && user) {
-        // TODO: 실제 community_id를 가져와서 멤버십 체크
-        // 임시로 true로 설정 (나중에 로직 추가)
-        return { ...post, isMember: true }
-      }
-      // public이거나 로그인하지 않은 경우는 항상 true (public은 모두 볼 수 있음)
-      return { ...post, isMember: true }
-    })
-  )
+  // 주의: communities 조인이 제거되었으므로 임시로 모든 게시글에 isMember: true 설정
+  const postsWithMembership = transformedPosts.map((post: any) => {
+    // TODO: 실제 community_id를 가져와서 멤버십 체크
+    // 현재는 communities 조인이 제거되어 임시로 true로 설정
+    // visibility가 'group'인 경우 나중에 실제 멤버십 체크 로직 추가 필요
+    return { ...post, isMember: true }
+  })
 
   return (
     <div className="min-h-screen bg-white">
