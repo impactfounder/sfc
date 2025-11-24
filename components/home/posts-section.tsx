@@ -58,19 +58,28 @@ export function PostsSection({
     : (val: string) => setInternalSelectedBoard(val || "all")
 
   const filteredPosts = useMemo(() => {
+    // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
+    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+    const baseFiltered = posts.filter((post) => {
+      const postSlug = post.board_categories?.slug
+      return !postSlug || !excludedSlugs.includes(postSlug)
+    })
+
     if (currentBoard === "all") {
-      return posts
+      return baseFiltered
     }
-    return posts.filter(
+    return baseFiltered.filter(
       (post) => post.board_categories?.slug === currentBoard
     )
   }, [posts, currentBoard])
 
-  // 중복 카테고리 제거 (slug 기준)
+  // 중복 카테고리 제거 및 공지사항/자유게시판 제외 (slug 기준)
   const uniqueCategories = useMemo(() => {
+    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
     const unique = new Map();
     boardCategories.forEach(cat => {
-      if (!unique.has(cat.slug)) {
+      // 공지사항과 자유게시판 제외
+      if (!excludedSlugs.includes(cat.slug) && !unique.has(cat.slug)) {
         unique.set(cat.slug, cat);
       }
     });

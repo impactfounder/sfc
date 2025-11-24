@@ -25,9 +25,21 @@ export default async function CommunityDashboardPage() {
     getBoardCategories(supabase),
   ])
 
+  // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
+  const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+  const filteredBoardCategories = (boardCategories || []).filter(
+    (cat) => !excludedSlugs.includes(cat.slug)
+  )
+
+  // 게시글에서도 공지사항과 자유게시판 제외
+  const filteredPosts = transformedPosts.filter((post: any) => {
+    const postSlug = post.board_categories?.slug
+    return postSlug && !excludedSlugs.includes(postSlug)
+  })
+
   // 각 게시글의 커뮤니티 멤버십 확인 (나중에 최적화 가능)
   const postsWithMembership = await Promise.all(
-    transformedPosts.map(async (post: any) => {
+    filteredPosts.map(async (post: any) => {
       // community_id가 있고 visibility가 'group'인 경우에만 체크
       if (post.communities && post.visibility === "group" && user) {
         // TODO: 실제 community_id를 가져와서 멤버십 체크
@@ -76,7 +88,7 @@ export default async function CommunityDashboardPage() {
             <CardContent className="pt-6">
               <PostsSection
                 posts={postsWithMembership}
-                boardCategories={boardCategories || []}
+                boardCategories={filteredBoardCategories}
               />
             </CardContent>
           </Card>
