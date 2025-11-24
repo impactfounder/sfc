@@ -267,13 +267,13 @@ export default async function BoardPostDetailPage({
               </div>
 
               {/* 제목 */}
-              <h1 className="mb-4 text-xl md:text-2xl font-bold text-slate-900 leading-snug">
+              <h1 className="mb-4 text-2xl md:text-4xl font-bold text-slate-900 leading-snug">
                 {post.title}
               </h1>
 
               {/* 본문 내용 */}
               <div 
-                className="prose prose-sm max-w-none text-slate-700 leading-relaxed mb-6"
+                className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-6"
                 dangerouslySetInnerHTML={{ __html: post.content || "" }}
               />
 

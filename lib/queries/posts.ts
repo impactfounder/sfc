@@ -26,8 +26,8 @@ export type PostForDisplay = {
  * @param limit 가져올 게시글 수 (기본값: 50)
  * @param categorySlug 특정 카테고리 슬러그 (예: 'vangol', 'hightalk'). 없거나 'all'이면 소모임 글만 가져옴
  */
-// 소모임 슬러그 목록 정의
-const ALL_COMMUNITY_SLUGS = ['vangol', 'hightalk', 'free', 'free-board']
+// 제외할 슬러그 목록 (통합 피드에서 제외)
+const EXCLUDED_SLUGS = ['announcement', 'free-board']
 
 export async function getLatestPosts(
   supabase: SupabaseClient,
@@ -54,8 +54,11 @@ export async function getLatestPosts(
   if (categorySlug && categorySlug !== 'all') {
     query = query.eq("board_categories.slug", categorySlug)
   } else {
-    // 'all'이거나 없을 때: 명시적으로 소모임 슬러그 목록으로 필터링
-    query = query.in("board_categories.slug", ALL_COMMUNITY_SLUGS)
+    // 'all'이거나 없을 때: 'announcement'와 'free-board'를 제외한 모든 활성 카테고리 글 가져오기
+    // Supabase의 not.in 필터는 각 슬러그에 대해 neq를 체이닝하는 것이 더 안전함
+    EXCLUDED_SLUGS.forEach((excludedSlug) => {
+      query = query.neq("board_categories.slug", excludedSlug)
+    })
   }
 
   const { data, error } = await query

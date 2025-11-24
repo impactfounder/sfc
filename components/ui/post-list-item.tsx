@@ -53,19 +53,19 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
   const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
   const isGroupOnly = post.visibility === "group" && !isMember
 
-  // 리스트형 뷰
+  // 리스트형 뷰 (본문 미리보기 숨김, 높이 좁게)
   if (viewMode === "list") {
     return (
       <Link href={href} className={cn("block", className)}>
-        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3 hover:shadow-md transition-all duration-200">
           {/* 좌측: 커뮤니티 이름 뱃지 */}
           <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold flex-shrink-0">
             {categoryName}
           </span>
           
-          {/* 중앙: 제목 */}
+          {/* 중앙: 제목만 (본문 미리보기 없음) */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-slate-900 line-clamp-1">
+            <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
               {post.title}
             </h3>
           </div>

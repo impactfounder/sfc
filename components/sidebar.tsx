@@ -302,8 +302,9 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
 
               <div className="space-y-0.5">
                 {section.links.map((item) => {
-                  // 커뮤니티 섹션의 링크는 exact match만, 다른 섹션은 startsWith 사용
-                  const useExactMatch = section.title === "커뮤니티"
+                  // '커뮤니티' 메뉴(/community)는 정확히 해당 경로일 때만 활성화
+                  // 다른 커뮤니티 하위 링크는 startsWith 사용
+                  const useExactMatch = item.href === "/community"
                   const isActive = isLinkActive(item.href, !useExactMatch)
                   const Icon = item.icon
                   return (
