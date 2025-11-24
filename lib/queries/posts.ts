@@ -22,13 +22,17 @@ export type PostForDisplay = {
 
 /**
  * 최신 게시글 목록 가져오기
+ * @param supabase Supabase 클라이언트
+ * @param limit 가져올 게시글 수 (기본값: 50)
+ * @param categorySlug 특정 카테고리 슬러그 (예: 'bangol', 'hightalk'). 없거나 'all'이면 소모임 글만 가져옴
  */
 export async function getLatestPosts(
   supabase: SupabaseClient,
-  limit: number = 50
+  limit: number = 50,
+  categorySlug?: string | null
 ): Promise<PostForDisplay[]> {
   // board_categories와 inner join하여 slug가 있는 글만 가져오기
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
     .select(`
       id,
@@ -42,6 +46,14 @@ export async function getLatestPosts(
       board_categories:board_category_id!inner (name, slug),
       communities:community_id (name)
     `)
+
+  // categorySlug가 있고 'all'이 아니면 해당 슬러그로 필터링
+  if (categorySlug && categorySlug !== 'all') {
+    query = query.eq("board_categories.slug", categorySlug)
+  }
+  // categorySlug가 없거나 'all'이면 쿼리 레벨에서는 필터링하지 않고, 결과를 받은 후 필터링
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .limit(limit)
 
@@ -51,7 +63,7 @@ export async function getLatestPosts(
   }
 
   // Transform posts data to match PostForDisplay type
-  return (data || []).map((post: any) => ({
+  let transformed = (data || []).map((post: any) => ({
     id: post.id,
     title: post.title,
     content: post.content,
@@ -67,5 +79,16 @@ export async function getLatestPosts(
       ? post.communities[0]
       : post.communities,
   }))
+
+  // categorySlug가 없거나 'all'이면 공지사항과 자유게시판 제외
+  if (!categorySlug || categorySlug === 'all') {
+    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+    transformed = transformed.filter((post) => {
+      const postSlug = post.board_categories?.slug
+      return postSlug && !excludedSlugs.includes(postSlug)
+    })
+  }
+
+  return transformed
 }
 

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PostsSection } from "@/components/home/posts-section";
+import { getLatestPosts } from "@/lib/queries/posts";
 import Link from "next/link";
 import { Plus } from 'lucide-react';
 import { isAdmin } from "@/lib/utils";
@@ -67,7 +68,7 @@ export default async function BoardPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const [categoryResult, userResult, postsResult] = await Promise.all([
+  const [categoryResult, userResult, transformedPosts] = await Promise.all([
     supabase
       .from("board_categories")
       .select("*")
@@ -75,26 +76,11 @@ export default async function BoardPage({
       .eq("is_active", true)
       .single(),
     supabase.auth.getUser(),
-    supabase
-      .from("posts")
-      .select(`
-        *,
-        profiles:author_id (
-          id,
-          full_name
-        ),
-        board_categories:board_category_id (
-          name,
-          slug
-        )
-      `)
-      .eq("board_categories.slug", slug)
-      .order("created_at", { ascending: false })
+    getLatestPosts(supabase, 50, slug) // 현재 slug를 전달하여 해당 카테고리 글만 가져오기
   ]);
 
   const category = categoryResult.data;
   const user = userResult.data.user;
-  const posts = postsResult.data;
 
   if (!category) {
     notFound();
@@ -115,7 +101,7 @@ export default async function BoardPage({
   const isPublic = PUBLIC_BOARDS.includes(slug);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
   
-  const structuredData = isPublic && posts ? {
+  const structuredData = isPublic && transformedPosts.length > 0 ? {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": category.name,
@@ -123,13 +109,13 @@ export default async function BoardPage({
     "url": `${siteUrl}/community/board/${slug}`,
     "mainEntity": {
       "@type": "ItemList",
-      "itemListElement": posts.slice(0, 10).map((post: any, index: number) => ({
+      "itemListElement": transformedPosts.slice(0, 10).map((post: any, index: number) => ({
         "@type": "ListItem",
         "position": index + 1,
         "item": {
           "@type": "Article",
           "headline": post.title,
-          "description": post.content?.substring(0, 200) || "",
+          "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
           "url": `${siteUrl}/community/board/${slug}/${post.id}`,
           "author": {
             "@type": "Person",
@@ -141,20 +127,9 @@ export default async function BoardPage({
     }
   } : null;
 
-  // 게시글 데이터 변환 (PostsSection 형식에 맞춤)
-  const transformedPosts = (posts || []).map((post: any) => ({
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    created_at: post.created_at,
-    visibility: post.visibility || "public",
-    likes_count: post.likes_count || 0,
-    comments_count: post.comments_count || 0,
-    profiles: post.profiles ? { full_name: post.profiles.full_name } : null,
-    board_categories: post.board_categories || {
-      name: category.name,
-      slug: slug,
-    },
+  // 게시글 데이터에 isMember 추가 (PostsSection 형식에 맞춤)
+  const postsWithMembership = transformedPosts.map((post: any) => ({
+    ...post,
     isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
   }))
 
@@ -201,7 +176,7 @@ export default async function BoardPage({
           <Card>
             <CardContent className="pt-6">
               <PostsSection
-                posts={transformedPosts}
+                posts={postsWithMembership}
                 boardCategories={[]}
                 hideTabs={true}
               />

@@ -13,8 +13,9 @@ export default async function CommunityDashboardPage() {
   } = await supabase.auth.getUser()
 
   // Fetch data using query helpers (피드에만 집중)
+  // getLatestPosts에 인자 없이 호출하면 소모임 글만 가져옴 (공지사항/자유게시판 제외)
   const [transformedPosts, boardCategories] = await Promise.all([
-    getLatestPosts(supabase, 50),
+    getLatestPosts(supabase, 50, null), // 또는 'all'
     getBoardCategories(supabase),
   ])
 
@@ -24,17 +25,9 @@ export default async function CommunityDashboardPage() {
     (cat) => !excludedSlugs.includes(cat.slug)
   )
 
-  // 게시글에서도 공지사항과 자유게시판 제외
-  // board_categories가 있는 글만 필터링 (NULL 제외)
-  const filteredPosts = transformedPosts.filter((post: any) => {
-    const postSlug = post.board_categories?.slug
-    // board_categories가 있고, excludedSlugs에 포함되지 않은 글만 포함
-    return postSlug && !excludedSlugs.includes(postSlug)
-  })
-
   // 각 게시글의 커뮤니티 멤버십 확인 (나중에 최적화 가능)
   const postsWithMembership = await Promise.all(
-    filteredPosts.map(async (post: any) => {
+    transformedPosts.map(async (post: any) => {
       // community_id가 있고 visibility가 'group'인 경우에만 체크
       if (post.communities && post.visibility === "group" && user) {
         // TODO: 실제 community_id를 가져와서 멤버십 체크
