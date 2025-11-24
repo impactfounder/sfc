@@ -151,7 +151,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       const insertData: any = {
         title,
         description, // Rich Text Content
-        start_date: startDateTime.toISOString(),
+        event_date: startDateTime.toISOString(),
         location,
         max_participants: maxParticipantsValue,
         thumbnail_url: thumbnailUrl,

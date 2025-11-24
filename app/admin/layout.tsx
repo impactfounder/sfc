@@ -18,7 +18,7 @@ export default function AdminLayout({
       <MobileHeader />
 
       {/* 3. 메인 콘텐츠 영역 */}
-      <main className="flex-1 overflow-y-auto w-full pt-16 lg:pt-0 lg:pl-[344px]">
+      <main className="flex-1 overflow-y-auto w-full pt-16 lg:pt-0 lg:pl-[344px]" style={{ scrollbarGutter: 'stable' }}>
         <div className="max-w-full overflow-x-hidden">{children}</div>
       </main>
     </div>

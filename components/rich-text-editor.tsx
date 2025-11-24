@@ -55,15 +55,23 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`업로드 실패: ${response.status} ${errorText}`)
+        let errorMessage = `업로드 실패 (상태 코드: ${response.status})`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          const errorText = await response.text()
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
       editor.chain().focus().setImage({ src: data.url }).run()
     } catch (error) {
       console.error("이미지 업로드 에러:", error)
-      alert("이미지 업로드에 실패했습니다.")
+      const errorMessage = error instanceof Error ? error.message : "이미지 업로드에 실패했습니다."
+      alert(`이미지 업로드 실패: ${errorMessage}`)
     } finally {
       setIsUploading(false)
     }
