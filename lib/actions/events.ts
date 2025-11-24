@@ -4,6 +4,58 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { isAdmin } from "@/lib/utils"
 
+/**
+ * 이벤트 생성 (보안 강화: 세션 기반)
+ * 클라이언트에서 보낸 created_by는 무시하고, 무조건 현재 로그인한 세션의 ID만 사용
+ */
+export async function createEvent(data: {
+  title: string
+  description: string
+  event_date: string
+  end_date?: string | null
+  location?: string | null
+  max_participants?: number | null
+  thumbnail_url?: string | null
+  // ★ 보안: created_by는 무시됨 (클라이언트에서 보내도 사용하지 않음)
+}) {
+  const supabase = await createClient()
+
+  // ★ 보안: 무조건 현재 로그인한 세션의 ID만 사용
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // ★ 보안: 클라이언트에서 보낸 created_by는 무시하고, 세션의 user.id만 사용
+  const insertData: any = {
+    title: data.title.trim(),
+    description: data.description.trim(),
+    event_date: data.event_date,
+    location: data.location || null,
+    max_participants: data.max_participants || null,
+    thumbnail_url: data.thumbnail_url || null,
+    created_by: user.id, // ★ 무조건 세션의 user.id만 사용
+  }
+
+  // end_date가 있으면 추가
+  if (data.end_date) {
+    insertData.end_date = data.end_date
+  }
+
+  const { error } = await supabase.from("events").insert(insertData).select("id").single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/events")
+  revalidatePath("/")
+  return { success: true }
+}
+
 export async function deleteEvent(eventId: string) {
   const supabase = await createClient()
 
@@ -105,4 +157,3 @@ export async function addGuestParticipant(eventId: string, guestName: string, gu
   revalidatePath(`/events/${eventId}`)
   return { success: true }
 }
-

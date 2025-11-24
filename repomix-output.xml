@@ -69,8 +69,6 @@ app/community/board/[slug]/[id]/page.tsx
 app/community/board/[slug]/loading.tsx
 app/community/board/[slug]/new/page.tsx
 app/community/board/[slug]/page.tsx
-app/community/free/page.tsx
-app/community/free/write/page.tsx
 app/community/layout.tsx
 app/community/page.tsx
 app/community/posts/[id]/loading.tsx
@@ -264,6 +262,7 @@ scripts/032_update_member_profile.sql
 scripts/033_add_post_visibility.sql
 scripts/034_add_end_date.sql
 scripts/036_rename_bangol_to_vangol.sql
+scripts/099_rebuild_community_schema.sql
 scripts/ALL_MIGRATIONS_README.md
 styles/globals.css
 TROUBLESHOOTING.md
@@ -1812,6 +1811,106 @@ export function NewProjectForm({ userId }: { userId: string }) {
       </div>
     </form>
   );
+}
+</file>
+
+<file path="components/post-actions.tsx">
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoreVertical, Edit, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { deletePost } from "@/lib/actions/posts"
+
+type PostActionsProps = {
+  postId: string
+  isAuthor: boolean
+  isMaster?: boolean
+}
+
+export function PostActions({ postId, isAuthor, isMaster = false }: PostActionsProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deletePost(postId)
+      router.refresh()
+      router.push("/community/posts")
+    } catch (error) {
+      console.error("Failed to delete post:", error)
+      alert("게시글 삭제에 실패했습니다.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // 작성자가 아니고 마스터 관리자도 아니면 아무것도 표시하지 않음
+  if (!isAuthor && !isMaster) {
+    return null
+  }
+
+  // 삭제 가능 여부 (작성자 또는 마스터)
+  const canDelete = isAuthor || isMaster
+  // 수정 가능 여부 (작성자만)
+  const canEdit = isAuthor
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {canEdit && (
+            <DropdownMenuItem onClick={() => router.push(`/community/posts/${postId}/edit`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              수정
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteDialog(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              삭제
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>게시글을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 작업은 취소할 수 없습니다. 게시글과 모든 댓글이 영구적으로 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+              {isDeleting ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
 }
 </file>
 
@@ -8512,6 +8611,97 @@ function useToast() {
 export { useToast, toast }
 </file>
 
+<file path="lib/actions/admin.ts">
+"use server"
+
+import { createClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
+import { isMasterAdmin } from "@/lib/utils"
+
+export async function updateUserRole(userId: string, role: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is master admin (only master can change roles)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile || !isMasterAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only master admins can change user roles")
+  }
+
+  // Validate role value
+  if (!["member", "admin", "master"].includes(role)) {
+    throw new Error("Invalid role value")
+  }
+
+  // Prevent changing own role from master to something else
+  if (user.id === userId && profile.role === "master" && role !== "master") {
+    throw new Error("Cannot change your own master role")
+  }
+
+  // Update role
+  const { error } = await supabase.from("profiles").update({ role }).eq("id", userId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin/users")
+  revalidatePath("/admin/roles")
+  return { success: true }
+}
+
+export async function updateUserMembershipTier(userId: string, membershipTier: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is admin or master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized")
+  }
+
+  // Update membership tier
+  const { error } = await supabase.from("profiles").update({ membership_tier: membershipTier }).eq("id", userId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin/users")
+  return { success: true }
+}
+</file>
+
 <file path="lib/format-time.ts">
 /**
  * 상대 시간을 한국어로 포맷팅
@@ -8614,6 +8804,54 @@ export async function updateSession(request: NextRequest) {
   }
 
   return NextResponse.next()
+}
+</file>
+
+<file path="lib/utils.ts">
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+/**
+ * 현재 사용자가 마스터 관리자인지 확인하는 헬퍼 함수
+ * @param userRole - 사용자의 role 값 ('member', 'admin', 'master')
+ * @param userEmail - 사용자의 이메일 주소 (선택사항, 이메일 기반 체크용)
+ * @returns 마스터 관리자 여부
+ */
+export function isMasterAdmin(userRole?: string | null, userEmail?: string | null): boolean {
+  // role이 'master'인 경우
+  if (userRole === 'master') {
+    return true
+  }
+  
+  // 이메일 기반 체크 (백업용)
+  if (userEmail === 'jaewook@mvmt.city') {
+    return true
+  }
+  
+  return false
+}
+
+/**
+ * 현재 사용자가 관리자(admin 또는 master)인지 확인하는 헬퍼 함수
+ * @param userRole - 사용자의 role 값 ('member', 'admin', 'master')
+ * @param userEmail - 사용자의 이메일 주소 (선택사항, 이메일 기반 체크용)
+ * @returns 관리자 여부
+ */
+export function isAdmin(userRole?: string | null, userEmail?: string | null): boolean {
+  if (userRole === 'admin' || userRole === 'master') {
+    return true
+  }
+  
+  // 이메일 기반 마스터 체크
+  if (userEmail === 'jaewook@mvmt.city') {
+    return true
+  }
+  
+  return false
 }
 </file>
 
@@ -10086,6 +10324,123 @@ CREATE TRIGGER trigger_notify_on_event_registration
   AFTER INSERT ON event_registrations
   FOR EACH ROW
   EXECUTE FUNCTION notify_on_event_registration();
+</file>
+
+<file path="scripts/015_set_master_admin.sql">
+-- 마스터 관리자 권한 설정
+-- jaewook@mvmt.city 계정을 'master' 권한으로 설정
+
+-- profiles 테이블에 role 컬럼이 없으면 추가
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role text DEFAULT 'member' CHECK (role IN ('member', 'admin', 'master'));
+
+-- jaewook@mvmt.city 이메일을 가진 사용자를 master로 설정
+UPDATE profiles
+SET role = 'master'
+WHERE email = 'jaewook@mvmt.city';
+
+-- 결과 확인을 위한 쿼리 (주석 처리)
+-- SELECT id, email, full_name, role FROM profiles WHERE email = 'jaewook@mvmt.city';
+</file>
+
+<file path="scripts/016_posts_rls_policy.sql">
+-- 게시판 관리 권한 정책 (RLS)
+-- 수정: 작성자만 가능
+-- 삭제: 작성자 또는 마스터 관리자만 가능
+
+-- 기존 RLS 정책 삭제 (있다면)
+DROP POLICY IF EXISTS "Users can update their own posts" ON posts;
+DROP POLICY IF EXISTS "Users can delete their own posts" ON posts;
+DROP POLICY IF EXISTS "Master admins can delete any posts" ON posts;
+
+-- RLS 활성화 (이미 되어 있다면 무시)
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+
+-- 1. 수정(Update) 정책: 작성자만 가능
+CREATE POLICY "Users can update their own posts"
+ON posts
+FOR UPDATE
+USING (auth.uid() = author_id)
+WITH CHECK (auth.uid() = author_id);
+
+-- 2. 삭제(Delete) 정책: 작성자 또는 마스터 관리자만 가능
+-- 작성자가 자신의 게시글 삭제 가능
+CREATE POLICY "Users can delete their own posts"
+ON posts
+FOR DELETE
+USING (auth.uid() = author_id);
+
+-- 마스터 관리자가 모든 게시글 삭제 가능
+CREATE POLICY "Master admins can delete any posts"
+ON posts
+FOR DELETE
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'master'
+  )
+);
+
+-- 참고: 읽기(Select) 정책은 기존 정책을 유지합니다
+-- 만약 읽기 정책이 없다면 아래와 같이 추가할 수 있습니다:
+-- CREATE POLICY "Posts are viewable by everyone"
+-- ON posts FOR SELECT
+-- USING (true);
+</file>
+
+<file path="scripts/017_ensure_public_read_policies.sql">
+-- 공개 읽기 정책 확인 및 수정
+-- 로그인 없이도 이벤트와 게시글을 볼 수 있도록 보장
+
+-- 1. Posts 테이블 읽기 정책 확인 및 추가
+DROP POLICY IF EXISTS "Posts are viewable by everyone" ON posts;
+CREATE POLICY "Posts are viewable by everyone"
+ON posts
+FOR SELECT
+USING (true);
+
+-- 2. Events 테이블 읽기 정책 확인 및 추가
+DROP POLICY IF EXISTS "Events are viewable by everyone" ON events;
+CREATE POLICY "Events are viewable by everyone"
+ON events
+FOR SELECT
+USING (true);
+
+-- 3. Board Categories 테이블 읽기 정책 확인 및 추가
+DROP POLICY IF EXISTS "Anyone can view active categories" ON board_categories;
+CREATE POLICY "Anyone can view active categories"
+ON board_categories
+FOR SELECT
+USING (is_active = true);
+
+-- 4. Profiles 테이블 읽기 정책 확인 및 추가
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+CREATE POLICY "Public profiles are viewable by everyone"
+ON profiles
+FOR SELECT
+USING (true);
+
+-- 5. Event Registrations 테이블 읽기 정책 확인 및 추가
+DROP POLICY IF EXISTS "Event registrations are viewable by everyone" ON event_registrations;
+CREATE POLICY "Event registrations are viewable by everyone"
+ON event_registrations
+FOR SELECT
+USING (true);
+
+-- 6. Comments 테이블 읽기 정책 확인 및 추가
+DROP POLICY IF EXISTS "Comments are viewable by everyone" ON comments;
+CREATE POLICY "Comments are viewable by everyone"
+ON comments
+FOR SELECT
+USING (true);
+
+-- 정책 확인 쿼리 (실행 후 확인용)
+-- SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
+-- FROM pg_policies 
+-- WHERE schemaname = 'public' 
+-- AND tablename IN ('posts', 'events', 'board_categories', 'profiles', 'event_registrations', 'comments')
+-- AND cmd = 'SELECT'
+-- ORDER BY tablename, policyname;
 </file>
 
 <file path="styles/globals.css">
@@ -12563,6 +12918,50 @@ export function CreateEventButton({ userId, variant = "default", className, chil
 }
 </file>
 
+<file path="components/home/announcement-banner.tsx">
+import Link from "next/link"
+import { Bell } from "lucide-react"
+
+type Announcement = {
+  id: string
+  title: string
+}
+
+interface AnnouncementBannerProps {
+  announcement: Announcement | null
+}
+
+export function AnnouncementBanner({ announcement }: AnnouncementBannerProps) {
+  if (!announcement) return null
+
+  return (
+    <div className="w-full">
+      <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm py-3 px-5 flex items-center gap-3 transition-shadow hover:shadow-md">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <Bell className="w-4 h-4" />
+        </div>
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600">
+            공지
+          </span>
+          <Link
+            href={`/community/posts/${announcement.id}`}
+            className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline truncate block"
+          >
+            {announcement.title}
+          </Link>
+        </div>
+        <div className="shrink-0">
+           <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+           </svg>
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="components/mobile-action-bar.tsx">
 "use client"
 
@@ -12951,106 +13350,6 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
         </Button>
       </div>
     </form>
-  )
-}
-</file>
-
-<file path="components/post-actions.tsx">
-"use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreVertical, Edit, Trash2 } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { deletePost } from "@/lib/actions/posts"
-
-type PostActionsProps = {
-  postId: string
-  isAuthor: boolean
-  isMaster?: boolean
-}
-
-export function PostActions({ postId, isAuthor, isMaster = false }: PostActionsProps) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const router = useRouter()
-
-  const handleDelete = async () => {
-    setIsDeleting(true)
-    try {
-      await deletePost(postId)
-      router.refresh()
-      router.push("/community/posts")
-    } catch (error) {
-      console.error("Failed to delete post:", error)
-      alert("게시글 삭제에 실패했습니다.")
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  // 작성자가 아니고 마스터 관리자도 아니면 아무것도 표시하지 않음
-  if (!isAuthor && !isMaster) {
-    return null
-  }
-
-  // 삭제 가능 여부 (작성자 또는 마스터)
-  const canDelete = isAuthor || isMaster
-  // 수정 가능 여부 (작성자만)
-  const canEdit = isAuthor
-
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {canEdit && (
-            <DropdownMenuItem onClick={() => router.push(`/community/posts/${postId}/edit`)}>
-              <Edit className="mr-2 h-4 w-4" />
-              수정
-            </DropdownMenuItem>
-          )}
-          {canDelete && (
-            <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteDialog(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              삭제
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>게시글을 삭제하시겠습니까?</AlertDialogTitle>
-            <AlertDialogDescription>
-              이 작업은 취소할 수 없습니다. 게시글과 모든 댓글이 영구적으로 삭제됩니다.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
-              {isDeleting ? "삭제 중..." : "삭제"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   )
 }
 </file>
@@ -13665,103 +13964,64 @@ fetch('https://YOUR_SUPABASE_URL/rest/v1/posts?select=*&limit=10', {
 - [ ] `/debug` 페이지에서 에러 사라졌는지 확인
 </file>
 
-<file path="lib/actions/admin.ts">
-"use server"
-
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { isMasterAdmin } from "@/lib/utils"
-
-export async function updateUserRole(userId: string, role: string) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  // Check if current user is master admin (only master can change roles)
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile || !isMasterAdmin(profile.role, profile.email)) {
-    throw new Error("Unauthorized: Only master admins can change user roles")
-  }
-
-  // Validate role value
-  if (!["member", "admin", "master"].includes(role)) {
-    throw new Error("Invalid role value")
-  }
-
-  // Prevent changing own role from master to something else
-  if (user.id === userId && profile.role === "master" && role !== "master") {
-    throw new Error("Cannot change your own master role")
-  }
-
-  // Update role
-  const { error } = await supabase.from("profiles").update({ role }).eq("id", userId)
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  revalidatePath("/admin/users")
-  revalidatePath("/admin/roles")
-  return { success: true }
-}
-
-export async function updateUserMembershipTier(userId: string, membershipTier: string) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  // Check if current user is admin or master
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile) {
-    throw new Error("Unauthorized")
-  }
-
-  // Use isAdmin helper to check admin or master
-  const { isAdmin } = await import("@/lib/utils")
-  if (!isAdmin(profile.role, profile.email)) {
-    throw new Error("Unauthorized")
-  }
-
-  // Update membership tier
-  const { error } = await supabase.from("profiles").update({ membership_tier: membershipTier }).eq("id", userId)
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  revalidatePath("/admin/users")
-  return { success: true }
-}
-</file>
-
 <file path="lib/actions/events.ts">
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { isAdmin } from "@/lib/utils"
+
+/**
+ * 이벤트 생성 (보안 강화: 세션 기반)
+ * 클라이언트에서 보낸 created_by는 무시하고, 무조건 현재 로그인한 세션의 ID만 사용
+ */
+export async function createEvent(data: {
+  title: string
+  description: string
+  event_date: string
+  end_date?: string | null
+  location?: string | null
+  max_participants?: number | null
+  thumbnail_url?: string | null
+  // ★ 보안: created_by는 무시됨 (클라이언트에서 보내도 사용하지 않음)
+}) {
+  const supabase = await createClient()
+
+  // ★ 보안: 무조건 현재 로그인한 세션의 ID만 사용
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // ★ 보안: 클라이언트에서 보낸 created_by는 무시하고, 세션의 user.id만 사용
+  const insertData: any = {
+    title: data.title.trim(),
+    description: data.description.trim(),
+    event_date: data.event_date,
+    location: data.location || null,
+    max_participants: data.max_participants || null,
+    thumbnail_url: data.thumbnail_url || null,
+    created_by: user.id, // ★ 무조건 세션의 user.id만 사용
+  }
+
+  // end_date가 있으면 추가
+  if (data.end_date) {
+    insertData.end_date = data.end_date
+  }
+
+  const { error } = await supabase.from("events").insert(insertData).select("id").single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/events")
+  revalidatePath("/")
+  return { success: true }
+}
 
 export async function deleteEvent(eventId: string) {
   const supabase = await createClient()
@@ -13862,6 +14122,110 @@ export async function addGuestParticipant(eventId: string, guestName: string, gu
 
   revalidatePath(`/events/${eventId}/manage`)
   revalidatePath(`/events/${eventId}`)
+  return { success: true }
+}
+</file>
+
+<file path="lib/actions/posts.ts">
+"use server"
+
+import { createClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
+import { isMasterAdmin } from "@/lib/utils"
+
+export async function createPost(data: {
+  title: string
+  content: string
+  visibility?: "public" | "group"
+  boardCategoryId?: string
+  communityId?: string
+  category?: string
+  // ★ 보안: authorId 등은 무시됨 (클라이언트에서 보내도 사용하지 않음)
+}) {
+  const supabase = await createClient()
+
+  // ★ 보안: 무조건 현재 로그인한 세션의 ID만 사용
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // ★ 보안: 클라이언트에서 보낸 authorId 등은 무시하고, 세션의 user.id만 사용
+  const insertData: any = {
+    title: data.title.trim(),
+    content: data.content.trim(),
+    author_id: user.id, // ★ 무조건 세션의 user.id만 사용
+    visibility: data.visibility || "public",
+  }
+
+  if (data.boardCategoryId) {
+    insertData.board_category_id = data.boardCategoryId
+  }
+
+  if (data.communityId) {
+    insertData.community_id = data.communityId
+  }
+
+  if (data.category) {
+    insertData.category = data.category
+  }
+
+  const { error } = await supabase.from("posts").insert(insertData).select("id").single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community")
+  revalidatePath("/community/posts")
+  return { success: true }
+}
+
+export async function deletePost(postId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Get user profile to check role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  // Verify post ownership
+  const { data: post } = await supabase.from("posts").select("author_id").eq("id", postId).single()
+
+  if (!post) {
+    throw new Error("Post not found")
+  }
+
+  // Check if user is author or master admin
+  const isAuthor = post.author_id === user.id
+  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+
+  if (!isAuthor && !isMaster) {
+    throw new Error("Unauthorized")
+  }
+
+  // Delete post (comments will be cascade deleted by DB)
+  const { error } = await supabase.from("posts").delete().eq("id", postId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community/posts")
+  revalidatePath(`/community/board`)
   return { success: true }
 }
 </file>
@@ -13976,54 +14340,6 @@ export async function getUpcomingEvents(
     max_participants: event.max_participants,
     current_participants: event.event_registrations?.[0]?.count || 0,
   }))
-}
-</file>
-
-<file path="lib/utils.ts">
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-/**
- * 현재 사용자가 마스터 관리자인지 확인하는 헬퍼 함수
- * @param userRole - 사용자의 role 값 ('member', 'admin', 'master')
- * @param userEmail - 사용자의 이메일 주소 (선택사항, 이메일 기반 체크용)
- * @returns 마스터 관리자 여부
- */
-export function isMasterAdmin(userRole?: string | null, userEmail?: string | null): boolean {
-  // role이 'master'인 경우
-  if (userRole === 'master') {
-    return true
-  }
-  
-  // 이메일 기반 체크 (백업용)
-  if (userEmail === 'jaewook@mvmt.city') {
-    return true
-  }
-  
-  return false
-}
-
-/**
- * 현재 사용자가 관리자(admin 또는 master)인지 확인하는 헬퍼 함수
- * @param userRole - 사용자의 role 값 ('member', 'admin', 'master')
- * @param userEmail - 사용자의 이메일 주소 (선택사항, 이메일 기반 체크용)
- * @returns 관리자 여부
- */
-export function isAdmin(userRole?: string | null, userEmail?: string | null): boolean {
-  if (userRole === 'admin' || userRole === 'master') {
-    return true
-  }
-  
-  // 이메일 기반 마스터 체크
-  if (userEmail === 'jaewook@mvmt.city') {
-    return true
-  }
-  
-  return false
 }
 </file>
 
@@ -14348,123 +14664,6 @@ if (!profile || !isAdmin(profile.role, profile.email)) {
 5. Phase 5 실행 (구조 정리)
 
 각 Phase는 독립적으로 실행 가능하며, 중간에 문제가 발생하면 해당 Phase만 롤백 가능합니다.
-</file>
-
-<file path="scripts/015_set_master_admin.sql">
--- 마스터 관리자 권한 설정
--- jaewook@mvmt.city 계정을 'master' 권한으로 설정
-
--- profiles 테이블에 role 컬럼이 없으면 추가
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role text DEFAULT 'member' CHECK (role IN ('member', 'admin', 'master'));
-
--- jaewook@mvmt.city 이메일을 가진 사용자를 master로 설정
-UPDATE profiles
-SET role = 'master'
-WHERE email = 'jaewook@mvmt.city';
-
--- 결과 확인을 위한 쿼리 (주석 처리)
--- SELECT id, email, full_name, role FROM profiles WHERE email = 'jaewook@mvmt.city';
-</file>
-
-<file path="scripts/016_posts_rls_policy.sql">
--- 게시판 관리 권한 정책 (RLS)
--- 수정: 작성자만 가능
--- 삭제: 작성자 또는 마스터 관리자만 가능
-
--- 기존 RLS 정책 삭제 (있다면)
-DROP POLICY IF EXISTS "Users can update their own posts" ON posts;
-DROP POLICY IF EXISTS "Users can delete their own posts" ON posts;
-DROP POLICY IF EXISTS "Master admins can delete any posts" ON posts;
-
--- RLS 활성화 (이미 되어 있다면 무시)
-ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
-
--- 1. 수정(Update) 정책: 작성자만 가능
-CREATE POLICY "Users can update their own posts"
-ON posts
-FOR UPDATE
-USING (auth.uid() = author_id)
-WITH CHECK (auth.uid() = author_id);
-
--- 2. 삭제(Delete) 정책: 작성자 또는 마스터 관리자만 가능
--- 작성자가 자신의 게시글 삭제 가능
-CREATE POLICY "Users can delete their own posts"
-ON posts
-FOR DELETE
-USING (auth.uid() = author_id);
-
--- 마스터 관리자가 모든 게시글 삭제 가능
-CREATE POLICY "Master admins can delete any posts"
-ON posts
-FOR DELETE
-USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE profiles.id = auth.uid()
-    AND profiles.role = 'master'
-  )
-);
-
--- 참고: 읽기(Select) 정책은 기존 정책을 유지합니다
--- 만약 읽기 정책이 없다면 아래와 같이 추가할 수 있습니다:
--- CREATE POLICY "Posts are viewable by everyone"
--- ON posts FOR SELECT
--- USING (true);
-</file>
-
-<file path="scripts/017_ensure_public_read_policies.sql">
--- 공개 읽기 정책 확인 및 수정
--- 로그인 없이도 이벤트와 게시글을 볼 수 있도록 보장
-
--- 1. Posts 테이블 읽기 정책 확인 및 추가
-DROP POLICY IF EXISTS "Posts are viewable by everyone" ON posts;
-CREATE POLICY "Posts are viewable by everyone"
-ON posts
-FOR SELECT
-USING (true);
-
--- 2. Events 테이블 읽기 정책 확인 및 추가
-DROP POLICY IF EXISTS "Events are viewable by everyone" ON events;
-CREATE POLICY "Events are viewable by everyone"
-ON events
-FOR SELECT
-USING (true);
-
--- 3. Board Categories 테이블 읽기 정책 확인 및 추가
-DROP POLICY IF EXISTS "Anyone can view active categories" ON board_categories;
-CREATE POLICY "Anyone can view active categories"
-ON board_categories
-FOR SELECT
-USING (is_active = true);
-
--- 4. Profiles 테이블 읽기 정책 확인 및 추가
-DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
-CREATE POLICY "Public profiles are viewable by everyone"
-ON profiles
-FOR SELECT
-USING (true);
-
--- 5. Event Registrations 테이블 읽기 정책 확인 및 추가
-DROP POLICY IF EXISTS "Event registrations are viewable by everyone" ON event_registrations;
-CREATE POLICY "Event registrations are viewable by everyone"
-ON event_registrations
-FOR SELECT
-USING (true);
-
--- 6. Comments 테이블 읽기 정책 확인 및 추가
-DROP POLICY IF EXISTS "Comments are viewable by everyone" ON comments;
-CREATE POLICY "Comments are viewable by everyone"
-ON comments
-FOR SELECT
-USING (true);
-
--- 정책 확인 쿼리 (실행 후 확인용)
--- SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
--- FROM pg_policies 
--- WHERE schemaname = 'public' 
--- AND tablename IN ('posts', 'events', 'board_categories', 'profiles', 'event_registrations', 'comments')
--- AND cmd = 'SELECT'
--- ORDER BY tablename, policyname;
 </file>
 
 <file path="scripts/018_check_data_and_policies.sql">
@@ -15589,6 +15788,235 @@ WHERE category = 'bangol';
 -- WHERE bc.slug = 'vangol';
 </file>
 
+<file path="scripts/099_rebuild_community_schema.sql">
+-- ============================================
+-- Phase 1: 커뮤니티 스키마 재구축 및 데이터 초기화
+-- 목표: 코드가 데이터를 의심하지 않도록 DB를 완벽한 상태로 초기화
+-- ============================================
+
+BEGIN;
+
+-- ============================================
+-- Step A: posts 테이블 스키마 정리
+-- ============================================
+
+-- 1. visibility 컬럼 추가 (없는 경우)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'posts' AND column_name = 'visibility'
+    ) THEN
+        ALTER TABLE posts 
+        ADD COLUMN visibility TEXT DEFAULT 'public' CHECK (visibility IN ('public', 'group'));
+    END IF;
+END $$;
+
+-- 2. 기존 FK 제약조건 삭제 (있는 경우)
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'posts_board_category_id_fkey'
+    ) THEN
+        ALTER TABLE posts DROP CONSTRAINT posts_board_category_id_fkey;
+    END IF;
+END $$;
+
+-- 3. 새로운 FK 제약조건 추가 (CASCADE DELETE)
+ALTER TABLE posts 
+ADD CONSTRAINT posts_board_category_id_fkey 
+FOREIGN KEY (board_category_id) 
+REFERENCES board_categories(id) 
+ON DELETE SET NULL;
+
+-- ============================================
+-- Step B: board_categories 테이블 초기화 및 표준 데이터 삽입
+-- ============================================
+
+-- 기존 데이터 삭제
+DELETE FROM board_categories;
+
+-- 표준 슬러그 4개 INSERT
+INSERT INTO board_categories (id, name, slug, description, is_active, created_at, updated_at)
+VALUES
+    (gen_random_uuid(), '공지사항', 'announcement', '중요한 공지사항을 확인하세요.', true, NOW(), NOW()),
+    (gen_random_uuid(), '자유게시판', 'free-board', '자유롭게 소통하는 공간입니다.', true, NOW(), NOW()),
+    (gen_random_uuid(), '반골', 'vangol', '반골 커뮤니티 게시판입니다.', true, NOW(), NOW()),
+    (gen_random_uuid(), '하이토크', 'hightalk', '하이토크 커뮤니티 게시판입니다.', true, NOW(), NOW())
+ON CONFLICT (slug) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    is_active = EXCLUDED.is_active,
+    updated_at = NOW();
+
+-- ============================================
+-- Step C: posts 테이블의 모든 글을 free-board로 강제 이동
+-- ============================================
+
+-- free-board 카테고리 ID 가져오기
+DO $$
+DECLARE
+    free_board_id UUID;
+BEGIN
+    SELECT id INTO free_board_id 
+    FROM board_categories 
+    WHERE slug = 'free-board' 
+    LIMIT 1;
+    
+    -- 모든 게시글을 free-board로 이동
+    UPDATE posts 
+    SET board_category_id = free_board_id 
+    WHERE board_category_id IS NULL OR board_category_id NOT IN (
+        SELECT id FROM board_categories
+    );
+    
+    -- board_category_id가 NULL인 경우에도 free-board로 설정
+    UPDATE posts 
+    SET board_category_id = free_board_id 
+    WHERE board_category_id IS NULL;
+END $$;
+
+-- ============================================
+-- Step D: 각 카테고리별 테스트 게시글 생성
+-- ============================================
+
+DO $$
+DECLARE
+    announcement_id UUID;
+    free_board_id UUID;
+    vangol_id UUID;
+    hightalk_id UUID;
+    test_user_id UUID;
+BEGIN
+    -- 카테고리 ID 가져오기
+    SELECT id INTO announcement_id FROM board_categories WHERE slug = 'announcement' LIMIT 1;
+    SELECT id INTO free_board_id FROM board_categories WHERE slug = 'free-board' LIMIT 1;
+    SELECT id INTO vangol_id FROM board_categories WHERE slug = 'vangol' LIMIT 1;
+    SELECT id INTO hightalk_id FROM board_categories WHERE slug = 'hightalk' LIMIT 1;
+    
+    -- 테스트 사용자 ID 가져오기 (없으면 첫 번째 사용자)
+    SELECT id INTO test_user_id FROM profiles LIMIT 1;
+    
+    -- 테스트 사용자가 없으면 기본 UUID 사용
+    IF test_user_id IS NULL THEN
+        test_user_id := '00000000-0000-0000-0000-000000000000'::UUID;
+    END IF;
+    
+    -- 각 카테고리별로 테스트 게시글 1개씩 생성 (없는 경우에만)
+    INSERT INTO posts (id, title, content, author_id, board_category_id, visibility, created_at, updated_at)
+    SELECT 
+        gen_random_uuid(),
+        '공지사항 테스트 글',
+        '<p>이것은 공지사항 게시판의 테스트 게시글입니다.</p>',
+        test_user_id,
+        announcement_id,
+        'public',
+        NOW(),
+        NOW()
+    WHERE NOT EXISTS (
+        SELECT 1 FROM posts WHERE board_category_id = announcement_id
+    );
+    
+    INSERT INTO posts (id, title, content, author_id, board_category_id, visibility, created_at, updated_at)
+    SELECT 
+        gen_random_uuid(),
+        '자유게시판 테스트 글',
+        '<p>이것은 자유게시판의 테스트 게시글입니다.</p>',
+        test_user_id,
+        free_board_id,
+        'public',
+        NOW(),
+        NOW()
+    WHERE NOT EXISTS (
+        SELECT 1 FROM posts WHERE board_category_id = free_board_id
+    );
+    
+    INSERT INTO posts (id, title, content, author_id, board_category_id, visibility, created_at, updated_at)
+    SELECT 
+        gen_random_uuid(),
+        '반골 테스트 글',
+        '<p>이것은 반골 커뮤니티 게시판의 테스트 게시글입니다.</p>',
+        test_user_id,
+        vangol_id,
+        'public',
+        NOW(),
+        NOW()
+    WHERE NOT EXISTS (
+        SELECT 1 FROM posts WHERE board_category_id = vangol_id
+    );
+    
+    INSERT INTO posts (id, title, content, author_id, board_category_id, visibility, created_at, updated_at)
+    SELECT 
+        gen_random_uuid(),
+        '하이토크 테스트 글',
+        '<p>이것은 하이토크 커뮤니티 게시판의 테스트 게시글입니다.</p>',
+        test_user_id,
+        hightalk_id,
+        'public',
+        NOW(),
+        NOW()
+    WHERE NOT EXISTS (
+        SELECT 1 FROM posts WHERE board_category_id = hightalk_id
+    );
+END $$;
+
+-- ============================================
+-- Step E: RLS 정책 초기화 (개발 단계 접근성 확보)
+-- ============================================
+
+-- 기존 RLS 정책 삭제
+DROP POLICY IF EXISTS "posts_select_public" ON posts;
+DROP POLICY IF EXISTS "board_categories_select_public" ON board_categories;
+DROP POLICY IF EXISTS "profiles_select_public" ON profiles;
+
+-- posts 테이블: SELECT 권한을 public에게 조건 없이 허용
+CREATE POLICY "posts_select_public" ON posts
+    FOR SELECT
+    TO public
+    USING (true);
+
+-- board_categories 테이블: SELECT 권한을 public에게 조건 없이 허용
+CREATE POLICY "board_categories_select_public" ON board_categories
+    FOR SELECT
+    TO public
+    USING (true);
+
+-- profiles 테이블: SELECT 권한을 public에게 조건 없이 허용
+CREATE POLICY "profiles_select_public" ON profiles
+    FOR SELECT
+    TO public
+    USING (true);
+
+-- ============================================
+-- 검증 쿼리
+-- ============================================
+
+-- 카테고리 확인
+SELECT '카테고리 개수:' as check_type, COUNT(*) as count FROM board_categories;
+
+-- 각 카테고리별 게시글 개수 확인
+SELECT 
+    bc.name as category_name,
+    bc.slug,
+    COUNT(p.id) as post_count
+FROM board_categories bc
+LEFT JOIN posts p ON p.board_category_id = bc.id
+GROUP BY bc.id, bc.name, bc.slug
+ORDER BY bc.slug;
+
+COMMIT;
+
+-- ============================================
+-- 완료 메시지
+-- ============================================
+DO $$
+BEGIN
+    RAISE NOTICE '✅ 커뮤니티 스키마 재구축 완료!';
+    RAISE NOTICE '📋 다음 단계: Phase 2 - 쿼리 로직 안정화';
+END $$;
+</file>
+
 <file path="scripts/ALL_MIGRATIONS_README.md">
 # SQL 마이그레이션 실행 가이드
 
@@ -16097,6 +16525,76 @@ export default function AdminLayout({
 }
 </file>
 
+<file path="app/admin/users/page.tsx">
+import { requireAdmin } from "@/lib/auth/server"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+import { UserManagementRow } from "@/components/user-management"
+
+export default async function UsersManagementPage() {
+  const { supabase, user, isMaster } = await requireAdmin()
+
+  const { data: users } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
+
+  return (
+    <div className="min-h-screen bg-white p-4 md:p-8 pt-20 md:pt-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6">
+          <Link href="/admin">
+            <Button variant="ghost">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              대시보드로 돌아가기
+            </Button>
+          </Link>
+        </div>
+
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">회원 관리</h1>
+          <p className="mt-2 text-slate-600">전체 회원 목록 및 상세 정보</p>
+        </div>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle>회원 목록 ({users?.length || 0}명)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {users && users.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>이름</TableHead>
+                    <TableHead>이메일</TableHead>
+                    <TableHead>포인트</TableHead>
+                    <TableHead>등급</TableHead>
+                    <TableHead>가입일</TableHead>
+                    <TableHead className="text-right">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((member) => (
+                    <UserManagementRow
+                      key={member.id}
+                      user={member}
+                      currentUserId={user.id}
+                      canChangeRole={isMaster}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="py-12 text-center text-slate-500">회원이 없습니다</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="app/api/community/free/posts/route.ts">
 import { NextRequest, NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
@@ -16178,39 +16676,6 @@ export default async function NewCommunityPage() {
         <div className="rounded-2xl bg-white p-8 shadow-sm border border-slate-200 sm:p-10">
           <NewCommunityForm userId={userId} />
         </div>
-      </div>
-    </div>
-  )
-}
-</file>
-
-<file path="app/community/free/write/page.tsx">
-import { redirect } from "next/navigation"
-
-import { FreeBoardWriteForm } from "@/components/free-board-write-form"
-import { createClient } from "@/lib/supabase/server"
-
-export default async function FreeBoardWritePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-3xl px-4 py-10 md:px-8">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Free Board</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">자유게시판 글쓰기</h1>
-          <p className="mt-2 text-base text-slate-600">
-            자유롭게 아이디어와 경험을 나누고 커뮤니티와 소통해보세요.
-          </p>
-        </div>
-        <FreeBoardWriteForm />
       </div>
     </div>
   )
@@ -16688,50 +17153,6 @@ export function FreeBoardWriteForm() {
 }
 </file>
 
-<file path="components/home/announcement-banner.tsx">
-import Link from "next/link"
-import { Bell } from "lucide-react"
-
-type Announcement = {
-  id: string
-  title: string
-}
-
-interface AnnouncementBannerProps {
-  announcement: Announcement | null
-}
-
-export function AnnouncementBanner({ announcement }: AnnouncementBannerProps) {
-  if (!announcement) return null
-
-  return (
-    <div className="w-full">
-      <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm py-3 px-5 flex items-center gap-3 transition-shadow hover:shadow-md">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-          <Bell className="w-4 h-4" />
-        </div>
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600">
-            공지
-          </span>
-          <Link
-            href={`/community/posts/${announcement.id}`}
-            className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline truncate block"
-          >
-            {announcement.title}
-          </Link>
-        </div>
-        <div className="shrink-0">
-           <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-           </svg>
-        </div>
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="components/notifications-dropdown.tsx">
 "use client"
 
@@ -17006,107 +17427,6 @@ export async function grantBadge(userId: string, badgeId: string) {
 }
 </file>
 
-<file path="lib/actions/posts.ts">
-"use server"
-
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { isMasterAdmin } from "@/lib/utils"
-
-export async function createPost(data: {
-  title: string
-  content: string
-  visibility?: "public" | "group"
-  boardCategoryId?: string
-  communityId?: string
-  category?: string
-}) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  const insertData: any = {
-    title: data.title.trim(),
-    content: data.content.trim(),
-    author_id: user.id,
-    visibility: data.visibility || "public",
-  }
-
-  if (data.boardCategoryId) {
-    insertData.board_category_id = data.boardCategoryId
-  }
-
-  if (data.communityId) {
-    insertData.community_id = data.communityId
-  }
-
-  if (data.category) {
-    insertData.category = data.category
-  }
-
-  const { error } = await supabase.from("posts").insert(insertData).select("id").single()
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  revalidatePath("/community")
-  revalidatePath("/community/posts")
-  return { success: true }
-}
-
-export async function deletePost(postId: string) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  // Get user profile to check role
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single()
-
-  // Verify post ownership
-  const { data: post } = await supabase.from("posts").select("author_id").eq("id", postId).single()
-
-  if (!post) {
-    throw new Error("Post not found")
-  }
-
-  // Check if user is author or master admin
-  const isAuthor = post.author_id === user.id
-  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
-
-  if (!isAuthor && !isMaster) {
-    throw new Error("Unauthorized")
-  }
-
-  // Delete post (comments will be cascade deleted by DB)
-  const { error } = await supabase.from("posts").delete().eq("id", postId)
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  revalidatePath("/community/posts")
-  revalidatePath(`/community/board`)
-  return { success: true }
-}
-</file>
-
 <file path="lib/actions/user.ts">
 "use server"
 
@@ -17229,76 +17549,6 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
-</file>
-
-<file path="app/admin/users/page.tsx">
-import { requireAdmin } from "@/lib/auth/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import { UserManagementRow } from "@/components/user-management"
-
-export default async function UsersManagementPage() {
-  const { supabase, user, isMaster } = await requireAdmin()
-
-  const { data: users } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
-
-  return (
-    <div className="min-h-screen bg-white p-4 md:p-8 pt-20 md:pt-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <Link href="/admin">
-            <Button variant="ghost">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              대시보드로 돌아가기
-            </Button>
-          </Link>
-        </div>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">회원 관리</h1>
-          <p className="mt-2 text-slate-600">전체 회원 목록 및 상세 정보</p>
-        </div>
-
-        <Card className="border-slate-200">
-          <CardHeader>
-            <CardTitle>회원 목록 ({users?.length || 0}명)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {users && users.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>이름</TableHead>
-                    <TableHead>이메일</TableHead>
-                    <TableHead>포인트</TableHead>
-                    <TableHead>등급</TableHead>
-                    <TableHead>가입일</TableHead>
-                    <TableHead className="text-right">관리</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((member) => (
-                    <UserManagementRow
-                      key={member.id}
-                      user={member}
-                      currentUserId={user.id}
-                      canChangeRole={isMaster}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="py-12 text-center text-slate-500">회원이 없습니다</div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
 </file>
 
 <file path="app/communities/page.tsx">
@@ -17424,109 +17674,6 @@ export default async function CommunitiesPage() {
 }
 </file>
 
-<file path="app/community/free/page.tsx">
-import Link from "next/link"
-
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { PostListItem } from "@/components/ui/post-list-item"
-import { createClient } from "@/lib/supabase/server"
-
-const FREE_BOARD_SLUG = "free-board"
-
-export default async function FreeBoardPage() {
-  const supabase = await createClient()
-
-  const [{ data: posts }, { data: category }, { data: { user } }] = await Promise.all([
-    supabase
-      .from("posts")
-      .select(
-        `
-        id,
-        title,
-        content,
-        created_at,
-        board_categories!inner(name, slug),
-        profiles:author_id(full_name)
-      `,
-      )
-      .eq("board_categories.slug", FREE_BOARD_SLUG)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("board_categories")
-      .select("*")
-      .eq("slug", FREE_BOARD_SLUG)
-      .eq("is_active", true)
-      .single(),
-    supabase.auth.getUser(),
-  ])
-
-  const pageTitle = category?.name || "자유게시판"
-  const pageDescription =
-    category?.description || "자유롭게 의견을 나누고 정보를 공유하는 공간입니다."
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-10 md:px-8">
-        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Community</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{pageTitle}</h1>
-            <p className="mt-2 text-base text-slate-600">{pageDescription}</p>
-          </div>
-          <div className="flex flex-col gap-2 text-sm text-slate-500">
-            <Button asChild size="lg" className="transition-all active:scale-[0.98] hover:shadow-lg">
-              <Link href="/community/free/write">글쓰기</Link>
-            </Button>
-            {!user && (
-              <p className="text-center text-xs text-slate-500">
-                글쓰기는 로그인이 필요합니다.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {posts && posts.length > 0 ? (
-          <div className="space-y-4">
-            {posts.map((post) => {
-              const subtitle = post.content
-                ? `${post.content.replace(/\s+/g, " ").trim().slice(0, 80)}${
-                    post.content.length > 80 ? "…" : ""
-                  }`
-                : undefined
-
-              return (
-                <PostListItem
-                  key={post.id}
-                  post={post}
-                  href={`/community/board/${FREE_BOARD_SLUG}/${post.id}`}
-                  subtitle={subtitle}
-                />
-              )
-            })}
-          </div>
-        ) : (
-          <Card className="border-0 bg-transparent shadow-none">
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>아직 게시글이 없어요</EmptyTitle>
-                <EmptyDescription>첫 번째 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button asChild className="transition-all active:scale-[0.98] hover:shadow-lg">
-                  <Link href="/community/free/write">글쓰기</Link>
-                </Button>
-              </EmptyContent>
-            </Empty>
-          </Card>
-        )}
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="app/community/layout.tsx">
 import type React from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -17537,6 +17684,172 @@ export default function CommunityLayout({
   children: React.ReactNode
 }) {
   return <DashboardLayout>{children}</DashboardLayout>
+}
+</file>
+
+<file path="app/community/posts/[id]/page.tsx">
+import { createClient } from "@/lib/supabase/server"
+import { notFound } from "next/navigation"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Heart, MessageSquare } from "lucide-react"
+import { LikeButton } from "@/components/like-button"
+import { CommentSection } from "@/components/comment-section"
+import { PostActions } from "@/components/post-actions"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { isMasterAdmin } from "@/lib/utils"
+import { UserBadges } from "@/components/user-badges"
+
+export default async function PostDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const supabase = await createClient()
+
+  // 병렬로 데이터 가져오기
+  const [userResult, postResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("posts")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("id", id)
+      .single()
+  ])
+
+  const { data: { user } } = userResult
+  const { data: post } = postResult
+
+  if (!post) {
+    notFound()
+  }
+
+  // 병렬로 나머지 데이터 가져오기
+  const [userLikeResult, commentsResult, profileResult, badgesResult] = await Promise.all([
+    user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase
+      .from("comments")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("post_id", id)
+      .order("created_at", { ascending: true }),
+    user ? supabase.from("profiles").select("role, email").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    post.author_id ? supabase
+      .from("user_badges")
+      .select(`
+        badges:badge_id (
+          icon,
+          name
+        )
+      `)
+      .eq("user_id", post.author_id)
+      .eq("is_visible", true) : Promise.resolve({ data: null })
+  ])
+
+  const userLike = userLikeResult.data
+  const { data: comments } = commentsResult
+  const { data: profile } = profileResult
+
+  // Check if user is author
+  const isAuthor = Boolean(user && post.author_id === user.id)
+
+  // Check if user is master admin
+  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+
+  // 작성자의 노출된 뱃지 가져오기
+  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
+  if (badgesResult.data) {
+    authorVisibleBadges = badgesResult.data
+      .map((ub: any) => ub.badges)
+      .filter(Boolean)
+      .map((badge: any) => ({
+        icon: badge.icon,
+        name: badge.name,
+      }))
+  }
+
+  return (
+    <div className="p-8">
+      <div className="mx-auto max-w-4xl">
+        {/* Post */}
+        <Card className="border-slate-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-medium text-slate-700">
+                  {post.profiles?.full_name?.[0] || "U"}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-slate-900">{post.profiles?.full_name || "Anonymous"}</p>
+                    {authorVisibleBadges.length > 0 && (
+                      <UserBadges badges={authorVisibleBadges} />
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    {new Date(post.created_at).toLocaleDateString("ko-KR", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+              {(isAuthor || isMaster) && (
+                <PostActions postId={post.id} isAuthor={isAuthor} isMaster={isMaster} />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">{post.title}</h1>
+            <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{post.content}</p>
+
+            {/* Actions */}
+            <div className="mt-6 flex items-center gap-4 border-t border-slate-200 pt-4">
+              {user ? (
+                <LikeButton
+                  postId={post.id}
+                  userId={user.id}
+                  initialLiked={userLike !== null}
+                  initialCount={post.likes_count || 0}
+                />
+              ) : (
+                <Link href="/auth/login">
+                  <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                    <Heart className="h-4 w-4" />
+                    <span>{post.likes_count}</span>
+                  </Button>
+                </Link>
+              )}
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <MessageSquare className="h-4 w-4" />
+                <span>{post.comments_count} comments</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Comments Section */}
+        <div className="mt-8">
+          <CommentSection postId={post.id} userId={user?.id} comments={comments || []} />
+        </div>
+      </div>
+    </div>
+  )
 }
 </file>
 
@@ -18141,6 +18454,376 @@ export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: 
 }
 </file>
 
+<file path="components/ui/event-card.tsx">
+"use client"
+
+import Image from "next/image"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
+import { MapPin, User, Users, Calendar, Clock } from "lucide-react"
+
+export type EventCardEvent = {
+  id: string
+  title: string
+  thumbnail_url?: string | null
+  event_date: string
+  event_time?: string | null
+  location?: string | null
+  current_participants?: number | null
+  max_participants?: number | null
+  host_name?: string | null
+  host_avatar_url?: string | null
+  host_bio?: string | null
+}
+
+type Props = {
+  event: EventCardEvent
+  href?: string
+  className?: string
+  layout?: "card" | "poster"
+}
+
+export default function EventCard({ event, href, className, layout = "card" }: Props) {
+  const dateObj = new Date(event.event_date)
+  const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`
+  
+  const timeStr = dateObj.toLocaleTimeString('ko-KR', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })
+
+  const current = event.current_participants || 0
+  const max = event.max_participants || 0
+  const isFull = max > 0 && current >= max
+
+  const content = (
+    <div
+      className={cn(
+        "group relative w-full aspect-[4/5] overflow-hidden rounded-[24px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
+        className
+      )}
+    >
+      {/* 배경 이미지 */}
+      {event.thumbnail_url ? (
+        <Image
+          src={event.thumbnail_url}
+          alt={event.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
+      )}
+
+      {/* 1. 전체적으로 살짝 어둡게 눌러주는 레이어 */}
+      <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:bg-black/30" />
+
+      {/* 2. 상단/하단 진한 그라데이션 */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent via-35% to-black/90" />
+
+      {/* 콘텐츠 레이어 */}
+      <div className="relative h-full flex flex-col justify-between p-6">
+        
+        {/* 상단: 제목 (여백을 pt-6으로 늘려 시원하게 내림) */}
+        <div className="pt-6">
+          <h3 className="text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
+            {event.title}
+          </h3>
+        </div>
+
+        {/* 하단: 정보 영역 */}
+        <div className="flex flex-col gap-1.5 pb-1"> 
+          
+          {/* 1. 프로필 라인 */}
+          <div className="flex items-center gap-2.5 mb-0.5">
+            <div className="relative h-8 w-8 flex-shrink-0 rounded-full border border-white/40 bg-white/10 overflow-hidden shadow-sm">
+              {event.host_avatar_url ? (
+                <Image
+                  src={event.host_avatar_url}
+                  alt={event.host_name || "Host"}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-white drop-shadow-md">
+              <span className="font-bold text-base">{event.host_name || "호스트"}</span>
+              {event.host_bio && (
+                <div className="flex items-center gap-2 opacity-90">
+                  <span className="w-0.5 h-3 bg-white/40 rounded-full"></span>
+                  <span className="truncate max-w-[120px] font-medium text-sm">
+                    {event.host_bio}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 2. 날짜 & 시간 라인 */}
+          <div className="flex items-center gap-3 pl-0.5 text-white/95 drop-shadow-md font-medium h-7">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-white/90" />
+              <span className="text-[15px]">{dateStr}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-white/90" />
+              <span className="text-[15px]">{timeStr}</span>
+            </div>
+          </div>
+
+          {/* 3. 장소 & 인원 라인 */}
+          <div className="flex items-center justify-between pl-0.5 h-7">
+            <div className="flex items-center gap-2 text-white/95 drop-shadow-md truncate max-w-[60%]">
+              <MapPin className="w-4 h-4 flex-shrink-0 text-white/90" />
+              <span className="truncate text-[15px] font-medium">{event.location || "장소 미정"}</span>
+            </div>
+
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg backdrop-blur-md text-[13px] font-bold transition-colors shadow-sm",
+              isFull 
+                ? "bg-red-500/90 border border-red-400/50 text-white" 
+                : "bg-white/15 border border-white/30 text-white hover:bg-white/25"
+            )}>
+              <Users className="w-3.5 h-3.5" />
+              <span>
+                {current}/{max}
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  )
+
+  if (!href) return content
+
+  return (
+    <Link href={href} className="block h-full">
+      {content}
+    </Link>
+  )
+}
+</file>
+
+<file path="components/user-management.tsx">
+"use client"
+
+import { useState } from "react"
+import { Shield, Crown, Medal } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { TableRow, TableCell } from "@/components/ui/table"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { BadgeManager } from "@/components/badge-manager"
+import { updateUserRole, updateUserMembershipTier } from "@/lib/actions/admin"
+
+type UserProfile = {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: string | null
+  membership_tier: string | null
+  points: number | null
+  created_at: string
+}
+
+export function UserManagementRow({
+  user,
+  currentUserId,
+  canChangeRole = false,
+}: {
+  user: UserProfile
+  currentUserId: string
+  canChangeRole?: boolean
+}) {
+  const [role, setRole] = useState(user.role || "member")
+  const [membershipTier, setMembershipTier] = useState(user.membership_tier || "basic")
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [showBadgeManager, setShowBadgeManager] = useState(false)
+
+  const handleRoleChange = async (newRole: string) => {
+    setIsUpdating(true)
+    try {
+      await updateUserRole(user.id, newRole)
+      setRole(newRole)
+    } catch (error) {
+      console.error("Failed to update role:", error)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleMembershipChange = async (newTier: string) => {
+    setIsUpdating(true)
+    try {
+      await updateUserMembershipTier(user.id, newTier)
+      setMembershipTier(newTier)
+    } catch (error) {
+      console.error("Failed to update membership:", error)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const getRoleBadge = () => {
+    if (role === "master") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+          <Crown className="h-3 w-3" />
+          MASTER
+        </span>
+      )
+    }
+    if (role === "admin") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+          <Shield className="h-3 w-3" />
+          관리자
+        </span>
+      )
+    }
+    return <span className="text-sm text-slate-600">일반 회원</span>
+  }
+
+  const getMembershipBadge = () => {
+    const badges = {
+      basic: { color: "bg-slate-100 text-slate-700", label: "Basic" },
+      plus: { color: "bg-blue-100 text-blue-700", label: "Plus" },
+      pro: { color: "bg-purple-100 text-purple-700", label: "Pro" },
+      master: { color: "bg-amber-100 text-amber-700", label: "Master" },
+    }
+
+    const badge = badges[membershipTier as keyof typeof badges] || badges.basic
+
+    return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>{badge.label}</span>
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}. ${month}. ${day}.`
+  }
+
+  const formatPoints = (points: number | null) => {
+    const value = points || 0
+    return value.toLocaleString() + " P"
+  }
+
+  const isCurrentUser = user.id === currentUserId
+
+  return (
+    <>
+      <TableRow>
+        {/* 이름 */}
+        <TableCell className="py-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-slate-200 text-slate-700">
+                {user.full_name?.[0]?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium text-slate-900">{user.full_name || "익명"}</div>
+            </div>
+          </div>
+        </TableCell>
+
+        {/* 이메일 */}
+        <TableCell className="py-4">
+          <div className="text-sm text-slate-600">{user.email || "-"}</div>
+        </TableCell>
+
+        {/* 포인트 */}
+        <TableCell className="py-4">
+          <div className="font-medium text-slate-900">{formatPoints(user.points)}</div>
+        </TableCell>
+
+        {/* 등급 */}
+        <TableCell className="py-4">
+          <div className="flex flex-col gap-1">
+            {getRoleBadge()}
+            {getMembershipBadge()}
+          </div>
+        </TableCell>
+
+        {/* 가입일 */}
+        <TableCell className="py-4">
+          <div className="text-sm text-slate-600">{formatDate(user.created_at)}</div>
+        </TableCell>
+
+        {/* 관리 */}
+        <TableCell className="text-right py-4">
+          {!isCurrentUser ? (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBadgeManager(true)}
+                className="gap-2"
+              >
+                <Medal className="h-4 w-4" />
+                뱃지 관리
+              </Button>
+
+              {canChangeRole && (
+                <Select value={role} onValueChange={handleRoleChange} disabled={isUpdating}>
+                  <SelectTrigger className="w-32 h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="member">일반 회원</SelectItem>
+                    <SelectItem value="admin">관리자</SelectItem>
+                    <SelectItem value="master">MASTER</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Select value={membershipTier} onValueChange={handleMembershipChange} disabled={isUpdating}>
+                <SelectTrigger className="w-28 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="plus">Plus</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="master">Master</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <span className="text-sm text-slate-400">본인</span>
+          )}
+        </TableCell>
+      </TableRow>
+
+      {/* 뱃지 관리 모달 */}
+      <Dialog open={showBadgeManager} onOpenChange={setShowBadgeManager}>
+        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Medal className="h-5 w-5" />
+              뱃지 관리 및 등록
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-6 max-h-[80vh] overflow-y-auto">
+            <BadgeManager userId={user.id} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+</file>
+
 <file path="lib/supabase/client.ts">
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -18296,172 +18979,6 @@ export default async function AdminDashboard() {
       currentUserId={user.id}
       isMaster={isMaster}
     />
-  )
-}
-</file>
-
-<file path="app/community/posts/[id]/page.tsx">
-import { createClient } from "@/lib/supabase/server"
-import { notFound } from "next/navigation"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Heart, MessageSquare } from "lucide-react"
-import { LikeButton } from "@/components/like-button"
-import { CommentSection } from "@/components/comment-section"
-import { PostActions } from "@/components/post-actions"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { isMasterAdmin } from "@/lib/utils"
-import { UserBadges } from "@/components/user-badges"
-
-export default async function PostDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
-  const supabase = await createClient()
-
-  // 병렬로 데이터 가져오기
-  const [userResult, postResult] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("posts")
-      .select(`
-        *,
-        profiles:author_id (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq("id", id)
-      .single()
-  ])
-
-  const { data: { user } } = userResult
-  const { data: post } = postResult
-
-  if (!post) {
-    notFound()
-  }
-
-  // 병렬로 나머지 데이터 가져오기
-  const [userLikeResult, commentsResult, profileResult, badgesResult] = await Promise.all([
-    user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
-    supabase
-      .from("comments")
-      .select(`
-        *,
-        profiles:author_id (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq("post_id", id)
-      .order("created_at", { ascending: true }),
-    user ? supabase.from("profiles").select("role, email").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
-    post.author_id ? supabase
-      .from("user_badges")
-      .select(`
-        badges:badge_id (
-          icon,
-          name
-        )
-      `)
-      .eq("user_id", post.author_id)
-      .eq("is_visible", true) : Promise.resolve({ data: null })
-  ])
-
-  const userLike = userLikeResult.data
-  const { data: comments } = commentsResult
-  const { data: profile } = profileResult
-
-  // Check if user is author
-  const isAuthor = Boolean(user && post.author_id === user.id)
-
-  // Check if user is master admin
-  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
-
-  // 작성자의 노출된 뱃지 가져오기
-  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
-  if (badgesResult.data) {
-    authorVisibleBadges = badgesResult.data
-      .map((ub: any) => ub.badges)
-      .filter(Boolean)
-      .map((badge: any) => ({
-        icon: badge.icon,
-        name: badge.name,
-      }))
-  }
-
-  return (
-    <div className="p-8">
-      <div className="mx-auto max-w-4xl">
-        {/* Post */}
-        <Card className="border-slate-200">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-medium text-slate-700">
-                  {post.profiles?.full_name?.[0] || "U"}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-slate-900">{post.profiles?.full_name || "Anonymous"}</p>
-                    {authorVisibleBadges.length > 0 && (
-                      <UserBadges badges={authorVisibleBadges} />
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">
-                    {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-              {(isAuthor || isMaster) && (
-                <PostActions postId={post.id} isAuthor={isAuthor} isMaster={isMaster} />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">{post.title}</h1>
-            <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{post.content}</p>
-
-            {/* Actions */}
-            <div className="mt-6 flex items-center gap-4 border-t border-slate-200 pt-4">
-              {user ? (
-                <LikeButton
-                  postId={post.id}
-                  userId={user.id}
-                  initialLiked={userLike !== null}
-                  initialCount={post.likes_count || 0}
-                />
-              ) : (
-                <Link href="/auth/login">
-                  <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes_count}</span>
-                  </Button>
-                </Link>
-              )}
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <MessageSquare className="h-4 w-4" />
-                <span>{post.comments_count} comments</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Comments Section */}
-        <div className="mt-8">
-          <CommentSection postId={post.id} userId={user?.id} comments={comments || []} />
-        </div>
-      </div>
-    </div>
   )
 }
 </file>
@@ -19098,372 +19615,50 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
 }
 </file>
 
-<file path="components/ui/event-card.tsx">
-"use client"
+<file path="lib/supabase/server.ts">
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
-import Image from "next/image"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { MapPin, User, Users, Calendar, Clock } from "lucide-react"
+export async function createClient() {
+  const cookieStore = await cookies()
 
-export type EventCardEvent = {
-  id: string
-  title: string
-  thumbnail_url?: string | null
-  event_date: string
-  event_time?: string | null
-  location?: string | null
-  current_participants?: number | null
-  max_participants?: number | null
-  host_name?: string | null
-  host_avatar_url?: string | null
-  host_bio?: string | null
-}
-
-type Props = {
-  event: EventCardEvent
-  href?: string
-  className?: string
-  layout?: "card" | "poster"
-}
-
-export default function EventCard({ event, href, className, layout = "card" }: Props) {
-  const dateObj = new Date(event.event_date)
-  const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`
+  // 디버깅: 쿠키 확인
+  const allCookies = cookieStore.getAll()
+  const authCookies = allCookies.filter(c => 
+    c.name.includes('auth') || 
+    c.name.includes('access') || 
+    c.name.includes('refresh') ||
+    c.name.includes('supabase')
+  )
   
-  const timeStr = dateObj.toLocaleTimeString('ko-KR', { 
-    hour: 'numeric', 
-    minute: '2-digit', 
-    hour12: true 
-  })
+  if (authCookies.length > 0) {
+    console.log("[createClient] Found auth cookies:", authCookies.map(c => c.name))
+  } else {
+    console.log("[createClient] No auth cookies found. Total cookies:", allCookies.length)
+  }
 
-  const current = event.current_participants || 0
-  const max = event.max_participants || 0
-  const isFull = max > 0 && current >= max
-
-  const content = (
-    <div
-      className={cn(
-        "group relative w-full aspect-[4/5] overflow-hidden rounded-[24px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
-        className
-      )}
-    >
-      {/* 배경 이미지 */}
-      {event.thumbnail_url ? (
-        <Image
-          src={event.thumbnail_url}
-          alt={event.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
-      )}
-
-      {/* 1. 전체적으로 살짝 어둡게 눌러주는 레이어 */}
-      <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:bg-black/30" />
-
-      {/* 2. 상단/하단 진한 그라데이션 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent via-35% to-black/90" />
-
-      {/* 콘텐츠 레이어 */}
-      <div className="relative h-full flex flex-col justify-between p-6">
-        
-        {/* 상단: 제목 (여백을 pt-6으로 늘려 시원하게 내림) */}
-        <div className="pt-6">
-          <h3 className="text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
-            {event.title}
-          </h3>
-        </div>
-
-        {/* 하단: 정보 영역 */}
-        <div className="flex flex-col gap-1.5 pb-1"> 
-          
-          {/* 1. 프로필 라인 */}
-          <div className="flex items-center gap-2.5 mb-0.5">
-            <div className="relative h-8 w-8 flex-shrink-0 rounded-full border border-white/40 bg-white/10 overflow-hidden shadow-sm">
-              {event.host_avatar_url ? (
-                <Image
-                  src={event.host_avatar_url}
-                  alt={event.host_name || "Host"}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-white drop-shadow-md">
-              <span className="font-bold text-base">{event.host_name || "호스트"}</span>
-              {event.host_bio && (
-                <div className="flex items-center gap-2 opacity-90">
-                  <span className="w-0.5 h-3 bg-white/40 rounded-full"></span>
-                  <span className="truncate max-w-[120px] font-medium text-sm">
-                    {event.host_bio}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 2. 날짜 & 시간 라인 */}
-          <div className="flex items-center gap-3 pl-0.5 text-white/95 drop-shadow-md font-medium h-7">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-white/90" />
-              <span className="text-[15px]">{dateStr}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-white/90" />
-              <span className="text-[15px]">{timeStr}</span>
-            </div>
-          </div>
-
-          {/* 3. 장소 & 인원 라인 */}
-          <div className="flex items-center justify-between pl-0.5 h-7">
-            <div className="flex items-center gap-2 text-white/95 drop-shadow-md truncate max-w-[60%]">
-              <MapPin className="w-4 h-4 flex-shrink-0 text-white/90" />
-              <span className="truncate text-[15px] font-medium">{event.location || "장소 미정"}</span>
-            </div>
-
-            <div className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg backdrop-blur-md text-[13px] font-bold transition-colors shadow-sm",
-              isFull 
-                ? "bg-red-500/90 border border-red-400/50 text-white" 
-                : "bg-white/15 border border-white/30 text-white hover:bg-white/25"
-            )}>
-              <Users className="w-3.5 h-3.5" />
-              <span>
-                {current}/{max}
-              </span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  )
-
-  if (!href) return content
-
-  return (
-    <Link href={href} className="block h-full">
-      {content}
-    </Link>
-  )
-}
-</file>
-
-<file path="components/user-management.tsx">
-"use client"
-
-import { useState } from "react"
-import { Shield, Crown, Medal } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { TableRow, TableCell } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { BadgeManager } from "@/components/badge-manager"
-import { updateUserRole, updateUserMembershipTier } from "@/lib/actions/admin"
-
-type UserProfile = {
-  id: string
-  full_name: string | null
-  email: string | null
-  role: string | null
-  membership_tier: string | null
-  points: number | null
-  created_at: string
-}
-
-export function UserManagementRow({
-  user,
-  currentUserId,
-  canChangeRole = false,
-}: {
-  user: UserProfile
-  currentUserId: string
-  canChangeRole?: boolean
-}) {
-  const [role, setRole] = useState(user.role || "member")
-  const [membershipTier, setMembershipTier] = useState(user.membership_tier || "basic")
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [showBadgeManager, setShowBadgeManager] = useState(false)
-
-  const handleRoleChange = async (newRole: string) => {
-    setIsUpdating(true)
-    try {
-      await updateUserRole(user.id, newRole)
-      setRole(newRole)
-    } catch (error) {
-      console.error("Failed to update role:", error)
-    } finally {
-      setIsUpdating(false)
+  // @supabase/ssr의 createServerClient를 사용하여 쿠키 자동 처리
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch (error) {
+            // 서버 컴포넌트에서는 쿠키를 설정할 수 없으므로 무시
+            // 클라이언트 컴포넌트나 Route Handler에서만 설정 가능
+            console.error("[createClient] Error setting cookies in server component:", error)
+          }
+        },
+      },
     }
-  }
-
-  const handleMembershipChange = async (newTier: string) => {
-    setIsUpdating(true)
-    try {
-      await updateUserMembershipTier(user.id, newTier)
-      setMembershipTier(newTier)
-    } catch (error) {
-      console.error("Failed to update membership:", error)
-    } finally {
-      setIsUpdating(false)
-    }
-  }
-
-  const getRoleBadge = () => {
-    if (role === "master") {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-          <Crown className="h-3 w-3" />
-          MASTER
-        </span>
-      )
-    }
-    if (role === "admin") {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-          <Shield className="h-3 w-3" />
-          관리자
-        </span>
-      )
-    }
-    return <span className="text-sm text-slate-600">일반 회원</span>
-  }
-
-  const getMembershipBadge = () => {
-    const badges = {
-      basic: { color: "bg-slate-100 text-slate-700", label: "Basic" },
-      plus: { color: "bg-blue-100 text-blue-700", label: "Plus" },
-      pro: { color: "bg-purple-100 text-purple-700", label: "Pro" },
-      master: { color: "bg-amber-100 text-amber-700", label: "Master" },
-    }
-
-    const badge = badges[membershipTier as keyof typeof badges] || badges.basic
-
-    return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>{badge.label}</span>
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    return `${year}. ${month}. ${day}.`
-  }
-
-  const formatPoints = (points: number | null) => {
-    const value = points || 0
-    return value.toLocaleString() + " P"
-  }
-
-  const isCurrentUser = user.id === currentUserId
-
-  return (
-    <>
-      <TableRow>
-        {/* 이름 */}
-        <TableCell className="py-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-slate-200 text-slate-700">
-                {user.full_name?.[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium text-slate-900">{user.full_name || "익명"}</div>
-            </div>
-          </div>
-        </TableCell>
-
-        {/* 이메일 */}
-        <TableCell className="py-4">
-          <div className="text-sm text-slate-600">{user.email || "-"}</div>
-        </TableCell>
-
-        {/* 포인트 */}
-        <TableCell className="py-4">
-          <div className="font-medium text-slate-900">{formatPoints(user.points)}</div>
-        </TableCell>
-
-        {/* 등급 */}
-        <TableCell className="py-4">
-          <div className="flex flex-col gap-1">
-            {getRoleBadge()}
-            {getMembershipBadge()}
-          </div>
-        </TableCell>
-
-        {/* 가입일 */}
-        <TableCell className="py-4">
-          <div className="text-sm text-slate-600">{formatDate(user.created_at)}</div>
-        </TableCell>
-
-        {/* 관리 */}
-        <TableCell className="text-right py-4">
-          {!isCurrentUser ? (
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowBadgeManager(true)}
-                className="gap-2"
-              >
-                <Medal className="h-4 w-4" />
-                뱃지 관리
-              </Button>
-
-              {canChangeRole && (
-                <Select value={role} onValueChange={handleRoleChange} disabled={isUpdating}>
-                  <SelectTrigger className="w-32 h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">일반 회원</SelectItem>
-                    <SelectItem value="admin">관리자</SelectItem>
-                    <SelectItem value="master">MASTER</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-
-              <Select value={membershipTier} onValueChange={handleMembershipChange} disabled={isUpdating}>
-                <SelectTrigger className="w-28 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="plus">Plus</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="master">Master</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <span className="text-sm text-slate-400">본인</span>
-          )}
-        </TableCell>
-      </TableRow>
-
-      {/* 뱃지 관리 모달 */}
-      <Dialog open={showBadgeManager} onOpenChange={setShowBadgeManager}>
-        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Medal className="h-5 w-5" />
-              뱃지 관리 및 등록
-            </DialogTitle>
-          </DialogHeader>
-          <div className="mt-6 max-h-[80vh] overflow-y-auto">
-            <BadgeManager userId={user.id} />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
   )
 }
 </file>
@@ -19745,578 +19940,6 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
 }
 </file>
 
-<file path="components/home/posts-section.tsx">
-"use client"
-
-import { useState, useMemo } from "react"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { PostListItem } from "@/components/ui/post-list-item"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { LayoutGrid, List } from "lucide-react"
-import Link from "next/link"
-
-type Post = {
-  id: string
-  title: string
-  content?: string | null
-  created_at: string
-  visibility?: "public" | "group"
-  likes_count?: number
-  comments_count?: number
-  board_categories?: {
-    name?: string | null
-    slug?: string | null
-  } | null
-  profiles?: {
-    full_name?: string | null
-  } | null
-  communities?: {
-    name?: string | null
-  } | null
-  isMember?: boolean
-}
-
-type BoardCategory = {
-  id: string
-  name: string
-  slug: string
-}
-
-interface PostsSectionProps {
-  posts: Post[]
-  boardCategories: BoardCategory[]
-  selectedBoard?: string
-  onBoardChange?: (slug: string) => void
-  isLoading?: boolean
-  hideTabs?: boolean // 카테고리 필터 탭 숨기기 (개별 게시판용)
-}
-
-export function PostsSection({ 
-  posts, 
-  boardCategories,
-  selectedBoard = "all",
-  onBoardChange,
-  isLoading = false,
-  hideTabs = false
-}: PostsSectionProps) {
-  
-  const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
-  const [viewMode, setViewMode] = useState<"feed" | "list">("feed")
-  const currentBoard = onBoardChange ? selectedBoard : internalSelectedBoard
-  const handleBoardChange = onBoardChange 
-    ? onBoardChange 
-    : (val: string) => setInternalSelectedBoard(val || "all")
-
-  const filteredPosts = useMemo(() => {
-    // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
-    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
-    const baseFiltered = posts.filter((post) => {
-      const postSlug = post.board_categories?.slug
-      return !postSlug || !excludedSlugs.includes(postSlug)
-    })
-
-    if (currentBoard === "all") {
-      return baseFiltered
-    }
-    return baseFiltered.filter(
-      (post) => post.board_categories?.slug === currentBoard
-    )
-  }, [posts, currentBoard])
-
-  // 중복 카테고리 제거 및 공지사항/자유게시판 제외 (slug 기준)
-  const uniqueCategories = useMemo(() => {
-    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
-    const unique = new Map();
-    boardCategories.forEach(cat => {
-      // 공지사항과 자유게시판 제외
-      if (!excludedSlugs.includes(cat.slug) && !unique.has(cat.slug)) {
-        unique.set(cat.slug, cat);
-      }
-    });
-    return Array.from(unique.values());
-  }, [boardCategories]);
-
-  return (
-    <div className="w-full space-y-6">
-      
-      {/* 헤더: 제목 + 뷰 모드 토글 */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">최신 글</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant={viewMode === "feed" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("feed")}
-            className="h-9 px-3"
-          >
-            <LayoutGrid className="h-4 w-4 mr-1.5" />
-            피드형
-          </Button>
-          <Button
-            type="button"
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-            className="h-9 px-3"
-          >
-            <List className="h-4 w-4 mr-1.5" />
-            리스트형
-          </Button>
-        </div>
-      </div>
-
-      {/* 카테고리 필터 (hideTabs가 false일 때만 표시) */}
-      {!hideTabs && (
-        <div className="overflow-x-auto pb-2 scrollbar-hide">
-          <ToggleGroup
-            type="single"
-            value={currentBoard}
-            onValueChange={handleBoardChange}
-            // ★ 컨테이너 스타일: 연한 회색 배경, 둥근 모서리, 내부 패딩
-            className="inline-flex items-center p-1.5 rounded-2xl bg-slate-100/80 w-auto"
-          >
-            <ToggleGroupItem 
-              value="all" 
-              aria-label="전체" 
-              // ★ 아이템 스타일: 선택 시 흰색 배경 + 그림자 + 파란 텍스트 / 비선택 시 회색 텍스트
-              className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
-            >
-              전체
-            </ToggleGroupItem>
-            
-            {uniqueCategories.map((category) => (
-              <ToggleGroupItem
-                key={category.id}
-                value={category.slug}
-                aria-label={category.name}
-                className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
-              >
-                {category.name}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-      )}
-
-      {/* Posts List */}
-      <div className="space-y-3">
-        {isLoading ? (
-          [1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="w-full h-24 rounded-xl border border-gray-200 bg-white p-4">
-              <Skeleton className="h-6 w-3/4 mb-3" />
-              <div className="flex gap-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-            </div>
-          ))
-        ) : filteredPosts.length > 0 ? (
-          filteredPosts.map((post) => {
-            const boardSlug = post.board_categories?.slug || "free-board"
-            return (
-              <PostListItem
-                key={post.id}
-                post={post}
-                href={`/community/board/${boardSlug}/${post.id}`}
-                isMember={post.isMember ?? true}
-                viewMode={viewMode}
-              />
-            )
-          })
-        ) : (
-          <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-12">
-            <Empty className="bg-transparent">
-              <EmptyHeader>
-                <EmptyTitle>게시글이 없습니다</EmptyTitle>
-                <EmptyDescription>첫 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button asChild variant="outline" className="rounded-xl">
-                  <Link href="/community/posts/new">글 작성하기</Link>
-                </Button>
-              </EmptyContent>
-            </Empty>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-</file>
-
-<file path="lib/supabase/server.ts">
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
-
-export async function createClient() {
-  const cookieStore = await cookies()
-
-  // 디버깅: 쿠키 확인
-  const allCookies = cookieStore.getAll()
-  const authCookies = allCookies.filter(c => 
-    c.name.includes('auth') || 
-    c.name.includes('access') || 
-    c.name.includes('refresh') ||
-    c.name.includes('supabase')
-  )
-  
-  if (authCookies.length > 0) {
-    console.log("[createClient] Found auth cookies:", authCookies.map(c => c.name))
-  } else {
-    console.log("[createClient] No auth cookies found. Total cookies:", allCookies.length)
-  }
-
-  // @supabase/ssr의 createServerClient를 사용하여 쿠키 자동 처리
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          } catch (error) {
-            // 서버 컴포넌트에서는 쿠키를 설정할 수 없으므로 무시
-            // 클라이언트 컴포넌트나 Route Handler에서만 설정 가능
-            console.error("[createClient] Error setting cookies in server component:", error)
-          }
-        },
-      },
-    }
-  )
-}
-</file>
-
-<file path="app/community/board/[slug]/[id]/page.tsx">
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageSquare, Bookmark, Share2, ArrowLeft } from 'lucide-react';
-import { LikeButton } from "@/components/like-button";
-import { CommentSection } from "@/components/comment-section";
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { UserBadges } from "@/components/user-badges";
-import type { Metadata } from "next";
-
-// 전체 공개 게시판 slug 목록
-const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
-
-// 동적 metadata 생성
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string; id: string }>;
-}): Promise<Metadata> {
-  const { slug, id } = await params;
-  const supabase = await createClient();
-  
-  const categorySlug = slug === "announcements" ? "announcement" : slug;
-  
-  const { data: post } = await supabase
-    .from("posts")
-    .select(`
-      title,
-      content,
-      created_at,
-      profiles:author_id (
-        full_name
-      )
-    `)
-    .eq("id", id)
-    .eq("category", categorySlug)
-    .single();
-
-  if (!post) {
-    return {
-      title: "게시글을 찾을 수 없습니다",
-    };
-  }
-
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  const cleanContent = post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "";
-  const title = `${post.title} | Seoul Founders Club`;
-  const description = cleanContent || `${post.title} - Seoul Founders Club 게시글`;
-  const authorName = (post.profiles as any)?.full_name || "익명";
-
-  return {
-    title,
-    description,
-    openGraph: isPublic ? {
-      title,
-      description,
-      url: `${siteUrl}/community/board/${slug}/${id}`,
-      siteName: "Seoul Founders Club",
-      type: "article",
-      publishedTime: post.created_at,
-      authors: authorName !== "익명" ? [authorName] : undefined,
-    } : undefined,
-    twitter: isPublic ? {
-      card: "summary_large_image",
-      title,
-      description,
-    } : undefined,
-    robots: isPublic ? {
-      index: true,
-      follow: true,
-    } : {
-      index: false,
-      follow: false,
-    },
-  };
-}
-
-export default async function BoardPostDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string; id: string }>;
-}) {
-  const { slug, id } = await params;
-  const supabase = await createClient();
-
-  const categorySlug = slug === "announcements" ? "announcement" : slug;
-
-  // 병렬로 초기 데이터 가져오기
-  const [categoryResult, userResult, postResult] = await Promise.all([
-    slug !== "announcements" ? supabase
-      .from("board_categories")
-      .select("*")
-      .eq("slug", slug)
-      .eq("is_active", true)
-      .single() : Promise.resolve({ data: null }),
-    supabase.auth.getUser(),
-    supabase
-      .from("posts")
-      .select(`
-        *,
-        profiles:author_id (
-          id,
-          full_name,
-          avatar_url
-        ),
-        board_categories:board_category_id (
-          name,
-          slug
-        )
-      `)
-      .eq("id", id)
-      .single()
-  ]);
-
-  const { data: category } = categoryResult;
-  const { data: { user } } = userResult;
-  const { data: post } = postResult;
-
-  if (!category && slug !== "announcements") {
-    notFound();
-  }
-
-  if (!post) {
-    notFound();
-  }
-
-  // 병렬로 나머지 데이터 가져오기
-  const [userLikeResult, commentsResult, badgesResult] = await Promise.all([
-    user ? supabase
-      .from("post_likes")
-      .select("id")
-      .eq("post_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle() : Promise.resolve({ data: null }),
-    supabase
-      .from("comments")
-      .select(`
-        *,
-        profiles:author_id (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq("post_id", id)
-      .order("created_at", { ascending: true }),
-    post.author_id ? supabase
-      .from("user_badges")
-      .select(`
-        badges:badge_id (
-          icon,
-          name
-        )
-      `)
-      .eq("user_id", post.author_id)
-      .eq("is_visible", true) : Promise.resolve({ data: null })
-  ]);
-
-  const userLike = userLikeResult.data;
-  const { data: comments } = commentsResult;
-
-  // 작성자의 노출된 뱃지 가져오기
-  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
-  if (badgesResult.data) {
-    authorVisibleBadges = badgesResult.data
-      .map((ub: any) => ub.badges)
-      .filter(Boolean)
-      .map((badge: any) => ({
-        icon: badge.icon,
-        name: badge.name,
-      }))
-  }
-
-  // 구조화된 데이터 (JSON-LD) - 전체 공개 게시판만
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  
-  const structuredData = isPublic ? {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": post.title,
-    "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
-    "url": `${siteUrl}/community/board/${slug}/${id}`,
-    "author": {
-      "@type": "Person",
-      "name": post.profiles?.full_name || "익명"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Seoul Founders Club",
-      "url": siteUrl
-    },
-    "datePublished": post.created_at,
-    "dateModified": post.updated_at || post.created_at,
-  } : null;
-
-  // 게시판 이름 결정 (board_categories에서 가져오거나 fallback)
-  const boardName = (post as any)?.board_categories?.name || category?.name || (slug === "announcements" ? "공지사항" : "게시판")
-
-  return (
-    <>
-      {structuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-      )}
-      <div className="min-h-screen bg-white">
-        {/* 헤더: 뒤로가기 + 게시판 이름 + 공유 버튼 */}
-        <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
-          <div className="mx-auto max-w-4xl">
-            <div className="flex items-center px-4 md:px-6 py-3">
-              <Link href={`/community/board/${slug}`}>
-                <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2">
-                  <ArrowLeft className="h-5 w-5 text-slate-700" />
-                </Button>
-              </Link>
-              <span className="ml-2 text-sm font-medium text-slate-700">
-                {boardName}
-              </span>
-              <div className="ml-auto flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <Share2 className="h-5 w-5 text-slate-600" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 본문: 통합된 카드 */}
-        <div className="mx-auto max-w-4xl px-4 md:px-6 py-6 md:py-8">
-          <Card className="border border-slate-200 rounded-xl shadow-sm">
-            <CardContent className="p-6 md:p-8">
-              {/* 커뮤니티 이름 뱃지 */}
-              <div className="mb-4">
-                <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
-                  {boardName}
-                </span>
-              </div>
-
-              {/* 작성자 정보 */}
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-sm font-semibold text-white flex-shrink-0">
-                  {post.profiles?.full_name?.[0] || "U"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-slate-900 truncate text-sm">
-                      {post.profiles?.full_name || "익명"}
-                    </p>
-                    {authorVisibleBadges.length > 0 && (
-                      <UserBadges badges={authorVisibleBadges} />
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              </div>
-
-              {/* 제목 */}
-              <h1 className="mb-4 text-2xl md:text-4xl font-bold text-slate-900 leading-snug">
-                {post.title}
-              </h1>
-
-              {/* 본문 내용 */}
-              <div 
-                className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-6"
-                dangerouslySetInnerHTML={{ __html: post.content || "" }}
-              />
-
-              {/* 좋아요/댓글 버튼 */}
-              <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
-                {user && (
-                  <LikeButton
-                    postId={post.id}
-                    userId={user.id}
-                    initialLiked={!!userLike}
-                    initialCount={post.likes_count || 0}
-                  />
-                )}
-                {!user && (
-                  <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes_count || 0}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{post.comments_count || 0}</span>
-                </div>
-              </div>
-
-              {/* 댓글 섹션 (구분선으로 자연스럽게 연결) */}
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <h2 className="mb-4 text-lg font-bold text-slate-900">
-                  댓글
-                </h2>
-                <CommentSection
-                  postId={post.id}
-                  userId={user?.id}
-                  comments={comments || []}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </>
-  );
-}
-</file>
-
 <file path="app/layout.tsx">
 import type React from "react"
 import type { Metadata } from "next"
@@ -20410,6 +20033,212 @@ export default function RootLayout({
 }
 </file>
 
+<file path="components/home/posts-section.tsx">
+"use client"
+
+import { useState, useMemo } from "react"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { PostListItem } from "@/components/ui/post-list-item"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { LayoutGrid, List } from "lucide-react"
+import Link from "next/link"
+
+type Post = {
+  id: string
+  title: string
+  content?: string | null
+  created_at: string
+  visibility?: "public" | "group"
+  likes_count?: number
+  comments_count?: number
+  board_categories?: {
+    name?: string | null
+    slug?: string | null
+  } | null
+  profiles?: {
+    full_name?: string | null
+  } | null
+  communities?: {
+    name?: string | null
+  } | null
+  isMember?: boolean
+}
+
+type BoardCategory = {
+  id: string
+  name: string
+  slug: string
+}
+
+interface PostsSectionProps {
+  posts: Post[]
+  boardCategories: BoardCategory[]
+  selectedBoard?: string
+  onBoardChange?: (slug: string) => void
+  isLoading?: boolean
+  hideTabs?: boolean // 카테고리 필터 탭 숨기기 (개별 게시판용)
+}
+
+export function PostsSection({ 
+  posts, 
+  boardCategories,
+  selectedBoard = "all",
+  onBoardChange,
+  isLoading = false,
+  hideTabs = false
+}: PostsSectionProps) {
+  
+  const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
+  const [viewMode, setViewMode] = useState<"feed" | "list">("feed")
+  const currentBoard = onBoardChange ? selectedBoard : internalSelectedBoard
+  const handleBoardChange = onBoardChange 
+    ? onBoardChange 
+    : (val: string) => setInternalSelectedBoard(val || "all")
+
+  const filteredPosts = useMemo(() => {
+    // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
+    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+    const baseFiltered = posts.filter((post) => {
+      const postSlug = post.board_categories?.slug
+      return !postSlug || !excludedSlugs.includes(postSlug)
+    })
+
+    if (currentBoard === "all") {
+      return baseFiltered
+    }
+    return baseFiltered.filter(
+      (post) => post.board_categories?.slug === currentBoard
+    )
+  }, [posts, currentBoard])
+
+  // 중복 카테고리 제거 및 공지사항/자유게시판 제외 (slug 기준)
+  const uniqueCategories = useMemo(() => {
+    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+    const unique = new Map();
+    boardCategories.forEach(cat => {
+      // 공지사항과 자유게시판 제외
+      if (!excludedSlugs.includes(cat.slug) && !unique.has(cat.slug)) {
+        unique.set(cat.slug, cat);
+      }
+    });
+    return Array.from(unique.values());
+  }, [boardCategories]);
+
+  return (
+    <div className="w-full space-y-4 bg-transparent">
+      
+      {/* 우측 상단: 뷰 모드 토글 (작고 세련되게) */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg p-1">
+          <Button
+            type="button"
+            variant={viewMode === "feed" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("feed")}
+            className="h-8 px-3 text-xs"
+          >
+            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
+            피드형
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="h-8 px-3 text-xs"
+          >
+            <List className="h-3.5 w-3.5 mr-1.5" />
+            리스트형
+          </Button>
+        </div>
+      </div>
+
+      {/* 카테고리 필터 (hideTabs가 false일 때만 표시) */}
+      {!hideTabs && (
+        <div className="overflow-x-auto pb-2 scrollbar-hide">
+          <ToggleGroup
+            type="single"
+            value={currentBoard}
+            onValueChange={handleBoardChange}
+            // ★ 컨테이너 스타일: 연한 회색 배경, 둥근 모서리, 내부 패딩
+            className="inline-flex items-center p-1.5 rounded-2xl bg-slate-100/80 w-auto"
+          >
+            <ToggleGroupItem 
+              value="all" 
+              aria-label="전체" 
+              // ★ 아이템 스타일: 선택 시 흰색 배경 + 그림자 + 파란 텍스트 / 비선택 시 회색 텍스트
+              className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+            >
+              전체
+            </ToggleGroupItem>
+            
+            {uniqueCategories.map((category) => (
+              <ToggleGroupItem
+                key={category.id}
+                value={category.slug}
+                aria-label={category.name}
+                className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+              >
+                {category.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+      )}
+
+      {/* Posts List */}
+      <div className="space-y-3">
+        {isLoading ? (
+          [1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="w-full h-24 rounded-xl border border-gray-200 bg-white p-4">
+              <Skeleton className="h-6 w-3/4 mb-3" />
+              <div className="flex gap-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+          ))
+        ) : filteredPosts.length > 0 ? (
+          filteredPosts.map((post) => {
+            const boardSlug = post.board_categories?.slug || "free-board"
+            return (
+              <PostListItem
+                key={post.id}
+                post={post}
+                href={`/community/board/${boardSlug}/${post.id}`}
+                isMember={post.isMember ?? true}
+                viewMode={viewMode}
+              />
+            )
+          })
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-16">
+            <Empty className="bg-transparent">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <svg className="h-16 w-16 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </EmptyMedia>
+                <EmptyTitle className="text-xl font-semibold text-slate-900">아직 조용하네요 🍃</EmptyTitle>
+                <EmptyDescription className="text-slate-500">가장 먼저 대화를 시작해보세요!</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button asChild className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6">
+                  <Link href="/community/posts/new">글 작성하기</Link>
+                </Button>
+              </EmptyContent>
+            </Empty>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="components/new-event-form.tsx">
 "use client"
 
@@ -20423,6 +20252,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock } from "lucide-react"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
+import { createEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
 
 export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess?: () => void }) {
   const [title, setTitle] = useState("")
@@ -20546,11 +20376,10 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentUserId) return alert("로그인이 필요합니다.")
     if (!title) return alert("이벤트 이름을 입력해주세요.")
 
-    const supabase = createClient()
     setIsLoading(true)
+    setError(null)
 
     try {
       const startDateTime = new Date(`${startDate}T${startTime}`)
@@ -20561,29 +20390,27 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
         throw new Error("최대 인원은 유효한 숫자여야 합니다.")
       }
 
-      const insertData: any = {
+      // ★ 보안: 서버 액션 사용 (created_by는 서버에서 세션 기반으로 자동 설정됨)
+      const result = await createEvent({
         title,
         description, // Rich Text Content
         event_date: startDateTime.toISOString(),
-        location,
+        end_date: endDateTime ? endDateTime.toISOString() : null,
+        location: location || null,
         max_participants: maxParticipantsValue,
-        thumbnail_url: thumbnailUrl,
-        created_by: currentUserId,
+        thumbnail_url: thumbnailUrl || null,
+        // ★ 보안: created_by는 전달하지 않음 (서버에서 세션 기반으로 자동 설정)
+      })
+
+      if (!result.success) {
+        throw new Error("이벤트 생성에 실패했습니다.")
       }
 
-      // end_date가 있으면 추가
-      if (endDateTime) {
-        insertData.end_date = endDateTime.toISOString()
-      }
-
-      const { error } = await supabase.from("events").insert(insertData)
-
-      if (error) throw error
       if (onSuccess) onSuccess()
       else router.push("/events")
       router.refresh()
     } catch (error: any) {
-      setError(error.message)
+      setError(error.message || "이벤트 생성에 실패했습니다.")
     } finally {
       setIsLoading(false)
     }
@@ -20822,172 +20649,6 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
 }
 </file>
 
-<file path="components/ui/post-list-item.tsx">
-import Link from "next/link"
-import type { FC } from "react"
-import { Heart, MessageSquare, Lock } from "lucide-react"
-
-import { cn } from "@/lib/utils"
-import { formatRelativeTime } from "@/lib/format-time"
-
-type Badge = {
-  icon: string
-  name: string
-}
-
-type Post = {
-  id: string
-  title: string
-  content?: string | null
-  created_at: string
-  visibility?: "public" | "group"
-  likes_count?: number
-  comments_count?: number
-  board_categories?: {
-    name?: string | null
-    slug?: string | null
-  } | null
-  profiles?: {
-    full_name?: string | null
-    id?: string
-  } | null
-  visible_badges?: Badge[]
-  communities?: {
-    name?: string | null
-  } | null
-}
-
-type PostListItemProps = {
-  post: Post
-  href: string
-  className?: string
-  isMember?: boolean // 해당 커뮤니티 멤버 여부
-  viewMode?: "feed" | "list" // 뷰 모드
-}
-
-export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isMember = true, viewMode = "feed" }) => {
-  // content에서 HTML 태그 제거하고 텍스트만 추출
-  const getPlainText = (html?: string | null) => {
-    if (!html) return ""
-    return html.replace(/<[^>]*>/g, "").trim()
-  }
-
-  const contentPreview = getPlainText(post.content)
-  
-  // 카테고리/커뮤니티 이름 결정
-  const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
-  const isGroupOnly = post.visibility === "group" && !isMember
-
-  // 리스트형 뷰 (본문 미리보기 숨김, 높이 좁게)
-  if (viewMode === "list") {
-    return (
-      <Link href={href} className={cn("block", className)}>
-        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3 hover:shadow-md transition-all duration-200">
-          {/* 좌측: 커뮤니티 이름 뱃지 */}
-          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold flex-shrink-0">
-            {categoryName}
-          </span>
-          
-          {/* 중앙: 제목만 (본문 미리보기 없음) */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
-              {post.title}
-            </h3>
-          </div>
-
-          {/* 우측: 메타 정보 */}
-          <div className="flex items-center gap-4 text-xs text-slate-500 flex-shrink-0">
-            <span className="hidden sm:inline">{post.profiles?.full_name || "익명"}</span>
-            <span className="hidden sm:inline">·</span>
-            <span>{formatRelativeTime(post.created_at)}</span>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Heart className="h-3.5 w-3.5" />
-                <span>{post.likes_count || 0}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>{post.comments_count || 0}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    )
-  }
-
-  // 피드형 뷰 (기본)
-  return (
-    <Link href={href} className={cn("block", className)}>
-      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
-        {/* 헤더: 커뮤니티 이름 + 작성자 및 시간 */}
-        <div className="flex justify-between items-center mb-3">
-          {/* 좌측: 커뮤니티 이름 뱃지 */}
-          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
-            {categoryName}
-          </span>
-          {/* 우측: 작성자 및 시간 */}
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>{post.profiles?.full_name || "익명"}</span>
-            <span>·</span>
-            <span>{formatRelativeTime(post.created_at)}</span>
-          </div>
-        </div>
-
-        {/* 본문: 제목 + 내용 미리보기 */}
-        <div className="flex-1 mb-4 relative">
-          {/* 제목 */}
-          <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
-            {post.title}
-          </h3>
-          
-          {/* 내용 미리보기 */}
-          {contentPreview && (
-            <div className="relative">
-              <p
-                className={cn(
-                  "text-slate-600 leading-relaxed",
-                  isGroupOnly ? "line-clamp-3 blur-sm select-none" : "line-clamp-3"
-                )}
-              >
-                {contentPreview}
-              </p>
-              
-              {/* 그룹 전용 오버레이 */}
-              {isGroupOnly && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
-                  <div className="flex flex-col items-center gap-2 text-center px-4">
-                    <Lock className="h-6 w-6 text-slate-400" />
-                    <p className="text-sm font-medium text-slate-700">
-                      🔒 멤버 전용 글입니다
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      가입하면 전체 내용을 볼 수 있습니다
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 푸터: 좋아요, 댓글 아이콘 */}
-        <div className="flex items-center gap-4 text-sm text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Heart className="h-4 w-4" />
-            <span>{post.likes_count || 0}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <MessageSquare className="h-4 w-4" />
-            <span>{post.comments_count || 0}</span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  )
-}
-</file>
-
 <file path="lib/auth/server.ts">
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
@@ -21110,6 +20771,334 @@ export async function getUser() {
 }
 </file>
 
+<file path="app/community/board/[slug]/[id]/page.tsx">
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from 'next/navigation';
+import { Card, CardContent } from "@/components/ui/card";
+import { Heart, MessageSquare, Bookmark, Share2, ArrowLeft } from 'lucide-react';
+import { LikeButton } from "@/components/like-button";
+import { CommentSection } from "@/components/comment-section";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { UserBadges } from "@/components/user-badges";
+import type { Metadata } from "next";
+
+// 전체 공개 게시판 slug 목록
+const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
+
+// 동적 metadata 생성
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; id: string }>;
+}): Promise<Metadata> {
+  const { slug, id } = await params;
+  const supabase = await createClient();
+  
+  // ★ URL 슬러그를 DB 슬러그로 변환 (필수!)
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
+  
+  // ★ ID로만 조회 (ID는 고유하므로 category 조건 불필요)
+  const { data: post } = await supabase
+    .from("posts")
+    .select(`
+      title,
+      content,
+      created_at,
+      profiles:author_id (
+        full_name
+      )
+    `)
+    .eq("id", id)
+    .single();
+
+  if (!post) {
+    return {
+      title: "게시글을 찾을 수 없습니다",
+    };
+  }
+
+  const isPublic = PUBLIC_BOARDS.includes(slug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+  const cleanContent = post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "";
+  const title = `${post.title} | Seoul Founders Club`;
+  const description = cleanContent || `${post.title} - Seoul Founders Club 게시글`;
+  const authorName = (post.profiles as any)?.full_name || "익명";
+
+  return {
+    title,
+    description,
+    openGraph: isPublic ? {
+      title,
+      description,
+      url: `${siteUrl}/community/board/${slug}/${id}`,
+      siteName: "Seoul Founders Club",
+      type: "article",
+      publishedTime: post.created_at,
+      authors: authorName !== "익명" ? [authorName] : undefined,
+    } : undefined,
+    twitter: isPublic ? {
+      card: "summary_large_image",
+      title,
+      description,
+    } : undefined,
+    robots: isPublic ? {
+      index: true,
+      follow: true,
+    } : {
+      index: false,
+      follow: false,
+    },
+  };
+}
+
+export default async function BoardPostDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string; id: string }>;
+}) {
+  const { slug, id } = await params;
+  const supabase = await createClient();
+
+  // ★ URL 슬러그를 DB 슬러그로 변환 (필수!)
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
+
+  // 병렬로 초기 데이터 가져오기
+  const [categoryResult, userResult, postResult] = await Promise.all([
+    slug !== "announcements" ? supabase
+      .from("board_categories")
+      .select("*")
+      .eq("slug", dbSlug) // ★ dbSlug 사용
+      .eq("is_active", true)
+      .single() : Promise.resolve({ data: null }),
+    supabase.auth.getUser(),
+    supabase
+      .from("posts")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        ),
+        board_categories:board_category_id (
+          name,
+          slug
+        )
+      `)
+      .eq("id", id)
+      .single()
+  ]);
+
+  const { data: category } = categoryResult;
+  const { data: { user } } = userResult;
+  const { data: post } = postResult;
+
+  if (!category && slug !== "announcements") {
+    notFound();
+  }
+
+  if (!post) {
+    notFound();
+  }
+
+  // 병렬로 나머지 데이터 가져오기
+  const [userLikeResult, commentsResult, badgesResult] = await Promise.all([
+    user ? supabase
+      .from("post_likes")
+      .select("id")
+      .eq("post_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle() : Promise.resolve({ data: null }),
+    supabase
+      .from("comments")
+      .select(`
+        *,
+        profiles:author_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("post_id", id)
+      .order("created_at", { ascending: true }),
+    post.author_id ? supabase
+      .from("user_badges")
+      .select(`
+        badges:badge_id (
+          icon,
+          name
+        )
+      `)
+      .eq("user_id", post.author_id)
+      .eq("is_visible", true) : Promise.resolve({ data: null })
+  ]);
+
+  const userLike = userLikeResult.data;
+  const { data: comments } = commentsResult;
+
+  // 작성자의 노출된 뱃지 가져오기
+  let authorVisibleBadges: Array<{ icon: string; name: string }> = []
+  if (badgesResult.data) {
+    authorVisibleBadges = badgesResult.data
+      .map((ub: any) => ub.badges)
+      .filter(Boolean)
+      .map((badge: any) => ({
+        icon: badge.icon,
+        name: badge.name,
+      }))
+  }
+
+  // 구조화된 데이터 (JSON-LD) - 전체 공개 게시판만
+  const isPublic = PUBLIC_BOARDS.includes(slug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+  
+  const structuredData = isPublic ? {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
+    "url": `${siteUrl}/community/board/${slug}/${id}`,
+    "author": {
+      "@type": "Person",
+      "name": post.profiles?.full_name || "익명"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Seoul Founders Club",
+      "url": siteUrl
+    },
+    "datePublished": post.created_at,
+    "dateModified": post.updated_at || post.created_at,
+  } : null;
+
+  // 게시판 이름 결정 (board_categories에서 가져오거나 fallback)
+  const boardName = (post as any)?.board_categories?.name || category?.name || (slug === "announcements" ? "공지사항" : "게시판")
+
+  return (
+    <>
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      )}
+      <div className="min-h-screen bg-white">
+        {/* 헤더: 뒤로가기 + 게시판 이름 + 공유 버튼 */}
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
+          <div className="mx-auto max-w-4xl">
+            <div className="flex items-center px-4 md:px-6 py-3">
+              <Link href={`/community/board/${slug}`}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2">
+                  <ArrowLeft className="h-5 w-5 text-slate-700" />
+                </Button>
+              </Link>
+              <span className="ml-2 text-sm font-medium text-slate-700">
+                {boardName}
+              </span>
+              <div className="ml-auto flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Share2 className="h-5 w-5 text-slate-600" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 본문: 통합된 카드 */}
+        <div className="mx-auto max-w-4xl px-4 md:px-6 py-6 md:py-8">
+          <Card className="border border-slate-200 rounded-xl shadow-sm">
+            <CardContent className="p-6 md:p-8">
+              {/* 커뮤니티 이름 뱃지 */}
+              <div className="mb-4">
+                <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
+                  {boardName}
+                </span>
+              </div>
+
+              {/* 작성자 정보 */}
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-sm font-semibold text-white flex-shrink-0">
+                  {post.profiles?.full_name?.[0] || "U"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-900 truncate text-sm">
+                      {post.profiles?.full_name || "익명"}
+                    </p>
+                    {authorVisibleBadges.length > 0 && (
+                      <UserBadges badges={authorVisibleBadges} />
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {new Date(post.created_at).toLocaleDateString("ko-KR", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* 제목 */}
+              <h1 className="mb-4 text-2xl md:text-4xl font-bold text-slate-900 leading-snug">
+                {post.title}
+              </h1>
+
+              {/* 본문 내용 */}
+              <div 
+                className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-6"
+                dangerouslySetInnerHTML={{ __html: post.content || "" }}
+              />
+
+              {/* 좋아요/댓글 버튼 */}
+              <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
+                {user && (
+                  <LikeButton
+                    postId={post.id}
+                    userId={user.id}
+                    initialLiked={!!userLike}
+                    initialCount={post.likes_count || 0}
+                  />
+                )}
+                {!user && (
+                  <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                    <Heart className="h-4 w-4" />
+                    <span>{post.likes_count || 0}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>{post.comments_count || 0}</span>
+                </div>
+              </div>
+
+              {/* 댓글 섹션 (구분선으로 자연스럽게 연결) */}
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h2 className="mb-4 text-lg font-bold text-slate-900">
+                  댓글
+                </h2>
+                <CommentSection
+                  postId={post.id}
+                  userId={user?.id}
+                  comments={comments || []}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </>
+  );
+}
+</file>
+
 <file path="app/globals.css">
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -21153,6 +21142,176 @@ export async function getUser() {
   .scrollbar-gutter-stable {
     scrollbar-gutter: stable;
   }
+}
+</file>
+
+<file path="components/ui/post-list-item.tsx">
+import Link from "next/link"
+import type { FC } from "react"
+import { Heart, MessageSquare, Lock } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import { formatRelativeTime } from "@/lib/format-time"
+
+type Badge = {
+  icon: string
+  name: string
+}
+
+type Post = {
+  id: string
+  title: string
+  content?: string | null
+  created_at: string
+  visibility?: "public" | "group"
+  likes_count?: number
+  comments_count?: number
+  board_categories?: {
+    name?: string | null
+    slug?: string | null
+  } | null
+  profiles?: {
+    full_name?: string | null
+    id?: string
+  } | null
+  visible_badges?: Badge[]
+  communities?: {
+    name?: string | null
+  } | null
+}
+
+type PostListItemProps = {
+  post: Post
+  href: string
+  className?: string
+  isMember?: boolean // 해당 커뮤니티 멤버 여부
+  viewMode?: "feed" | "list" // 뷰 모드
+}
+
+export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isMember = true, viewMode = "feed" }) => {
+  // content에서 HTML 태그 제거하고 텍스트만 추출
+  const getPlainText = (html?: string | null) => {
+    if (!html) return ""
+    return html.replace(/<[^>]*>/g, "").trim()
+  }
+
+  const contentPreview = getPlainText(post.content)
+  
+  // 카테고리/커뮤니티 이름 결정
+  const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
+  const isGroupOnly = post.visibility === "group" && !isMember
+
+  // 리스트형 뷰 (본문 미리보기 숨김, 높이 슬림, 목록다운 밀도감)
+  if (viewMode === "list") {
+    return (
+      <Link href={href} className={cn("block", className)}>
+        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg py-2.5 px-4 hover:bg-slate-50 transition-all duration-200">
+          {/* 좌측: 커뮤니티 이름 뱃지 (모던한 파스텔톤) */}
+          <span className="bg-blue-100 text-blue-700 rounded-md px-2.5 py-1 text-xs font-semibold flex-shrink-0">
+            {categoryName}
+          </span>
+          
+          {/* 중앙: 제목과 작성자 정보를 한 줄로 컴팩트하게 배치 */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
+                {post.title}
+              </h3>
+              <span className="text-xs text-slate-500 hidden sm:inline">·</span>
+              <span className="text-xs text-slate-500 hidden sm:inline">{post.profiles?.full_name || "익명"}</span>
+            </div>
+          </div>
+
+          {/* 우측: 메타 정보 */}
+          <div className="flex items-center gap-4 text-xs text-slate-500 flex-shrink-0">
+            <span className="hidden md:inline">{formatRelativeTime(post.created_at)}</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Heart className="h-3.5 w-3.5" />
+                <span>{post.likes_count || 0}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>{post.comments_count || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Link>
+    )
+  }
+
+  // 피드형 뷰 (카드 형태, 그림자, 본문 3줄 미리보기)
+  return (
+    <Link href={href} className={cn("block", className)}>
+      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+        {/* 상단: 커뮤니티 이름 뱃지 (필수) */}
+        <div className="mb-4">
+          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
+            {categoryName}
+          </span>
+        </div>
+
+        {/* 본문: 제목 + 내용 미리보기 */}
+        <div className="flex-1 mb-4 relative">
+          {/* 제목 */}
+          <h3 className="text-xl font-bold text-slate-900 mb-3 leading-relaxed line-clamp-2">
+            {post.title}
+          </h3>
+          
+          {/* 내용 미리보기 */}
+          {contentPreview && (
+            <div className="relative">
+              <p
+                className={cn(
+                  "text-slate-600 leading-relaxed",
+                  isGroupOnly ? "line-clamp-3 blur-sm select-none" : "line-clamp-3"
+                )}
+              >
+                {contentPreview}
+              </p>
+              
+              {/* 그룹 전용 오버레이 */}
+              {isGroupOnly && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
+                  <div className="flex flex-col items-center gap-2 text-center px-4">
+                    <Lock className="h-6 w-6 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-700">
+                      🔒 멤버 전용 글입니다
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      가입하면 전체 내용을 볼 수 있습니다
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 푸터: 작성자/날짜 + 좋아요, 댓글 아이콘 */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          {/* 좌측: 작성자 및 시간 (작고 연한 회색) */}
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span>{post.profiles?.full_name || "익명"}</span>
+            <span>·</span>
+            <span>{formatRelativeTime(post.created_at)}</span>
+          </div>
+          {/* 우측: 좋아요, 댓글 아이콘 */}
+          <div className="flex items-center gap-4 text-sm text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <Heart className="h-4 w-4" />
+              <span>{post.likes_count || 0}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="h-4 w-4" />
+              <span>{post.comments_count || 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
 }
 </file>
 
@@ -21258,278 +21417,6 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
           </Link>
         </div>
 
-      </div>
-    </div>
-  )
-}
-</file>
-
-<file path="app/community/board/[slug]/page.tsx">
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PostsSection } from "@/components/home/posts-section";
-import { getLatestPosts } from "@/lib/queries/posts";
-import Link from "next/link";
-import { Plus } from 'lucide-react';
-import { isAdmin } from "@/lib/utils";
-import type { Metadata } from "next";
-
-// 전체 공개 게시판 slug 목록
-const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
-
-// 동적 metadata 생성
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const supabase = await createClient();
-  
-  const { data: category } = await supabase
-    .from("board_categories")
-    .select("name, description")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .single();
-
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  
-  if (!category) {
-    return {
-      title: "게시판을 찾을 수 없습니다",
-    };
-  }
-
-  const title = `${category.name} | Seoul Founders Club`;
-  const description = category.description || `${category.name} 게시판입니다.`;
-
-  return {
-    title,
-    description,
-    openGraph: isPublic ? {
-      title,
-      description,
-      url: `${siteUrl}/community/board/${slug}`,
-      siteName: "Seoul Founders Club",
-      type: "website",
-    } : undefined,
-    robots: isPublic ? {
-      index: true,
-      follow: true,
-    } : {
-      index: false,
-      follow: false,
-    },
-  };
-}
-
-export default async function BoardPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const supabase = await createClient();
-
-  // 'announcements'는 DB 슬러그인 'announcement'로 변환
-  const dbSlug = slug === "announcements" ? "announcement" : slug;
-
-  const [categoryResult, userResult, transformedPosts] = await Promise.all([
-    supabase
-      .from("board_categories")
-      .select("*")
-      .eq("slug", dbSlug)
-      .eq("is_active", true)
-      .single(),
-    supabase.auth.getUser(),
-    getLatestPosts(supabase, 50, dbSlug) // DB 슬러그를 전달하여 해당 카테고리 글만 가져오기
-  ]);
-
-  const category = categoryResult.data;
-  const user = userResult.data.user;
-
-  if (!category) {
-    notFound();
-  }
-
-  // 관리자 여부 확인
-  let isUserAdmin = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, email")
-      .eq("id", user.id)
-      .single();
-    isUserAdmin = isAdmin(profile?.role, profile?.email);
-  }
-
-  // 구조화된 데이터 (JSON-LD) - 전체 공개 게시판만
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  
-  const structuredData = isPublic && transformedPosts.length > 0 ? {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "name": category.name,
-    "description": category.description || `${category.name} 게시판입니다.`,
-    "url": `${siteUrl}/community/board/${slug}`,
-    "mainEntity": {
-      "@type": "ItemList",
-      "itemListElement": transformedPosts.slice(0, 10).map((post: any, index: number) => ({
-        "@type": "ListItem",
-        "position": index + 1,
-        "item": {
-          "@type": "Article",
-          "headline": post.title,
-          "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
-          "url": `${siteUrl}/community/board/${slug}/${post.id}`,
-          "author": {
-            "@type": "Person",
-            "name": post.profiles?.full_name || "익명"
-          },
-          "datePublished": post.created_at,
-        }
-      }))
-    }
-  } : null;
-
-  // 게시글 데이터에 isMember 추가 (PostsSection 형식에 맞춤)
-  let postsWithMembership = transformedPosts.map((post: any) => ({
-    ...post,
-    isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
-  }))
-
-  // 디버깅: 데이터 확인
-  console.log(`[BoardPage] slug: "${slug}", dbSlug: "${dbSlug}", 게시글 수: ${postsWithMembership.length}`)
-  
-  // 테스트 데이터 (게시글이 없을 때만 - 나중에 제거)
-  if (postsWithMembership.length === 0) {
-    console.warn(`[BoardPage] 게시글이 없습니다. slug: "${slug}", dbSlug: "${dbSlug}", category: ${category?.name}`)
-    // 테스트 데이터 생성 (나중에 제거)
-    postsWithMembership = [{
-      id: 'test-1',
-      title: `[테스트] ${category.name} 게시판 테스트 글`,
-      content: '이것은 테스트 게시글입니다. 실제 데이터가 없을 때 표시됩니다.',
-      created_at: new Date().toISOString(),
-      visibility: 'public' as const,
-      likes_count: 0,
-      comments_count: 0,
-      profiles: { full_name: '테스트 사용자' },
-      board_categories: { name: category.name, slug: dbSlug },
-      isMember: true,
-    }]
-  }
-
-  return (
-    <>
-      {structuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-      )}
-      <div className="min-h-screen bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{category.name}</h1>
-              {category.description && (
-                <p className="mt-2 text-slate-600">{category.description}</p>
-              )}
-            </div>
-            {(slug !== "announcements" || isUserAdmin) && (
-              <div>
-                {user ? (
-                  <Link href={`/community/board/${slug}/new`}>
-                    <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
-                      <Plus className="h-4 w-4" />
-                      글쓰기
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/auth/login">
-                    <Button variant="outline" className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
-                      <Plus className="h-4 w-4" />
-                      로그인하고 글쓰기
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Posts Section - 카드형 피드로 통일 */}
-          <Card>
-            <CardContent className="pt-6">
-              <PostsSection
-                posts={postsWithMembership}
-                boardCategories={[]}
-                hideTabs={true}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </>
-  );
-}
-</file>
-
-<file path="app/community/page.tsx">
-import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent } from "@/components/ui/card"
-import { PostsSection } from "@/components/home/posts-section"
-import { getLatestPosts } from "@/lib/queries/posts"
-import { getBoardCategories } from "@/lib/queries/board-categories"
-
-export default async function CommunityDashboardPage() {
-  const supabase = await createClient()
-
-  // 현재 사용자 정보 가져오기 (멤버십 체크용)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Fetch data using query helpers (피드에만 집중)
-  // getLatestPosts에 'all'을 전달하면 소모임 글만 가져옴 (공지사항/자유게시판 제외)
-  const [transformedPosts, boardCategories] = await Promise.all([
-    getLatestPosts(supabase, 50, 'all'),
-    getBoardCategories(supabase),
-  ])
-
-  // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
-  // 'free-board'는 게시글에는 포함되지만 카테고리 탭에서는 제외
-  const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
-  const filteredBoardCategories = (boardCategories || []).filter(
-    (cat) => !excludedSlugs.includes(cat.slug)
-  )
-
-  // 각 게시글의 커뮤니티 멤버십 확인 (나중에 최적화 가능)
-  // 주의: communities 조인이 제거되었으므로 임시로 모든 게시글에 isMember: true 설정
-  const postsWithMembership = transformedPosts.map((post: any) => {
-    // TODO: 실제 community_id를 가져와서 멤버십 체크
-    // 현재는 communities 조인이 제거되어 임시로 true로 설정
-    // visibility가 'group'인 경우 나중에 실제 멤버십 체크 로직 추가 필요
-    return { ...post, isMember: true }
-  })
-
-  return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
-        {/* Latest Posts Section - 피드에만 집중 */}
-        <Card>
-          <CardContent className="pt-6">
-            <PostsSection
-              posts={postsWithMembership}
-              boardCategories={filteredBoardCategories}
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   )
@@ -21977,117 +21864,278 @@ export default function AboutPage() {
 }
 </file>
 
-<file path="lib/queries/posts.ts">
-import { SupabaseClient } from "@supabase/supabase-js"
+<file path="app/community/page.tsx">
+import { createClient } from "@/lib/supabase/server"
+import { PostsSection } from "@/components/home/posts-section"
+import { getLatestPosts } from "@/lib/queries/posts"
+import { getBoardCategories } from "@/lib/queries/board-categories"
 
-export type PostForDisplay = {
-  id: string
-  title: string
-  content?: string | null
-  created_at: string
-  visibility?: "public" | "group"
-  likes_count?: number
-  comments_count?: number
-  profiles?: {
-    full_name?: string | null
-  } | null
-  board_categories?: {
-    name?: string | null
-    slug?: string | null
-  } | null
-  communities?: {
-    name?: string | null
-  } | null
+export default async function CommunityDashboardPage() {
+  const supabase = await createClient()
+
+  // 현재 사용자 정보 가져오기 (멤버십 체크용)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Fetch data using query helpers (피드에만 집중)
+  // getLatestPosts에 'all'을 전달하면 소모임 글만 가져옴 (공지사항/자유게시판 제외)
+  const [transformedPosts, boardCategories] = await Promise.all([
+    getLatestPosts(supabase, 50, 'all'),
+    getBoardCategories(supabase),
+  ])
+
+  // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
+  // 'free-board'는 게시글에는 포함되지만 카테고리 탭에서는 제외
+  const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+  const filteredBoardCategories = (boardCategories || []).filter(
+    (cat) => !excludedSlugs.includes(cat.slug)
+  )
+
+  // 각 게시글의 커뮤니티 멤버십 확인 (나중에 최적화 가능)
+  // 주의: communities 조인이 제거되었으므로 임시로 모든 게시글에 isMember: true 설정
+  const postsWithMembership = transformedPosts.map((post: any) => {
+    // TODO: 실제 community_id를 가져와서 멤버십 체크
+    // 현재는 communities 조인이 제거되어 임시로 true로 설정
+    // visibility가 'group'인 경우 나중에 실제 멤버십 체크 로직 추가 필요
+    return { ...post, isMember: true }
+  })
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+        {/* Latest Posts Section - 투명 배경으로 통일 */}
+        <PostsSection
+          posts={postsWithMembership}
+          boardCategories={filteredBoardCategories}
+        />
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="app/community/board/[slug]/page.tsx">
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { PostsSection } from "@/components/home/posts-section";
+import { getLatestPosts } from "@/lib/queries/posts";
+import Link from "next/link";
+import { Plus } from 'lucide-react';
+import { isAdmin } from "@/lib/utils";
+import type { Metadata } from "next";
+
+// 전체 공개 게시판 slug 목록
+const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
+
+// 동적 metadata 생성
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  
+  // URL 슬러그를 DB 슬러그로 매핑
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
+  
+  const { data: category } = await supabase
+    .from("board_categories")
+    .select("name, description")
+    .eq("slug", dbSlug)
+    .eq("is_active", true)
+    .single();
+
+  const isPublic = PUBLIC_BOARDS.includes(slug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+  
+  if (!category) {
+    return {
+      title: "게시판을 찾을 수 없습니다",
+    };
+  }
+
+  const title = `${category.name} | Seoul Founders Club`;
+  const description = category.description || `${category.name} 게시판입니다.`;
+
+  return {
+    title,
+    description,
+    openGraph: isPublic ? {
+      title,
+      description,
+      url: `${siteUrl}/community/board/${slug}`,
+      siteName: "Seoul Founders Club",
+      type: "website",
+    } : undefined,
+    robots: isPublic ? {
+      index: true,
+      follow: true,
+    } : {
+      index: false,
+      follow: false,
+    },
+  };
 }
 
-/**
- * 최신 게시글 목록 가져오기
- * @param supabase Supabase 클라이언트
- * @param limit 가져올 게시글 수 (기본값: 50)
- * @param categorySlug 특정 카테고리 슬러그 (예: 'vangol', 'hightalk'). 없거나 'all'이면 소모임 글만 가져옴
- */
-// 소모임 슬러그 목록 (통합 피드에 포함)
-const COMMUNITY_SLUGS = ['vangol', 'hightalk']
+export default async function BoardPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const supabase = await createClient();
 
-export async function getLatestPosts(
-  supabase: SupabaseClient,
-  limit: number = 50,
-  categorySlug?: string | null
-): Promise<PostForDisplay[]> {
-  // board_categories와 left join (INNER JOIN 제거하여 데이터 유실 방지)
-  // board_category_id가 null이 아닌 게시글만 가져오기 (필수)
-  let query = supabase
-    .from("posts")
-    .select(`
-      id,
-      title,
-      content,
-      created_at,
-      visibility,
-      likes_count,
-      comments_count,
-      profiles:author_id (full_name),
-      board_categories:board_category_id (name, slug)
-    `)
-    .not("board_category_id", "is", null) // board_category_id가 null이 아닌 게시글만
+  // ★ URL 슬러그 -> DB 슬러그 변환 (강제 적용)
+  let dbSlug = slug;
 
-  // categorySlug가 있고 'all'이 아니면 해당 슬러그로 필터링
-  if (categorySlug && categorySlug !== 'all') {
-    // 디버깅: 개별 게시판 쿼리 확인
-    console.log(`[getLatestPosts] 개별 게시판 쿼리 - categorySlug: "${categorySlug}"`)
-    query = query.eq("board_categories.slug", categorySlug)
-  } else {
-    // 'all'이거나 없을 때: 소모임 글만 가져오기 ('vangol', 'hightalk'만 포함)
-    console.log(`[getLatestPosts] 통합 피드 쿼리 - 포함 슬러그: ${COMMUNITY_SLUGS.join(', ')}`)
-    query = query.in("board_categories.slug", COMMUNITY_SLUGS)
+  // ★ URL이 'free'면 DB의 'free-board'를 찾아라!
+  if (slug === 'free') {
+    dbSlug = 'free-board';
   }
 
-  const { data, error } = await query
-    .order("created_at", { ascending: false })
-    .limit(limit)
-
-  if (error) {
-    console.error("🚨 CRITICAL POST QUERY ERROR:", {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-      name: error.name,
-      // 쿼리 컨텍스트 정보
-      categorySlug: categorySlug,
-      limit: limit,
-      // 전체 오류 객체 (추가 정보 포함)
-      fullError: error,
-    })
-    return []
+  // 공지사항도 마찬가지
+  if (slug === 'announcements') {
+    dbSlug = 'announcement';
   }
 
-  // 디버깅: 쿼리 결과 확인
-  if (categorySlug && categorySlug !== 'all') {
-    console.log(`[getLatestPosts] 개별 게시판 결과 - categorySlug: "${categorySlug}", 게시글 수: ${data?.length || 0}`)
+  // 디버깅용 로그: 서버 로그에서 확인 가능
+  console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
+
+  // 매핑 검증: 유효한 슬러그인지 확인
+  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk'];
+  if (!validSlugs.includes(dbSlug)) {
+    console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
+    notFound();
   }
 
-  // Transform posts data to match PostForDisplay type
-  let transformed = (data || []).map((post: any) => ({
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    created_at: post.created_at,
-    visibility: post.visibility || "public",
-    likes_count: post.likes_count || 0,
-    comments_count: post.comments_count || 0,
-    profiles: post.profiles ? { full_name: post.profiles.full_name } : null,
-    board_categories: Array.isArray(post.board_categories)
-      ? post.board_categories[0]
-      : post.board_categories,
-    // communities 조인 제거 (community_id 컬럼이 posts 테이블에 없음)
-    communities: null,
+  const [categoryResult, userResult, transformedPosts] = await Promise.all([
+    supabase
+      .from("board_categories")
+      .select("*")
+      .eq("slug", dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
+      .eq("is_active", true)
+      .single(),
+    supabase.auth.getUser(),
+    getLatestPosts(supabase, 50, dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
+  ]);
+
+  const category = categoryResult.data;
+  const user = userResult.data.user;
+
+  if (!category) {
+    notFound();
+  }
+
+  // 관리자 여부 확인
+  let isUserAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, email")
+      .eq("id", user.id)
+      .single();
+    isUserAdmin = isAdmin(profile?.role, profile?.email);
+  }
+
+  // 구조화된 데이터 (JSON-LD) - 전체 공개 게시판만
+  const isPublic = PUBLIC_BOARDS.includes(slug);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+  
+  const structuredData = isPublic && transformedPosts.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": category.name,
+    "description": category.description || `${category.name} 게시판입니다.`,
+    "url": `${siteUrl}/community/board/${slug}`,
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": transformedPosts.slice(0, 10).map((post: any, index: number) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Article",
+          "headline": post.title,
+          "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
+          "url": `${siteUrl}/community/board/${slug}/${post.id}`,
+          "author": {
+            "@type": "Person",
+            "name": post.profiles?.full_name || "익명"
+          },
+          "datePublished": post.created_at,
+        }
+      }))
+    }
+  } : null;
+
+  // 게시글 데이터에 isMember 추가 (PostsSection 형식에 맞춤)
+  let postsWithMembership = transformedPosts.map((post: any) => ({
+    ...post,
+    isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
   }))
 
-  // board_categories가 없는 게시글 필터링 (null 체크)
-  transformed = transformed.filter((post) => post.board_categories?.slug)
+  // 디버깅: 데이터 확인
+  console.log(`[BoardPage] ✅ slug: "${slug}", dbSlug: "${dbSlug}", 게시글 수: ${postsWithMembership.length}`)
+  
+  // 게시글이 없을 때 경고 (테스트 데이터는 제거 - DB에 반드시 데이터가 있어야 함)
+  if (postsWithMembership.length === 0) {
+    console.warn(`[BoardPage] ⚠️ 게시글이 없습니다. slug: "${slug}", dbSlug: "${dbSlug}", category: ${category?.name}`)
+    console.warn(`[BoardPage] 💡 scripts/099_rebuild_community_schema.sql을 실행하여 테스트 데이터를 생성하세요.`)
+  }
 
-  return transformed
+  return (
+    <>
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      )}
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+          {/* Header */}
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{category.name}</h1>
+              {category.description && (
+                <p className="mt-2 text-slate-600">{category.description}</p>
+              )}
+            </div>
+            {(slug !== "announcements" || isUserAdmin) && (
+              <div>
+                {user ? (
+                  <Link href={`/community/board/${slug}/new`}>
+                    <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
+                      <Plus className="h-4 w-4" />
+                      글쓰기
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/auth/login">
+                    <Button variant="outline" className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
+                      <Plus className="h-4 w-4" />
+                      로그인하고 글쓰기
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Posts Section - 투명 배경으로 통일 */}
+          <PostsSection
+            posts={postsWithMembership}
+            boardCategories={[]}
+            hideTabs={true}
+          />
+        </div>
+      </div>
+    </>
+  );
 }
 </file>
 
@@ -22895,6 +22943,174 @@ export default function ProfilePage() {
 }
 </file>
 
+<file path="lib/queries/posts.ts">
+import { SupabaseClient } from "@supabase/supabase-js"
+
+export type PostForDisplay = {
+  id: string
+  title: string
+  content?: string | null
+  created_at: string
+  visibility?: "public" | "group"
+  likes_count?: number
+  comments_count?: number
+  profiles?: {
+    full_name?: string | null
+  } | null
+  board_categories?: {
+    name?: string | null
+    slug?: string | null
+  } | null
+  communities?: {
+    name?: string | null
+  } | null
+}
+
+/**
+ * 최신 게시글 목록 가져오기 (ID 기반 조회로 안정화)
+ * @param supabase Supabase 클라이언트
+ * @param limit 가져올 게시글 수 (기본값: 50)
+ * @param categorySlug 특정 카테고리 슬러그 (예: 'vangol', 'hightalk'). 없거나 'all'이면 공지사항/자유게시판 제외한 모든 글
+ */
+export async function getLatestPosts(
+  supabase: SupabaseClient,
+  limit: number = 50,
+  categorySlug?: string | null
+): Promise<PostForDisplay[]> {
+  try {
+    let categoryIds: string[] = []
+
+    // Step 1: categorySlug에 따라 board_categories에서 ID 목록 가져오기
+    if (!categorySlug || categorySlug === 'all') {
+      // ★ 통합 피드: categorySlug가 없거나 'all'일 때만 announcement, free-board를 제외
+      // 개별 게시판 요청이 아닐 때만 제외 필터 적용
+      const { data: categories, error: categoryError } = await supabase
+        .from("board_categories")
+        .select("id")
+        .neq("slug", "announcement")
+        .neq("slug", "free-board")
+        .eq("is_active", true)
+
+      if (categoryError) {
+        console.error("🚨 [getLatestPosts] 카테고리 조회 에러:", {
+          error: categoryError,
+          categorySlug: categorySlug,
+        })
+        return []
+      }
+
+      categoryIds = (categories || []).map((cat) => cat.id)
+    } else {
+      // ★ 개별 게시판: categorySlug가 특정 값(예: 'announcement', 'free-board')일 때
+      // 제외 필터를 적용하지 않고, 오직 해당 slug의 ID만 가져오기
+      const { data: category, error: categoryError } = await supabase
+        .from("board_categories")
+        .select("id")
+        .eq("slug", categorySlug) // ★ 제외 필터 없이 정확히 일치하는 것만
+        .eq("is_active", true)
+        .single()
+
+      if (categoryError) {
+        console.error("🚨 [getLatestPosts] 카테고리 조회 에러:", {
+          error: categoryError,
+          categorySlug: categorySlug,
+        })
+        return []
+      }
+
+      if (!category) {
+        console.warn(`[getLatestPosts] 카테고리를 찾을 수 없습니다: "${categorySlug}"`)
+        return []
+      }
+
+      categoryIds = [category.id]
+    }
+
+    // Step 2: categoryIds를 가진 posts 가져오기 (ID 기반 조회)
+    const { data: posts, error: postsError } = await supabase
+      .from("posts")
+      .select(`
+        id,
+        title,
+        content,
+        created_at,
+        visibility,
+        likes_count,
+        comments_count,
+        author_id,
+        board_category_id
+      `)
+      .in("board_category_id", categoryIds)
+      .order("created_at", { ascending: false })
+      .limit(limit)
+
+    if (postsError) {
+      console.error("🚨 [getLatestPosts] 게시글 조회 에러:", {
+        error: postsError,
+        categorySlug: categorySlug,
+        categoryIds: categoryIds,
+      })
+      return []
+    }
+
+    if (!posts || posts.length === 0) {
+      console.log(`[getLatestPosts] 게시글이 없습니다. categorySlug: "${categorySlug || 'all'}", categoryIds: ${categoryIds.length}개`)
+      return []
+    }
+
+    // Step 3: 작성자 정보 가져오기 (author_id 목록)
+    const authorIds = [...new Set(posts.map((p) => p.author_id).filter(Boolean))]
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", authorIds)
+
+    // Step 4: 카테고리 정보 가져오기 (board_category_id 목록)
+    const categoryIdList = [...new Set(posts.map((p) => p.board_category_id).filter(Boolean))]
+    const { data: boardCategories } = await supabase
+      .from("board_categories")
+      .select("id, name, slug")
+      .in("id", categoryIdList)
+
+    // Step 5: 데이터 변환 및 조합
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]))
+    const categoryMap = new Map((boardCategories || []).map((c) => [c.id, c]))
+
+    const transformed: PostForDisplay[] = posts.map((post) => {
+      const profile = profileMap.get(post.author_id)
+      const category = categoryMap.get(post.board_category_id)
+
+      return {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        created_at: post.created_at,
+        visibility: (post.visibility as "public" | "group") || "public",
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        profiles: profile ? { full_name: profile.full_name } : null,
+        board_categories: category
+          ? { name: category.name, slug: category.slug }
+          : null,
+        communities: null,
+      }
+    })
+
+    console.log(
+      `[getLatestPosts] ✅ 완료 - categorySlug: "${categorySlug || 'all'}", 게시글: ${transformed.length}개`
+    )
+
+    return transformed
+  } catch (error) {
+    console.error("🚨 [getLatestPosts] 예상치 못한 에러:", {
+      error,
+      categorySlug: categorySlug,
+    })
+    return []
+  }
+}
+</file>
+
 <file path="app/auth/callback/route.ts">
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -23108,9 +23324,8 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const isAdmin = userRole === "admin" || userRole === "master"
 
   const isLinkActive = (href: string, startsWith = false) => {
-    // 커뮤니티 관련 링크는 exact match만 허용 (서로 간섭 방지)
-    const communityExactMatchPaths = ['/communities', '/community']
-    if (communityExactMatchPaths.includes(href)) {
+    // /community 경로에 대한 예외 처리: 완전 일치일 때만 활성화
+    if (href === '/community' || href === '/community/page') {
       return pathname === href
     }
     // 다른 링크는 기존 로직 유지

@@ -72,20 +72,21 @@ export default async function BoardPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  // ★ URL 슬러그를 DB에 저장된 실제 슬러그로 변환 (매핑)
-  // 사용자가 /free로 접속해도, 시스템은 /free-board 데이터를 찾아야 함
+  // ★ URL 슬러그 -> DB 슬러그 변환 (강제 적용)
   let dbSlug = slug;
+
+  // ★ URL이 'free'면 DB의 'free-board'를 찾아라!
   if (slug === 'free') {
-    dbSlug = 'free-board'; // ★ 핵심: URL 'free' → DB 'free-board'
-  }
-  if (slug === 'announcements') {
-    dbSlug = 'announcement'; // URL 'announcements' → DB 'announcement'
+    dbSlug = 'free-board';
   }
 
-  // 디버깅: 슬러그 매핑 확인
-  if (slug !== dbSlug) {
-    console.log(`[BoardPage] 🔄 슬러그 매핑: "${slug}" → "${dbSlug}"`);
+  // 공지사항도 마찬가지
+  if (slug === 'announcements') {
+    dbSlug = 'announcement';
   }
+
+  // 디버깅용 로그: 서버 로그에서 확인 가능
+  console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
 
   // 매핑 검증: 유효한 슬러그인지 확인
   const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk'];

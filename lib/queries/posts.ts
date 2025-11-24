@@ -36,7 +36,8 @@ export async function getLatestPosts(
 
     // Step 1: categorySlug에 따라 board_categories에서 ID 목록 가져오기
     if (!categorySlug || categorySlug === 'all') {
-      // 통합 피드: announcement, free-board를 제외한 나머지 카테고리들의 ID 가져오기
+      // ★ 통합 피드: categorySlug가 없거나 'all'일 때만 announcement, free-board를 제외
+      // 개별 게시판 요청이 아닐 때만 제외 필터 적용
       const { data: categories, error: categoryError } = await supabase
         .from("board_categories")
         .select("id")
@@ -54,11 +55,12 @@ export async function getLatestPosts(
 
       categoryIds = (categories || []).map((cat) => cat.id)
     } else {
-      // 개별 게시판: 해당 slug의 ID 가져오기
+      // ★ 개별 게시판: categorySlug가 특정 값(예: 'announcement', 'free-board')일 때
+      // 제외 필터를 적용하지 않고, 오직 해당 slug의 ID만 가져오기
       const { data: category, error: categoryError } = await supabase
         .from("board_categories")
         .select("id")
-        .eq("slug", categorySlug)
+        .eq("slug", categorySlug) // ★ 제외 필터 없이 정확히 일치하는 것만
         .eq("is_active", true)
         .single()
 

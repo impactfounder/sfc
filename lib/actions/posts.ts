@@ -11,9 +11,11 @@ export async function createPost(data: {
   boardCategoryId?: string
   communityId?: string
   category?: string
+  // ★ 보안: authorId 등은 무시됨 (클라이언트에서 보내도 사용하지 않음)
 }) {
   const supabase = await createClient()
 
+  // ★ 보안: 무조건 현재 로그인한 세션의 ID만 사용
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -22,10 +24,11 @@ export async function createPost(data: {
     throw new Error("Unauthorized")
   }
 
+  // ★ 보안: 클라이언트에서 보낸 authorId 등은 무시하고, 세션의 user.id만 사용
   const insertData: any = {
     title: data.title.trim(),
     content: data.content.trim(),
-    author_id: user.id,
+    author_id: user.id, // ★ 무조건 세션의 user.id만 사용
     visibility: data.visibility || "public",
   }
 

@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock } from "lucide-react"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
+import { createEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
 
 export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess?: () => void }) {
   const [title, setTitle] = useState("")
@@ -133,11 +134,10 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentUserId) return alert("로그인이 필요합니다.")
     if (!title) return alert("이벤트 이름을 입력해주세요.")
 
-    const supabase = createClient()
     setIsLoading(true)
+    setError(null)
 
     try {
       const startDateTime = new Date(`${startDate}T${startTime}`)
@@ -148,29 +148,27 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
         throw new Error("최대 인원은 유효한 숫자여야 합니다.")
       }
 
-      const insertData: any = {
+      // ★ 보안: 서버 액션 사용 (created_by는 서버에서 세션 기반으로 자동 설정됨)
+      const result = await createEvent({
         title,
         description, // Rich Text Content
         event_date: startDateTime.toISOString(),
-        location,
+        end_date: endDateTime ? endDateTime.toISOString() : null,
+        location: location || null,
         max_participants: maxParticipantsValue,
-        thumbnail_url: thumbnailUrl,
-        created_by: currentUserId,
+        thumbnail_url: thumbnailUrl || null,
+        // ★ 보안: created_by는 전달하지 않음 (서버에서 세션 기반으로 자동 설정)
+      })
+
+      if (!result.success) {
+        throw new Error("이벤트 생성에 실패했습니다.")
       }
 
-      // end_date가 있으면 추가
-      if (endDateTime) {
-        insertData.end_date = endDateTime.toISOString()
-      }
-
-      const { error } = await supabase.from("events").insert(insertData)
-
-      if (error) throw error
       if (onSuccess) onSuccess()
       else router.push("/events")
       router.refresh()
     } catch (error: any) {
-      setError(error.message)
+      setError(error.message || "이벤트 생성에 실패했습니다.")
     } finally {
       setIsLoading(false)
     }
