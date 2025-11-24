@@ -21,7 +21,7 @@ export type PostForDisplay = {
 }
 
 /**
- * 최신 게시글 목록 가져오기 (ID 기반 조회로 안정화)
+ * 최신 게시글 목록 가져오기 (Inner Join 필터링 방식)
  * @param supabase Supabase 클라이언트
  * @param limit 가져올 게시글 수 (기본값: 50)
  * @param categorySlug 특정 카테고리 슬러그 (예: 'vangol', 'hightalk'). 없거나 'all'이면 공지사항/자유게시판 제외한 모든 글
@@ -32,135 +32,65 @@ export async function getLatestPosts(
   categorySlug?: string | null
 ): Promise<PostForDisplay[]> {
   try {
-    let categoryIds: string[] = []
-
-    // Step 1: categorySlug에 따라 board_categories에서 ID 목록 가져오기
-    if (!categorySlug || categorySlug === 'all') {
-      // ★ 통합 피드: categorySlug가 없거나 'all'일 때만 announcement, free-board를 제외
-      // 개별 게시판 요청이 아닐 때만 제외 필터 적용
-      const { data: categories, error: categoryError } = await supabase
-        .from("board_categories")
-        .select("id")
-        .neq("slug", "announcement")
-        .neq("slug", "free-board")
-        .eq("is_active", true)
-
-      if (categoryError) {
-        console.error("🚨 [getLatestPosts] 카테고리 조회 에러:", {
-          error: categoryError,
-          categorySlug: categorySlug,
-        })
-        return []
-      }
-
-      categoryIds = (categories || []).map((cat) => cat.id)
-    } else {
-      // ★ 개별 게시판: categorySlug가 특정 값(예: 'announcement', 'free-board')일 때
-      // 제외 필터를 적용하지 않고, 오직 해당 slug의 ID만 가져오기
-      const { data: category, error: categoryError } = await supabase
-        .from("board_categories")
-        .select("id")
-        .eq("slug", categorySlug) // ★ 제외 필터 없이 정확히 일치하는 것만
-        .eq("is_active", true)
-        .single()
-
-      if (categoryError) {
-        console.error("🚨 [getLatestPosts] 카테고리 조회 에러:", {
-          error: categoryError,
-          categorySlug: categorySlug,
-        })
-        return []
-      }
-
-      if (!category) {
-        console.warn(`[getLatestPosts] 카테고리를 찾을 수 없습니다: "${categorySlug}"`)
-        return []
-      }
-
-      categoryIds = [category.id]
+    // ★ 슬러그 정규화 (DB와 URL의 불일치 해결) - 방어적 프로그래밍
+    if (categorySlug === 'free') {
+      categorySlug = 'free-board';
+    }
+    if (categorySlug === 'announcements') {
+      categorySlug = 'announcement';
     }
 
-    // Step 2: categoryIds를 가진 posts 가져오기 (ID 기반 조회)
-    const { data: posts, error: postsError } = await supabase
+    console.log(`[getLatestPosts] Fetching for slug: ${categorySlug || 'all'}`);
+
+    // 1. 기본 쿼리 작성 (Select + Join)
+    // !inner를 사용하여 카테고리가 있는 글만 확실하게 가져옴
+    let query = supabase
       .from("posts")
       .select(`
-        id,
-        title,
-        content,
-        created_at,
-        visibility,
-        likes_count,
-        comments_count,
-        author_id,
-        board_category_id
+        id, title, content, created_at, visibility, likes_count, comments_count,
+        profiles:author_id(full_name),
+        board_categories!inner(name, slug)
       `)
-      .in("board_category_id", categoryIds)
       .order("created_at", { ascending: false })
-      .limit(limit)
+      .limit(limit);
 
-    if (postsError) {
-      console.error("🚨 [getLatestPosts] 게시글 조회 에러:", {
-        error: postsError,
-        categorySlug: categorySlug,
-        categoryIds: categoryIds,
-      })
-      return []
+    // 2. 필터링 조건 적용
+    if (!categorySlug || categorySlug === 'all') {
+      // [통합 피드] 공지사항/자유게시판 제외 (소모임 글만)
+      // not.in 필터가 확실하게 작동하도록 설정
+      query = query.not('board_categories.slug', 'in', '("announcement","free-board")');
+    } else {
+      // [개별 게시판] 해당 슬러그와 정확히 일치하는 글만
+      query = query.eq('board_categories.slug', categorySlug);
     }
 
-    if (!posts || posts.length === 0) {
-      console.log(`[getLatestPosts] 게시글이 없습니다. categorySlug: "${categorySlug || 'all'}", categoryIds: ${categoryIds.length}개`)
-      return []
+    // 3. 쿼리 실행
+    const { data: posts, error } = await query;
+
+    if (error) {
+      console.error("🚨 [getLatestPosts] Query Error:", error);
+      return [];
     }
 
-    // Step 3: 작성자 정보 가져오기 (author_id 목록)
-    const authorIds = [...new Set(posts.map((p) => p.author_id).filter(Boolean))]
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", authorIds)
+    // 4. 데이터 변환 (Type Mapping)
+    return (posts || []).map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      created_at: post.created_at,
+      visibility: post.visibility || 'public',
+      likes_count: post.likes_count || 0,
+      comments_count: post.comments_count || 0,
+      profiles: post.profiles ? { full_name: post.profiles.full_name } : null,
+      board_categories: post.board_categories
+        ? { name: post.board_categories.name, slug: post.board_categories.slug }
+        : null,
+      communities: null
+    }));
 
-    // Step 4: 카테고리 정보 가져오기 (board_category_id 목록)
-    const categoryIdList = [...new Set(posts.map((p) => p.board_category_id).filter(Boolean))]
-    const { data: boardCategories } = await supabase
-      .from("board_categories")
-      .select("id, name, slug")
-      .in("id", categoryIdList)
-
-    // Step 5: 데이터 변환 및 조합
-    const profileMap = new Map((profiles || []).map((p) => [p.id, p]))
-    const categoryMap = new Map((boardCategories || []).map((c) => [c.id, c]))
-
-    const transformed: PostForDisplay[] = posts.map((post) => {
-      const profile = profileMap.get(post.author_id)
-      const category = categoryMap.get(post.board_category_id)
-
-      return {
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        created_at: post.created_at,
-        visibility: (post.visibility as "public" | "group") || "public",
-        likes_count: post.likes_count || 0,
-        comments_count: post.comments_count || 0,
-        profiles: profile ? { full_name: profile.full_name } : null,
-        board_categories: category
-          ? { name: category.name, slug: category.slug }
-          : null,
-        communities: null,
-      }
-    })
-
-    console.log(
-      `[getLatestPosts] ✅ 완료 - categorySlug: "${categorySlug || 'all'}", 게시글: ${transformed.length}개`
-    )
-
-    return transformed
   } catch (error) {
-    console.error("🚨 [getLatestPosts] 예상치 못한 에러:", {
-      error,
-      categorySlug: categorySlug,
-    })
-    return []
+    console.error("🚨 [getLatestPosts] Unexpected Error:", error);
+    return [];
   }
 }
 

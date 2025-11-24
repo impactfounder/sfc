@@ -62,7 +62,13 @@ export function PostsSection({
     : (val: string) => setInternalSelectedBoard(val || "all")
 
   const filteredPosts = useMemo(() => {
-    // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
+    // 1. 개별 게시판 모드(hideTabs=true)면 필터링 없이 원본 그대로 반환
+    // 개별 게시판 페이지에서는 이미 쿼리 단계에서 필요한 글만 가져오기 때문
+    if (hideTabs) {
+      return posts;
+    }
+
+    // 2. 통합 피드 모드(hideTabs=false)면 공지/자유 제외 필터 적용
     const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
     const baseFiltered = posts.filter((post) => {
       const postSlug = post.board_categories?.slug
@@ -75,7 +81,7 @@ export function PostsSection({
     return baseFiltered.filter(
       (post) => post.board_categories?.slug === currentBoard
     )
-  }, [posts, currentBoard])
+  }, [posts, currentBoard, hideTabs]) // hideTabs 의존성 추가 필수
 
   // 중복 카테고리 제거 및 공지사항/자유게시판 제외 (slug 기준)
   const uniqueCategories = useMemo(() => {
