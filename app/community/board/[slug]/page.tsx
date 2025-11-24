@@ -128,10 +128,31 @@ export default async function BoardPage({
   } : null;
 
   // 게시글 데이터에 isMember 추가 (PostsSection 형식에 맞춤)
-  const postsWithMembership = transformedPosts.map((post: any) => ({
+  let postsWithMembership = transformedPosts.map((post: any) => ({
     ...post,
     isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
   }))
+
+  // 디버깅: 데이터 확인
+  console.log(`[BoardPage] slug: "${slug}", 게시글 수: ${postsWithMembership.length}`)
+  
+  // 테스트 데이터 (게시글이 없을 때만 - 나중에 제거)
+  if (postsWithMembership.length === 0) {
+    console.warn(`[BoardPage] 게시글이 없습니다. slug: "${slug}", category: ${category?.name}`)
+    // 테스트 데이터 생성 (나중에 제거)
+    postsWithMembership = [{
+      id: 'test-1',
+      title: `[테스트] ${category.name} 게시판 테스트 글`,
+      content: '이것은 테스트 게시글입니다. 실제 데이터가 없을 때 표시됩니다.',
+      created_at: new Date().toISOString(),
+      visibility: 'public' as const,
+      likes_count: 0,
+      comments_count: 0,
+      profiles: { full_name: '테스트 사용자' },
+      board_categories: { name: category.name, slug: slug },
+      isMember: true,
+    }]
+  }
 
   return (
     <>

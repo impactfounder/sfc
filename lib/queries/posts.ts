@@ -35,6 +35,7 @@ export async function getLatestPosts(
   categorySlug?: string | null
 ): Promise<PostForDisplay[]> {
   // board_categories와 left join (INNER JOIN 제거하여 데이터 유실 방지)
+  // board_category_id가 null이 아닌 게시글만 가져오기 (필수)
   let query = supabase
     .from("posts")
     .select(`
@@ -49,13 +50,17 @@ export async function getLatestPosts(
       board_categories:board_category_id (name, slug),
       communities:community_id (name)
     `)
+    .not("board_category_id", "is", null) // board_category_id가 null이 아닌 게시글만
 
   // categorySlug가 있고 'all'이 아니면 해당 슬러그로 필터링
   if (categorySlug && categorySlug !== 'all') {
+    // 디버깅: 개별 게시판 쿼리 확인
+    console.log(`[getLatestPosts] 개별 게시판 쿼리 - categorySlug: "${categorySlug}"`)
     query = query.eq("board_categories.slug", categorySlug)
   } else {
     // 'all'이거나 없을 때: 'announcement'와 'free-board'를 제외한 모든 활성 카테고리 글 가져오기
     // Supabase의 not.in 필터는 각 슬러그에 대해 neq를 체이닝하는 것이 더 안전함
+    console.log(`[getLatestPosts] 통합 피드 쿼리 - 제외 슬러그: ${EXCLUDED_SLUGS.join(', ')}`)
     EXCLUDED_SLUGS.forEach((excludedSlug) => {
       query = query.neq("board_categories.slug", excludedSlug)
     })
@@ -66,8 +71,24 @@ export async function getLatestPosts(
     .limit(limit)
 
   if (error) {
-    console.error("Error fetching posts:", error)
+    console.error("🚨 CRITICAL POST QUERY ERROR:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      name: error.name,
+      // 쿼리 컨텍스트 정보
+      categorySlug: categorySlug,
+      limit: limit,
+      // 전체 오류 객체 (추가 정보 포함)
+      fullError: error,
+    })
     return []
+  }
+
+  // 디버깅: 쿼리 결과 확인
+  if (categorySlug && categorySlug !== 'all') {
+    console.log(`[getLatestPosts] 개별 게시판 결과 - categorySlug: "${categorySlug}", 게시글 수: ${data?.length || 0}`)
   }
 
   // Transform posts data to match PostForDisplay type
