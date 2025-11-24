@@ -80,7 +80,8 @@ export async function getLatestPosts(
       : post.communities,
   }))
 
-  // categorySlug가 없거나 'all'이면 공지사항과 자유게시판 제외
+  // categorySlug가 없거나 'all'이면 공지사항과 자유게시판 제외 (소모임 글만 반환)
+  // 'vangol', 'hightalk' 등의 소모임 글만 포함
   if (!categorySlug || categorySlug === 'all') {
     const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
     transformed = transformed.filter((post) => {

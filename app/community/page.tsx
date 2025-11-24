@@ -13,9 +13,9 @@ export default async function CommunityDashboardPage() {
   } = await supabase.auth.getUser()
 
   // Fetch data using query helpers (피드에만 집중)
-  // getLatestPosts에 인자 없이 호출하면 소모임 글만 가져옴 (공지사항/자유게시판 제외)
+  // getLatestPosts에 'all'을 전달하면 소모임 글만 가져옴 (공지사항/자유게시판 제외)
   const [transformedPosts, boardCategories] = await Promise.all([
-    getLatestPosts(supabase, 50, null), // 또는 'all'
+    getLatestPosts(supabase, 50, 'all'),
     getBoardCategories(supabase),
   ])
 
