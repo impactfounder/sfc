@@ -9,11 +9,17 @@ import { useEffect, useState, useMemo, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { X, Camera, Loader2 } from "lucide-react"
+import { Camera, Loader2 } from "lucide-react"
 import { BadgeManager } from "@/components/badge-manager" // 뱃지 관리 컴포넌트
-import { updateProfileAvatar } from "@/lib/actions/user"
+import { updateProfileAvatar, updateProfileInfo } from "@/lib/actions/user"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Switch } from "@/components/ui/switch"
+import { Save } from "lucide-react"
 
 type TabType = "points" | "posts" | "created_events" | "participated_events";
 
@@ -104,6 +110,17 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showBadgeManager, setShowBadgeManager] = useState(false) // 뱃지 관리 모달 상태
   const [isUploading, setIsUploading] = useState(false) // 아바타 업로드 상태
+  const [showProfileEdit, setShowProfileEdit] = useState(false) // 프로필 편집 모달 상태
+  const [isSaving, setIsSaving] = useState(false) // 프로필 저장 중 상태
+  
+  // 프로필 편집 폼 상태
+  const [editForm, setEditForm] = useState({
+    company: "",
+    position: "",
+    roles: [] as string[],
+    introduction: "",
+    is_profile_public: false,
+  })
 
   useEffect(() => {
     const loadData = async () => {
@@ -143,8 +160,17 @@ export default function ProfilePage() {
             .single()
           if (!profileResult.error) {
             profileData = profileResult.data
-            setProfile(profileData) // 즉시 프로필 정보 표시
-            setUser(currentUser)
+        setProfile(profileData) // 즉시 프로필 정보 표시
+        setUser(currentUser)
+        
+        // 프로필 편집 폼 초기화
+        setEditForm({
+          company: profileData?.company || "",
+          position: profileData?.position || "",
+          roles: profileData?.roles || [],
+          introduction: profileData?.introduction || "",
+          is_profile_public: profileData?.is_profile_public || false,
+        })
           }
         } catch (error: any) {
           console.error('프로필 로드 오류:', error)
@@ -336,6 +362,38 @@ export default function ProfilePage() {
     </div>
   )
 
+  // 프로필 정보 저장 핸들러
+  const handleSaveProfile = async () => {
+    setIsSaving(true)
+    try {
+      await updateProfileInfo({
+        company: editForm.company,
+        position: editForm.position,
+        roles: editForm.roles,
+        introduction: editForm.introduction,
+        is_profile_public: editForm.is_profile_public,
+      })
+      
+      // 로컬 상태 업데이트
+      setProfile((prev: any) => ({
+        ...prev,
+        company: editForm.company,
+        position: editForm.position,
+        roles: editForm.roles,
+        introduction: editForm.introduction,
+        is_profile_public: editForm.is_profile_public,
+      }))
+      
+      setShowProfileEdit(false)
+      alert("프로필이 저장되었습니다.")
+    } catch (error) {
+      console.error("Profile save error:", error)
+      alert("프로필 저장에 실패했습니다.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // 아바타 업로드 핸들러
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -385,26 +443,120 @@ export default function ProfilePage() {
 
   return (
     <>
-      {/* 뱃지 관리 시트 */}
-      <Sheet open={showBadgeManager} onOpenChange={setShowBadgeManager}>
-        <SheetContent side="right" className="w-full sm:max-w-md p-0 bg-white">
-          <SheetHeader className="p-4 border-b bg-white">
-            <SheetTitle className="text-lg font-bold flex items-center gap-2">
+      {/* 뱃지 관리 모달 */}
+      <Dialog open={showBadgeManager} onOpenChange={setShowBadgeManager}>
+        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Medal className="h-5 w-5 text-slate-700" />
               뱃지 관리 및 노출 설정
-            </SheetTitle>
-            <Button variant="ghost" size="icon" className="absolute top-4 right-4" onClick={() => setShowBadgeManager(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </SheetHeader>
-          <div className="p-4 overflow-y-auto h-[calc(100vh-65px)] bg-white">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-6 max-h-[80vh] overflow-y-auto">
             <BadgeManager userId={user.id} />
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
-      <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-        <div className="mx-auto max-w-6xl">
+      {/* 프로필 편집 모달 */}
+      <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
+        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">프로필 편집</DialogTitle>
+          </DialogHeader>
+          <div className="mt-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            {/* 역할 선택 */}
+            <div>
+              <Label className="mb-2">역할</Label>
+              <ToggleGroup
+                type="multiple"
+                value={editForm.roles}
+                onValueChange={(value) => setEditForm({ ...editForm, roles: value })}
+                className="flex-wrap"
+              >
+                <ToggleGroupItem value="사업가">사업가</ToggleGroupItem>
+                <ToggleGroupItem value="투자자">투자자</ToggleGroupItem>
+                <ToggleGroupItem value="인플루언서">인플루언서</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            {/* 소속 */}
+            <div>
+              <Label htmlFor="company" className="mb-2">소속</Label>
+              <Input
+                id="company"
+                value={editForm.company}
+                onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                placeholder="회사 또는 조직명"
+              />
+            </div>
+
+            {/* 직책 */}
+            <div>
+              <Label htmlFor="position" className="mb-2">직책</Label>
+              <Input
+                id="position"
+                value={editForm.position}
+                onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                placeholder="예: CEO, 대표이사, 파트너"
+              />
+            </div>
+
+            {/* 자기소개 */}
+            <div>
+              <Label htmlFor="introduction" className="mb-2">한줄 자기소개</Label>
+              <Textarea
+                id="introduction"
+                value={editForm.introduction}
+                onChange={(e) => setEditForm({ ...editForm, introduction: e.target.value })}
+                placeholder="간단한 자기소개를 입력해주세요"
+                rows={3}
+              />
+            </div>
+
+            {/* 공개 설정 */}
+            <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+              <div className="flex-1">
+                <Label htmlFor="is_public" className="font-medium">
+                  SFC 멤버 리스트에 내 프로필을 공개합니다
+                </Label>
+                <p className="text-xs text-slate-500 mt-1">
+                  공개 시 멤버 페이지에서 프로필을 확인할 수 있습니다
+                </p>
+              </div>
+              <Switch
+                id="is_public"
+                checked={editForm.is_profile_public}
+                onCheckedChange={(checked) =>
+                  setEditForm({ ...editForm, is_profile_public: checked })
+                }
+              />
+            </div>
+
+            {/* 저장 버튼 */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowProfileEdit(false)}>
+                취소
+              </Button>
+              <Button onClick={handleSaveProfile} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    저장 중...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    저장
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="mx-auto max-w-6xl">
           <h1 className="mb-8 text-2xl md:text-3xl font-bold tracking-tight text-slate-900">내 프로필</h1>
 
           <div className="grid gap-6 lg:grid-cols-12">
@@ -458,12 +610,53 @@ export default function ProfilePage() {
                 <h2 className="text-2xl font-bold text-slate-900 mb-1">
                   {profile?.full_name || "이름 없음"}
                 </h2>
-                <p className="text-slate-500 text-sm mb-6 flex items-center justify-center gap-1.5">
+                <p className="text-slate-500 text-sm mb-2 flex items-center justify-center gap-1.5">
                   <Mail className="h-3.5 w-3.5" />
                   {user.email}
                 </p>
+                
+                {/* 소속/직책 표시 */}
+                {(profile?.company || profile?.position) && (
+                  <p className="text-slate-600 text-sm mb-2">
+                    {profile?.company}
+                    {profile?.company && profile?.position && " · "}
+                    {profile?.position}
+                  </p>
+                )}
+                
+                {/* 역할 뱃지 */}
+                {profile?.roles && profile.roles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center mb-2">
+                    {profile.roles.map((role: string) => (
+                      <span
+                        key={role}
+                        className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {/* 자기소개 */}
+                {profile?.introduction && (
+                  <p className="text-slate-600 text-sm mb-4 text-center">
+                    {profile.introduction}
+                  </p>
+                )}
 
                 <Separator className="w-full mb-6" />
+                
+                {/* 프로필 편집 버튼 */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowProfileEdit(true)}
+                  className="w-full mb-4"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  프로필 편집
+                </Button>
 
                 {/* 내 뱃지 영역 (실제 데이터 기반) */}
                 <div className="w-full space-y-3">
@@ -603,7 +796,6 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-      </div>
     </>
   )
 }

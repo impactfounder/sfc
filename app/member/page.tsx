@@ -2,59 +2,59 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Users, TrendingUp } from "lucide-react"
+import { Users, TrendingUp, Instagram, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { requireAuth } from "@/lib/auth/server"
 
 export default async function MemberPage() {
   const supabase = await createClient()
+  
+  // 현재 사용자 정보 (비공개 안내용)
+  let currentUser = null
+  let currentUserProfile = null
+  try {
+    const authResult = await requireAuth()
+    currentUser = authResult.user
+    if (currentUser) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, is_profile_public")
+        .eq("id", currentUser.id)
+        .single()
+      currentUserProfile = data
+    }
+  } catch {
+    // 로그인하지 않은 사용자
+  }
 
-  // 추천 커뮤니티 (최근 생성된 커뮤니티)
-  const { data: recommendedCommunities } = await supabase
+  // 커뮤니티 소개 (반골, 하이토크 등)
+  const { data: communities } = await supabase
     .from("communities")
     .select(`
       id,
       name,
       description,
       thumbnail_url,
+      instagram_url,
+      website_url,
       created_at,
-      created_by,
-      profiles:created_by (
-        full_name
-      ),
       community_members(count)
     `)
     .order("created_at", { ascending: false })
-    .limit(10)
 
-  // SFC 멤버 리스트
-  const { data: members } = await supabase
+  // 공개된 멤버 리스트 (is_profile_public = true)
+  const { data: publicMembers } = await supabase
     .from("profiles")
     .select(`
       id,
       full_name,
       avatar_url,
-      bio,
-      role,
-      created_at,
-      user_badges!inner (
-        badges:badge_id (
-          icon,
-          name
-        )
-      )
-    `)
-    .eq("user_badges.is_visible", true)
-    .order("created_at", { ascending: false })
-
-  // 모든 멤버 가져오기 (뱃지 포함 여부와 관계없이)
-  const { data: allMembersData } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      full_name,
-      avatar_url,
-      bio,
+      company,
+      position,
+      roles,
+      introduction,
       role,
       created_at,
       user_badges (
@@ -64,12 +64,14 @@ export default async function MemberPage() {
         )
       )
     `)
+    .eq("is_profile_public", true)
     .order("created_at", { ascending: false })
 
   // 멤버 데이터 정리
-  const allMembers = (allMembersData || []).map((member: any) => ({
+  const members = (publicMembers || []).map((member: any) => ({
     ...member,
-    user_badges: member.user_badges?.filter((ub: any) => ub.badges) || []
+    user_badges: member.user_badges?.filter((ub: any) => ub.badges) || [],
+    roles: member.roles || [],
   }))
 
   return (
@@ -78,58 +80,91 @@ export default async function MemberPage() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">SFC멤버</h1>
-          <p className="mt-2 text-slate-600">SFC 커뮤니티의 멤버들을 만나보세요</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">SFC 멤버</h1>
+          <p className="mt-2 text-slate-600">검증된 멤버들의 쇼케이스</p>
         </div>
 
-        {/* 추천 커뮤니티 섹션 */}
-        {recommendedCommunities && recommendedCommunities.length > 0 && (
-          <div className="mb-12">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">추천 커뮤니티</h2>
-              <Link href="/communities" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                전체 보기 →
-              </Link>
+        {/* 비공개 안내 배너 */}
+        {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                프로필을 공개하고 멤버 리스트에 올라가보세요!
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                다른 멤버들이 당신을 찾을 수 있도록 프로필을 공개하세요
+              </p>
             </div>
-            <div className="overflow-x-auto pb-4">
-              <div className="flex gap-4 min-w-max">
-                {recommendedCommunities.map((community: any) => (
-                  <Link
-                    key={community.id}
-                    href={`/communities/${community.id}`}
-                    className="flex-shrink-0"
-                  >
-                    <Card className="w-64 border-slate-200 hover:shadow-md transition-shadow">
-                      <div className="aspect-video relative overflow-hidden rounded-t-lg bg-slate-100">
-                        {community.thumbnail_url ? (
-                          <Image
-                            src={community.thumbnail_url}
-                            alt={community.name}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-slate-400">
-                            <Users className="h-12 w-12" />
-                          </div>
+            <Link href="/community/profile">
+              <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                설정하기
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* 커뮤니티 소개 섹션 */}
+        {communities && communities.length > 0 && (
+          <div className="mb-12">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">커뮤니티 (소모임)</h2>
+              <p className="text-sm text-slate-600 mt-1">SFC 내 다양한 소모임을 만나보세요</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {communities.map((community: any) => (
+                <Card key={community.id} className="border-slate-200 hover:shadow-md transition-shadow">
+                  <div className="aspect-video relative overflow-hidden rounded-t-lg bg-slate-100">
+                    {community.thumbnail_url ? (
+                      <Image
+                        src={community.thumbnail_url}
+                        alt={community.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-slate-400">
+                        <Users className="h-12 w-12" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-slate-900 mb-2 line-clamp-1">
+                      {community.name}
+                    </h3>
+                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                      {community.description || "설명이 없습니다."}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Users className="h-3 w-3" />
+                        <span>{community.community_members?.[0]?.count || 0}명</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {community.instagram_url && (
+                          <a
+                            href={community.instagram_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+                          >
+                            <Instagram className="h-4 w-4 text-slate-600" />
+                          </a>
+                        )}
+                        {community.website_url && (
+                          <a
+                            href={community.website_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+                          >
+                            <ExternalLink className="h-4 w-4 text-slate-600" />
+                          </a>
                         )}
                       </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold text-slate-900 mb-1 line-clamp-1">
-                          {community.name}
-                        </h3>
-                        <p className="text-xs text-slate-600 line-clamp-2 mb-2">
-                          {community.description || "설명이 없습니다."}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <Users className="h-3 w-3" />
-                          <span>{community.community_members?.[0]?.count || 0}명</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         )}
@@ -139,43 +174,61 @@ export default async function MemberPage() {
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-900">SFC 멤버 리스트</h2>
             <div className="text-sm text-slate-500">
-              총 {allMembers.length}명
+              총 {members.length}명
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {allMembers.map((member: any) => {
-              const badges = member.user_badges?.map((ub: any) => ub.badges).filter(Boolean) || []
-              
-              return (
-                <Link key={member.id} href={`/community/profile?id=${member.id}`}>
-                  <Card className="border-slate-200 hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-12 w-12 flex-shrink-0">
-                          <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
-                          <AvatarFallback className="bg-blue-600 text-white">
-                            {member.full_name?.[0] || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-slate-900 truncate">
-                              {member.full_name || "익명"}
-                            </h3>
-                            {member.role === "admin" || member.role === "master" ? (
-                              <Badge variant="secondary" className="text-xs">
-                                관리자
-                              </Badge>
-                            ) : null}
-                          </div>
-                          {member.bio && (
-                            <p className="text-xs text-slate-600 line-clamp-2 mb-2">
-                              {member.bio}
+          {members.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {members.map((member: any) => {
+                const badges = member.user_badges?.map((ub: any) => ub.badges).filter(Boolean) || []
+                
+                return (
+                  <Link key={member.id} href={`/community/profile?id=${member.id}`}>
+                    <Card className="border-slate-200 bg-white hover:shadow-md transition-shadow h-full">
+                      <CardContent className="p-5">
+                        <div className="flex flex-col items-center text-center">
+                          <Avatar className="h-16 w-16 mb-3">
+                            <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
+                            <AvatarFallback className="bg-blue-600 text-white text-lg">
+                              {member.full_name?.[0] || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <h3 className="font-semibold text-slate-900 mb-1">
+                            {member.full_name || "익명"}
+                          </h3>
+                          
+                          {/* 소속/직책 */}
+                          {(member.company || member.position) && (
+                            <p className="text-xs text-slate-600 mb-2">
+                              {member.company}
+                              {member.company && member.position && " · "}
+                              {member.position}
                             </p>
                           )}
+                          
+                          {/* 역할 뱃지 */}
+                          {member.roles && member.roles.length > 0 && (
+                            <div className="flex flex-wrap gap-1 justify-center mb-2">
+                              {member.roles.map((role: string) => (
+                                <Badge key={role} variant="outline" className="text-xs">
+                                  {role}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* 자기소개 */}
+                          {member.introduction && (
+                            <p className="text-xs text-slate-600 line-clamp-2 mb-2">
+                              {member.introduction}
+                            </p>
+                          )}
+                          
+                          {/* 인증 뱃지 */}
                           {badges.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
+                            <div className="flex flex-wrap gap-1 justify-center mt-2">
                               {badges.slice(0, 3).map((badge: any, idx: number) => (
                                 <Badge key={idx} variant="outline" className="text-xs">
                                   <span className="mr-1">{badge.icon}</span>
@@ -190,13 +243,17 @@ export default async function MemberPage() {
                             </div>
                           )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )
-            })}
-          </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-500">
+              <p>공개된 멤버가 없습니다</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
     try {
       await deleteEvent(eventId)
       router.refresh()
-      router.push("/admin/events")
+      // SPA에서는 페이지 이동 없이 새로고침만
     } catch (error) {
       console.error("Failed to delete event:", error)
       alert("이벤트 삭제에 실패했습니다.")

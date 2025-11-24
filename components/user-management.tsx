@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Shield, Crown, Medal } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TableRow, TableCell } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BadgeManager } from "@/components/badge-manager"
@@ -192,19 +192,19 @@ export function UserManagementRow({
       </TableRow>
 
       {/* 뱃지 관리 모달 */}
-      <Sheet open={showBadgeManager} onOpenChange={setShowBadgeManager}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
+      <Dialog open={showBadgeManager} onOpenChange={setShowBadgeManager}>
+        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <Medal className="h-5 w-5" />
               뱃지 관리 및 등록
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-6 max-h-[80vh] overflow-y-auto">
             <BadgeManager userId={user.id} />
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
