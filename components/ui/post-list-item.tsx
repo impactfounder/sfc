@@ -37,9 +37,10 @@ type PostListItemProps = {
   href: string
   className?: string
   isMember?: boolean // 해당 커뮤니티 멤버 여부
+  viewMode?: "feed" | "list" // 뷰 모드
 }
 
-export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isMember = true }) => {
+export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isMember = true, viewMode = "feed" }) => {
   // content에서 HTML 태그 제거하고 텍스트만 추출
   const getPlainText = (html?: string | null) => {
     if (!html) return ""
@@ -52,6 +53,45 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
   const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
   const isGroupOnly = post.visibility === "group" && !isMember
 
+  // 리스트형 뷰
+  if (viewMode === "list") {
+    return (
+      <Link href={href} className={cn("block", className)}>
+        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+          {/* 좌측: 커뮤니티 이름 뱃지 */}
+          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold flex-shrink-0">
+            {categoryName}
+          </span>
+          
+          {/* 중앙: 제목 */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-slate-900 line-clamp-1">
+              {post.title}
+            </h3>
+          </div>
+
+          {/* 우측: 메타 정보 */}
+          <div className="flex items-center gap-4 text-xs text-slate-500 flex-shrink-0">
+            <span className="hidden sm:inline">{post.profiles?.full_name || "익명"}</span>
+            <span className="hidden sm:inline">·</span>
+            <span>{formatRelativeTime(post.created_at)}</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Heart className="h-3.5 w-3.5" />
+                <span>{post.likes_count || 0}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>{post.comments_count || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Link>
+    )
+  }
+
+  // 피드형 뷰 (기본)
   return (
     <Link href={href} className={cn("block", className)}>
       <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
@@ -94,7 +134,7 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
                   <div className="flex flex-col items-center gap-2 text-center px-4">
                     <Lock className="h-6 w-6 text-slate-400" />
                     <p className="text-sm font-medium text-slate-700">
-                      🔒 {categoryName} 멤버 전용 글입니다
+                      🔒 멤버 전용 글입니다
                     </p>
                     <p className="text-xs text-slate-500">
                       가입하면 전체 내용을 볼 수 있습니다

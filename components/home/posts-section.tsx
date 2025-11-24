@@ -6,6 +6,7 @@ import { PostListItem } from "@/components/ui/post-list-item"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LayoutGrid, List } from "lucide-react"
 import Link from "next/link"
 
 type Post = {
@@ -52,6 +53,7 @@ export function PostsSection({
 }: PostsSectionProps) {
   
   const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
+  const [viewMode, setViewMode] = useState<"feed" | "list">("feed")
   const currentBoard = onBoardChange ? selectedBoard : internalSelectedBoard
   const handleBoardChange = onBoardChange 
     ? onBoardChange 
@@ -89,7 +91,32 @@ export function PostsSection({
   return (
     <div className="w-full space-y-6">
       
-      <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">최신 글</h2>
+      {/* 헤더: 제목 + 뷰 모드 토글 */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">최신 글</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={viewMode === "feed" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("feed")}
+            className="h-9 px-3"
+          >
+            <LayoutGrid className="h-4 w-4 mr-1.5" />
+            피드형
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="h-9 px-3"
+          >
+            <List className="h-4 w-4 mr-1.5" />
+            리스트형
+          </Button>
+        </div>
+      </div>
 
       {/* 카테고리 필터 (업로드하신 이미지 스타일 적용) */}
       <div className="overflow-x-auto pb-2 scrollbar-hide">
@@ -143,6 +170,7 @@ export function PostsSection({
                 post={post}
                 href={`/community/board/${boardSlug}/${post.id}`}
                 isMember={post.isMember ?? true}
+                viewMode={viewMode}
               />
             )
           })
