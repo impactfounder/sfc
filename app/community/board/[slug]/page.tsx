@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PostListItem } from "@/components/ui/post-list-item";
+import { PostsSection } from "@/components/home/posts-section";
 import Link from "next/link";
-import { Plus, MessageSquare, ThumbsUp } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { isAdmin } from "@/lib/utils";
 import type { Metadata } from "next";
 
@@ -88,7 +88,7 @@ export default async function BoardPage({
           slug
         )
       `)
-      .eq("category", slug === "announcements" ? "announcement" : slug)
+      .eq("board_categories.slug", slug)
       .order("created_at", { ascending: false })
   ]);
 
@@ -141,6 +141,23 @@ export default async function BoardPage({
     }
   } : null;
 
+  // 게시글 데이터 변환 (PostsSection 형식에 맞춤)
+  const transformedPosts = (posts || []).map((post: any) => ({
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    created_at: post.created_at,
+    visibility: post.visibility || "public",
+    likes_count: post.likes_count || 0,
+    comments_count: post.comments_count || 0,
+    profiles: post.profiles ? { full_name: post.profiles.full_name } : null,
+    board_categories: post.board_categories || {
+      name: category.name,
+      slug: slug,
+    },
+    isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
+  }))
+
   return (
     <>
       {structuredData && (
@@ -149,8 +166,8 @@ export default async function BoardPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       )}
-      <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
-        <div className="mx-auto max-w-4xl">
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -180,41 +197,16 @@ export default async function BoardPage({
             )}
           </div>
 
-          {/* Posts List */}
-          {posts && posts.length > 0 ? (
-            <div className="space-y-4">
-              {posts.map((post: any) => (
-                <PostListItem
-                  key={post.id}
-                  post={{
-                    id: post.id,
-                    title: post.title,
-                    content: post.content,
-                    created_at: post.created_at,
-                    profiles: post.profiles,
-                    board_categories: post.board_categories || {
-                      name: category.name,
-                      slug: slug === "announcements" ? "announcement" : slug,
-                    },
-                  }}
-                  href={`/community/board/${slug}/${post.id}`}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="border-slate-200">
-              <CardContent className="py-12 text-center">
-                <MessageSquare className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">아직 게시글이 없습니다</h3>
-                <p className="mb-4 text-sm text-slate-600">첫 번째 게시글을 작성해보세요</p>
-                {user && (
-                  <Link href={`/community/board/${slug}/new`}>
-                    <Button>글쓰기</Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {/* Posts Section - 카드형 피드로 통일 */}
+          <Card>
+            <CardContent className="pt-6">
+              <PostsSection
+                posts={transformedPosts}
+                boardCategories={[]}
+                hideTabs={true}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>

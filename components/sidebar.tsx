@@ -144,6 +144,12 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const isAdmin = userRole === "admin" || userRole === "master"
 
   const isLinkActive = (href: string, startsWith = false) => {
+    // 커뮤니티 관련 링크는 exact match만 허용 (서로 간섭 방지)
+    const communityExactMatchPaths = ['/communities', '/community']
+    if (communityExactMatchPaths.includes(href)) {
+      return pathname === href
+    }
+    // 다른 링크는 기존 로직 유지
     return startsWith ? pathname.startsWith(href) : pathname === href
   }
 
@@ -296,7 +302,9 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
 
               <div className="space-y-0.5">
                 {section.links.map((item) => {
-                  const isActive = isLinkActive(item.href, true)
+                  // 커뮤니티 섹션의 링크는 exact match만, 다른 섹션은 startsWith 사용
+                  const useExactMatch = section.title === "커뮤니티"
+                  const isActive = isLinkActive(item.href, !useExactMatch)
                   const Icon = item.icon
                   return (
                     <Link

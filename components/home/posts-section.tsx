@@ -42,6 +42,7 @@ interface PostsSectionProps {
   selectedBoard?: string
   onBoardChange?: (slug: string) => void
   isLoading?: boolean
+  hideTabs?: boolean // 카테고리 필터 탭 숨기기 (개별 게시판용)
 }
 
 export function PostsSection({ 
@@ -49,7 +50,8 @@ export function PostsSection({
   boardCategories,
   selectedBoard = "all",
   onBoardChange,
-  isLoading = false 
+  isLoading = false,
+  hideTabs = false
 }: PostsSectionProps) {
   
   const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
@@ -118,36 +120,38 @@ export function PostsSection({
         </div>
       </div>
 
-      {/* 카테고리 필터 (업로드하신 이미지 스타일 적용) */}
-      <div className="overflow-x-auto pb-2 scrollbar-hide">
-        <ToggleGroup
-          type="single"
-          value={currentBoard}
-          onValueChange={handleBoardChange}
-          // ★ 컨테이너 스타일: 연한 회색 배경, 둥근 모서리, 내부 패딩
-          className="inline-flex items-center p-1.5 rounded-2xl bg-slate-100/80 w-auto"
-        >
-          <ToggleGroupItem 
-            value="all" 
-            aria-label="전체" 
-            // ★ 아이템 스타일: 선택 시 흰색 배경 + 그림자 + 파란 텍스트 / 비선택 시 회색 텍스트
-            className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+      {/* 카테고리 필터 (hideTabs가 false일 때만 표시) */}
+      {!hideTabs && (
+        <div className="overflow-x-auto pb-2 scrollbar-hide">
+          <ToggleGroup
+            type="single"
+            value={currentBoard}
+            onValueChange={handleBoardChange}
+            // ★ 컨테이너 스타일: 연한 회색 배경, 둥근 모서리, 내부 패딩
+            className="inline-flex items-center p-1.5 rounded-2xl bg-slate-100/80 w-auto"
           >
-            전체
-          </ToggleGroupItem>
-          
-          {uniqueCategories.map((category) => (
-            <ToggleGroupItem
-              key={category.id}
-              value={category.slug}
-              aria-label={category.name}
+            <ToggleGroupItem 
+              value="all" 
+              aria-label="전체" 
+              // ★ 아이템 스타일: 선택 시 흰색 배경 + 그림자 + 파란 텍스트 / 비선택 시 회색 텍스트
               className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
             >
-              {category.name}
+              전체
             </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+            
+            {uniqueCategories.map((category) => (
+              <ToggleGroupItem
+                key={category.id}
+                value={category.slug}
+                aria-label={category.name}
+                className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+              >
+                {category.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+      )}
 
       {/* Posts List */}
       <div className="space-y-3">

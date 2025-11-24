@@ -27,6 +27,7 @@ export async function getLatestPosts(
   supabase: SupabaseClient,
   limit: number = 50
 ): Promise<PostForDisplay[]> {
+  // board_categories와 inner join하여 slug가 있는 글만 가져오기
   const { data, error } = await supabase
     .from("posts")
     .select(`
@@ -38,10 +39,9 @@ export async function getLatestPosts(
       likes_count,
       comments_count,
       profiles:author_id (full_name),
-      board_categories:board_category_id (name, slug),
+      board_categories:board_category_id!inner (name, slug),
       communities:community_id (name)
     `)
-    .not("board_category_id", "is", null) // board_category_id가 있는 글만 가져오기
     .order("created_at", { ascending: false })
     .limit(limit)
 
