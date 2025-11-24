@@ -144,9 +144,8 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
   const isAdmin = userRole === "admin" || userRole === "master"
 
   const isLinkActive = (href: string, startsWith = false) => {
-    // 커뮤니티 관련 링크는 exact match만 허용 (서로 간섭 방지)
-    const communityExactMatchPaths = ['/communities', '/community']
-    if (communityExactMatchPaths.includes(href)) {
+    // /community 경로에 대한 예외 처리: 완전 일치일 때만 활성화
+    if (href === '/community' || href === '/community/page') {
       return pathname === href
     }
     // 다른 링크는 기존 로직 유지

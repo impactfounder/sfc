@@ -21,10 +21,15 @@ export async function generateMetadata({
   const { slug } = await params;
   const supabase = await createClient();
   
+  // URL 슬러그를 DB 슬러그로 매핑
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
+  
   const { data: category } = await supabase
     .from("board_categories")
     .select("name, description")
-    .eq("slug", slug)
+    .eq("slug", dbSlug)
     .eq("is_active", true)
     .single();
 
@@ -68,8 +73,17 @@ export default async function BoardPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  // 'announcements'는 DB 슬러그인 'announcement'로 변환
-  const dbSlug = slug === "announcements" ? "announcement" : slug;
+  // URL 슬러그를 DB 슬러그로 매핑 (철저한 검증)
+  let dbSlug = slug;
+  if (slug === 'free') dbSlug = 'free-board';
+  if (slug === 'announcements') dbSlug = 'announcement';
+
+  // 매핑 검증: 유효한 슬러그인지 확인
+  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk'];
+  if (!validSlugs.includes(dbSlug)) {
+    console.error(`[BoardPage] 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
+    notFound();
+  }
 
   const [categoryResult, userResult, transformedPosts] = await Promise.all([
     supabase
@@ -137,24 +151,12 @@ export default async function BoardPage({
   }))
 
   // 디버깅: 데이터 확인
-  console.log(`[BoardPage] slug: "${slug}", dbSlug: "${dbSlug}", 게시글 수: ${postsWithMembership.length}`)
+  console.log(`[BoardPage] ✅ slug: "${slug}", dbSlug: "${dbSlug}", 게시글 수: ${postsWithMembership.length}`)
   
-  // 테스트 데이터 (게시글이 없을 때만 - 나중에 제거)
+  // 게시글이 없을 때 경고 (테스트 데이터는 제거 - DB에 반드시 데이터가 있어야 함)
   if (postsWithMembership.length === 0) {
-    console.warn(`[BoardPage] 게시글이 없습니다. slug: "${slug}", dbSlug: "${dbSlug}", category: ${category?.name}`)
-    // 테스트 데이터 생성 (나중에 제거)
-    postsWithMembership = [{
-      id: 'test-1',
-      title: `[테스트] ${category.name} 게시판 테스트 글`,
-      content: '이것은 테스트 게시글입니다. 실제 데이터가 없을 때 표시됩니다.',
-      created_at: new Date().toISOString(),
-      visibility: 'public' as const,
-      likes_count: 0,
-      comments_count: 0,
-      profiles: { full_name: '테스트 사용자' },
-      board_categories: { name: category.name, slug: dbSlug },
-      isMember: true,
-    }]
+    console.warn(`[BoardPage] ⚠️ 게시글이 없습니다. slug: "${slug}", dbSlug: "${dbSlug}", category: ${category?.name}`)
+    console.warn(`[BoardPage] 💡 scripts/099_rebuild_community_schema.sql을 실행하여 테스트 데이터를 생성하세요.`)
   }
 
   return (
