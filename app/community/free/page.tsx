@@ -49,7 +49,7 @@ export default async function FreeBoardPage() {
             <p className="mt-2 text-base text-slate-600">{pageDescription}</p>
           </div>
           <div className="flex flex-col gap-2 text-sm text-slate-500">
-            <Button asChild size="lg">
+            <Button asChild size="lg" className="transition-all active:scale-[0.98] hover:shadow-lg">
               <Link href="/community/free/write">글쓰기</Link>
             </Button>
             {!user && (
@@ -87,7 +87,7 @@ export default async function FreeBoardPage() {
                 <EmptyDescription>첫 번째 글을 작성해 커뮤니티를 시작해보세요.</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button asChild>
+                <Button asChild className="transition-all active:scale-[0.98] hover:shadow-lg">
                   <Link href="/community/free/write">글쓰기</Link>
                 </Button>
               </EmptyContent>

@@ -4,9 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { RichTextEditor } from "@/components/rich-text-editor"
 import { createPost } from "@/lib/actions/posts"
 
 type NewBoardPostFormProps = {
@@ -65,13 +65,9 @@ export function NewBoardPostForm({ slug, boardCategoryId }: NewBoardPostFormProp
         <label htmlFor="content" className="text-sm font-medium text-slate-900">
           내용
         </label>
-        <Textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-          placeholder="내용을 입력하세요"
-          className="min-h-[300px] w-full"
+        <RichTextEditor
+          content={content}
+          onChange={(html) => setContent(html)}
         />
       </div>
 

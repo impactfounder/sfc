@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { createPost } from "@/lib/actions/posts";
 
 export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: string; boardCategoryId?: string; communityId?: string }) {
@@ -59,15 +59,12 @@ export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: 
 
           <div>
             <Label htmlFor="content">Content</Label>
-            <Textarea
-              id="content"
-              placeholder="Share your thoughts..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              required
-              rows={10}
-              className="mt-2"
-            />
+            <div className="mt-2">
+              <RichTextEditor
+                content={content}
+                onChange={(html) => setContent(html)}
+              />
+            </div>
           </div>
 
           <div>

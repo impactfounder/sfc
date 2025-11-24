@@ -34,7 +34,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none min-h-[300px] px-4 py-3 text-[15px] leading-relaxed text-slate-900",
+          "prose prose-sm max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-relaxed text-slate-900",
       },
     },
   })
@@ -70,7 +70,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white overflow-hidden focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 min-h-[300px]">
+    <div className="rounded-lg border border-slate-300 bg-white overflow-hidden focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 min-h-[400px]">
       <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
         <Button
           type="button"

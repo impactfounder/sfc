@@ -36,14 +36,14 @@ export default async function PostsPage() {
           </div>
           {user ? (
             <Link href="/community/posts/new">
-              <Button className="gap-2">
+              <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
                 <Plus className="h-4 w-4" />
                 글쓰기
               </Button>
             </Link>
           ) : (
             <Link href="/auth/login">
-              <Button className="gap-2">
+              <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
                 <Plus className="h-4 w-4" />
                 로그인하고 글쓰기
               </Button>
@@ -95,11 +95,11 @@ export default async function PostsPage() {
                 <p className="mb-4 text-sm text-slate-600">첫 번째 게시글을 작성해보세요</p>
                 {user ? (
                   <Link href="/community/posts/new">
-                    <Button>글쓰기</Button>
+                    <Button className="transition-all active:scale-[0.98] hover:shadow-lg">글쓰기</Button>
                   </Link>
                 ) : (
                   <Link href="/auth/login">
-                    <Button>로그인하고 글쓰기</Button>
+                    <Button className="transition-all active:scale-[0.98] hover:shadow-lg">로그인하고 글쓰기</Button>
                   </Link>
                 )}
               </CardContent>

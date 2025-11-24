@@ -51,7 +51,8 @@ export async function getLatestPosts(
   if (categorySlug && categorySlug !== 'all') {
     query = query.eq("board_categories.slug", categorySlug)
   }
-  // categorySlug가 없거나 'all'이면 쿼리 레벨에서는 필터링하지 않고, 결과를 받은 후 필터링
+  // 'all'이거나 없을 때는 쿼리 레벨에서 필터링하지 않고, 결과를 받은 후 필터링
+  // (Supabase의 neq 체이닝이 예상대로 작동하지 않을 수 있으므로 안전하게 처리)
 
   const { data, error } = await query
     .order("created_at", { ascending: false })
@@ -80,8 +81,8 @@ export async function getLatestPosts(
       : post.communities,
   }))
 
-  // categorySlug가 없거나 'all'이면 공지사항과 자유게시판 제외 (소모임 글만 반환)
-  // 'vangol', 'hightalk' 등의 소모임 글만 포함
+  // 쿼리 레벨에서 이미 필터링되었으므로 추가 필터링 불필요
+  // (하지만 안전을 위해 한 번 더 체크)
   if (!categorySlug || categorySlug === 'all') {
     const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
     transformed = transformed.filter((post) => {

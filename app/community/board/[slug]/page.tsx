@@ -155,14 +155,14 @@ export default async function BoardPage({
               <div>
                 {user ? (
                   <Link href={`/community/board/${slug}/new`}>
-                    <Button className="gap-2">
+                    <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
                       <Plus className="h-4 w-4" />
                       글쓰기
                     </Button>
                   </Link>
                 ) : (
                   <Link href="/auth/login">
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
                       <Plus className="h-4 w-4" />
                       로그인하고 글쓰기
                     </Button>
