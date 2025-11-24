@@ -20,6 +20,7 @@ export default async function CommunityDashboardPage() {
   ])
 
   // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
+  // 'free-board'는 게시글에는 포함되지만 카테고리 탭에서는 제외
   const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
   const filteredBoardCategories = (boardCategories || []).filter(
     (cat) => !excludedSlugs.includes(cat.slug)
