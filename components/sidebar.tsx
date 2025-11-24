@@ -40,7 +40,7 @@ const navigationSections = [
     title: "커뮤니티", // 브랜드성
     links: [
       { name: "커뮤니티", href: "/community", icon: Ticket },
-      { name: "반골", href: "/community/board/bangol", icon: Users },
+      { name: "반골", href: "/community/board/vangol", icon: Users },
       { name: "하이토크", href: "/community/board/hightalk", icon: Lightbulb }
     ],
     groupStyle: "brand"

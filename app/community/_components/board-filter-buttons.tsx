@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export type BoardFilter = "all" | "bangol" | "hightalk" | "free-board" | "other"
+export type BoardFilter = "all" | "vangol" | "hightalk" | "free-board" | "other"
 
 const filterOptions: { value: BoardFilter; label: string }[] = [
   { value: "all", label: "전체" },
-  { value: "bangol", label: "반골" },
+  { value: "vangol", label: "반골" },
   { value: "hightalk", label: "하이토크" },
   { value: "free-board", label: "자유게시판" },
   { value: "other", label: "기타" },

@@ -89,7 +89,7 @@ export default function HomePage() {
         const { data, error } = await supabase
           .from("board_categories")
           .select("id, name, slug")
-          .in("slug", ["free", "vangol", "hightalk", "free-board", "bangol", "hightalk"])
+          .in("slug", ["free", "vangol", "hightalk", "free-board"])
           .eq("is_active", true)
           .order("order_index", { ascending: true })
         
@@ -171,7 +171,7 @@ export default function HomePage() {
             ), 
             board_categories!inner(name, slug)
           `)
-          .in("board_categories.slug", ["free", "vangol", "hightalk", "free-board", "bangol", "hightalk"])
+          .in("board_categories.slug", ["free", "vangol", "hightalk", "free-board"])
           .neq("board_categories.slug", "announcement")
           .order("created_at", { ascending: false })
           .limit(50)
@@ -192,7 +192,6 @@ export default function HomePage() {
       if (categoriesData.length > 0) {
         const mappedCategories = categoriesData.map((cat) => {
           if (cat.slug === "free-board") return { ...cat, slug: "free" }
-          if (cat.slug === "bangol") return { ...cat, slug: "vangol" }
           return cat
         })
         setBoardCategories(mappedCategories as BoardCategory[])
@@ -262,7 +261,6 @@ export default function HomePage() {
         const postsWithBadges = postsData.map((post: any) => {
           let slug = post.board_categories?.slug
           if (slug === "free-board") slug = "free"
-          if (slug === "bangol") slug = "vangol"
 
           const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
 

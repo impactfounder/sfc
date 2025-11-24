@@ -24,7 +24,7 @@ export type PostForDisplay = {
  * 최신 게시글 목록 가져오기
  * @param supabase Supabase 클라이언트
  * @param limit 가져올 게시글 수 (기본값: 50)
- * @param categorySlug 특정 카테고리 슬러그 (예: 'bangol', 'hightalk'). 없거나 'all'이면 소모임 글만 가져옴
+ * @param categorySlug 특정 카테고리 슬러그 (예: 'vangol', 'hightalk'). 없거나 'all'이면 소모임 글만 가져옴
  */
 export async function getLatestPosts(
   supabase: SupabaseClient,
