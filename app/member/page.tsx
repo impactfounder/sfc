@@ -80,7 +80,7 @@ export default async function MemberPage() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">SFC 멤버</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">멤버</h1>
           <p className="mt-2 text-slate-600">검증된 멤버들의 쇼케이스</p>
         </div>
 
@@ -108,7 +108,7 @@ export default async function MemberPage() {
           <div className="mb-12">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-slate-900">커뮤니티 (소모임)</h2>
-              <p className="text-sm text-slate-600 mt-1">SFC 내 다양한 소모임을 만나보세요</p>
+              <p className="text-sm text-slate-600 mt-1">다양한 소모임을 만나보세요</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {communities.map((community: any) => (
@@ -169,10 +169,10 @@ export default async function MemberPage() {
           </div>
         )}
 
-        {/* SFC 멤버 리스트 섹션 */}
+        {/* 멤버 리스트 섹션 */}
         <div>
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-900">SFC 멤버 리스트</h2>
+            <h2 className="text-xl font-semibold text-slate-900">멤버 리스트</h2>
             <div className="text-sm text-slate-500">
               총 {members.length}명
             </div>

@@ -84,7 +84,7 @@ export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: 
                     <span>🌍</span>
                     <div>
                       <div className="font-medium text-slate-900">전체 공개</div>
-                      <div className="text-xs text-slate-500">SFC 멤버 누구나 볼 수 있습니다.</div>
+                      <div className="text-xs text-slate-500">멤버 누구나 볼 수 있습니다.</div>
                     </div>
                   </div>
                 </Label>

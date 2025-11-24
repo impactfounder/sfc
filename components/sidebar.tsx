@@ -17,7 +17,7 @@ const navigationSections = [
     title: "소개", 
     links: [
       { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen },
-      { name: "SFC멤버", href: "/member", icon: Users }
+      { name: "멤버", href: "/member", icon: Users }
     ],
     groupStyle: "major"
   },
@@ -39,7 +39,7 @@ const navigationSections = [
   { 
     title: "커뮤니티", // 브랜드성
     links: [
-      { name: "SFC커뮤니티", href: "/communities", icon: Ticket },
+      { name: "커뮤니티", href: "/community", icon: Ticket },
       { name: "반골", href: "/community/board/bangol", icon: Users },
       { name: "하이토크", href: "/community/board/hightalk", icon: Lightbulb }
     ],

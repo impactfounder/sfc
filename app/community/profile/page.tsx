@@ -518,7 +518,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
               <div className="flex-1">
                 <Label htmlFor="is_public" className="font-medium">
-                  SFC 멤버 리스트에 내 프로필을 공개합니다
+                  멤버 리스트에 내 프로필을 공개합니다
                 </Label>
                 <p className="text-xs text-slate-500 mt-1">
                   공개 시 멤버 페이지에서 프로필을 확인할 수 있습니다

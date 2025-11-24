@@ -34,7 +34,7 @@ export default async function CommunitiesPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">SFC커뮤니티</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">커뮤니티</h1>
             <p className="mt-2 text-slate-600">관심사가 같은 멤버들과 함께하는 커뮤니티를 찾아보세요</p>
           </div>
           {user ? (

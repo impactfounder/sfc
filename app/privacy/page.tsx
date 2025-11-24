@@ -136,7 +136,7 @@ export default function PrivacyPage() {
                 <section>
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">7. 이벤트 주최자의 개인정보 열람·관리 권한</h3>
                   <p className="mb-3">
-                    SFC 서비스 구조상, 이벤트 주최자는 본인이 생성한 이벤트의 운영을 위해 필요한 범위에서만 참여자 정보를 열람·관리할 수 있습니다.
+                    Seoul Founders Club 서비스 구조상, 이벤트 주최자는 본인이 생성한 이벤트의 운영을 위해 필요한 범위에서만 참여자 정보를 열람·관리할 수 있습니다.
                   </p>
                   <p className="mb-2">
                     <strong>주최자가 열람할 수 있는 정보</strong><br/>

@@ -101,8 +101,8 @@ const BADGE_GROUPS = [
     icon: "🛡️",
     color: "bg-purple-100/50 text-purple-700",
     badges: [
-      { name: "선착순 100인", desc: "SFC 초기 가입 멤버 (로열티)", icon: "👑" },
-      { name: "커뮤니티 리더", desc: "SFC 커뮤니티 운영진 및 리더", icon: "🛡️" },
+      { name: "선착순 100인", desc: "Seoul Founders Club 초기 가입 멤버 (로열티)", icon: "👑" },
+      { name: "커뮤니티 리더", desc: "Seoul Founders Club 커뮤니티 운영진 및 리더", icon: "🛡️" },
       { name: "우수활동 회원", desc: "커뮤니티 내 활동 지수 상위 1% 회원", icon: "🌟" },
     ],
     gridCols: "lg:grid-cols-3",
@@ -198,7 +198,7 @@ export default function AboutPage() {
 
       <div className="flex-1 overflow-auto pt-16 md:pt-0 pb-16 md:pl-[344px]"> {/* pb-16 추가 */}
         
-        {/* HERO: SFC는 어떤 사람들의 커뮤니티인가 */}
+        {/* HERO: Seoul Founders Club는 어떤 사람들의 커뮤니티인가 */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 md:px-8 py-12 md:py-20 text-white">
           <div className="mx-auto max-w-4xl text-center">
             {/* ... (Intro Content) ... */}
@@ -232,7 +232,7 @@ export default function AboutPage() {
         <div className="px-4 md:px-8 py-8 md:py-16">
           <div className="mx-auto max-w-4xl">
             
-            {/* 1. SFC 소개 / 미션 / 설립 배경 */}
+            {/* 1. Seoul Founders Club 소개 / 미션 / 설립 배경 */}
             <div className="mb-12 md:mb-16">
               <p className="text-center text-slate-600 text-lg mb-8 max-w-2xl mx-auto">
                 서울 파운더스 클럽은 성장 가속화를 목표로, 투명한 지식 공유와 검증된 관계 형성을 통해 멤버들의 비즈니스 성과를 극대화합니다.
@@ -271,7 +271,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            {/* 2. SFC가 제공하는 활동 (What We Do) */}
+            {/* 2. Seoul Founders Club가 제공하는 활동 (What We Do) */}
             <div className="mb-12 md:mb-16">
               <h2 className="mb-6 md:mb-8 text-center text-2xl md:text-3xl font-bold text-slate-900">제공하는 활동 및 서비스</h2>
               <div className="space-y-4 md:space-y-6">
@@ -323,7 +323,7 @@ export default function AboutPage() {
                     함께하는 멤버들
                 </h2>
                 <p className="text-center text-slate-600 text-lg mb-8 max-w-2xl mx-auto">
-                    SFC 커뮤니티에 참여하는 멤버들은 사업가, 투자자, 전문직 등 특정 분야에서 검증된 역량을 가진 리더들로 구성되어 있습니다.
+                    Seoul Founders Club 커뮤니티에 참여하는 멤버들은 사업가, 투자자, 전문직 등 특정 분야에서 검증된 역량을 가진 리더들로 구성되어 있습니다.
                 </p>
                 <div className="grid md:grid-cols-3 gap-6 text-center">
                     <div className="space-y-2">
@@ -365,7 +365,7 @@ export default function AboutPage() {
                 신뢰를 더하는 인증 뱃지 시스템
               </h2>
               <p className="text-center text-slate-600 mb-10 max-w-2xl mx-auto text-lg">
-                SFC는 객관적인 지표를 통해 멤버들의 신뢰도와 역량을 투명하게 인증합니다.
+                Seoul Founders Club는 객관적인 지표를 통해 멤버들의 신뢰도와 역량을 투명하게 인증합니다.
               </p>
               <div className="space-y-12">
                 {BADGE_GROUPS.map((group) => (
@@ -411,7 +411,7 @@ export default function AboutPage() {
             <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 p-8 md:p-12 text-center text-white">
               <h2 className="mb-4 text-2xl md:text-3xl font-bold">함께 성장할 준비가 되셨나요?</h2>
               <p className="mb-6 md:mb-8 text-base md:text-lg text-slate-300">
-                SFC 커뮤니티와 함께 비즈니스를 성장시키세요
+                Seoul Founders Club 커뮤니티와 함께 비즈니스를 성장시키세요
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Link href="/events">

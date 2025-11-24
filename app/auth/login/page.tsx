@@ -55,7 +55,7 @@ export default function LoginPage() {
                 <div className="relative w-32 h-32 shadow-lg rounded-full overflow-hidden border-[5px] border-white bg-white">
                   <Image 
                     src="/images/logo.png" 
-                    alt="SFC Logo" 
+                    alt="Seoul Founders Club Logo" 
                     width={256}
                     height={256}
                     quality={100}
@@ -108,7 +108,7 @@ export default function LoginPage() {
 
               <div className="mt-1 text-center">
                 <p className="text-[10px] text-slate-400 leading-relaxed">
-                  계속 진행함으로써 SFC의{" "}
+                  계속 진행함으로써 Seoul Founders Club의{" "}
                   <Link href="/terms" className="underline underline-offset-2 hover:text-slate-600 transition-colors" target="_blank">
                     이용약관
                   </Link>

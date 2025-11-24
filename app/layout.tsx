@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s | Seoul Founders Club"
   },
   description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서의 성장과 활동을 돕는 비즈니스 커뮤니티입니다. 네트워킹, 이벤트, 협업 기회를 제공합니다.",
-  keywords: ["서울 파운더스 클럽", "SFC", "창업가 커뮤니티", "비즈니스 네트워킹", "스타트업", "투자자", "인플루언서", "Seoul Founders Club"],
+  keywords: ["서울 파운더스 클럽", "창업가 커뮤니티", "비즈니스 네트워킹", "스타트업", "투자자", "인플루언서", "Seoul Founders Club"],
   authors: [{ name: "Seoul Founders Club" }],
   creator: "Seoul Founders Club",
   publisher: "Seoul Founders Club",
