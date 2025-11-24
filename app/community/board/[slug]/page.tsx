@@ -68,15 +68,18 @@ export default async function BoardPage({
   const { slug } = await params;
   const supabase = await createClient();
 
+  // 'announcements'는 DB 슬러그인 'announcement'로 변환
+  const dbSlug = slug === "announcements" ? "announcement" : slug;
+
   const [categoryResult, userResult, transformedPosts] = await Promise.all([
     supabase
       .from("board_categories")
       .select("*")
-      .eq("slug", slug)
+      .eq("slug", dbSlug)
       .eq("is_active", true)
       .single(),
     supabase.auth.getUser(),
-    getLatestPosts(supabase, 50, slug) // 현재 slug를 전달하여 해당 카테고리 글만 가져오기
+    getLatestPosts(supabase, 50, dbSlug) // DB 슬러그를 전달하여 해당 카테고리 글만 가져오기
   ]);
 
   const category = categoryResult.data;
@@ -134,11 +137,11 @@ export default async function BoardPage({
   }))
 
   // 디버깅: 데이터 확인
-  console.log(`[BoardPage] slug: "${slug}", 게시글 수: ${postsWithMembership.length}`)
+  console.log(`[BoardPage] slug: "${slug}", dbSlug: "${dbSlug}", 게시글 수: ${postsWithMembership.length}`)
   
   // 테스트 데이터 (게시글이 없을 때만 - 나중에 제거)
   if (postsWithMembership.length === 0) {
-    console.warn(`[BoardPage] 게시글이 없습니다. slug: "${slug}", category: ${category?.name}`)
+    console.warn(`[BoardPage] 게시글이 없습니다. slug: "${slug}", dbSlug: "${dbSlug}", category: ${category?.name}`)
     // 테스트 데이터 생성 (나중에 제거)
     postsWithMembership = [{
       id: 'test-1',
@@ -149,7 +152,7 @@ export default async function BoardPage({
       likes_count: 0,
       comments_count: 0,
       profiles: { full_name: '테스트 사용자' },
-      board_categories: { name: category.name, slug: slug },
+      board_categories: { name: category.name, slug: dbSlug },
       isMember: true,
     }]
   }
