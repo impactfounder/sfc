@@ -11,8 +11,9 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { X } from "lucide-react"
+import { X, Camera, Loader2 } from "lucide-react"
 import { BadgeManager } from "@/components/badge-manager" // 뱃지 관리 컴포넌트
+import { updateProfileAvatar } from "@/lib/actions/user"
 
 type TabType = "points" | "posts" | "created_events" | "participated_events";
 
@@ -102,6 +103,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabType>("posts") // 기본값: 게시글
   const [loading, setLoading] = useState(true)
   const [showBadgeManager, setShowBadgeManager] = useState(false) // 뱃지 관리 모달 상태
+  const [isUploading, setIsUploading] = useState(false) // 아바타 업로드 상태
 
   useEffect(() => {
     const loadData = async () => {
@@ -334,6 +336,50 @@ export default function ProfilePage() {
     </div>
   )
 
+  // 아바타 업로드 핸들러
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 이미지 파일인지 확인
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드 가능합니다.")
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      // 1단계: 이미지 업로드
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error("이미지 업로드 실패")
+      }
+
+      const uploadData = await uploadResponse.json()
+
+      // 2단계: 프로필 업데이트
+      await updateProfileAvatar(uploadData.url)
+
+      // 3단계: 로컬 상태 업데이트
+      setProfile((prev: any) => ({
+        ...prev,
+        avatar_url: uploadData.url,
+      }))
+    } catch (error) {
+      console.error("Avatar upload error:", error)
+      alert("프로필 이미지 업로드에 실패했습니다.")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
 
 
 
@@ -341,8 +387,8 @@ export default function ProfilePage() {
     <>
       {/* 뱃지 관리 시트 */}
       <Sheet open={showBadgeManager} onOpenChange={setShowBadgeManager}>
-        <SheetContent side="right" className="w-full sm:max-w-md p-0">
-          <SheetHeader className="p-4 border-b">
+        <SheetContent side="right" className="w-full sm:max-w-md p-0 bg-white">
+          <SheetHeader className="p-4 border-b bg-white">
             <SheetTitle className="text-lg font-bold flex items-center gap-2">
               <Medal className="h-5 w-5 text-slate-700" />
               뱃지 관리 및 노출 설정
@@ -351,7 +397,7 @@ export default function ProfilePage() {
               <X className="h-4 w-4" />
             </Button>
           </SheetHeader>
-          <div className="p-4 overflow-y-auto h-[calc(100vh-65px)]">
+          <div className="p-4 overflow-y-auto h-[calc(100vh-65px)] bg-white">
             <BadgeManager userId={user.id} />
           </div>
         </SheetContent>
@@ -364,25 +410,46 @@ export default function ProfilePage() {
           <div className="grid gap-6 lg:grid-cols-12">
             
             {/* 1. 왼쪽: 프로필 정보 카드 - 4칸 */}
-            <Card className="lg:col-span-4 h-fit border-slate-200 shadow-sm overflow-hidden">
-              <CardContent className="p-8 flex flex-col items-center text-center">
+            <Card className="lg:col-span-4 h-fit border-slate-200 bg-white shadow-sm overflow-hidden">
+              <CardContent className="p-8 flex flex-col items-center text-center bg-white">
                 
-                <div className="mb-6 relative">
-                  <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
-                    {profile?.avatar_url ? (
-                      <Image
-                        src={profile.avatar_url}
-                        alt={profile.full_name}
-                        width={128}
-                        height={128}
-                        className="object-cover h-full w-full"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 text-4xl font-bold text-indigo-600">
-                        {profile?.full_name?.[0] || "U"}
+                <div className="mb-6 relative group">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    id="avatar-upload"
+                    disabled={isUploading}
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="cursor-pointer block relative"
+                  >
+                    <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100 relative">
+                      {profile?.avatar_url ? (
+                        <Image
+                          src={profile.avatar_url}
+                          alt={profile.full_name}
+                          width={128}
+                          height={128}
+                          className="object-cover h-full w-full"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 text-4xl font-bold text-indigo-600">
+                          {profile?.full_name?.[0] || "U"}
+                        </div>
+                      )}
+                      {/* 호버 오버레이 */}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        {isUploading ? (
+                          <Loader2 className="h-8 w-8 text-white animate-spin" />
+                        ) : (
+                          <Camera className="h-8 w-8 text-white" />
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </label>
                   <div className="absolute bottom-0 right-0 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-full border-2 border-white shadow-sm">
                     {profile?.role?.toUpperCase() || "MEMBER"}
                   </div>
@@ -410,7 +477,7 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                   
-                  <div className="bg-slate-50 rounded-xl p-4 min-h-[80px] flex flex-wrap gap-2 justify-center md:justify-start border border-slate-200">
+                  <div className="bg-white rounded-xl p-4 min-h-[80px] flex flex-wrap gap-2 justify-center md:justify-start border border-slate-200">
                     {renderBadges()}
                   </div>
                 </div>
@@ -432,7 +499,7 @@ export default function ProfilePage() {
                   count={profile?.points || 0} 
                   type="points"
                   icon={Coins}
-                  colorClass="bg-amber-50/30 border-amber-100"
+                  colorClass="bg-white border-slate-200"
                 />
                 <StatCard 
                   title="작성한 게시글" 
@@ -455,8 +522,8 @@ export default function ProfilePage() {
               </div>
 
               {/* 하단 리스트 영역 (탭에 따라 변경) */}
-              <Card className="border-slate-200 shadow-sm min-h-[400px]">
-                <CardHeader className="pb-4 border-b border-slate-100">
+              <Card className="border-slate-200 bg-white shadow-sm min-h-[400px]">
+                <CardHeader className="pb-4 border-b border-slate-100 bg-white">
                   <CardTitle className="text-lg flex items-center gap-2">
                     {activeTab === "points" && <><Coins className="h-5 w-5 text-amber-500" /> 포인트 내역</>}
                     {activeTab === "posts" && <><Edit3 className="h-5 w-5 text-blue-500" /> 작성한 게시글</>}

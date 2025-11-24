@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { toggleBadgeVisibility } from "@/lib/actions/badges"
+import { toggleBadgeVisibility, grantBadge } from "@/lib/actions/badges"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 
 type Badge = {
   id: string
@@ -28,12 +31,16 @@ type BadgeManagerProps = {
 
 export function BadgeManager({ userId }: BadgeManagerProps) {
   const [userBadges, setUserBadges] = useState<UserBadge[]>([])
+  const [allBadges, setAllBadges] = useState<Badge[]>([])
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string>("")
   const [loading, setLoading] = useState(true)
+  const [addingBadge, setAddingBadge] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
     const loadBadges = async () => {
-      const { data } = await supabase
+      // Load user badges
+      const { data: userBadgesData } = await supabase
         .from("user_badges")
         .select(`
           id,
@@ -50,9 +57,21 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
 
-      if (data) {
-        setUserBadges(data as any)
+      if (userBadgesData) {
+        setUserBadges(userBadgesData as any)
       }
+
+      // Load all available badges
+      const { data: allBadgesData } = await supabase
+        .from("badges")
+        .select("id, name, icon, category, description")
+        .order("category", { ascending: true })
+        .order("name", { ascending: true })
+
+      if (allBadgesData) {
+        setAllBadges(allBadgesData as Badge[])
+      }
+
       setLoading(false)
     }
 
@@ -74,6 +93,60 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
       alert("뱃지 노출 설정 변경에 실패했습니다.")
     }
   }
+
+  const handleAddBadge = async () => {
+    if (!selectedBadgeId) {
+      alert("뱃지를 선택해주세요.")
+      return
+    }
+
+    // Check if badge already exists
+    const existingBadge = userBadges.find((ub) => ub.badge_id === selectedBadgeId)
+    if (existingBadge) {
+      alert("이미 부여된 뱃지입니다.")
+      return
+    }
+
+    setAddingBadge(true)
+    try {
+      await grantBadge(userId, selectedBadgeId)
+      
+      // Reload badges
+      const { data } = await supabase
+        .from("user_badges")
+        .select(`
+          id,
+          badge_id,
+          is_visible,
+          badges:badge_id (
+            id,
+            name,
+            icon,
+            category,
+            description
+          )
+        `)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (data) {
+        setUserBadges(data as any)
+      }
+      
+      setSelectedBadgeId("")
+      alert("뱃지가 추가되었습니다.")
+    } catch (error: any) {
+      console.error("Failed to add badge:", error)
+      alert(error.message || "뱃지 추가에 실패했습니다.")
+    } finally {
+      setAddingBadge(false)
+    }
+  }
+
+  // Get badges that user doesn't have yet
+  const availableBadges = allBadges.filter(
+    (badge) => !userBadges.some((ub) => ub.badge_id === badge.id)
+  )
 
   if (loading) {
     return <div className="text-sm text-slate-500">로딩 중...</div>
@@ -107,7 +180,44 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white">
+      {/* 뱃지 추가 섹션 */}
+      <div className="mb-6 p-4 border border-slate-200 rounded-lg bg-slate-50">
+        <h3 className="text-sm font-semibold text-slate-900 mb-3">뱃지 추가</h3>
+        <div className="flex gap-2">
+          <Select value={selectedBadgeId} onValueChange={setSelectedBadgeId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="뱃지를 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableBadges.length > 0 ? (
+                availableBadges.map((badge) => (
+                  <SelectItem key={badge.id} value={badge.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{badge.icon}</span>
+                      <span>{badge.name}</span>
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  추가할 수 있는 뱃지가 없습니다
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          <Button 
+            onClick={handleAddBadge} 
+            disabled={!selectedBadgeId || addingBadge}
+            size="default"
+            className="shrink-0"
+          >
+            {addingBadge ? "추가 중..." : <><Plus className="h-4 w-4 mr-1" />추가</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* 기존 뱃지 목록 */}
       {Object.entries(groupedBadges).map(([category, badges]) => (
         <div key={category}>
           <h4 className="mb-3 text-sm font-semibold text-slate-700 uppercase tracking-wide">

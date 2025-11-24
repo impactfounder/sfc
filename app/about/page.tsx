@@ -211,7 +211,16 @@ export default function AboutPage() {
                 className="w-24 h-24 md:w-32 md:h-32"
               />
             </div>
-            <h1 className="mb-4 md:mb-6 text-3xl md:text-5xl font-bold tracking-tight">Seoul Founders Club</h1>
+            <div className="mb-6 md:mb-8 flex justify-center">
+              <Image
+                src="/images/logo-text.png"
+                alt="Seoul Founders Club"
+                width={400}
+                height={60}
+                className="h-auto w-64 md:w-96 brightness-0 invert object-contain"
+                priority
+              />
+            </div>
             <p className="text-base md:text-xl text-slate-300 leading-relaxed">
               사업가, 투자자, 인플루언서가 모여
               <br className="hidden sm:block" />
