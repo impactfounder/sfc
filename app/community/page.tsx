@@ -25,8 +25,10 @@ export default async function CommunityDashboardPage() {
   )
 
   // 게시글에서도 공지사항과 자유게시판 제외
+  // board_categories가 있는 글만 필터링 (NULL 제외)
   const filteredPosts = transformedPosts.filter((post: any) => {
     const postSlug = post.board_categories?.slug
+    // board_categories가 있고, excludedSlugs에 포함되지 않은 글만 포함
     return postSlug && !excludedSlugs.includes(postSlug)
   })
 

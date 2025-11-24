@@ -41,6 +41,7 @@ export async function getLatestPosts(
       board_categories:board_category_id (name, slug),
       communities:community_id (name)
     `)
+    .not("board_category_id", "is", null) // board_category_id가 있는 글만 가져오기
     .order("created_at", { ascending: false })
     .limit(limit)
 

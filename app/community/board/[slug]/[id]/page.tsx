@@ -104,10 +104,13 @@ export default async function BoardPostDetailPage({
           id,
           full_name,
           avatar_url
+        ),
+        board_categories:board_category_id (
+          name,
+          slug
         )
       `)
       .eq("id", id)
-      .eq("category", categorySlug)
       .single()
   ]);
 
@@ -193,6 +196,9 @@ export default async function BoardPostDetailPage({
     "dateModified": post.updated_at || post.created_at,
   } : null;
 
+  // 게시판 이름 결정 (board_categories에서 가져오거나 fallback)
+  const boardName = (post as any)?.board_categories?.name || category?.name || (slug === "announcements" ? "공지사항" : "게시판")
+
   return (
     <>
       {structuredData && (
@@ -201,106 +207,112 @@ export default async function BoardPostDetailPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       )}
-      <div className="min-h-screen bg-slate-50">
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
-        <div className="flex items-center px-4 py-3">
-          <Link href={`/community/board/${slug}`}>
-            <button className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft className="h-5 w-5 text-slate-700" />
-            </button>
-          </Link>
-          <span className="ml-2 text-sm font-medium text-slate-700">
-            {slug === "announcements" ? "공지사항" : category?.name}
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <Share2 className="h-5 w-5 text-slate-600" />
-            </button>
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <svg className="h-5 w-5 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="5" r="2"/>
-                <circle cx="12" cy="12" r="2"/>
-                <circle cx="12" cy="19" r="2"/>
-              </svg>
-            </button>
+      <div className="min-h-screen bg-white">
+        {/* 헤더: 뒤로가기 + 게시판 이름 + 공유 버튼 */}
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
+          <div className="mx-auto max-w-4xl">
+            <div className="flex items-center px-4 md:px-6 py-3">
+              <Link href={`/community/board/${slug}`}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2">
+                  <ArrowLeft className="h-5 w-5 text-slate-700" />
+                </Button>
+              </Link>
+              <span className="ml-2 text-sm font-medium text-slate-700">
+                {boardName}
+              </span>
+              <div className="ml-auto flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Share2 className="h-5 w-5 text-slate-600" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-0 md:px-8 py-0 md:py-8">
-        <div className="mx-auto max-w-4xl">
-          <Card className="border-0 md:border border-slate-200 rounded-none md:rounded-lg overflow-hidden">
-            <CardContent className="p-4 md:p-6">
-              {/* Author Header */}
+        {/* 본문: 통합된 카드 */}
+        <div className="mx-auto max-w-4xl px-4 md:px-6 py-6 md:py-8">
+          <Card className="border border-slate-200 rounded-xl shadow-sm">
+            <CardContent className="p-6 md:p-8">
+              {/* 커뮤니티 이름 뱃지 */}
+              <div className="mb-4">
+                <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
+                  {boardName}
+                </span>
+              </div>
+
+              {/* 작성자 정보 */}
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-lg font-semibold text-white flex-shrink-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-sm font-semibold text-white flex-shrink-0">
                   {post.profiles?.full_name?.[0] || "U"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-slate-900 truncate">
+                    <p className="font-semibold text-slate-900 truncate text-sm">
                       {post.profiles?.full_name || "익명"}
                     </p>
                     {authorVisibleBadges.length > 0 && (
                       <UserBadges badges={authorVisibleBadges} />
                     )}
                   </div>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-xs text-slate-500">
                     {new Date(post.created_at).toLocaleDateString("ko-KR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </p>
                 </div>
               </div>
 
-              {/* Post Title & Content */}
-              <h1 className="mb-3 text-xl md:text-2xl font-bold tracking-tight text-slate-900 leading-snug">
+              {/* 제목 */}
+              <h1 className="mb-4 text-xl md:text-2xl font-bold text-slate-900 leading-snug">
                 {post.title}
               </h1>
-              <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm md:text-base">
-                {post.content}
-              </p>
 
-              <div className="mt-6 flex items-center gap-1 pt-4 border-t border-slate-200">
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
-                  <span className="text-sm font-semibold text-slate-700">{post.likes_count || 0}</span>
-                  <svg className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <MessageSquare className="h-5 w-5 text-slate-600" />
-                  <span className="text-sm font-semibold text-slate-700">{post.comments_count || 0}</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <Heart className="h-5 w-5 text-slate-600" />
-                  <span className="text-sm font-semibold text-slate-700">{Math.floor((post.likes_count || 0) * 1.5)}</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-slate-100 transition-colors ml-auto">
-                  <Bookmark className="h-5 w-5 text-slate-600" />
-                  <span className="text-sm font-semibold text-slate-700">{Math.floor((post.likes_count || 0) * 0.8)}</span>
-                </button>
+              {/* 본문 내용 */}
+              <div 
+                className="prose prose-sm max-w-none text-slate-700 leading-relaxed mb-6"
+                dangerouslySetInnerHTML={{ __html: post.content || "" }}
+              />
+
+              {/* 좋아요/댓글 버튼 */}
+              <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
+                {user && (
+                  <LikeButton
+                    postId={post.id}
+                    userId={user.id}
+                    initialLiked={!!userLike}
+                    initialCount={post.likes_count || 0}
+                  />
+                )}
+                {!user && (
+                  <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                    <Heart className="h-4 w-4" />
+                    <span>{post.likes_count || 0}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>{post.comments_count || 0}</span>
+                </div>
+              </div>
+
+              {/* 댓글 섹션 (구분선으로 자연스럽게 연결) */}
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h2 className="mb-4 text-lg font-bold text-slate-900">
+                  댓글
+                </h2>
+                <CommentSection
+                  postId={post.id}
+                  userId={user?.id}
+                  comments={comments || []}
+                />
               </div>
             </CardContent>
           </Card>
-
-          <div className="mt-4 md:mt-6 bg-white border-0 md:border border-slate-200 rounded-none md:rounded-lg p-4 md:p-6">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              댓글 작성
-            </h2>
-            <CommentSection
-              postId={post.id}
-              userId={user?.id}
-              comments={comments || []}
-            />
-          </div>
         </div>
-      </div>
       </div>
     </>
   );
