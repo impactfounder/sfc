@@ -30,6 +30,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   const [isSearching, setIsSearching] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
+  const [isEndDateManuallyChanged, setIsEndDateManuallyChanged] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -52,7 +53,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   }
   const timeOptions = generateTimeOptions()
 
-  // 기본값 설정 (다음 30분 단위)
+  // 기본값 설정 (오후 7시 ~ 9시)
   useEffect(() => {
     if (!userId) {
       const fetchUser = async () => {
@@ -64,23 +65,19 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
     }
 
     const now = new Date()
-    now.setMinutes(now.getMinutes() + 30 - (now.getMinutes() % 30)) // Round up to next 30 mins
-    
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, "0")
     const day = String(now.getDate()).padStart(2, "0")
-    const hours = String(now.getHours()).padStart(2, "0")
-    const minutes = String(now.getMinutes()).padStart(2, "0")
 
     setStartDate(`${year}-${month}-${day}`)
-    setStartTime(`${hours}:${minutes}`)
+    setStartTime("19:00") // 오후 7시
     setEndDate(`${year}-${month}-${day}`)
-    setEndTime(`${hours}:${minutes}`)
+    setEndTime("21:00") // 오후 9시
   }, [userId])
 
-  // startDate 변경 시 endDate 자동 설정 (사용자가 수동으로 수정 가능)
+  // startDate 변경 시 endDate 자동 설정 (사용자가 수동으로 수정한 경우 제외)
   useEffect(() => {
-    if (startDate && !endDate) {
+    if (!isEndDateManuallyChanged && startDate) {
       setEndDate(startDate)
     } else if (startDate && endDate) {
       // startDate가 endDate보다 늦으면 endDate를 startDate로 업데이트
@@ -90,7 +87,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
         setEndDate(startDate)
       }
     }
-  }, [startDate, endDate])
+  }, [startDate, endDate, isEndDateManuallyChanged])
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -387,7 +384,10 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
                   <input 
                     type="date" 
                     value={endDate} 
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => {
+                      setEndDate(e.target.value)
+                      setIsEndDateManuallyChanged(true)
+                    }}
                     className="bg-slate-50 border-none rounded-md px-3 py-2 text-sm font-medium text-slate-600 focus:ring-1 focus:ring-slate-200"
                   />
                   <select 
@@ -407,7 +407,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
                 <MapPin className="h-5 w-5" />
               </div>
               <Input
-                placeholder="장소 추가 (예: 강남역, Zoom)"
+                placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400"

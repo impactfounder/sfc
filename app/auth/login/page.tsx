@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col lg:pl-[344px]">
         <main className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] lg:min-h-screen">
           
-          <Card className="w-full max-w-[380px] p-8 border-none shadow-xl rounded-2xl bg-white">
+          <Card className="w-full max-w-[420px] p-8 border-none shadow-xl rounded-2xl bg-white animate-in fade-in zoom-in-95 duration-500">
             <CardHeader className="flex flex-col items-center space-y-4 pb-0">
               
               {/* 로고 영역 (확실하게 키움 w-32) */}
