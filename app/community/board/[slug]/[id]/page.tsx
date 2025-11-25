@@ -49,15 +49,15 @@ export async function generateMetadata({
   const isPublic = PUBLIC_BOARDS.includes(slug);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
   const cleanContent = post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "";
-  const title = `${post.title} | Seoul Founders Club`;
-  const description = cleanContent || `${post.title} - Seoul Founders Club 게시글`;
+  const ogTitle = `${post.title} | Seoul Founders Club`; // OpenGraph용 (공유 시 게시글 제목 표시)
+  const description = cleanContent || "서울 파운더스 클럽 커뮤니티";
   const authorName = (post.profiles as any)?.full_name || "익명";
 
   return {
-    title,
+    title: "SEOUL FOUNDERS CLUB", // 브라우저 탭 제목 고정
     description,
     openGraph: isPublic ? {
-      title,
+      title: ogTitle, // 공유할 때는 게시글 제목이 나오는 게 좋음
       description,
       url: `${siteUrl}/community/board/${slug}/${id}`,
       siteName: "Seoul Founders Club",
@@ -67,7 +67,7 @@ export async function generateMetadata({
     } : undefined,
     twitter: isPublic ? {
       card: "summary_large_image",
-      title,
+      title: ogTitle, // 공유할 때는 게시글 제목이 나오는 게 좋음
       description,
     } : undefined,
     robots: isPublic ? {

@@ -1,9 +1,14 @@
-import Link from "next/link"
-import type { FC } from "react"
-import { Heart, MessageSquare, Lock } from "lucide-react"
+"use client"
 
+import Link from "next/link"
+import { useState, useEffect } from "react"
+import { MessageSquare, Lock, ChevronDown, ChevronUp, Loader2, Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatRelativeTime } from "@/lib/format-time"
+import { LikeButton } from "@/components/like-button"
+import { CommentSection } from "@/components/comment-section"
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
 
 type Badge = {
   icon: string
@@ -30,51 +35,134 @@ type Post = {
   communities?: {
     name?: string | null
   } | null
+  isMember?: boolean
 }
 
 type PostListItemProps = {
   post: Post
   href: string
   className?: string
-  isMember?: boolean // 해당 커뮤니티 멤버 여부
-  viewMode?: "feed" | "list" // 뷰 모드
+  isMember?: boolean
+  viewMode?: "feed" | "list"
+  currentUserId?: string
 }
 
-export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isMember = true, viewMode = "feed" }) => {
-  // content에서 HTML 태그 제거하고 텍스트만 추출
+export function PostListItem({ 
+  post, 
+  href, 
+  className, 
+  isMember = true, 
+  viewMode = "feed",
+  currentUserId 
+}: PostListItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [comments, setComments] = useState<any[]>([])
+  const [isLoadingComments, setIsLoadingComments] = useState(false)
+  const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const [userId, setUserId] = useState<string | null>(currentUserId || null)
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(post.likes_count || 0)
+  
+  // 사용자 정보 및 좋아요 상태 가져오기
+  useEffect(() => {
+    const loadUserAndLikeStatus = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+        // 좋아요 상태 확인
+        const { data } = await supabase
+          .from("post_likes")
+          .select("id")
+          .eq("post_id", post.id)
+          .eq("user_id", user.id)
+          .maybeSingle()
+        setIsLiked(!!data)
+      }
+    }
+    if (!currentUserId) {
+      loadUserAndLikeStatus()
+    }
+  }, [post.id, currentUserId])
+  
+  // content에서 HTML 태그 제거하고 텍스트만 추출 (미리보기용)
   const getPlainText = (html?: string | null) => {
     if (!html) return ""
+    // 정규식 이스케이프 처리
     return html.replace(/<[^>]*>/g, "").trim()
   }
 
   const contentPreview = getPlainText(post.content)
-  
-  // 카테고리/커뮤니티 이름 결정
   const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
   const isGroupOnly = post.visibility === "group" && !isMember
 
-  // 리스트형 뷰 (본문 미리보기 숨김, 높이 슬림, 목록다운 밀도감)
+  // 댓글 데이터 가져오기
+  const loadComments = async () => {
+    if (commentsLoaded || isLoadingComments) return
+    
+    setIsLoadingComments(true)
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("comments")
+        .select(`
+          *,
+          profiles:author_id (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("post_id", post.id)
+        .order("created_at", { ascending: true })
+      
+      if (!error && data) {
+        setComments(data)
+        setCommentsLoaded(true)
+      }
+    } catch (error) {
+      console.error("Failed to load comments:", error)
+    } finally {
+      setIsLoadingComments(false)
+    }
+  }
+
+  // 펼치기 토글 핸들러
+  const handleExpand = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
+    
+    // 텍스트 드래그 선택 시 클릭 이벤트 방지
+    if (window.getSelection()?.toString()) return
+
+    if (!isGroupOnly) {
+      const nextState = !isExpanded
+      setIsExpanded(nextState)
+      if (nextState) {
+        loadComments()
+      }
+    }
+  }
+
+  // 리스트형 뷰
   if (viewMode === "list") {
     return (
       <Link href={href} className={cn("block", className)}>
         <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg py-2.5 px-4 hover:bg-slate-50 transition-all duration-200">
-          {/* 좌측: 커뮤니티 이름 뱃지 (모던한 파스텔톤) */}
           <span className="bg-blue-100 text-blue-700 rounded-md px-2.5 py-1 text-xs font-semibold flex-shrink-0">
             {categoryName}
           </span>
-          
-          {/* 중앙: 제목과 작성자 정보를 한 줄로 컴팩트하게 배치 */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
                 {post.title}
               </h3>
+              {isGroupOnly && <Lock className="w-3 h-3 text-slate-400" />}
               <span className="text-xs text-slate-500 hidden sm:inline">·</span>
               <span className="text-xs text-slate-500 hidden sm:inline">{post.profiles?.full_name || "익명"}</span>
             </div>
           </div>
-
-          {/* 우측: 메타 정보 */}
           <div className="flex items-center gap-4 text-xs text-slate-500 flex-shrink-0">
             <span className="hidden md:inline">{formatRelativeTime(post.created_at)}</span>
             <div className="flex items-center gap-3">
@@ -93,47 +181,61 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
     )
   }
 
-  // 피드형 뷰 (카드 형태, 그림자, 본문 3줄 미리보기)
+  // 피드형 뷰 (인터랙티브)
   return (
-    <Link href={href} className={cn("block", className)}>
-      <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-        {/* 상단: 커뮤니티 이름 뱃지 (필수) */}
-        <div className="mb-4">
-          <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
-            {categoryName}
-          </span>
+    <div 
+      className={cn(
+        "flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300",
+        !isExpanded && "hover:shadow-md cursor-pointer",
+        isExpanded && "bg-blue-50/30 border-blue-300 border-2",
+        className
+      )}
+      onClick={!isExpanded ? () => handleExpand() : undefined}
+    >
+      <div className="p-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 py-1 text-xs font-bold">
+              {categoryName}
+            </span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-500">{post.profiles?.full_name || "익명"}</span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-400">{formatRelativeTime(post.created_at)}</span>
+          </div>
         </div>
 
-        {/* 본문: 제목 + 내용 미리보기 */}
-        <div className="flex-1 mb-4 relative">
-          {/* 제목 */}
-          <h3 className="text-xl font-bold text-slate-900 mb-3 leading-relaxed line-clamp-2">
-            {post.title}
-          </h3>
+        {/* 본문 영역 */}
+        <div className="mb-4 relative">
+          {/* 제목 (클릭 시 상세 페이지 이동) */}
+          <Link href={href} onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-900 mb-3 leading-relaxed hover:text-blue-600 transition-colors">
+              {post.title}
+            </h3>
+          </Link>
           
-          {/* 내용 미리보기 */}
-          {contentPreview && (
+          {/* 내용 */}
+          {isExpanded ? (
+            <div 
+              className="prose prose-slate max-w-none text-slate-700 [&_p]:mb-4 [&_p]:leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:mb-2 [&_a]:text-blue-600 [&_a]:underline [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-slate-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_blockquote]:italic"
+              dangerouslySetInnerHTML={{ __html: post.content || "" }}
+            />
+          ) : (
             <div className="relative">
-              <p
-                className={cn(
-                  "text-slate-600 leading-relaxed",
-                  isGroupOnly ? "line-clamp-3 blur-sm select-none" : "line-clamp-3"
-                )}
-              >
+              <p className={cn(
+                "text-slate-600 leading-relaxed",
+                isGroupOnly ? "blur-sm select-none" : "",
+                !isExpanded && "line-clamp-3"
+              )}>
                 {contentPreview}
               </p>
               
-              {/* 그룹 전용 오버레이 */}
               {isGroupOnly && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-lg">
                   <div className="flex flex-col items-center gap-2 text-center px-4">
-                    <Lock className="h-6 w-6 text-slate-400" />
-                    <p className="text-sm font-medium text-slate-700">
-                      🔒 멤버 전용 글입니다
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      가입하면 전체 내용을 볼 수 있습니다
-                    </p>
+                    <Lock className="h-5 w-5 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-700">멤버 전용 글입니다</p>
                   </div>
                 </div>
               )}
@@ -141,27 +243,84 @@ export const PostListItem: FC<PostListItemProps> = ({ post, href, className, isM
           )}
         </div>
 
-        {/* 푸터: 작성자/날짜 + 좋아요, 댓글 아이콘 */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-          {/* 좌측: 작성자 및 시간 (작고 연한 회색) */}
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span>{post.profiles?.full_name || "익명"}</span>
-            <span>·</span>
-            <span>{formatRelativeTime(post.created_at)}</span>
+        {/* 푸터 (액션 버튼) */}
+        <div className="flex items-center gap-4 pt-2" onClick={(e) => e.stopPropagation()}>
+          <div className="z-10">
+            {userId ? (
+              <LikeButton 
+                postId={post.id} 
+                userId={userId} 
+                initialLiked={isLiked}
+                initialCount={likeCount}
+                onLikeChange={(newCount) => setLikeCount(newCount)}
+              />
+            ) : (
+              <div className="flex items-center gap-1.5 text-sm text-slate-500 px-3 py-1.5">
+                <Heart className="h-4 w-4" />
+                <span className="font-medium">{likeCount}</span>
+              </div>
+            )}
           </div>
-          {/* 우측: 좋아요, 댓글 아이콘 */}
-          <div className="flex items-center gap-4 text-sm text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <Heart className="h-4 w-4" />
-              <span>{post.likes_count || 0}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <MessageSquare className="h-4 w-4" />
-              <span>{post.comments_count || 0}</span>
-            </div>
-          </div>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2 text-slate-600 hover:bg-slate-100"
+            onClick={handleExpand}
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span>{post.comments_count || 0}</span>
+          </Button>
+
+          {/* 펼치기/접기 버튼 */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="ml-auto text-slate-400 hover:text-slate-600"
+            onClick={handleExpand}
+          >
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
-    </Link>
+
+      {/* 댓글 섹션 (펼쳐졌을 때만 렌더링) */}
+      {isExpanded && (
+        <div className="border-t border-slate-100 bg-slate-50/50 p-6" onClick={(e) => e.stopPropagation()}>
+          {isLoadingComments ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+            </div>
+          ) : (
+            <CommentSection 
+              postId={post.id} 
+              userId={userId || undefined} 
+              comments={comments}
+              readOnly={false}
+              onCommentAdded={async () => {
+                // 댓글 추가 후 목록 새로고침
+                const supabase = createClient()
+                const { data } = await supabase
+                  .from("comments")
+                  .select(`
+                    *,
+                    profiles:author_id (
+                      id,
+                      full_name,
+                      avatar_url
+                    )
+                  `)
+                  .eq("post_id", post.id)
+                  .order("created_at", { ascending: true })
+                
+                if (data) {
+                  setComments(data)
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
+    </div>
   )
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LayoutGrid, List } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 type Post = {
   id: string
@@ -104,20 +105,26 @@ export function PostsSection({
         <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg p-1">
           <Button
             type="button"
-            variant={viewMode === "feed" ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
             onClick={() => setViewMode("feed")}
-            className="h-8 px-3 text-xs"
+            className={cn(
+              "h-8 px-3 text-xs",
+              viewMode === "feed" ? "bg-slate-900 text-white hover:bg-slate-800" : ""
+            )}
           >
             <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
             피드형
           </Button>
           <Button
             type="button"
-            variant={viewMode === "list" ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
             onClick={() => setViewMode("list")}
-            className="h-8 px-3 text-xs"
+            className={cn(
+              "h-8 px-3 text-xs",
+              viewMode === "list" ? "bg-slate-900 text-white hover:bg-slate-800" : ""
+            )}
           >
             <List className="h-3.5 w-3.5 mr-1.5" />
             리스트형

@@ -1,27 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { Heart } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { ChevronUp } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 export function LikeButton({
   postId,
-  userId,
+  userId: initialUserId,
   initialLiked,
   initialCount,
+  onLikeChange,
 }: {
   postId: string;
-  userId: string;
+  userId?: string;
   initialLiked: boolean;
   initialCount: number;
+  onLikeChange?: (newCount: number) => void;
 }) {
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(initialUserId || null);
 
-  const handleLike = async () => {
+  // 사용자 정보 가져오기
+  useEffect(() => {
+    if (!initialUserId) {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          setUserId(user.id);
+        }
+      });
+    }
+  }, [initialUserId]);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // 이벤트 전파 차단
+    
+    if (!userId) {
+      // 로그인 페이지로 리다이렉트하거나 알림 표시
+      return;
+    }
+
     const supabase = createClient();
     setIsLoading(true);
 
@@ -36,7 +58,9 @@ export function LikeButton({
 
         if (!error) {
           setLiked(false);
-          setCount((prev) => Math.max(0, prev - 1));
+          const newCount = Math.max(0, count - 1);
+          setCount(newCount);
+          onLikeChange?.(newCount);
         }
       } else {
         // Like
@@ -47,7 +71,9 @@ export function LikeButton({
 
         if (!error) {
           setLiked(true);
-          setCount((prev) => prev + 1);
+          const newCount = count + 1;
+          setCount(newCount);
+          onLikeChange?.(newCount);
         }
       }
     } catch (error) {
@@ -62,14 +88,14 @@ export function LikeButton({
       variant="ghost"
       size="sm"
       onClick={handleLike}
-      disabled={isLoading}
+      disabled={isLoading || !userId}
       className={cn(
-        "gap-2",
-        liked ? "text-red-600 hover:text-red-700" : "text-slate-600"
+        "gap-1 flex-col items-center justify-center p-1.5 min-w-[2.5rem] h-auto hover:bg-slate-100 rounded-lg transition-colors",
+        liked ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50" : "text-slate-500 hover:text-slate-700"
       )}
     >
-      <Heart className={cn("h-4 w-4", liked && "fill-current")} />
-      <span>{count}</span>
+      <ChevronUp className={cn("h-5 w-5", liked && "fill-current")} />
+      <span className="text-xs font-bold leading-none">{count}</span>
     </Button>
   );
 }

@@ -24,13 +24,15 @@ export function CommentSection({
   userId,
   comments: initialComments,
   readOnly = false,
+  onCommentAdded,
 }: {
   postId: string;
   userId?: string;
   comments: Comment[];
   readOnly?: boolean;
+  onCommentAdded?: () => void;
 }) {
-  const [comments] = useState<Comment[]>(initialComments);
+  const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -52,7 +54,32 @@ export function CommentSection({
       if (error) throw error;
 
       setNewComment("");
-      router.refresh();
+      
+      // 댓글 목록 새로고침
+      const { data: newComments } = await supabase
+        .from("comments")
+        .select(`
+          *,
+          profiles:author_id (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+      
+      if (newComments) {
+        setComments(newComments);
+      }
+      
+      // 콜백 호출 (부모 컴포넌트에서 댓글 수 업데이트 등)
+      onCommentAdded?.();
+      
+      // 서버 컴포넌트인 경우에만 refresh
+      if (typeof window === 'undefined' || !onCommentAdded) {
+        router.refresh();
+      }
     } catch (error) {
       console.error("Failed to add comment:", error);
     } finally {
