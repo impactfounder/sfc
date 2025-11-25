@@ -11,6 +11,10 @@ import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock }
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
 import { createEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
+import { useLoadScript, Autocomplete } from "@react-google-maps/api"
+
+// Google Maps libraries 설정 (컴포넌트 외부에 정적 선언)
+const libraries: ("places")[] = ["places"]
 
 export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess?: () => void }) {
   const [title, setTitle] = useState("")
@@ -31,9 +35,24 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
   const [isEndDateManuallyChanged, setIsEndDateManuallyChanged] = useState(false)
+  const [scriptLoadError, setScriptLoadError] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const router = useRouter()
+
+  // Google Maps 스크립트 로드
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    libraries,
+  })
+
+  // 스크립트 로드 실패 시 fallback 활성화
+  useEffect(() => {
+    if (loadError) {
+      setScriptLoadError(true)
+    }
+  }, [loadError])
 
   // 시간 옵션 생성
   const generateTimeOptions = () => {
@@ -406,12 +425,39 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                 <MapPin className="h-5 w-5" />
               </div>
-              <Input
-                placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400"
-              />
+              {isLoaded && !scriptLoadError ? (
+                <Autocomplete
+                  onLoad={(autocomplete) => {
+                    autocompleteRef.current = autocomplete
+                  }}
+                  onPlaceChanged={() => {
+                    if (autocompleteRef.current) {
+                      const place = autocompleteRef.current.getPlace()
+                      const address = place.formatted_address || place.name || ""
+                      setLocation(address)
+                    }
+                  }}
+                  options={{
+                    types: ["establishment", "geocode"],
+                    componentRestrictions: { country: "kr" },
+                  }}
+                >
+                  <Input
+                    placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400"
+                  />
+                </Autocomplete>
+              ) : (
+                <Input
+                  placeholder={isLoaded ? "강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등" : "지도를 불러오는 중..."}
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400"
+                  disabled={!isLoaded && !scriptLoadError}
+                />
+              )}
             </div>
 
             {/* Capacity Row */}
