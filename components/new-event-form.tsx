@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket } from "lucide-react"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
 import { createEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
@@ -24,6 +24,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   const [endDate, setEndDate] = useState("")
   const [endTime, setEndTime] = useState("")
   const [location, setLocation] = useState("")
+  const [price, setPrice] = useState("")
   const [maxParticipants, setMaxParticipants] = useState("")
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -179,12 +180,15 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       }
 
       // ★ 보안: 서버 액션 사용 (created_by는 서버에서 세션 기반으로 자동 설정됨)
+      const priceValue = price ? parseInt(price) : 0
+
       const result = await createEvent({
         title,
         description, // Rich Text Content
         event_date: startDateTime.toISOString(),
         end_date: endDateTime ? endDateTime.toISOString() : null,
         location: location || null,
+        price: priceValue > 0 ? priceValue : null,
         max_participants: maxParticipantsValue,
         thumbnail_url: thumbnailUrl || null,
         // ★ 보안: created_by는 전달하지 않음 (서버에서 세션 기반으로 자동 설정)
@@ -425,39 +429,58 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                 <MapPin className="h-5 w-5" />
               </div>
-              {isLoaded && !scriptLoadError ? (
-                <Autocomplete
-                  onLoad={(autocomplete) => {
-                    autocompleteRef.current = autocomplete
-                  }}
-                  onPlaceChanged={() => {
-                    if (autocompleteRef.current) {
-                      const place = autocompleteRef.current.getPlace()
-                      const address = place.formatted_address || place.name || ""
-                      setLocation(address)
-                    }
-                  }}
-                  options={{
-                    types: ["establishment", "geocode"],
-                    componentRestrictions: { country: "kr" },
-                  }}
-                >
+              <div className="flex-1 relative">
+                {isLoaded && !scriptLoadError ? (
+                  <Autocomplete
+                    onLoad={(autocomplete) => {
+                      autocompleteRef.current = autocomplete
+                    }}
+                    onPlaceChanged={() => {
+                      if (autocompleteRef.current) {
+                        const place = autocompleteRef.current.getPlace()
+                        const address = place.formatted_address || place.name || ""
+                        setLocation(address)
+                      }
+                    }}
+                    options={{
+                      types: ["establishment", "geocode"],
+                      componentRestrictions: { country: "kr" },
+                    }}
+                  >
+                    <Input
+                      placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                    />
+                  </Autocomplete>
+                ) : (
                   <Input
-                    placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
+                    placeholder={isLoaded ? "강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등" : "지도를 불러오는 중..."}
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400"
+                    className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                    disabled={!isLoaded && !scriptLoadError}
                   />
-                </Autocomplete>
-              ) : (
+                )}
+              </div>
+            </div>
+
+            {/* Price Row */}
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
+                <Ticket className="h-5 w-5" />
+              </div>
+              <div className="flex items-center gap-2 w-full">
                 <Input
-                  placeholder={isLoaded ? "강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등" : "지도를 불러오는 중..."}
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400"
-                  disabled={!isLoaded && !scriptLoadError}
+                  type="number"
+                  placeholder="참가비 (원) - 비워두면 무료"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                  min="0"
                 />
-              )}
+              </div>
             </div>
 
             {/* Capacity Row */}

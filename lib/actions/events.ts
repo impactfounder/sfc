@@ -14,6 +14,7 @@ export async function createEvent(data: {
   event_date: string
   end_date?: string | null
   location?: string | null
+  price?: number | null
   max_participants?: number | null
   thumbnail_url?: string | null
   // ★ 보안: created_by는 무시됨 (클라이언트에서 보내도 사용하지 않음)
@@ -35,6 +36,7 @@ export async function createEvent(data: {
     description: data.description.trim(),
     event_date: data.event_date,
     location: data.location || null,
+    price: data.price && data.price > 0 ? data.price : null,
     max_participants: data.max_participants || null,
     thumbnail_url: data.thumbnail_url || null,
     created_by: user.id, // ★ 무조건 세션의 user.id만 사용

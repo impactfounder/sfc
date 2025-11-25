@@ -252,7 +252,7 @@ export default async function EventDetailPage({
                   title="참가 신청" 
                   rightElement={
                     <Badge variant="outline" className="font-medium text-slate-500 border-slate-200 bg-slate-50">
-                      Free
+                      {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : 'Free'}
                     </Badge>
                   }
                 />
@@ -261,17 +261,24 @@ export default async function EventDetailPage({
                   <div className="flex justify-between items-end mb-2">
                     <span className="text-sm text-slate-500 font-medium">현재 모집 현황</span>
                     <div className="text-right">
-                      <span className="text-2xl font-bold text-slate-900">{attendeesCount}</span>
+                      <span className="text-2xl font-bold text-slate-900">{attendeesCount || 0}</span>
                       <span className="text-slate-400 text-sm font-medium ml-1">
                         / {event.max_participants ? event.max_participants : '∞'}
                       </span>
                     </div>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
-                      style={{ width: `${Math.min(100, ((attendeesCount || 0) / (event.max_participants || 1)) * 100)}%` }}
-                    />
+                    {event.max_participants ? (
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
+                        style={{ width: `${Math.min(100, ((attendeesCount || 0) / event.max_participants) * 100)}%` }}
+                      />
+                    ) : (
+                      <div 
+                        className="h-full rounded-full transition-all duration-500 ease-out bg-slate-900"
+                        style={{ width: '0%' }}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -302,6 +309,13 @@ export default async function EventDetailPage({
                       신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
                     </p>
                   )}
+
+                  <Separator className="my-4 bg-slate-100" />
+
+                  <Button variant="outline" className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow">
+                    <Share2 className="mr-2 h-4 w-4" />
+                    이 이벤트 공유하기
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -311,7 +325,7 @@ export default async function EventDetailPage({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* Row 2 - Left (8) : 상세 내용 */}
-            <Card className="lg:col-span-8 border-slate-200 shadow-sm h-full">
+            <Card className="lg:col-span-8 border-slate-200 shadow-sm bg-white h-full">
               <CardContent className="p-6 sm:p-8">
                 <CardHeader icon={Info} title="상세 내용" />
                 <div 
@@ -321,7 +335,7 @@ export default async function EventDetailPage({
               </CardContent>
             </Card>
 
-            {/* Row 2 - Right (4) : 호스트 소개 */}
+            {/* Row 2 - Right (4) : 호스트 소개 + 참석자 멤버 */}
             <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white h-full">
               <CardContent className="p-6 flex flex-col h-full">
                 <CardHeader icon={ShieldCheck} title="호스트 소개" />
@@ -345,55 +359,46 @@ export default async function EventDetailPage({
                   </div>
                 </div>
 
-                <Separator className="mb-4 bg-slate-100" />
+                <Separator className="mb-6 bg-slate-100" />
 
-                <Button variant="outline" className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  이 이벤트 공유하기
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* [ROW 3] 참석자 목록 */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <Card className="lg:col-span-8 border-slate-200 shadow-sm">
-              <CardContent className="p-6 sm:p-8">
-                <CardHeader 
-                  icon={Users} 
-                  title="참석자 멤버" 
-                  rightElement={
-                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                      {attendeesCount}명 참여
-                    </span>
-                  }
-                />
-                
-                {attendees && attendees.length > 0 ? (
-                  <div className="flex flex-wrap gap-4">
-                    {attendees.map((attendee: { id?: string; profiles?: { full_name?: string; avatar_url?: string } | null; guest_name?: string }, index: number) => {
-                      const profile = attendee.profiles as { full_name?: string; avatar_url?: string } | null | undefined;
-                      const name = profile?.full_name || attendee.guest_name || "익명";
-                      return (
-                        <div key={attendee.id || index} className="flex flex-col items-center gap-2 w-16 group cursor-default">
-                          <Avatar className="h-14 w-14 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200">
-                            <AvatarImage src={profile?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
-                              {name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900">
-                            {name}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                    <p className="text-slate-500 text-sm">아직 참석자가 없습니다.<br/>첫 번째 멤버가 되어보세요!</p>
-                  </div>
-                )}
+                {/* 참석자 멤버 섹션 */}
+                <div className="mb-6">
+                  <CardHeader 
+                    icon={Users} 
+                    title="참석자 멤버" 
+                    rightElement={
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                        {attendeesCount || 0}명
+                      </span>
+                    }
+                  />
+                  
+                  {attendees && attendees.length > 0 ? (
+                    <div className="flex flex-wrap gap-3">
+                      {attendees.map((attendee: { id?: string; profiles?: { full_name?: string; avatar_url?: string } | null; guest_name?: string }, index: number) => {
+                        const profile = attendee.profiles as { full_name?: string; avatar_url?: string } | null | undefined;
+                        const name = profile?.full_name || attendee.guest_name || "익명";
+                        return (
+                          <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
+                            <Avatar className="h-12 w-12 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200">
+                              <AvatarImage src={profile?.avatar_url || undefined} />
+                              <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">
+                                {name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900">
+                              {name}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                      <p className="text-slate-500 text-xs">아직 참석자가 없습니다.</p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
