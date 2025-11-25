@@ -29,8 +29,8 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
     setIsDeleting(true)
     try {
       await deleteEvent(eventId)
+      router.push("/events")
       router.refresh()
-      // SPA에서는 페이지 이동 없이 새로고침만
     } catch (error) {
       console.error("Failed to delete event:", error)
       alert("이벤트 삭제에 실패했습니다.")
@@ -44,10 +44,11 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
     <>
       <Button
         variant="outline"
-        className="w-full border-red-300 text-red-600 hover:bg-red-50"
+        size="sm"
+        className="bg-white border-red-300 text-red-600 hover:bg-red-50"
         onClick={() => setShowDeleteDialog(true)}
       >
-        <Trash2 className="mr-2 h-4 w-4" />
+        <Trash2 className="mr-2 h-3.5 w-3.5" />
         삭제
       </Button>
 

@@ -67,6 +67,20 @@ export async function deleteEvent(eventId: string) {
     throw new Error("Unauthorized")
   }
 
+  // Verify event exists and get creator info
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, created_by")
+    .eq("id", eventId)
+    .single()
+
+  if (!event) {
+    throw new Error("Event not found")
+  }
+
+  // Check if current user is the creator
+  const isCreator = event.created_by === user.id
+
   // Check if current user is admin or master
   const { data: profile } = await supabase
     .from("profiles")
@@ -74,15 +88,11 @@ export async function deleteEvent(eventId: string) {
     .eq("id", user.id)
     .single()
 
-  if (!profile || !isAdmin(profile.role, profile.email)) {
-    throw new Error("Unauthorized: Only admins can delete events")
-  }
+  const isAdminUser = profile && isAdmin(profile.role, profile.email)
 
-  // Verify event exists
-  const { data: event } = await supabase.from("events").select("id").eq("id", eventId).single()
-
-  if (!event) {
-    throw new Error("Event not found")
+  // Only creator or admin can delete
+  if (!isCreator && !isAdminUser) {
+    throw new Error("Unauthorized: Only event creators or admins can delete events")
   }
 
   // Delete event (registrations will be cascade deleted by DB)

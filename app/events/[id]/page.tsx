@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck, Edit, Trash2 } from 'lucide-react';
 import { RegisterButton } from "@/components/register-button";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { DeleteEventButton } from "@/components/delete-event-button";
 
 export default async function EventDetailPage({
   params,
@@ -129,12 +130,24 @@ export default async function EventDetailPage({
           </Link>
           
           {isCreator && (
-            <Link href={`/events/${id}/manage`}>
-              <Button variant="outline" size="sm" className="bg-white border-slate-300 hover:bg-slate-50 text-slate-700">
-                <Settings className="mr-2 h-3.5 w-3.5" />
-                관리자 설정
+            <div className="flex items-center gap-2">
+              <Link href={`/events/${id}/manage`}>
+                <Button variant="outline" size="sm" className="bg-white border-slate-300 hover:bg-slate-50 text-slate-700">
+                  <Settings className="mr-2 h-3.5 w-3.5" />
+                  관리자 설정
+                </Button>
+              </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-white border-slate-300 hover:bg-slate-50 text-slate-700"
+                onClick={() => alert("수정 기능은 준비 중입니다.")}
+              >
+                <Edit className="mr-2 h-3.5 w-3.5" />
+                수정
               </Button>
-            </Link>
+              <DeleteEventButton eventId={id} />
+            </div>
           )}
         </div>
 
@@ -266,9 +279,10 @@ export default async function EventDetailPage({
             <Card className="lg:col-span-8 border-slate-200 shadow-sm h-full">
               <CardContent className="p-6 sm:p-8">
                 <CardHeader icon={Info} title="상세 내용" />
-                <div className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900">
-                  <p className="whitespace-pre-wrap leading-8">{event.description}</p>
-                </div>
+                <div 
+                  className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900"
+                  dangerouslySetInnerHTML={{ __html: event.description || "" }}
+                />
               </CardContent>
             </Card>
 
