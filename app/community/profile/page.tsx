@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle } from "lucide-react"
+import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle, LogOut } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState, useMemo, type ReactNode } from "react"
@@ -64,24 +64,44 @@ function PostListItem({ post }: { post: any }) {
 }
 
 function EventListItem({ event }: { event: any }) {
+    // 날짜 비교를 통한 상태 판별 로직
+    const eventDate = new Date(event.event_date)
+    const now = new Date()
+    const isPast = eventDate < now
+    
+    // 표시할 텍스트 및 스타일 결정
+    let badgeText = "모집중"
+    let badgeStyle = "bg-blue-50 text-blue-700"
+
+    if (event.registration_date) {
+        badgeText = "신청 완료"
+        badgeStyle = "bg-green-50 text-green-700"
+    } else if (isPast) {
+        badgeText = "종료"
+        badgeStyle = "bg-slate-100 text-slate-500"
+    } else if (event.status === 'cancelled') {
+        badgeText = "취소됨"
+        badgeStyle = "bg-red-50 text-red-700"
+    }
+
     return (
-        <Link key={event.id} href={`/community/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors">
-            <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden">
+        <Link key={event.id} href={`/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group">
+            <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
                 {event.thumbnail_url ? (
-                    <Image src={event.thumbnail_url} alt="" width={64} height={64} className="h-full w-full object-cover" />
+                    <Image src={event.thumbnail_url} alt="" fill className="object-cover" />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-300"><Ticket className="h-6 w-6" /></div>
                 )}
             </div>
             <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-slate-900 truncate mb-1">{event.title}</h3>
+                <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-blue-600 transition-colors">{event.title}</h3>
                 <div className="flex items-center gap-3 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {new Date(event.event_date).toLocaleDateString()}</span>
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location}</span>
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location || "장소 미정"}</span>
                 </div>
                 <div className="mt-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700">
-                        {event.registration_date ? '신청 완료' : (event.status === 'upcoming' ? '예정' : '종료')}
+                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium", badgeStyle)}>
+                        {badgeText}
                     </span>
                 </div>
             </div>
@@ -112,6 +132,7 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false) // 아바타 업로드 상태
   const [showProfileEdit, setShowProfileEdit] = useState(false) // 프로필 편집 모달 상태
   const [isSaving, setIsSaving] = useState(false) // 프로필 저장 중 상태
+  const [isSigningOut, setIsSigningOut] = useState(false) // 로그아웃 상태
   
   // 프로필 편집 폼 상태
   const [editForm, setEditForm] = useState({
@@ -299,6 +320,22 @@ export default function ProfilePage() {
 
     loadData()
   }, [supabase, router])
+
+  // 로그아웃 핸들러
+  const handleSignOut = async () => {
+    if (isSigningOut) return
+    
+    setIsSigningOut(true)
+    try {
+      await supabase.auth.signOut()
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.replace('/')
+    } catch (error) {
+      console.error('로그아웃 오류:', error)
+      setIsSigningOut(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -652,10 +689,22 @@ export default function ProfilePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowProfileEdit(true)}
-                  className="w-full mb-4"
+                  className="w-full mb-3"
                 >
                   <Edit3 className="h-4 w-4 mr-2" />
                   프로필 편집
+                </Button>
+
+                {/* 로그아웃 버튼 */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="w-full mb-6 text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {isSigningOut ? "로그아웃 중..." : "로그아웃"}
                 </Button>
 
                 {/* 내 뱃지 영역 (실제 데이터 기반) */}

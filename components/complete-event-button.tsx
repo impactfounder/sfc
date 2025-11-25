@@ -28,16 +28,6 @@ export function CompleteEventButton({
 
       if (updateError) throw updateError;
 
-      const { error: pointsError } = await supabase.rpc('award_points', {
-        p_user_id: userId,
-        p_amount: 100,
-        p_type: 'event_completion',
-        p_description: '이벤트 개설 및 완료',
-        p_event_id: eventId
-      });
-
-      if (pointsError) throw pointsError;
-
       router.refresh();
     } catch (error) {
       console.error("Failed to complete event:", error);
@@ -50,10 +40,14 @@ export function CompleteEventButton({
     <Button
       onClick={handleComplete}
       disabled={isLoading}
-      className="w-full"
+      variant="outline"
+      size="sm"
     >
-      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      {isLoading ? "처리 중..." : "이벤트 완료 처리 (+100P)"}
+      {isLoading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <CheckCircle className="h-4 w-4" />
+      )}
     </Button>
   );
 }

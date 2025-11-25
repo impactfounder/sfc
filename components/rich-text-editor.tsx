@@ -7,7 +7,7 @@ import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import { Button } from "@/components/ui/button"
 import { Bold, Italic, List, ListOrdered, ImageIcon, Loader2 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 
 interface RichTextEditorProps {
   content: string
@@ -39,6 +39,14 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     },
     immediatelyRender: false,
   })
+
+  // 외부에서 content가 변경되면(예: DB 로딩 완료 시) 에디터에 반영
+  useEffect(() => {
+    if (editor && content && editor.getHTML() !== content) {
+      // 무한 루프 방지를 위해 내용이 다를 때만 업데이트
+      editor.commands.setContent(content)
+    }
+  }, [content, editor])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

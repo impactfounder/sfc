@@ -1,12 +1,13 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState, useMemo } from "react"
 import EventCard, { EventCardEvent } from "@/components/ui/event-card"
 import { Plus } from "lucide-react"
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Navigation } from "swiper/modules"
 import type { Swiper as SwiperType } from "swiper"
-import { Skeleton } from "@/components/ui/skeleton" // 스켈레톤 컴포넌트 추가
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 import {
   Empty,
@@ -22,12 +23,19 @@ import "swiper/css/navigation"
 type EventsSectionProps = {
   events: EventCardEvent[]
   onCreateEvent?: () => void
-  isLoading?: boolean // 로딩 상태 props 추가
+  isLoading?: boolean
 }
 
 export function EventsSection({ events, onCreateEvent, isLoading = false }: EventsSectionProps) {
   const swiperRef = useRef<SwiperType | null>(null)
+  const [filter, setFilter] = useState<"all" | "networking" | "class" | "activity">("all")
   const hasEvents = events && events.length > 0
+
+  // 필터링된 이벤트
+  const filteredEvents = useMemo(() => {
+    if (filter === "all") return events
+    return events.filter(event => event.event_type === filter)
+  }, [events, filter])
 
   return (
     <div className="w-full">
@@ -44,6 +52,31 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
           </button>
         )}
       </div>
+
+      {/* 필터 UI */}
+      {hasEvents && (
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+          {[
+            { value: "all", label: "전체" },
+            { value: "networking", label: "네트워킹" },
+            { value: "class", label: "클래스" },
+            { value: "activity", label: "액티비티" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setFilter(option.value as typeof filter)}
+              className={cn(
+                "px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap",
+                filter === option.value
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 1. 로딩 중일 때: 스켈레톤 UI 표시 */}
       {isLoading ? (
@@ -102,7 +135,7 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
               centeredSlides={false}
               className="!pb-4"
             >
-              {events.map((event) => (
+              {filteredEvents.map((event) => (
                 <SwiperSlide key={event.id}>
                   <EventCard event={event} href={`/events/${event.id}`} />
                 </SwiperSlide>
@@ -112,7 +145,7 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
 
           {/* 데스크탑 Grid */}
           <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
-            {events.map((event) => (
+            {filteredEvents.map((event) => (
               <div key={event.id} className="w-full">
                 <EventCard
                   event={event}

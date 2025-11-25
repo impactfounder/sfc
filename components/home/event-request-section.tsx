@@ -248,24 +248,7 @@ export function EventRequestSection({ posts, isLoading, user }: EventRequestSect
       {/* 그리드 레이아웃 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         
-        {/* 1. 작성 트리거 카드 (항상 첫 번째에 위치) */}
-        <div onClick={handleWriteClick} className="h-full min-h-[200px]">
-          <Card className="h-full border-slate-200 border-dashed border-2 bg-slate-50/50 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center gap-4 p-6">
-            <div className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:scale-110 transition-all duration-300">
-              <Plus className="h-6 w-6 text-slate-400 group-hover:text-blue-600 transition-colors" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors mb-1">
-                새로운 요청하기
-              </h3>
-              <p className="text-xs text-slate-500 group-hover:text-slate-600">
-                원하는 이벤트를 제안해보세요
-              </p>
-            </div>
-          </Card>
-        </div>
-
-        {/* 2. 포스트 리스트 (로딩 중 스켈레톤 / 실제 데이터) */}
+        {/* 1. 포스트 리스트 먼저 렌더링 */}
         {isLoading ? (
           [1, 2].map((i) => (
             <Card key={i} className="h-[200px] border-slate-200 p-5">
@@ -282,9 +265,28 @@ export function EventRequestSection({ posts, isLoading, user }: EventRequestSect
             </Card>
           ))
         ) : (
-          displayPosts.map((post) => (
-            <RequestCard key={post.id} post={post} user={user} />
-          ))
+          <>
+            {displayPosts.map((post) => (
+              <RequestCard key={post.id} post={post} user={user} />
+            ))}
+
+            {/* 2. 작성 트리거 카드 (맨 뒤로 이동 & 디자인 수정) */}
+            <div onClick={handleWriteClick} className="h-full min-h-[200px]">
+              <Card className="h-full border-slate-200 border-dashed border-2 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center gap-3 p-6">
+                <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
+                  <Plus className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors mb-0.5">
+                    새로운 요청하기
+                  </h3>
+                  <p className="text-[11px] text-slate-400 group-hover:text-blue-400/80">
+                    원하는 이벤트를 제안해보세요
+                  </p>
+                </div>
+              </Card>
+            </div>
+          </>
         )}
       </div>
     </div>

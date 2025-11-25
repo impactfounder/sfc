@@ -148,7 +148,11 @@ export default function HomePage() {
           .limit(9)
         
         if (!error && data) {
-          eventsData = data
+          // event_type이 없는 경우 기본값 설정
+          eventsData = data.map((event: any) => ({
+            ...event,
+            event_type: event.event_type || 'networking'
+          }))
           console.log('이벤트 로드 성공:', eventsData.length)
         } else {
           console.warn('이벤트 로드 실패:', error)
@@ -234,6 +238,7 @@ export default function HomePage() {
           host_name: event.profiles?.full_name || "알 수 없음",
           host_avatar_url: event.profiles?.avatar_url || null,
           host_bio: event.profiles?.bio || null,
+          event_type: event.event_type || 'networking',
         }))
         setEvents(transformedEvents)
       } else {

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { EventActionButtons } from "@/components/event-action-buttons";
+import { EventShareButton } from "@/components/event-share-button";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -259,19 +260,15 @@ export default async function EventDetailPage({
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    {event.max_participants && event.max_participants > 0 ? (
+                  {/* 최대 인원이 설정된 경우에만 바 표시 */}
+                  {event.max_participants && event.max_participants > 0 ? (
+                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                       <div 
                         className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
                         style={{ width: `${Math.min(100, ((attendeesCount || 0) / event.max_participants) * 100)}%` }}
                       />
-                    ) : (
-                      <div 
-                        className="h-full rounded-full transition-all duration-500 ease-out bg-slate-200"
-                        style={{ width: '0%' }}
-                      />
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
@@ -281,10 +278,12 @@ export default async function EventDetailPage({
                       이벤트가 종료되었습니다
                     </Button>
                   ) : isCreator ? (
-                    <Button className="w-full border-dashed border-2 border-slate-200 text-slate-500 hover:bg-slate-50 h-12 text-base font-medium" disabled variant="outline">
-                      <CheckCircle2 className="mr-2 h-5 w-5" />
-                      내가 만든 이벤트입니다
-                    </Button>
+                    <Link href={`/events/${id}/manage`}>
+                      <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 text-base font-medium transition-all shadow-sm hover:shadow-md active:scale-[0.98] transform">
+                        <Settings className="mr-2 h-5 w-5" />
+                        이벤트 관리
+                      </Button>
+                    </Link>
                   ) : (
                     <RegisterButton
                       eventId={event.id}
@@ -302,25 +301,16 @@ export default async function EventDetailPage({
                     </p>
                   )}
 
-                  {/* 호스트 전용: 이벤트 관리 버튼 */}
-                  {isCreator && (
-                    <>
-                      <Separator className="my-4 bg-slate-100" />
-                      <Link href={`/events/${id}/manage`}>
-                        <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 font-medium transition-all shadow-sm hover:shadow-md">
-                          <Settings className="mr-2 h-4 w-4" />
-                          이벤트 관리
-                        </Button>
-                      </Link>
-                    </>
-                  )}
-
                   <Separator className="my-4 bg-slate-100" />
 
-                  <Button variant="outline" className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow">
-                    <Share2 className="mr-2 h-4 w-4" />
+                  <EventShareButton
+                    title={event.title}
+                    description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                    variant="outline"
+                    className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow"
+                  >
                     이 이벤트 공유하기
-                  </Button>
+                  </EventShareButton>
                 </div>
               </CardContent>
             </Card>
@@ -410,6 +400,46 @@ export default async function EventDetailPage({
             </Card>
           </div>
 
+        </div>
+      </div>
+
+      {/* [Mobile Only] 하단 고정 액션 바 (Sticky Bottom Bar) */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden animate-in slide-in-from-bottom-full duration-500">
+        <div className="flex items-center gap-3 max-w-md mx-auto">
+          
+          {/* 공유 버튼 (아이콘만) */}
+          <div className="shrink-0">
+            <EventShareButton 
+              title={event.title} 
+              description={`일시: ${dateStr} ${timeStr}\n장소: ${event.location || "장소 미정"}`}
+              variant="outline"
+              size="icon"
+            />
+          </div>
+
+          {/* 신청 버튼 (꽉 차게) */}
+          <div className="flex-1">
+            {isPastEvent ? (
+              <Button className="w-full bg-slate-100 text-slate-400" disabled>
+                종료됨
+              </Button>
+            ) : isCreator ? (
+              <Link href={`/events/${id}/manage`} className="block w-full">
+                <Button className="w-full bg-slate-100 text-slate-900 hover:bg-slate-200 font-bold">
+                  관리하기
+                </Button>
+              </Link>
+            ) : (
+              <RegisterButton
+                eventId={event.id}
+                userId={user?.id}
+                isRegistered={isRegistered}
+                isFull={!!isFull}
+                userPoints={userPoints}
+                eventPointCost={event.point_cost || undefined}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

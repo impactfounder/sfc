@@ -17,6 +17,7 @@ export type EventCardEvent = {
   host_name?: string | null
   host_avatar_url?: string | null
   host_bio?: string | null
+  event_type?: 'networking' | 'class' | 'activity' | null
 }
 
 type Props = {
@@ -57,6 +58,20 @@ export default function EventCard({ event, href, className, layout = "card" }: P
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
+      )}
+
+      {/* 카테고리 뱃지 */}
+      {event.event_type && (
+        <div className={cn(
+          "absolute top-4 left-4 z-10 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg backdrop-blur-sm",
+          event.event_type === 'networking' && "bg-blue-500/90",
+          event.event_type === 'class' && "bg-purple-500/90",
+          event.event_type === 'activity' && "bg-green-500/90"
+        )}>
+          {event.event_type === 'networking' && '네트워킹'}
+          {event.event_type === 'class' && '클래스'}
+          {event.event_type === 'activity' && '액티비티'}
+        </div>
       )}
 
       {/* 1. 전체적으로 살짝 어둡게 눌러주는 레이어 */}

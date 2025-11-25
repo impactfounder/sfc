@@ -62,6 +62,9 @@ export function PostsSection({
     ? onBoardChange 
     : (val: string) => setInternalSelectedBoard(val || "all")
 
+  // 제외할 슬러그 목록 (공지사항, 자유게시판, 열어주세요)
+  const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board', 'event-requests', 'requests']
+
   const filteredPosts = useMemo(() => {
     // 1. 개별 게시판 모드(hideTabs=true)면 필터링 없이 원본 그대로 반환
     // 개별 게시판 페이지에서는 이미 쿼리 단계에서 필요한 글만 가져오기 때문
@@ -69,8 +72,7 @@ export function PostsSection({
       return posts;
     }
 
-    // 2. 통합 피드 모드(hideTabs=false)면 공지/자유 제외 필터 적용
-    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+    // 2. 통합 피드 모드(hideTabs=false)면 제외 목록에 있는 카테고리의 글을 숨김
     const baseFiltered = posts.filter((post) => {
       const postSlug = post.board_categories?.slug
       return !postSlug || !excludedSlugs.includes(postSlug)
@@ -82,20 +84,19 @@ export function PostsSection({
     return baseFiltered.filter(
       (post) => post.board_categories?.slug === currentBoard
     )
-  }, [posts, currentBoard, hideTabs]) // hideTabs 의존성 추가 필수
+  }, [posts, currentBoard, hideTabs, excludedSlugs])
 
-  // 중복 카테고리 제거 및 공지사항/자유게시판 제외 (slug 기준)
+  // 중복 카테고리 제거 및 제외 목록 적용 (slug 기준)
   const uniqueCategories = useMemo(() => {
-    const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
     const unique = new Map();
     boardCategories.forEach(cat => {
-      // 공지사항과 자유게시판 제외
+      // 탭 생성 시에도 제외 목록 적용
       if (!excludedSlugs.includes(cat.slug) && !unique.has(cat.slug)) {
         unique.set(cat.slug, cat);
       }
     });
     return Array.from(unique.values());
-  }, [boardCategories]);
+  }, [boardCategories, excludedSlugs]);
 
   return (
     <div className="w-full space-y-6 bg-transparent">

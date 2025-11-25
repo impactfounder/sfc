@@ -214,56 +214,46 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           <div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center">
             {user ? (
               <div className="space-y-2">
-                <div
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-3 transition-all border border-slate-200",
-                    isLinkActive("/community/profile") ? "bg-slate-100" : "hover:bg-slate-50 hover:text-slate-900",
-                  )}
-                >
+                {/* 프로필 영역과 알림 버튼을 형제 요소로 분리 */}
+                <div className="flex items-center gap-2">
+                  {/* 1. 프로필 영역 (클릭 시 이동) */}
                   <Link
                     href="/community/profile"
-                    className="flex-1 flex items-center gap-3 min-w-0"
+                    className={cn(
+                      "flex-1 flex items-center gap-3 rounded-xl px-3 py-3 transition-all border border-slate-200 min-w-0",
+                      isLinkActive("/community/profile") 
+                        ? "bg-slate-100 border-slate-300" 
+                        : "bg-white hover:bg-slate-50 hover:border-slate-300"
+                    )}
                   >
-                    <Avatar className="h-10 w-10 flex-shrink-0">
+                    <Avatar className="h-10 w-10 flex-shrink-0 border border-slate-100">
                       <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-blue-600 text-white text-sm">
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-sm font-bold">
                         {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-semibold text-slate-900 truncate">
-                          {profile?.full_name || user.email?.split("@")[0]}
-                        </div>
+                      <div className="text-sm font-bold text-slate-900 truncate">
+                        {profile?.full_name || user.email?.split("@")[0]}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-slate-500 truncate">
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 font-medium truncate">
                           {userRole === "admin" || userRole === "master" ? "관리자" : "멤버"}
                         </span>
                         {profile?.points !== undefined && profile.points !== null && (
-                          <span className="text-xs font-bold text-yellow-600 flex items-center gap-1">
-                            💎 {profile.points.toLocaleString()}P
+                          <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5">
+                            💎 {profile.points.toLocaleString()}
                           </span>
                         )}
                       </div>
                     </div>
                   </Link>
-                  {/* 알림 아이콘 버튼 (Link 밖에 배치) */}
-                  {user && (
-                    <div className="flex-shrink-0">
-                      <NotificationsDropdown />
-                    </div>
-                  )}
+
+                  {/* 2. 알림 버튼 (독립된 영역) */}
+                  <div className="flex-shrink-0">
+                    <NotificationsDropdown />
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-9 text-sm bg-transparent"
-                  onClick={handleSignOut}
-                  disabled={isSigningOut}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  {isSigningOut ? '로그아웃 중...' : '로그아웃'}
-                </Button>
               </div>
             ) : (
               <Button

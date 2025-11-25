@@ -9,6 +9,7 @@ export type EventForDisplay = {
   location?: string | null
   max_participants?: number | null
   current_participants: number
+  event_type?: 'networking' | 'class' | 'activity' | null
 }
 
 /**
@@ -28,6 +29,7 @@ export async function getUpcomingEvents(
       event_time,
       location,
       max_participants,
+      event_type,
       event_registrations (count)
     `)
     .gte("event_date", new Date().toISOString())
@@ -48,6 +50,7 @@ export async function getUpcomingEvents(
     location: event.location,
     max_participants: event.max_participants,
     current_participants: event.event_registrations?.[0]?.count || 0,
+    event_type: event.event_type || 'networking',
   }))
 }
 

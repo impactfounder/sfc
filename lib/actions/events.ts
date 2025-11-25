@@ -17,6 +17,7 @@ export async function createEvent(data: {
   price?: number | null
   max_participants?: number | null
   thumbnail_url?: string | null
+  event_type?: 'networking' | 'class' | 'activity' | null
   customFields?: Array<{
     id: string
     label: string
@@ -46,6 +47,7 @@ export async function createEvent(data: {
     price: data.price && data.price > 0 ? data.price : null,
     max_participants: data.max_participants || null,
     thumbnail_url: data.thumbnail_url || null,
+    event_type: data.event_type || 'networking',
     created_by: user.id, // ★ 무조건 세션의 user.id만 사용
   }
 
@@ -153,6 +155,7 @@ export async function updateEvent(eventId: string, data: {
   price?: number | null
   max_participants?: number | null
   thumbnail_url?: string | null
+  event_type?: 'networking' | 'class' | 'activity' | null
 }) {
   const supabase = await createClient()
 
@@ -188,6 +191,7 @@ export async function updateEvent(eventId: string, data: {
     price: data.price && data.price > 0 ? data.price : null,
     max_participants: data.max_participants || null,
     thumbnail_url: data.thumbnail_url || null,
+    event_type: data.event_type || 'networking',
     updated_at: new Date().toISOString(),
   }
 

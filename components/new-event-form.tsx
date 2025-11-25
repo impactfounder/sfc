@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent } from "@/components/ui/card"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
@@ -29,6 +30,7 @@ type InitialData = {
   price?: number | null
   max_participants?: number | null
   thumbnail_url?: string | null
+  event_type?: 'networking' | 'class' | 'activity' | null
 }
 
 export function NewEventForm({ 
@@ -42,6 +44,7 @@ export function NewEventForm({
 }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("") // Editor content (HTML)
+  const [eventType, setEventType] = useState<"networking" | "class" | "activity">("networking")
   const [startDate, setStartDate] = useState("")
   const [startTime, setStartTime] = useState("")
   const [endDate, setEndDate] = useState("")
@@ -125,6 +128,7 @@ export function NewEventForm({
       setLocation(initialData.location || "")
       setPrice(initialData.price && initialData.price > 0 ? String(initialData.price) : "")
       setMaxParticipants(initialData.max_participants && initialData.max_participants > 0 ? String(initialData.max_participants) : "")
+      setEventType(initialData.event_type || "networking")
 
       // 날짜/시간 파싱
       if (initialData.event_date) {
@@ -264,6 +268,7 @@ export function NewEventForm({
         price: priceValue > 0 ? priceValue : null,
         max_participants: maxParticipantsValue,
         thumbnail_url: thumbnailUrl || null,
+        event_type: eventType,
         customFields: customFields.length > 0 ? customFields : undefined,
       }
 
@@ -452,6 +457,53 @@ export function NewEventForm({
         {/* [Right] Event Info Section (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           
+          {/* Event Type Selection */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-slate-700">이벤트 유형</Label>
+            <RadioGroup
+              value={eventType}
+              onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
+              className="flex gap-3"
+            >
+              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex-1">
+                <RadioGroupItem value="networking" id="networking" />
+                <Label htmlFor="networking" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-500">🔵</span>
+                    <div>
+                      <div className="font-medium text-slate-900">네트워킹</div>
+                      <div className="text-xs text-slate-500">모임, 파티, 네트워킹</div>
+                    </div>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex-1">
+                <RadioGroupItem value="class" id="class" />
+                <Label htmlFor="class" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-500">🟣</span>
+                    <div>
+                      <div className="font-medium text-slate-900">클래스</div>
+                      <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
+                    </div>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex-1">
+                <RadioGroupItem value="activity" id="activity" />
+                <Label htmlFor="activity" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-500">🟢</span>
+                    <div>
+                      <div className="font-medium text-slate-900">액티비티</div>
+                      <div className="text-xs text-slate-500">운동, 야외 활동</div>
+                    </div>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           {/* Title Input (Big & Bold like Luma) */}
           <div>
             <input

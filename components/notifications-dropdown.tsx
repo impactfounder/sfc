@@ -113,82 +113,107 @@ export default function NotificationsDropdown() {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="relative h-8 w-8"
+          className={cn(
+            "relative h-[66px] w-12 rounded-xl border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all",
+            isOpen && "bg-slate-100 border-slate-300 ring-2 ring-slate-200 ring-offset-0"
+          )}
           aria-label="알림"
         >
-          <Bell className="h-4 w-4" />
+          <Bell className={cn("h-5 w-5 transition-colors", isOpen ? "text-slate-900" : "text-slate-500")} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-              {unreadCount > 9 && (
-                <span className="text-[6px] text-white font-bold leading-none">9+</span>
-              )}
-            </span>
+            <span className="absolute top-3 right-3 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
           )}
         </Button>
       </PopoverTrigger>
+      
+      {/* Full Height & Solid Background Panel */}
       <PopoverContent 
-        className="w-96 p-0" 
-        align="end"
-        side="bottom"
-        sideOffset={8}
+        className="w-[calc(100vw-2rem)] md:w-[400px] p-0 h-screen bg-white border-r border-slate-200 shadow-2xl rounded-none md:rounded-none flex flex-col ml-0" 
+        side="right" 
+        align="start"
+        sideOffset={0}
+        alignOffset={-140}
+        collisionPadding={0}
       >
-        <div className="flex flex-col max-h-[500px]">
-          <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="font-bold text-lg">알림</h3>
+        {/* 헤더 */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Bell className="h-5 w-5 text-slate-900" />
+            <h3 className="font-bold text-xl text-slate-900">알림</h3>
             {unreadCount > 0 && (
-              <button 
-                onClick={markAllAsRead} 
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                모두 읽음
-              </button>
+              <span className="bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                {unreadCount} NEW
+              </span>
             )}
           </div>
+          {unreadCount > 0 && (
+            <button 
+              onClick={markAllAsRead} 
+              className="text-xs text-slate-500 hover:text-blue-600 font-medium transition-colors underline underline-offset-4"
+            >
+              모두 읽음
+            </button>
+          )}
+        </div>
 
-          <div className="overflow-y-auto flex-1">
-            {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <Bell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">알림이 없습니다</p>
+        {/* 리스트 영역 */}
+        <div className="overflow-y-auto flex-1 bg-white">
+          {notifications.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 space-y-4">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
+                <Bell className="w-10 h-10 text-slate-300" />
               </div>
-            ) : (
-              <div>
-                {notifications.map((notification) => (
-                  <button
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className={cn(
-                      "w-full p-4 text-left hover:bg-gray-50 transition-colors border-b last:border-b-0",
-                      !notification.is_read && "bg-blue-50"
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                        {notification.profiles?.full_name?.[0] || "?"}
+              <p className="text-base font-medium text-slate-500">새로운 알림이 없습니다</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {notifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={cn(
+                    "w-full p-6 text-left hover:bg-slate-50 transition-all duration-200 group relative",
+                    !notification.is_read ? "bg-blue-50/30" : "bg-white"
+                  )}
+                >
+                  {/* 읽지 않음 표시 점 (좌측) */}
+                  {!notification.is_read && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+                  )}
+                  
+                  <div className="flex gap-4">
+                    <div className="shrink-0 mt-1">
+                      <div className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm overflow-hidden">
+                        {notification.profiles?.avatar_url ? (
+                          <img src={notification.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-slate-400">{notification.profiles?.full_name?.[0] || "!"}</span>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm mb-1">{notification.title}</p>
-                        <p className="text-sm text-gray-600 line-clamp-2">{notification.message}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(notification.created_at).toLocaleDateString("ko-KR", {
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                      {!notification.is_read && (
-                        <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" />
-                      )}
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex justify-between items-start">
+                        <p className="font-bold text-sm text-slate-900 leading-tight">
+                          {notification.title}
+                        </p>
+                        <span className="text-[10px] text-slate-400 shrink-0 font-medium">
+                          {new Date(notification.created_at).toLocaleDateString("ko-KR", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                        {notification.message}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
