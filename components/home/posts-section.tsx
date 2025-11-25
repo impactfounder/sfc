@@ -99,38 +99,36 @@ export function PostsSection({
 
   return (
     <div className="w-full space-y-6 bg-transparent">
-      {/* 섹션 제목 */}
-      <h2 className="text-3xl font-bold text-slate-900">최신 글</h2>
-      
-      {/* 우측 상단: 뷰 모드 토글 (작고 세련되게) */}
-      <div className="flex items-center justify-end">
-        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg p-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
+      {/* 상단 헤더 영역: 제목 + 뷰 모드 토글 */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">최신 글</h2>
+        
+        {/* 뷰 모드 토글 (카테고리 필터와 동일한 디자인 적용) */}
+        <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
+          <button
             onClick={() => setViewMode("feed")}
             className={cn(
-              "h-8 px-3 text-xs",
-              viewMode === "feed" ? "bg-slate-900 text-white hover:bg-slate-800" : ""
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+              viewMode === "feed"
+                ? "bg-white text-slate-900 shadow-sm font-bold"
+                : "text-slate-500 hover:text-slate-700"
             )}
           >
-            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
-            피드형
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
+            <LayoutGrid className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">피드형</span>
+          </button>
+          <button
             onClick={() => setViewMode("list")}
             className={cn(
-              "h-8 px-3 text-xs",
-              viewMode === "list" ? "bg-slate-900 text-white hover:bg-slate-800" : ""
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+              viewMode === "list"
+                ? "bg-white text-slate-900 shadow-sm font-bold"
+                : "text-slate-500 hover:text-slate-700"
             )}
           >
-            <List className="h-3.5 w-3.5 mr-1.5" />
-            리스트형
-          </Button>
+            <List className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">리스트형</span>
+          </button>
         </div>
       </div>
 
@@ -148,7 +146,7 @@ export function PostsSection({
               value="all" 
               aria-label="전체" 
               // ★ 아이템 스타일: 선택 시 흰색 배경 + 그림자 + 파란 텍스트 / 비선택 시 회색 텍스트
-              className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+              className="rounded-xl px-4 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-slate-900 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
             >
               전체
             </ToggleGroupItem>
@@ -158,7 +156,7 @@ export function PostsSection({
                 key={category.id}
                 value={category.slug}
                 aria-label={category.name}
-                className="rounded-xl px-6 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-blue-600 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-500 transition-all hover:text-slate-700 data-[state=on]:bg-white data-[state=on]:text-slate-900 data-[state=on]:shadow-sm data-[state=on]:font-bold h-9"
               >
                 {category.name}
               </ToggleGroupItem>
@@ -168,15 +166,19 @@ export function PostsSection({
       )}
 
       {/* Posts List */}
-      <div className="space-y-4">
+      {/* 리스트 뷰일 때는 space-y-4(간격) 제거 */}
+      <div className={cn(
+        "w-full",
+        viewMode === "feed" ? "space-y-4" : "space-y-0 flex flex-col border-t border-slate-100"
+      )}>
         {isLoading ? (
           [1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="w-full h-24 rounded-xl border border-gray-200 bg-white p-4">
-              <Skeleton className="h-6 w-3/4 mb-3" />
-              <div className="flex gap-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-24" />
-              </div>
+            <div key={i} className={cn(
+              "w-full bg-white",
+              viewMode === "feed" ? "h-24 rounded-xl border border-gray-200 p-4" : "h-16 border-b border-gray-100 px-4 py-3"
+            )}>
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-3 w-1/4" />
             </div>
           ))
         ) : filteredPosts.length > 0 ? (

@@ -9,6 +9,7 @@ export type PostForDisplay = {
   likes_count?: number
   comments_count?: number
   profiles?: {
+    id?: string
     full_name?: string | null
   } | null
   board_categories?: {
@@ -44,25 +45,32 @@ export async function getLatestPosts(
 
     // 1. 기본 쿼리 작성 (Select + Join)
     // !inner를 사용하여 카테고리가 있는 글만 확실하게 가져옴
+    // profiles 조인 시 id 필드를 반드시 포함하여 N+1 문제 예방
     let query = supabase
       .from("posts")
       .select(`
         id, title, content, created_at, visibility, likes_count, comments_count,
-        profiles:author_id(full_name),
+        profiles:author_id(id, full_name),
         board_categories!inner(name, slug)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(limit);
+      `);
 
     // 2. 필터링 조건 적용
     if (!categorySlug || categorySlug === 'all') {
-      // [통합 피드] 공지사항/자유게시판 제외 (소모임 글만)
+      // [통합 피드] 공지사항/자유게시판/event-requests 제외 (소모임 글만)
       // not.in 필터가 확실하게 작동하도록 설정
-      query = query.not('board_categories.slug', 'in', '("announcement","free-board")');
+      query = query.not('board_categories.slug', 'in', '("announcement","free-board","event-requests")');
+      query = query.order("created_at", { ascending: false });
+    } else if (categorySlug === 'event-requests') {
+      // [Event Requests] likes_count 기준 내림차순 정렬
+      query = query.eq('board_categories.slug', categorySlug);
+      query = query.order("likes_count", { ascending: false });
     } else {
       // [개별 게시판] 해당 슬러그와 정확히 일치하는 글만
       query = query.eq('board_categories.slug', categorySlug);
+      query = query.order("created_at", { ascending: false });
     }
+
+    query = query.limit(limit);
 
     // 3. 쿼리 실행
     const { data: posts, error } = await query;
@@ -81,7 +89,10 @@ export async function getLatestPosts(
       visibility: post.visibility || 'public',
       likes_count: post.likes_count || 0,
       comments_count: post.comments_count || 0,
-      profiles: post.profiles ? { full_name: post.profiles.full_name } : null,
+      profiles: post.profiles ? { 
+        id: post.profiles.id,
+        full_name: post.profiles.full_name 
+      } : null,
       board_categories: post.board_categories
         ? { name: post.board_categories.name, slug: post.board_categories.slug }
         : null,

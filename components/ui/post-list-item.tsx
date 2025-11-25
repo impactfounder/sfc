@@ -97,59 +97,52 @@ export function PostListItem({
   // 리스트형 뷰 (밀도 높은 세련된 디자인)
   if (viewMode === "list") {
     return (
-      <Link href={href} className={cn("block", className)}>
-        <div className="flex items-center gap-3 py-2.5 px-4 bg-white border-b border-slate-100 hover:bg-slate-50/50 transition-all duration-200 first:rounded-t-xl last:rounded-b-xl">
-          <span className="bg-blue-100 text-blue-700 rounded-md px-2 py-0.5 text-xs font-semibold flex-shrink-0">
+      <Link href={href} className={cn("block w-full group", className)}>
+        {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
+        <div className="flex items-center gap-3 py-2 px-2 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
+          
+          {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) */}
+          <span className="bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 text-[11px] font-medium flex-shrink-0 w-16 text-center">
             {categoryName}
           </span>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
+          
+          {/* 제목 및 내용 */}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            {/* 제목 */}
+            <h3 className="text-[15px] font-medium text-slate-900 truncate group-hover:text-blue-600 transition-colors">
               {post.title}
             </h3>
-            {/* 모바일: 두 줄로 표시 */}
-            <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
-              <span className="text-xs text-slate-500">{post.profiles?.full_name || "익명"}</span>
-              {primaryBadge && (
-                <span className="inline-flex items-center gap-0.5 bg-slate-100 text-slate-700 rounded px-1 text-xs">
-                  <span>{primaryBadge.icon}</span>
-                </span>
+          </div>
+
+          {/* 데스크탑 정보 (우측 정렬) */}
+          <div className="hidden sm:flex items-center gap-4 text-xs text-slate-400 flex-shrink-0">
+            <span className="text-slate-500 w-16 text-right truncate">{post.profiles?.full_name || "익명"}</span>
+            <span className="w-16 text-right">{formatRelativeTime(post.created_at)}</span>
+            
+            <div className="flex items-center gap-2.5 ml-1 w-16 justify-end">
+              {(post.likes_count || 0) > 0 && (
+                <div className="flex items-center gap-0.5 text-red-500">
+                  <Heart className="h-3 w-3 fill-current" />
+                  <span>{post.likes_count}</span>
+                </div>
               )}
-              <span className="text-xs text-slate-400">·</span>
-              <span className="text-xs text-slate-400">{formatRelativeTime(post.created_at)}</span>
+              {(post.comments_count || 0) > 0 && (
+                <div className="flex items-center gap-0.5 text-blue-500">
+                  <MessageSquare className="h-3 w-3 fill-current" />
+                  <span>{post.comments_count}</span>
+                </div>
+              )}
             </div>
           </div>
-          {/* 데스크탑: 우측 정렬 */}
-          <div className="hidden sm:flex items-center gap-4 text-xs text-slate-500 flex-shrink-0">
-            <span className="text-slate-500">{post.profiles?.full_name || "익명"}</span>
-            {primaryBadge && (
-              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 rounded px-1.5 py-0.5 text-xs">
-                <span>{primaryBadge.icon}</span>
-                <span className="hidden md:inline">{primaryBadge.name}</span>
-              </span>
+
+          {/* 모바일 정보 (아이콘만 간략히) */}
+          <div className="flex sm:hidden items-center gap-2 text-xs text-slate-400 flex-shrink-0">
+            {(post.comments_count || 0) > 0 && (
+              <div className="flex items-center gap-0.5">
+                <MessageSquare className="h-3 w-3" />
+                <span>{post.comments_count}</span>
+              </div>
             )}
-            <span className="text-slate-400">·</span>
-            <span>{formatRelativeTime(post.created_at)}</span>
-            <div className="flex items-center gap-2.5 ml-2">
-              <div className="flex items-center gap-1">
-                <Heart className="h-3.5 w-3.5" />
-                <span className="text-xs">{post.likes_count || 0}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span className="text-xs">{post.comments_count || 0}</span>
-              </div>
-            </div>
-          </div>
-          {/* 모바일: 아이콘만 우측에 */}
-          <div className="flex sm:hidden items-center gap-2 text-xs text-slate-500 flex-shrink-0">
-            <div className="flex items-center gap-0.5">
-              <Heart className="h-3.5 w-3.5" />
-              <span>{post.likes_count || 0}</span>
-            </div>
-            <div className="flex items-center gap-0.5">
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span>{post.comments_count || 0}</span>
-            </div>
           </div>
         </div>
       </Link>

@@ -14,7 +14,9 @@ import { AnnouncementBanner } from "@/components/home/announcement-banner"
 import { EventsSection } from "@/components/home/events-section"
 import { PostsSection } from "@/components/home/posts-section"
 import { HeroSection } from "@/components/home/hero-section"
+import { EventRequestSection } from "@/components/home/event-request-section"
 import { EventCardEvent } from "@/components/ui/event-card"
+import { getLatestPosts } from "@/lib/queries/posts"
 
 
 type BoardCategory = {
@@ -52,6 +54,7 @@ export default function HomePage() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
   const [events, setEvents] = useState<EventCardEvent[]>([])
   const [posts, setPosts] = useState<Post[]>([])
+  const [eventRequests, setEventRequests] = useState<Post[]>([])
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([])
   const [user, setUser] = useState<any>(null)
   const userRef = useRef<any>(null) // 이전 사용자 상태 추적
@@ -83,6 +86,7 @@ export default function HomePage() {
       let announcementData: any = null
       let eventsData: any[] = []
       let postsData: any[] = []
+      let eventRequestsData: any[] = []
 
       // 1. 카테고리
       try {
@@ -188,6 +192,20 @@ export default function HomePage() {
         postsData = [] // 빈 배열로 설정
       }
 
+      // 5. 열어주세요(Event Requests)
+      try {
+        const requestsData = await getLatestPosts(supabase, 6, 'event-requests')
+        if (requestsData) {
+          eventRequestsData = requestsData
+          console.log('열어주세요 로드 성공:', eventRequestsData.length)
+        } else {
+          eventRequestsData = []
+        }
+      } catch (error: any) {
+        console.error('열어주세요 로드 오류:', error)
+        eventRequestsData = [] // 빈 배열로 설정
+      }
+
       // 카테고리 처리
       if (categoriesData.length > 0) {
         const mappedCategories = categoriesData.map((cat) => {
@@ -275,6 +293,13 @@ export default function HomePage() {
         setPosts([]) // 빈 배열로 설정하여 빈 상태 표시
       }
 
+      // 열어주세요 처리
+      if (eventRequestsData.length > 0) {
+        setEventRequests(eventRequestsData as Post[])
+      } else {
+        setEventRequests([]) // 빈 배열로 설정하여 빈 상태 표시
+      }
+
     } catch (error) {
       console.error('데이터 로드 중 오류 발생:', error)
       // 에러가 발생해도 기본 데이터는 표시
@@ -338,6 +363,9 @@ export default function HomePage() {
         )}
         <div id="events-section" className="mb-20">
           <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+        </div>
+        <div className="mb-20">
+          <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
         </div>
         <div>
           <PostsSection

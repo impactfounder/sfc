@@ -89,7 +89,7 @@ export default async function BoardPage({
   console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
 
   // 매핑 검증: 유효한 슬러그인지 확인
-  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk'];
+  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests'];
   if (!validSlugs.includes(dbSlug)) {
     console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
     notFound();
