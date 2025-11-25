@@ -59,8 +59,8 @@ export function MobileActionBar() {
   const getActiveTab = () => {
     if (pathname === "/") return "home"
     if (pathname.startsWith("/events")) return "events"
-    if (pathname.startsWith("/communities") || pathname.startsWith("/community/board")) return "community"
     if (pathname.startsWith("/community/profile")) return "profile"
+    if (pathname.startsWith("/communities") || pathname.startsWith("/community")) return "community"
     return null
   }
 
@@ -83,7 +83,7 @@ export function MobileActionBar() {
   }
 
   const handleCommunity = () => {
-    router.push("/community/board/free")
+    router.push("/community")
   }
 
   const handleProfile = async () => {

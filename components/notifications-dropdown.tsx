@@ -113,24 +113,24 @@ export default function NotificationsDropdown() {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           className={cn(
-            "relative h-[66px] w-12 rounded-xl border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all",
-            isOpen && "bg-slate-100 border-slate-300 ring-2 ring-slate-200 ring-offset-0"
+            "relative h-10 w-10 rounded-lg border-0 hover:bg-slate-100 transition-all",
+            isOpen && "bg-slate-100"
           )}
           aria-label="알림"
         >
-          <Bell className={cn("h-5 w-5 transition-colors", isOpen ? "text-slate-900" : "text-slate-500")} />
+          <Bell className={cn("h-5 w-5 transition-colors", isOpen ? "text-slate-900" : "text-slate-600")} />
           {unreadCount > 0 && (
-            <span className="absolute top-3 right-3 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
+            <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white shadow-sm" />
           )}
         </Button>
       </PopoverTrigger>
       
       {/* Full Height & Solid Background Panel */}
       <PopoverContent 
-        className="w-[calc(100vw-2rem)] md:w-[400px] p-0 h-screen bg-white border-r border-slate-200 shadow-2xl rounded-none md:rounded-none flex flex-col ml-0" 
+        className="w-full sm:w-[400px] max-w-[100vw] p-0 h-screen bg-white border-r border-slate-200 shadow-2xl rounded-none flex flex-col ml-0" 
         side="right" 
         align="start"
         sideOffset={0}

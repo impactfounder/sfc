@@ -44,7 +44,7 @@ export default function EventCard({ event, href, className, layout = "card" }: P
   const content = (
     <div
       className={cn(
-        "group relative w-full aspect-[4/5] overflow-hidden rounded-[24px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
+        "group relative w-full aspect-[3/4] md:aspect-[4/5] overflow-hidden rounded-[24px] bg-slate-900 shadow-md transition-all hover:shadow-xl hover:-translate-y-1",
         className
       )}
     >
@@ -81,11 +81,11 @@ export default function EventCard({ event, href, className, layout = "card" }: P
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent via-35% to-black/90" />
 
       {/* 콘텐츠 레이어 */}
-      <div className="relative h-full flex flex-col justify-between p-6">
+      <div className="relative h-full flex flex-col justify-between p-5 md:p-6">
         
         {/* 상단: 제목 (여백을 pt-6으로 늘려 시원하게 내림) */}
         <div className="pt-6">
-          <h3 className="text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
+          <h3 className="text-lg md:text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
             {event.title}
           </h3>
         </div>

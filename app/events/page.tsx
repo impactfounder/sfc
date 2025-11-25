@@ -48,63 +48,78 @@ export default async function EventsPage() {
   const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
+    <div className="min-h-screen bg-slate-50 px-4 py-6 md:p-8 pt-20 md:pt-8 pb-24">
       <div className="mx-auto max-w-6xl">
         
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 md:mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h1>
-            <p className="mt-2 text-slate-600">다가오는 커뮤니티 이벤트를 찾아보고 참여하세요</p>
+            <h1 className="text-xl md:text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h1>
+            <p className="mt-1 text-sm text-slate-600">커뮤니티 이벤트를 찾아보세요</p>
           </div>
-          {user ? (
-            <Link href="/events/new">
-              <button className={buttonStyle}>
-                <Plus className="w-4 h-4" />
-                새 이벤트
-              </button>
-            </Link>
-          ) : (
-            <Link href="/auth/login">
-              <button className={buttonStyle}>
-                <Plus className="w-4 h-4" />
-                로그인하고 이벤트 만들기
-              </button>
-            </Link>
-          )}
+          {/* 데스크탑에서만 버튼 표시 */}
+          <div className="hidden md:block">
+            {user ? (
+              <Link href="/events/new">
+                <button className={buttonStyle}>
+                  <Plus className="w-4 h-4" />
+                  새 이벤트
+                </button>
+              </Link>
+            ) : (
+              <Link href="/auth/login">
+                <button className={buttonStyle}>
+                  <Plus className="w-4 h-4" />
+                  로그인하고 이벤트 만들기
+                </button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Upcoming Events */}
-        <div className="mb-12">
+        <div className="mb-10">
           <h2 className="mb-4 text-xl font-semibold text-slate-900">다가오는 이벤트</h2>
           {upcomingEvents && upcomingEvents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
-              {upcomingEvents.map((event) => {
-                const eventData = {
-                  id: event.id,
-                  title: event.title,
-                  thumbnail_url: event.thumbnail_url,
-                  event_date: event.event_date,
-                  event_time: null,
-                  location: event.location,
-                  max_participants: event.max_participants,
-                  current_participants: event.event_registrations?.[0]?.count || 0,
-                  host_name: event.profiles?.full_name,
-                  host_avatar_url: event.profiles?.avatar_url,
-                  host_bio: event.profiles?.bio,
-                }
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                {upcomingEvents.map((event) => {
+                  const eventData = {
+                    id: event.id,
+                    title: event.title,
+                    thumbnail_url: event.thumbnail_url,
+                    event_date: event.event_date,
+                    event_time: null,
+                    location: event.location,
+                    max_participants: event.max_participants,
+                    current_participants: event.event_registrations?.[0]?.count || 0,
+                    host_name: event.profiles?.full_name,
+                    host_avatar_url: event.profiles?.avatar_url,
+                    host_bio: event.profiles?.bio,
+                  }
 
-                return (
-                  <div key={event.id} className="w-full">
-                    <EventCard 
-                      event={eventData} 
-                      href={`/events/${event.id}`}
-                      className="w-full h-full"
-                    />
-                  </div>
-                )
-              })}
-            </div>
+                  return (
+                    <div key={event.id} className="w-full">
+                      <EventCard 
+                        event={eventData} 
+                        href={`/events/${event.id}`}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+              
+              {/* 리스트 하단에 '이벤트 만들기' 카드 추가 (모바일 전용) */}
+              <div className="mt-4 md:hidden">
+                <Link href={user ? "/events/new" : "/auth/login"}>
+                  <Button variant="outline" className="w-full h-12 border-dashed border-2 text-slate-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    {user ? "새 이벤트 만들기" : "로그인하고 이벤트 만들기"}
+                  </Button>
+                </Link>
+              </div>
+            </>
           ) : (
             <Card className="border-slate-200">
               <CardContent className="py-12 text-center">
@@ -129,7 +144,7 @@ export default async function EventsPage() {
         {pastEvents && pastEvents.length > 0 && (
           <div>
             <h2 className="mb-4 text-xl font-semibold text-slate-900">지난 이벤트</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {pastEvents.map((event) => {
                  const eventData = {
                   id: event.id,
