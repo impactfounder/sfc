@@ -165,7 +165,7 @@ export function UserManagementRow({
                   <SelectTrigger className="w-32 h-9">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50">
                     <SelectItem value="member">일반 회원</SelectItem>
                     <SelectItem value="admin">관리자</SelectItem>
                     <SelectItem value="master">MASTER</SelectItem>
@@ -177,7 +177,7 @@ export function UserManagementRow({
                 <SelectTrigger className="w-28 h-9">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50">
                   <SelectItem value="basic">Basic</SelectItem>
                   <SelectItem value="plus">Plus</SelectItem>
                   <SelectItem value="pro">Pro</SelectItem>

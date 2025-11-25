@@ -33,7 +33,7 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
     <div className="w-full">
       {/* 헤더 */}
       <div className="flex items-center justify-between w-full mb-6">
-        <h2 className="text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h2>
+        <h2 className="text-3xl font-bold text-slate-900">이벤트</h2>
         {onCreateEvent && (
           <button
             onClick={onCreateEvent}

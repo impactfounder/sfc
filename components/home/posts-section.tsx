@@ -98,7 +98,9 @@ export function PostsSection({
   }, [boardCategories]);
 
   return (
-    <div className="w-full space-y-4 bg-transparent">
+    <div className="w-full space-y-6 bg-transparent">
+      {/* 섹션 제목 */}
+      <h2 className="text-3xl font-bold text-slate-900">최신 글</h2>
       
       {/* 우측 상단: 뷰 모드 토글 (작고 세련되게) */}
       <div className="flex items-center justify-end">
@@ -166,7 +168,7 @@ export function PostsSection({
       )}
 
       {/* Posts List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {isLoading ? (
           [1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="w-full h-24 rounded-xl border border-gray-200 bg-white p-4">
@@ -191,7 +193,7 @@ export function PostsSection({
             )
           })
         ) : (
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-16">
+          <div className="p-16">
             <Empty className="bg-transparent">
               <EmptyHeader>
                 <EmptyMedia variant="icon">

@@ -285,37 +285,33 @@ export default async function BoardPostDetailPage({
 
               {/* 좋아요/댓글 버튼 */}
               <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
-                {user && (
-                  <LikeButton
-                    postId={post.id}
-                    userId={user.id}
-                    initialLiked={!!userLike}
-                    initialCount={post.likes_count || 0}
-                  />
-                )}
-                {!user && (
-                  <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes_count || 0}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{post.comments_count || 0}</span>
-                </div>
-              </div>
-
-              {/* 댓글 섹션 (구분선으로 자연스럽게 연결) */}
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <h2 className="mb-4 text-lg font-bold text-slate-900">
-                  댓글
-                </h2>
-                <CommentSection
+                <LikeButton
                   postId={post.id}
                   userId={user?.id}
-                  comments={comments || []}
+                  initialLiked={!!userLike}
+                  initialCount={post.likes_count || 0}
                 />
+                {dbSlug !== 'announcement' && (
+                  <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{post.comments_count || 0}</span>
+                  </div>
+                )}
               </div>
+
+              {/* 댓글 섹션 (공지사항이 아닐 때만 표시) */}
+              {dbSlug !== 'announcement' && (
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">
+                    댓글
+                  </h2>
+                  <CommentSection
+                    postId={post.id}
+                    userId={user?.id}
+                    comments={comments || []}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

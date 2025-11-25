@@ -178,13 +178,13 @@ export default async function BoardPage({
         />
       )}
       <div className="min-h-screen bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+        <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
           {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{category.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{category.name}</h1>
               {category.description && (
-                <p className="mt-2 text-slate-600">{category.description}</p>
+                <p className="mt-1.5 text-sm text-slate-600">{category.description}</p>
               )}
             </div>
             {(slug !== "announcements" || isUserAdmin) && (

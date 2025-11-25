@@ -10,6 +10,17 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Eye, Trash2 } from "lucide-react"
+import { deletePost } from "@/lib/actions/posts"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type TabType = "users" | "events" | "posts"
 
@@ -65,6 +76,9 @@ type AdminViewProps = {
 
 export function AdminView({ users, events, posts, currentUserId, isMaster }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("users")
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // 메트릭 카드 컴포넌트
   const MetricCard = ({
@@ -124,6 +138,23 @@ export function AdminView({ users, events, posts, currentUserId, isMaster }: Adm
       month: "2-digit",
       day: "2-digit",
     })
+  }
+
+  const handleDeletePost = async () => {
+    if (!deletingPostId) return
+    
+    setIsDeleting(true)
+    try {
+      await deletePost(deletingPostId)
+      setShowDeleteDialog(false)
+      setDeletingPostId(null)
+      window.location.reload() // 페이지 새로고침으로 목록 갱신
+    } catch (error) {
+      console.error("Failed to delete post:", error)
+      alert("게시글 삭제에 실패했습니다.")
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -296,6 +327,18 @@ export function AdminView({ users, events, posts, currentUserId, isMaster }: Adm
                               보기
                             </Button>
                           </Link>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2 border-red-300 text-red-600 hover:bg-red-50"
+                            onClick={() => {
+                              setDeletingPostId(post.id)
+                              setShowDeleteDialog(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            삭제
+                          </Button>
                         </div>
                       </div>
                     )
@@ -308,6 +351,24 @@ export function AdminView({ users, events, posts, currentUserId, isMaster }: Adm
           )}
         </div>
       </div>
+
+      {/* 게시글 삭제 확인 다이얼로그 */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-white z-[100]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>게시글을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 작업은 취소할 수 없습니다. 게시글과 모든 댓글이 영구적으로 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePost} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+              {isDeleting ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -326,7 +326,7 @@ export default function HomePage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-12">
         {/* Hero, Banner, Events, Posts 등 콘텐츠 */}
         <HeroSection user={user} onLogin={handleLogin} />
         {announcement && <AnnouncementBanner announcement={announcement} />}

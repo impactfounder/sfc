@@ -21,9 +21,10 @@ type PostActionsProps = {
   postId: string
   isAuthor: boolean
   isMaster?: boolean
+  isAdmin?: boolean
 }
 
-export function PostActions({ postId, isAuthor, isMaster = false }: PostActionsProps) {
+export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = false }: PostActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
@@ -42,13 +43,13 @@ export function PostActions({ postId, isAuthor, isMaster = false }: PostActionsP
     }
   }
 
-  // 작성자가 아니고 마스터 관리자도 아니면 아무것도 표시하지 않음
-  if (!isAuthor && !isMaster) {
+  // 작성자가 아니고 관리자도 아니면 아무것도 표시하지 않음
+  if (!isAuthor && !isMaster && !isAdmin) {
     return null
   }
 
-  // 삭제 가능 여부 (작성자 또는 마스터)
-  const canDelete = isAuthor || isMaster
+  // 삭제 가능 여부 (작성자 또는 관리자/마스터)
+  const canDelete = isAuthor || isMaster || isAdmin
   // 수정 가능 여부 (작성자만)
   const canEdit = isAuthor
 

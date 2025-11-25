@@ -114,16 +114,59 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   const handleUnsplashSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!unsplashQuery.trim()) return
+    
     setIsSearching(true)
+    setUnsplashResults([]) // 이전 결과 초기화
+    
     try {
       const result = await searchUnsplashImages(unsplashQuery)
-      if (result.success) setUnsplashResults(result.results || [])
+      if (result.success) {
+        setUnsplashResults(result.results || [])
+        if (!result.results || result.results.length === 0) {
+          // 검색 결과가 없을 때 피드백
+          alert("검색 결과가 없습니다. 다른 검색어를 시도해보세요.")
+        }
+      } else {
+        // 에러 발생 시 피드백
+        alert(result.error || "이미지 검색에 실패했습니다.")
+      }
     } catch (error) {
-      console.error(error)
+      console.error("Unsplash search error:", error)
+      alert("이미지 검색 중 오류가 발생했습니다.")
     } finally {
       setIsSearching(false)
     }
   }
+
+  // 다이얼로그가 열릴 때 이미 입력된 검색어가 있으면 자동 검색
+  useEffect(() => {
+    if (isDialogOpen && unsplashQuery.trim() && unsplashResults.length === 0 && !isSearching) {
+      const performSearch = async () => {
+        setIsSearching(true)
+        setUnsplashResults([])
+        
+        try {
+          const result = await searchUnsplashImages(unsplashQuery)
+          if (result.success) {
+            setUnsplashResults(result.results || [])
+            if (!result.results || result.results.length === 0) {
+              // 검색 결과가 없을 때는 조용히 처리 (사용자가 직접 확인)
+            }
+          } else {
+            alert(result.error || "이미지 검색에 실패했습니다.")
+          }
+        } catch (error) {
+          console.error("Unsplash search error:", error)
+          alert("이미지 검색 중 오류가 발생했습니다.")
+        } finally {
+          setIsSearching(false)
+        }
+      }
+      
+      performSearch()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDialogOpen])
 
   const handleImageSelect = (imageUrl: string) => {
     setThumbnailUrl(imageUrl)
@@ -207,21 +250,56 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
           </div>
 
-          {/* Unsplash Search Button */}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="w-full gap-2" onClick={(e) => e.stopPropagation()}>
+          {/* Unsplash Search Input (이미지 업로드 영역 아래) */}
+          <div className="space-y-2">
+            <div 
+              className="flex gap-2"
+            >
+              <div className="relative flex-1">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Search className="h-4 w-4" />
+                </div>
+                <Input
+                  placeholder="Unsplash 이미지 검색 (예: party, meeting)"
+                  value={unsplashQuery}
+                  onChange={(e) => setUnsplashQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      if (unsplashQuery.trim()) {
+                        setIsDialogOpen(true)
+                      }
+                    }
+                  }}
+                  className="pl-9 h-11"
+                />
+              </div>
+              <Button 
+                type="button" 
+                variant="outline"
+                disabled={!unsplashQuery.trim()}
+                onClick={() => {
+                  if (unsplashQuery.trim()) {
+                    setIsDialogOpen(true)
+                  }
+                }}
+                className="gap-2"
+              >
                 <Search className="h-4 w-4" />
-                Unsplash에서 검색
+                검색
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            </div>
+          </div>
+
+          {/* Unsplash Search Dialog */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>이미지 검색</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
-                {/* Search Input */}
-                <form onSubmit={handleUnsplashSearch} className="flex gap-2">
+                {/* Search Input (다이얼로그 내부) */}
+                <div className="flex gap-2">
                   <div className="relative flex-1">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                       <Search className="h-4 w-4" />
@@ -230,21 +308,33 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
                       placeholder="검색어 입력 (예: meeting, party, business)"
                       value={unsplashQuery}
                       onChange={(e) => setUnsplashQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleUnsplashSearch(e)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          handleUnsplashSearch()
+                        }
+                      }}
                       className="pl-9 h-11"
                     />
                   </div>
-                  <Button type="submit" disabled={isSearching || !unsplashQuery.trim()}>
+                  <Button 
+                    type="button" 
+                    onClick={() => handleUnsplashSearch()}
+                    disabled={isSearching || !unsplashQuery.trim()}
+                  >
                     {isSearching ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         검색 중...
                       </>
                     ) : (
-                      "검색"
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        검색
+                      </>
                     )}
                   </Button>
-                </form>
+                </div>
 
                 {/* Search Results */}
                 {isSearching && (
@@ -254,7 +344,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
                 )}
 
                 {!isSearching && unsplashResults.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-4">
                     {unsplashResults.map((img) => (
                       <div 
                         key={img.id} 

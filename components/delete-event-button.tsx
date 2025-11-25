@@ -52,7 +52,7 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
       </Button>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white z-[100]">
           <AlertDialogHeader>
             <AlertDialogTitle>이벤트를 삭제하시겠습니까?</AlertDialogTitle>
             <AlertDialogDescription>

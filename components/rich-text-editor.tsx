@@ -37,6 +37,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           "prose prose-slate prose-sm lg:prose-lg max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-relaxed text-slate-900",
       },
     },
+    immediatelyRender: false,
   })
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

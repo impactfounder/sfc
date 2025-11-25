@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { isMasterAdmin } from "@/lib/utils"
+import { isMasterAdmin, isAdmin } from "@/lib/utils"
 
 export async function createPost(data: {
   title: string
@@ -80,11 +80,12 @@ export async function deletePost(postId: string) {
     throw new Error("Post not found")
   }
 
-  // Check if user is author or master admin
+  // Check if user is author or admin/master
   const isAuthor = post.author_id === user.id
   const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+  const isUserAdmin = profile ? isAdmin(profile.role, profile.email) : false
 
-  if (!isAuthor && !isMaster) {
+  if (!isAuthor && !isMaster && !isUserAdmin) {
     throw new Error("Unauthorized")
   }
 
@@ -97,5 +98,29 @@ export async function deletePost(postId: string) {
 
   revalidatePath("/community/posts")
   revalidatePath(`/community/board`)
+  return { success: true }
+}
+
+/**
+ * 익명 좋아요 (비로그인 사용자용)
+ * posts.likes_count를 직접 증가시키는 RPC 함수를 호출합니다.
+ */
+export async function likePostAnonymously(postId: string) {
+  const supabase = await createClient()
+  
+  // RPC 함수 호출
+  const { error } = await supabase.rpc('increment_post_likes', {
+    post_id: postId
+  })
+  
+  if (error) {
+    console.error('익명 좋아요 실패:', error)
+    throw new Error(error.message)
+  }
+  
+  // 관련 경로 재검증
+  revalidatePath("/community")
+  revalidatePath("/community/board")
+  
   return { success: true }
 }
