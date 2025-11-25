@@ -275,7 +275,7 @@ export default async function EventDetailPage({
                       />
                     ) : (
                       <div 
-                        className="h-full rounded-full transition-all duration-500 ease-out bg-slate-900"
+                        className="h-full rounded-full transition-all duration-500 ease-out bg-slate-200"
                         style={{ width: '0%' }}
                       />
                     )}
@@ -336,8 +336,8 @@ export default async function EventDetailPage({
             </Card>
 
             {/* Row 2 - Right (4) : 호스트 소개 + 참석자 멤버 */}
-            <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white h-full">
-              <CardContent className="p-6 flex flex-col h-full">
+            <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white">
+              <CardContent className="p-6 flex flex-col">
                 <CardHeader icon={ShieldCheck} title="호스트 소개" />
                 
                 <div className="flex gap-4 mb-6 flex-1 items-start">

@@ -214,43 +214,47 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
           <div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center">
             {user ? (
               <div className="space-y-2">
-                <Link
-                  href="/community/profile"
+                <div
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-3 transition-all border border-slate-200",
                     isLinkActive("/community/profile") ? "bg-slate-100" : "hover:bg-slate-50 hover:text-slate-900",
                   )}
                 >
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-blue-600 text-white text-sm">
-                      {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold text-slate-900 truncate">
-                        {profile?.full_name || user.email?.split("@")[0]}
-                      </div>
-                      {/* 알림 아이콘 버튼 */}
-                      {user && (
-                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <NotificationsDropdown />
+                  <Link
+                    href="/community/profile"
+                    className="flex-1 flex items-center gap-3 min-w-0"
+                  >
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
+                      <AvatarFallback className="bg-blue-600 text-white text-sm">
+                        {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-semibold text-slate-900 truncate">
+                          {profile?.full_name || user.email?.split("@")[0]}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-slate-500 truncate">
-                        {userRole === "admin" || userRole === "master" ? "관리자" : "멤버"}
-                      </span>
-                      {profile?.points !== undefined && profile.points !== null && (
-                        <span className="text-xs font-bold text-yellow-600 flex items-center gap-1">
-                          💎 {profile.points.toLocaleString()}P
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-slate-500 truncate">
+                          {userRole === "admin" || userRole === "master" ? "관리자" : "멤버"}
                         </span>
-                      )}
+                        {profile?.points !== undefined && profile.points !== null && (
+                          <span className="text-xs font-bold text-yellow-600 flex items-center gap-1">
+                            💎 {profile.points.toLocaleString()}P
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                  {/* 알림 아이콘 버튼 (Link 밖에 배치) */}
+                  {user && (
+                    <div className="flex-shrink-0">
+                      <NotificationsDropdown />
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="outline"
                   className="w-full justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-9 text-sm bg-transparent"

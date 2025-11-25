@@ -7,16 +7,39 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent } from "@/components/ui/card"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
-import { createEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
+import { createEvent, updateEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
 import { useLoadScript, Autocomplete } from "@react-google-maps/api"
 
 // Google Maps libraries 설정 (컴포넌트 외부에 정적 선언)
 const libraries: ("places")[] = ["places"]
 
-export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess?: () => void }) {
+type InitialData = {
+  id: string
+  title: string
+  description: string
+  event_date: string
+  end_date?: string | null
+  location?: string | null
+  price?: number | null
+  max_participants?: number | null
+  thumbnail_url?: string | null
+}
+
+export function NewEventForm({ 
+  userId, 
+  onSuccess,
+  initialData 
+}: { 
+  userId?: string
+  onSuccess?: () => void
+  initialData?: InitialData
+}) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("") // Editor content (HTML)
   const [startDate, setStartDate] = useState("")
@@ -37,6 +60,16 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
   const [isEndDateManuallyChanged, setIsEndDateManuallyChanged] = useState(false)
   const [scriptLoadError, setScriptLoadError] = useState(false)
+  
+  // 커스텀 필드 상태
+  type CustomField = {
+    id: string
+    label: string
+    type: 'text' | 'select'
+    options: string[]
+    required: boolean
+  }
+  const [customFields, setCustomFields] = useState<CustomField[]>([])
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
@@ -73,7 +106,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
   }
   const timeOptions = generateTimeOptions()
 
-  // 기본값 설정 (오후 7시 ~ 9시)
+  // 초기 데이터 설정 (수정 모드) 또는 기본값 설정 (생성 모드)
   useEffect(() => {
     if (!userId) {
       const fetchUser = async () => {
@@ -84,16 +117,54 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       fetchUser()
     }
 
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, "0")
-    const day = String(now.getDate()).padStart(2, "0")
+    if (initialData) {
+      // 수정 모드: 기존 데이터로 폼 채우기
+      setTitle(initialData.title)
+      setDescription(initialData.description || "")
+      setThumbnailUrl(initialData.thumbnail_url || "")
+      setLocation(initialData.location || "")
+      setPrice(initialData.price && initialData.price > 0 ? String(initialData.price) : "")
+      setMaxParticipants(initialData.max_participants ? String(initialData.max_participants) : "")
 
-    setStartDate(`${year}-${month}-${day}`)
-    setStartTime("19:00") // 오후 7시
-    setEndDate(`${year}-${month}-${day}`)
-    setEndTime("21:00") // 오후 9시
-  }, [userId])
+      // 날짜/시간 파싱
+      const startDateObj = new Date(initialData.event_date)
+      const year = startDateObj.getFullYear()
+      const month = String(startDateObj.getMonth() + 1).padStart(2, "0")
+      const day = String(startDateObj.getDate()).padStart(2, "0")
+      const hours = String(startDateObj.getHours()).padStart(2, "0")
+      const minutes = String(startDateObj.getMinutes()).padStart(2, "0")
+
+      setStartDate(`${year}-${month}-${day}`)
+      setStartTime(`${hours}:${minutes}`)
+
+      if (initialData.end_date) {
+        const endDateObj = new Date(initialData.end_date)
+        const endYear = endDateObj.getFullYear()
+        const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0")
+        const endDay = String(endDateObj.getDate()).padStart(2, "0")
+        const endHours = String(endDateObj.getHours()).padStart(2, "0")
+        const endMinutes = String(endDateObj.getMinutes()).padStart(2, "0")
+
+        setEndDate(`${endYear}-${endMonth}-${endDay}`)
+        setEndTime(`${endHours}:${endMinutes}`)
+        setIsEndDateManuallyChanged(true)
+      } else {
+        setEndDate(`${year}-${month}-${day}`)
+        setEndTime(`${hours}:${minutes}`)
+      }
+    } else {
+      // 생성 모드: 기본값 설정 (오후 7시 ~ 9시)
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const day = String(now.getDate()).padStart(2, "0")
+
+      setStartDate(`${year}-${month}-${day}`)
+      setStartTime("19:00") // 오후 7시
+      setEndDate(`${year}-${month}-${day}`)
+      setEndTime("21:00") // 오후 9시
+    }
+  }, [userId, initialData])
 
   // startDate 변경 시 endDate 자동 설정 (사용자가 수동으로 수정한 경우 제외)
   useEffect(() => {
@@ -182,7 +253,7 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
       // ★ 보안: 서버 액션 사용 (created_by는 서버에서 세션 기반으로 자동 설정됨)
       const priceValue = price ? parseInt(price) : 0
 
-      const result = await createEvent({
+      const eventData = {
         title,
         description, // Rich Text Content
         event_date: startDateTime.toISOString(),
@@ -191,18 +262,30 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
         price: priceValue > 0 ? priceValue : null,
         max_participants: maxParticipantsValue,
         thumbnail_url: thumbnailUrl || null,
-        // ★ 보안: created_by는 전달하지 않음 (서버에서 세션 기반으로 자동 설정)
-      })
-
-      if (!result.success) {
-        throw new Error("이벤트 생성에 실패했습니다.")
+        customFields: customFields.length > 0 ? customFields : undefined,
       }
 
-      if (onSuccess) onSuccess()
-      else router.push("/events")
+      let result
+      if (initialData) {
+        // 수정 모드
+        result = await updateEvent(initialData.id, eventData)
+        if (!result.success) {
+          throw new Error("이벤트 수정에 실패했습니다.")
+        }
+        if (onSuccess) onSuccess()
+        else router.push(`/events/${initialData.id}`)
+      } else {
+        // 생성 모드
+        result = await createEvent(eventData)
+        if (!result.success) {
+          throw new Error("이벤트 생성에 실패했습니다.")
+        }
+        if (onSuccess) onSuccess()
+        else router.push("/events")
+      }
       router.refresh()
     } catch (error: any) {
-      setError(error.message || "이벤트 생성에 실패했습니다.")
+      setError(error.message || (initialData ? "이벤트 수정에 실패했습니다." : "이벤트 생성에 실패했습니다."))
     } finally {
       setIsLoading(false)
     }
@@ -508,6 +591,177 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
         <RichTextEditor content={description} onChange={setDescription} />
       </div>
 
+      {/* 커스텀 필드 섹션 */}
+      <div className="space-y-4 pt-6 border-t border-slate-200">
+        <div className="flex items-center justify-between">
+          <Label className="text-lg font-semibold text-slate-900">참가자 질문 추가</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setCustomFields([
+                ...customFields,
+                {
+                  id: `field-${Date.now()}`,
+                  label: "",
+                  type: "text",
+                  options: [],
+                  required: false,
+                },
+              ])
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            질문 추가
+          </Button>
+        </div>
+
+        {customFields.length > 0 && (
+          <div className="space-y-4">
+            {customFields.map((field, index) => (
+              <Card key={field.id} className="border-slate-200">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-4">
+                      {/* 질문 제목 */}
+                      <div>
+                        <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+                          질문 제목
+                        </Label>
+                        <Input
+                          placeholder="예: 참가 동기, 티셔츠 사이즈 등"
+                          value={field.label}
+                          onChange={(e) => {
+                            const updated = [...customFields]
+                            updated[index].label = e.target.value
+                            setCustomFields(updated)
+                          }}
+                          className="bg-slate-50"
+                        />
+                      </div>
+
+                      {/* 답변 타입 선택 */}
+                      <div>
+                        <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+                          답변 타입
+                        </Label>
+                        <Select
+                          value={field.type}
+                          onValueChange={(value: 'text' | 'select') => {
+                            const updated = [...customFields]
+                            updated[index].type = value
+                            if (value === 'text') {
+                              updated[index].options = []
+                            } else if (value === 'select' && updated[index].options.length === 0) {
+                              updated[index].options = ['']
+                            }
+                            setCustomFields(updated)
+                          }}
+                        >
+                          <SelectTrigger className="bg-slate-50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">주관식 텍스트</SelectItem>
+                            <SelectItem value="select">객관식 선택</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* 객관식 옵션 추가/삭제 */}
+                      {field.type === 'select' && (
+                        <div>
+                          <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+                            선택지
+                          </Label>
+                          <div className="space-y-2">
+                            {field.options.map((option, optIndex) => (
+                              <div key={optIndex} className="flex items-center gap-2">
+                                <Input
+                                  placeholder={`선택지 ${optIndex + 1}`}
+                                  value={option}
+                                  onChange={(e) => {
+                                    const updated = [...customFields]
+                                    updated[index].options[optIndex] = e.target.value
+                                    setCustomFields(updated)
+                                  }}
+                                  className="bg-slate-50"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const updated = [...customFields]
+                                    updated[index].options = updated[index].options.filter((_, i) => i !== optIndex)
+                                    setCustomFields(updated)
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const updated = [...customFields]
+                                updated[index].options.push('')
+                                setCustomFields(updated)
+                              }}
+                              className="gap-2"
+                            >
+                              <Plus className="h-4 w-4" />
+                              선택지 추가
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 필수 항목 체크박스 */}
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`required-${field.id}`}
+                          checked={field.required}
+                          onCheckedChange={(checked) => {
+                            const updated = [...customFields]
+                            updated[index].required = checked === true
+                            setCustomFields(updated)
+                          }}
+                        />
+                        <Label
+                          htmlFor={`required-${field.id}`}
+                          className="text-sm text-slate-700 cursor-pointer"
+                        >
+                          필수 항목
+                        </Label>
+                      </div>
+                    </div>
+
+                    {/* 삭제 버튼 */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setCustomFields(customFields.filter((_, i) => i !== index))
+                      }}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
       {error && (
         <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-medium">
           {error}
@@ -521,7 +775,13 @@ export function NewEventForm({ userId, onSuccess }: { userId?: string; onSuccess
           className="bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-full text-base font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
           disabled={isLoading}
         >
-          {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "이벤트 개설하기"}
+          {isLoading ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : initialData ? (
+            "이벤트 수정하기"
+          ) : (
+            "이벤트 개설하기"
+          )}
         </Button>
       </div>
     </form>

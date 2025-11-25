@@ -326,20 +326,28 @@ export default function HomePage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-12">
+      <div className="flex flex-col">
         {/* Hero, Banner, Events, Posts 등 콘텐츠 */}
-        <HeroSection user={user} onLogin={handleLogin} />
-        {announcement && <AnnouncementBanner announcement={announcement} />}
-        <div id="events-section">
+        <div className="mb-6">
+          <HeroSection user={user} onLogin={handleLogin} />
+        </div>
+        {announcement && (
+          <div className="mb-16">
+            <AnnouncementBanner announcement={announcement} />
+          </div>
+        )}
+        <div id="events-section" className="mb-20">
           <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
         </div>
-        <PostsSection
-          posts={posts}
-          boardCategories={boardCategories}
-          selectedBoard={selectedBoard}
-          onBoardChange={setSelectedBoard}
-          isLoading={isLoading}
-        />
+        <div>
+          <PostsSection
+            posts={posts}
+            boardCategories={boardCategories}
+            selectedBoard={selectedBoard}
+            onBoardChange={setSelectedBoard}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
 

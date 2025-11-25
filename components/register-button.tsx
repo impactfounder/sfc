@@ -3,10 +3,20 @@
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { CheckCircle, Loader2, Sparkles, Coins, AlertCircle } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type CustomField = {
+  id: string;
+  field_name: string;
+  field_type: 'text' | 'select';
+  field_options: string[] | null;
+  is_required: boolean;
+};
 
 export function RegisterButton({
   eventId,
@@ -33,6 +43,12 @@ export function RegisterButton({
   const [usedPoints, setUsedPoints] = useState<number>(0);
   const [currentUserPoints, setCurrentUserPoints] = useState<number>(userPoints || 0);
 
+  // 커스텀 필드 관련 상태
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [fieldResponses, setFieldResponses] = useState<Record<string, string>>({});
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
+
   // 사용자 포인트 가져오기
   useEffect(() => {
     if (userId && !userPoints) {
@@ -52,12 +68,58 @@ export function RegisterButton({
     }
   }, [userId, userPoints]);
 
+  // 커스텀 필드 불러오기
+  const loadCustomFields = async () => {
+    const supabase = createClient();
+    setIsLoadingFields(true);
+    try {
+      const { data, error } = await supabase
+        .from("event_registration_fields")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("order_index", { ascending: true });
+
+      if (error) {
+        console.error("Failed to load custom fields:", error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Failed to load custom fields:", error);
+      return [];
+    } finally {
+      setIsLoadingFields(false);
+    }
+  };
+
   // 최대 사용 가능 포인트 계산
   const maxUsablePoints = eventPointCost
     ? Math.min(currentUserPoints, eventPointCost)
     : currentUserPoints;
   
-  const handleRegister = async () => {
+  // 신청 버튼 클릭 핸들러
+  const handleRegisterClick = async () => {
+    if (!userId) {
+      return;
+    }
+
+    // 커스텀 필드 불러오기
+    const fields = await loadCustomFields();
+    
+    if (fields.length > 0) {
+      // 질문이 있으면 Dialog 열기
+      setCustomFields(fields);
+      setFieldResponses({});
+      setIsDialogOpen(true);
+    } else {
+      // 질문이 없으면 즉시 신청
+      await handleRegister();
+    }
+  };
+
+  // 실제 신청 처리 (커스텀 필드 포함)
+  const handleRegister = async (responses?: Record<string, string>) => {
     if (!userId) {
       return;
     }
@@ -78,6 +140,16 @@ export function RegisterButton({
       }
     }
 
+    // 커스텀 필드 필수 항목 검증
+    if (responses) {
+      for (const field of customFields) {
+        if (field.is_required && (!responses[field.id] || responses[field.id].trim() === '')) {
+          alert(`"${field.field_name}"은(는) 필수 항목입니다.`);
+          return;
+        }
+      }
+    }
+
     const supabase = createClient();
     setIsLoading(true);
 
@@ -94,6 +166,8 @@ export function RegisterButton({
           router.refresh();
         }
       } else {
+        let registrationId: string | null = null;
+
         // 포인트를 사용하는 경우 register_event_with_points 함수 사용
         if (usedPoints > 0) {
           const { data, error } = await supabase.rpc('register_event_with_points', {
@@ -106,18 +180,33 @@ export function RegisterButton({
             throw new Error(error.message);
           }
 
+          // registration ID 가져오기
+          const { data: regData } = await supabase
+            .from("event_registrations")
+            .select("id")
+            .eq("event_id", eventId)
+            .eq("user_id", userId)
+            .single();
+          
+          registrationId = regData?.id || null;
           setIsRegistered(true);
           setUsedPoints(0);
         } else {
           // 포인트를 사용하지 않는 경우 기존 로직
-          const { error } = await supabase.from("event_registrations").insert({
-            event_id: eventId,
-            user_id: userId,
-          });
+          const { data: regData, error } = await supabase
+            .from("event_registrations")
+            .insert({
+              event_id: eventId,
+              user_id: userId,
+            })
+            .select("id")
+            .single();
 
           if (error) {
             throw error;
           }
+
+          registrationId = regData?.id || null;
 
           // 이벤트 참여 보상 지급
           await supabase.rpc('award_points', {
@@ -131,6 +220,28 @@ export function RegisterButton({
           setIsRegistered(true);
         }
 
+        // 커스텀 필드 응답 저장
+        if (responses && registrationId) {
+          const responsesToInsert = Object.entries(responses)
+            .filter(([_, value]) => value && value.trim() !== '')
+            .map(([fieldId, value]) => ({
+              registration_id: registrationId!,
+              field_id: fieldId,
+              response_value: value.trim(),
+            }));
+
+          if (responsesToInsert.length > 0) {
+            const { error: responsesError } = await supabase
+              .from("event_registration_responses")
+              .insert(responsesToInsert);
+
+            if (responsesError) {
+              console.error("Failed to save responses:", responsesError);
+              // 응답 저장 실패해도 등록은 완료되었으므로 경고만
+            }
+          }
+        }
+
         // 포인트 정보 갱신
         const { data: profileData } = await supabase
           .from("profiles")
@@ -141,6 +252,7 @@ export function RegisterButton({
           setCurrentUserPoints(profileData.points || 0);
         }
 
+        setIsDialogOpen(false);
         router.refresh();
       }
     } catch (error: any) {
@@ -151,30 +263,100 @@ export function RegisterButton({
     }
   };
 
-  const handleGuestRegister = async () => {
+  // Dialog에서 신청 완료 버튼 클릭
+  const handleDialogSubmit = async () => {
+    if (userId) {
+      // 로그인 사용자
+      await handleRegister(fieldResponses);
+    } else {
+      // 게스트
+      await handleGuestRegister(fieldResponses);
+    }
+  };
+
+  // 게스트 신청 버튼 클릭 핸들러
+  const handleGuestRegisterClick = async () => {
     if (!guestName.trim() || !guestContact.trim()) {
       alert("이름과 연락처를 모두 입력해주세요");
       return;
+    }
+
+    // 커스텀 필드 불러오기
+    const fields = await loadCustomFields();
+    
+    if (fields.length > 0) {
+      // 질문이 있으면 Dialog 열기
+      setCustomFields(fields);
+      setFieldResponses({});
+      setIsDialogOpen(true);
+    } else {
+      // 질문이 없으면 즉시 신청
+      await handleGuestRegister();
+    }
+  };
+
+  const handleGuestRegister = async (responses?: Record<string, string>) => {
+    if (!guestName.trim() || !guestContact.trim()) {
+      alert("이름과 연락처를 모두 입력해주세요");
+      return;
+    }
+
+    // 커스텀 필드 필수 항목 검증
+    if (responses) {
+      for (const field of customFields) {
+        if (field.is_required && (!responses[field.id] || responses[field.id].trim() === '')) {
+          alert(`"${field.field_name}"은(는) 필수 항목입니다.`);
+          return;
+        }
+      }
     }
 
     const supabase = createClient();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.from("event_registrations").insert({
-        event_id: eventId,
-        user_id: null,
-        guest_name: guestName,
-        guest_contact: guestContact,
-      });
+      const { data: regData, error } = await supabase
+        .from("event_registrations")
+        .insert({
+          event_id: eventId,
+          user_id: null,
+          guest_name: guestName,
+          guest_contact: guestContact,
+        })
+        .select("id")
+        .single();
 
-      if (!error) {
-        setIsRegistered(true);
-        router.refresh();
-      } else {
-        console.error("Guest registration error:", error);
-        alert("참가 신청에 실패했습니다. 다시 시도해주세요.");
+      if (error) {
+        throw error;
       }
+
+      const registrationId = regData?.id || null;
+
+      // 커스텀 필드 응답 저장
+      if (responses && registrationId) {
+        const responsesToInsert = Object.entries(responses)
+          .filter(([_, value]) => value && value.trim() !== '')
+          .map(([fieldId, value]) => ({
+            registration_id: registrationId,
+            field_id: fieldId,
+            response_value: value.trim(),
+          }));
+
+        if (responsesToInsert.length > 0) {
+          const { error: responsesError } = await supabase
+            .from("event_registration_responses")
+            .insert(responsesToInsert);
+
+          if (responsesError) {
+            console.error("Failed to save responses:", responsesError);
+            // 응답 저장 실패해도 등록은 완료되었으므로 경고만
+          }
+        }
+      }
+
+      setIsRegistered(true);
+      setIsDialogOpen(false);
+      router.refresh();
     } catch (error) {
       console.error("Failed to register as guest:", error);
       alert("참가 신청에 실패했습니다. 다시 시도해주세요.");
@@ -193,7 +375,7 @@ export function RegisterButton({
         {userId && (
           <Button
             variant="outline"
-            onClick={handleRegister}
+            onClick={() => handleRegister()}
             disabled={isLoading}
             className="w-full h-12 border-slate-300 hover:bg-slate-50 text-slate-600"
           >
@@ -249,7 +431,7 @@ export function RegisterButton({
         </div>
 
         <Button
-          onClick={handleGuestRegister}
+          onClick={handleGuestRegisterClick}
           disabled={isLoading}
           className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 text-base shadow-md transition-all hover:shadow-lg"
         >
@@ -271,69 +453,155 @@ export function RegisterButton({
   }
 
   return (
-    <div className="space-y-4">
-      {/* 포인트 사용 섹션 */}
-      {currentUserPoints >= 100 && (
-        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="points" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Coins className="h-4 w-4 text-yellow-600" />
-              포인트 사용 (선택)
-            </Label>
-            <span className="text-xs text-slate-500">
-              보유: <span className="font-bold text-slate-900">{currentUserPoints.toLocaleString()}P</span>
-            </span>
-          </div>
-          <Input
-            id="points"
-            type="number"
-            min={0}
-            max={maxUsablePoints}
-            step={1}
-            value={usedPoints || ""}
-            onChange={(e) => {
-              const value = parseInt(e.target.value) || 0;
-              if (value >= 0 && value <= maxUsablePoints) {
-                setUsedPoints(value);
-              }
-            }}
-            placeholder="0"
-            className="h-11 bg-white focus:bg-white"
-          />
-          {usedPoints > 0 && usedPoints < 100 && (
-            <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
-              <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-              <p className="text-xs text-amber-800">
-                포인트는 <span className="font-bold">100 P</span> 이상부터 사용할 수 있어요.
+    <>
+      <div className="space-y-4">
+        {/* 포인트 사용 섹션 */}
+        {currentUserPoints >= 100 && (
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="points" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Coins className="h-4 w-4 text-yellow-600" />
+                포인트 사용 (선택)
+              </Label>
+              <span className="text-xs text-slate-500">
+                보유: <span className="font-bold text-slate-900">{currentUserPoints.toLocaleString()}P</span>
+              </span>
+            </div>
+            <Input
+              id="points"
+              type="number"
+              min={0}
+              max={maxUsablePoints}
+              step={1}
+              value={usedPoints || ""}
+              onChange={(e) => {
+                const value = parseInt(e.target.value) || 0;
+                if (value >= 0 && value <= maxUsablePoints) {
+                  setUsedPoints(value);
+                }
+              }}
+              placeholder="0"
+              className="h-11 bg-white focus:bg-white"
+            />
+            {usedPoints > 0 && usedPoints < 100 && (
+              <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
+                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                <p className="text-xs text-amber-800">
+                  포인트는 <span className="font-bold">100 P</span> 이상부터 사용할 수 있어요.
+                </p>
+              </div>
+            )}
+            {usedPoints >= 100 && (
+              <p className="text-xs text-slate-600">
+                {usedPoints.toLocaleString()}P 사용 시 잔여 {((currentUserPoints || 0) - usedPoints).toLocaleString()}P
               </p>
+            )}
+            {maxUsablePoints < 100 && (
+              <p className="text-xs text-amber-600">
+                포인트 사용을 위해서는 최소 100P가 필요합니다. (현재: {currentUserPoints}P)
+              </p>
+            )}
+          </div>
+        )}
+
+        <Button
+          onClick={handleRegisterClick}
+          disabled={isLoading || (usedPoints > 0 && (usedPoints < 100 || usedPoints > currentUserPoints))}
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+          {isLoading ? "신청 중..." : usedPoints > 0 ? `${usedPoints}P 사용하여 신청하기` : "지금 신청하기"}
+        </Button>
+        {usedPoints === 0 && (
+          <p className="text-xs text-center text-slate-400 font-medium">
+            신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
+          </p>
+        )}
+      </div>
+
+      {/* 커스텀 필드 Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>참가 신청서</DialogTitle>
+          </DialogHeader>
+          
+          {isLoadingFields ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+          ) : (
+            <div className="space-y-6 mt-4">
+              {customFields.map((field) => (
+                <div key={field.id} className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700">
+                    {field.field_name}
+                    {field.is_required && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  
+                  {field.field_type === 'text' ? (
+                    <Input
+                      placeholder="답변을 입력해주세요"
+                      value={fieldResponses[field.id] || ''}
+                      onChange={(e) => {
+                        setFieldResponses({
+                          ...fieldResponses,
+                          [field.id]: e.target.value,
+                        });
+                      }}
+                      className="bg-slate-50"
+                      required={field.is_required}
+                    />
+                  ) : (
+                    <Select
+                      value={fieldResponses[field.id] || ''}
+                      onValueChange={(value) => {
+                        setFieldResponses({
+                          ...fieldResponses,
+                          [field.id]: value,
+                        });
+                      }}
+                      required={field.is_required}
+                    >
+                      <SelectTrigger className="bg-slate-50">
+                        <SelectValue placeholder="선택해주세요" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(field.field_options as string[] || []).map((option, index) => (
+                          <SelectItem key={index} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ))}
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  disabled={isLoading}
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDialogSubmit();
+                  }}
+                  disabled={isLoading}
+                  className="bg-slate-900 hover:bg-slate-800"
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  신청 완료
+                </Button>
+              </div>
             </div>
           )}
-          {usedPoints >= 100 && (
-            <p className="text-xs text-slate-600">
-              {usedPoints.toLocaleString()}P 사용 시 잔여 {((currentUserPoints || 0) - usedPoints).toLocaleString()}P
-            </p>
-          )}
-          {maxUsablePoints < 100 && (
-            <p className="text-xs text-amber-600">
-              포인트 사용을 위해서는 최소 100P가 필요합니다. (현재: {currentUserPoints}P)
-            </p>
-          )}
-        </div>
-      )}
-
-      <Button
-        onClick={handleRegister}
-        disabled={isLoading || (usedPoints > 0 && (usedPoints < 100 || usedPoints > currentUserPoints))}
-        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-        {isLoading ? "신청 중..." : usedPoints > 0 ? `${usedPoints}P 사용하여 신청하기` : "지금 신청하기"}
-      </Button>
-      {usedPoints === 0 && (
-        <p className="text-xs text-center text-slate-400 font-medium">
-          신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
-        </p>
-      )}
-    </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

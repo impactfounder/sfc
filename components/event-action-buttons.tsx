@@ -16,7 +16,7 @@ export function EventActionButtons({ eventId, userId }: EventActionButtonsProps)
   const router = useRouter()
 
   const handleEdit = () => {
-    alert("수정 기능은 준비 중입니다.")
+    router.push(`/events/${eventId}/edit`)
   }
 
   const handleDelete = async () => {
