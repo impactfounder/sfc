@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { Loader2 } from 'lucide-react';
 
 export function NewAnnouncementForm() {
@@ -70,16 +70,11 @@ export function NewAnnouncementForm() {
 
           <div className="space-y-2">
             <Label htmlFor="content">내용</Label>
-            <Textarea
-              id="content"
-              placeholder="공지사항 내용을 입력하세요"
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
+            <RichTextEditor
+              content={formData.content}
+              onChange={(html) =>
+                setFormData({ ...formData, content: html })
               }
-              rows={12}
-              required
-              disabled={loading}
             />
           </div>
 

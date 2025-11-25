@@ -23,7 +23,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
       StarterKit,
       Image.configure({
         HTMLAttributes: {
-          class: "rounded-lg max-w-full h-auto",
+          class: "rounded-lg max-w-[80%] max-h-[500px] object-contain mx-auto my-4",
         },
       }),
     ],
@@ -34,7 +34,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-slate prose-sm lg:prose-lg max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-relaxed text-slate-900",
+          "prose prose-slate prose-base max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-normal text-slate-900",
       },
     },
     immediatelyRender: false,
