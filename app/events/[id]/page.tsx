@@ -174,15 +174,7 @@ export default async function EventDetailPage({
           </Link>
           
           {isCreator && user && (
-            <div className="flex items-center gap-2">
-              <Link href={`/events/${id}/manage`}>
-                <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white shadow-md hover:shadow-lg transition-all">
-                  <Settings className="mr-2 h-4 w-4" />
-                  관리자 설정
-                </Button>
-              </Link>
-              <EventActionButtons eventId={id} userId={user.id} />
-            </div>
+            <EventActionButtons eventId={id} userId={user.id} />
           )}
         </div>
 
@@ -308,6 +300,19 @@ export default async function EventDetailPage({
                     <p className="text-xs text-center text-slate-400 mt-4 font-medium">
                       신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
                     </p>
+                  )}
+
+                  {/* 호스트 전용: 이벤트 관리 버튼 */}
+                  {isCreator && (
+                    <>
+                      <Separator className="my-4 bg-slate-100" />
+                      <Link href={`/events/${id}/manage`}>
+                        <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 font-medium transition-all shadow-sm hover:shadow-md">
+                          <Settings className="mr-2 h-4 w-4" />
+                          이벤트 관리
+                        </Button>
+                      </Link>
+                    </>
                   )}
 
                   <Separator className="my-4 bg-slate-100" />
