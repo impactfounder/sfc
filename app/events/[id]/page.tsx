@@ -176,8 +176,8 @@ export default async function EventDetailPage({
           {isCreator && user && (
             <div className="flex items-center gap-2">
               <Link href={`/events/${id}/manage`}>
-                <Button variant="outline" size="sm" className="bg-white border-slate-300 hover:bg-slate-50 text-slate-700">
-                  <Settings className="mr-2 h-3.5 w-3.5" />
+                <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white shadow-md hover:shadow-lg transition-all">
+                  <Settings className="mr-2 h-4 w-4" />
                   관리자 설정
                 </Button>
               </Link>
@@ -268,7 +268,7 @@ export default async function EventDetailPage({
                     </div>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    {event.max_participants ? (
+                    {event.max_participants && event.max_participants > 0 ? (
                       <div 
                         className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
                         style={{ width: `${Math.min(100, ((attendeesCount || 0) / event.max_participants) * 100)}%` }}
@@ -322,10 +322,10 @@ export default async function EventDetailPage({
           </div>
 
           {/* [ROW 2] */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             
             {/* Row 2 - Left (8) : 상세 내용 */}
-            <Card className="lg:col-span-8 border-slate-200 shadow-sm bg-white h-full">
+            <Card className="lg:col-span-8 border-slate-200 shadow-sm bg-white">
               <CardContent className="p-6 sm:p-8">
                 <CardHeader icon={Info} title="상세 내용" />
                 <div 
@@ -340,29 +340,29 @@ export default async function EventDetailPage({
               <CardContent className="p-6 flex flex-col">
                 <CardHeader icon={ShieldCheck} title="호스트 소개" />
                 
-                <div className="flex gap-4 mb-6 flex-1 items-start">
+                <div className="flex gap-4 mb-8 items-start">
                   <Avatar className="h-12 w-12 border border-slate-100 shrink-0">
                     <AvatarImage src={event.profiles?.avatar_url || undefined} />
                     <AvatarFallback className="bg-slate-900 text-white font-bold">
                       {event.profiles?.full_name?.[0] || "H"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: '48px' }}>
+                  <div className="flex-1 min-w-0 flex flex-col">
                     <p className="text-xl font-bold text-slate-900 truncate">
                       {event.profiles?.full_name || "알 수 없음"}
                     </p>
                     {event.profiles?.bio && (
-                      <p className="text-sm text-slate-600 mt-3 leading-relaxed line-clamp-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <p className="text-sm text-slate-600 mt-3 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
                         {event.profiles.bio}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <Separator className="mb-6 bg-slate-100" />
+                <Separator className="mb-8 bg-slate-100" />
 
                 {/* 참석자 멤버 섹션 */}
-                <div className="mb-6">
+                <div>
                   <CardHeader 
                     icon={Users} 
                     title="참석자 멤버" 
@@ -373,10 +373,12 @@ export default async function EventDetailPage({
                     }
                   />
                   
-                  {attendees && attendees.length > 0 ? (
-                    <div className="flex flex-wrap gap-3">
-                      {attendees.map((attendee: { id?: string; profiles?: { full_name?: string; avatar_url?: string } | null; guest_name?: string }, index: number) => {
-                        const profile = attendee.profiles as { full_name?: string; avatar_url?: string } | null | undefined;
+                  {attendees && Array.isArray(attendees) && attendees.length > 0 ? (
+                    <div className="flex flex-wrap gap-3 max-h-[400px] overflow-y-auto">
+                      {attendees.map((attendee: any, index: number) => {
+                        const profile = Array.isArray(attendee.profiles) 
+                          ? attendee.profiles[0] 
+                          : attendee.profiles;
                         const name = profile?.full_name || attendee.guest_name || "익명";
                         return (
                           <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">

@@ -36,7 +36,14 @@ export default async function ManageEventPage({
     redirect(`/events/${id}`);
   }
 
-  // 게스트 등록과 사용자 등록을 모두 가져오기
+  // 커스텀 필드 불러오기 (테이블 헤더 구성용)
+  const { data: customFields } = await supabase
+    .from("event_registration_fields")
+    .select("*")
+    .eq("event_id", id)
+    .order("order_index", { ascending: true });
+
+  // 게스트 등록과 사용자 등록을 모두 가져오기 (Nested Select로 응답도 함께)
   const { data: registrations } = await supabase
     .from("event_registrations")
     .select(`
@@ -45,32 +52,26 @@ export default async function ManageEventPage({
         id,
         full_name,
         email
+      ),
+      responses:event_registration_responses (
+        field_id,
+        response_value
       )
     `)
     .eq("event_id", id)
     .order("registered_at", { ascending: true });
 
-  // 커스텀 필드 불러오기
-  const { data: customFields } = await supabase
-    .from("event_registration_fields")
-    .select("*")
-    .eq("event_id", id)
-    .order("order_index", { ascending: true });
-
-  // 각 등록의 응답 불러오기
-  const registrationIds = registrations?.map(r => r.id) || [];
-  const { data: responses } = await supabase
-    .from("event_registration_responses")
-    .select("*")
-    .in("registration_id", registrationIds);
-
-  // 응답을 registration_id와 field_id로 매핑
+  // 응답을 registration_id와 field_id로 매핑 (Nested Select 결과 처리)
   const responseMap: Record<string, Record<string, string>> = {};
-  responses?.forEach(response => {
-    if (!responseMap[response.registration_id]) {
-      responseMap[response.registration_id] = {};
+  registrations?.forEach(registration => {
+    if (registration.responses && Array.isArray(registration.responses)) {
+      responseMap[registration.id] = {};
+      registration.responses.forEach((response: any) => {
+        if (response.field_id && response.response_value) {
+          responseMap[registration.id][response.field_id] = response.response_value;
+        }
+      });
     }
-    responseMap[response.registration_id][response.field_id] = response.response_value || '';
   });
 
   const isPastEvent = new Date(event.event_date) < new Date();
@@ -141,15 +142,16 @@ export default async function ManageEventPage({
               </CardHeader>
               <CardContent>
                 {registrations && registrations.length > 0 ? (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto max-w-full">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="font-semibold">이름</TableHead>
-                          <TableHead className="font-semibold">이메일/연락처</TableHead>
-                          <TableHead className="font-semibold">신청일</TableHead>
+                        <TableRow className="bg-slate-50">
+                          <TableHead className="font-semibold text-slate-900 whitespace-nowrap sticky left-0 bg-slate-50 z-10">이름</TableHead>
+                          <TableHead className="font-semibold text-slate-900 whitespace-nowrap">이메일/연락처</TableHead>
+                          <TableHead className="font-semibold text-slate-900 whitespace-nowrap">신청일</TableHead>
+                          <TableHead className="font-semibold text-slate-900 whitespace-nowrap">게스트 여부</TableHead>
                           {customFields?.map((field) => (
-                            <TableHead key={field.id} className="font-semibold">
+                            <TableHead key={field.id} className="font-semibold text-slate-900 whitespace-nowrap min-w-[150px]">
                               {field.field_name}
                               {field.is_required && <span className="text-red-500 ml-1">*</span>}
                             </TableHead>
@@ -161,27 +163,20 @@ export default async function ManageEventPage({
                           const isGuest = !registration.user_id;
                           const displayName = isGuest
                             ? (registration as { guest_name?: string }).guest_name || "게스트"
-                            : registration.profiles?.full_name || "익명";
+                            : (registration.profiles as any)?.full_name || "익명";
                           const displayContact = isGuest
                             ? (registration as { guest_contact?: string }).guest_contact
-                            : registration.profiles?.email;
+                            : (registration.profiles as any)?.email;
 
                           return (
-                            <TableRow key={registration.id}>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-slate-900">{displayName}</span>
-                                  {isGuest && (
-                                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                                      게스트
-                                    </span>
-                                  )}
-                                </div>
+                            <TableRow key={registration.id} className="hover:bg-slate-50">
+                              <TableCell className="font-medium text-slate-900 whitespace-nowrap sticky left-0 bg-white z-10">
+                                {displayName}
                               </TableCell>
-                              <TableCell className="text-slate-600">
+                              <TableCell className="text-slate-600 whitespace-nowrap">
                                 {displayContact || '-'}
                               </TableCell>
-                              <TableCell className="text-slate-600">
+                              <TableCell className="text-slate-600 whitespace-nowrap">
                                 {new Date(registration.registered_at).toLocaleDateString("ko-KR", {
                                   year: "numeric",
                                   month: "2-digit",
@@ -190,10 +185,21 @@ export default async function ManageEventPage({
                                   minute: "2-digit",
                                 })}
                               </TableCell>
+                              <TableCell className="text-slate-600 whitespace-nowrap">
+                                {isGuest ? (
+                                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                                    게스트
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700">
+                                    회원
+                                  </span>
+                                )}
+                              </TableCell>
                               {customFields?.map((field) => {
                                 const response = responseMap[registration.id]?.[field.id] || '-';
                                 return (
-                                  <TableCell key={field.id} className="text-slate-600">
+                                  <TableCell key={field.id} className="text-slate-600 whitespace-nowrap">
                                     {response}
                                   </TableCell>
                                 );

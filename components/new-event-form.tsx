@@ -119,38 +119,40 @@ export function NewEventForm({
 
     if (initialData) {
       // 수정 모드: 기존 데이터로 폼 채우기
-      setTitle(initialData.title)
+      setTitle(initialData.title || "")
       setDescription(initialData.description || "")
       setThumbnailUrl(initialData.thumbnail_url || "")
       setLocation(initialData.location || "")
       setPrice(initialData.price && initialData.price > 0 ? String(initialData.price) : "")
-      setMaxParticipants(initialData.max_participants ? String(initialData.max_participants) : "")
+      setMaxParticipants(initialData.max_participants && initialData.max_participants > 0 ? String(initialData.max_participants) : "")
 
       // 날짜/시간 파싱
-      const startDateObj = new Date(initialData.event_date)
-      const year = startDateObj.getFullYear()
-      const month = String(startDateObj.getMonth() + 1).padStart(2, "0")
-      const day = String(startDateObj.getDate()).padStart(2, "0")
-      const hours = String(startDateObj.getHours()).padStart(2, "0")
-      const minutes = String(startDateObj.getMinutes()).padStart(2, "0")
+      if (initialData.event_date) {
+        const startDateObj = new Date(initialData.event_date)
+        const year = startDateObj.getFullYear()
+        const month = String(startDateObj.getMonth() + 1).padStart(2, "0")
+        const day = String(startDateObj.getDate()).padStart(2, "0")
+        const hours = String(startDateObj.getHours()).padStart(2, "0")
+        const minutes = String(startDateObj.getMinutes()).padStart(2, "0")
 
-      setStartDate(`${year}-${month}-${day}`)
-      setStartTime(`${hours}:${minutes}`)
+        setStartDate(`${year}-${month}-${day}`)
+        setStartTime(`${hours}:${minutes}`)
 
-      if (initialData.end_date) {
-        const endDateObj = new Date(initialData.end_date)
-        const endYear = endDateObj.getFullYear()
-        const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0")
-        const endDay = String(endDateObj.getDate()).padStart(2, "0")
-        const endHours = String(endDateObj.getHours()).padStart(2, "0")
-        const endMinutes = String(endDateObj.getMinutes()).padStart(2, "0")
+        if (initialData.end_date) {
+          const endDateObj = new Date(initialData.end_date)
+          const endYear = endDateObj.getFullYear()
+          const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0")
+          const endDay = String(endDateObj.getDate()).padStart(2, "0")
+          const endHours = String(endDateObj.getHours()).padStart(2, "0")
+          const endMinutes = String(endDateObj.getMinutes()).padStart(2, "0")
 
-        setEndDate(`${endYear}-${endMonth}-${endDay}`)
-        setEndTime(`${endHours}:${endMinutes}`)
-        setIsEndDateManuallyChanged(true)
-      } else {
-        setEndDate(`${year}-${month}-${day}`)
-        setEndTime(`${hours}:${minutes}`)
+          setEndDate(`${endYear}-${endMonth}-${endDay}`)
+          setEndTime(`${endHours}:${endMinutes}`)
+          setIsEndDateManuallyChanged(true)
+        } else {
+          setEndDate(`${year}-${month}-${day}`)
+          setEndTime(`${hours}:${minutes}`)
+        }
       }
     } else {
       // 생성 모드: 기본값 설정 (오후 7시 ~ 9시)
@@ -592,7 +594,7 @@ export function NewEventForm({
       </div>
 
       {/* 커스텀 필드 섹션 */}
-      <div className="space-y-4 pt-6 border-t border-slate-200">
+      <div className="space-y-4 pt-6 border-t border-slate-200 bg-white rounded-2xl p-6">
         <div className="flex items-center justify-between">
           <Label className="text-lg font-semibold text-slate-900">참가자 질문 추가</Label>
           <Button
@@ -621,7 +623,7 @@ export function NewEventForm({
         {customFields.length > 0 && (
           <div className="space-y-4">
             {customFields.map((field, index) => (
-              <Card key={field.id} className="border-slate-200">
+              <Card key={field.id} className="border-slate-200 bg-white">
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-4">
@@ -663,7 +665,7 @@ export function NewEventForm({
                           <SelectTrigger className="bg-slate-50">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[100]">
                             <SelectItem value="text">주관식 텍스트</SelectItem>
                             <SelectItem value="select">객관식 선택</SelectItem>
                           </SelectContent>

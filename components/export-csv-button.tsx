@@ -38,26 +38,27 @@ export function ExportCSVButton({
 }: ExportCSVButtonProps) {
   const handleExport = () => {
     // CSV 헤더 생성
-    const headers = ['이름', '이메일/연락처', '신청일', ...customFields.map(f => f.field_name)];
+    const headers = ['이름', '이메일/연락처', '신청일', '게스트 여부', ...customFields.map(f => f.field_name)];
     
     // CSV 데이터 생성
     const rows = registrations.map((registration) => {
       const isGuest = !registration.user_id;
       const name = isGuest
         ? (registration.guest_name || "게스트")
-        : (registration.profiles?.full_name || "익명");
+        : ((registration.profiles as any)?.full_name || "익명");
       const contact = isGuest
         ? (registration.guest_contact || '')
-        : (registration.profiles?.email || '');
+        : ((registration.profiles as any)?.email || '');
       const date = new Date(registration.registered_at).toLocaleString("ko-KR");
+      const guestStatus = isGuest ? '게스트' : '회원';
       
       const fieldResponses = customFields.map(field => {
         const response = responseMap[registration.id]?.[field.id] || '';
         // CSV에서 쉼표와 따옴표 처리
-        return `"${response.replace(/"/g, '""')}"`;
+        return `"${String(response).replace(/"/g, '""')}"`;
       });
       
-      return [name, contact, date, ...fieldResponses];
+      return [name, contact, date, guestStatus, ...fieldResponses];
     });
     
     // CSV 문자열 생성
