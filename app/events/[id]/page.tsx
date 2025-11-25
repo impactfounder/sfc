@@ -1,14 +1,45 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck, Edit, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck } from 'lucide-react';
 import { RegisterButton } from "@/components/register-button";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { DeleteEventButton } from "@/components/delete-event-button";
+import { EventActionButtons } from "@/components/event-action-buttons";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("title, description")
+    .eq("id", id)
+    .single();
+
+  if (!event) {
+    return {
+      title: "이벤트를 찾을 수 없습니다",
+    };
+  }
+
+  const cleanDescription = event.description
+    ? event.description.replace(/<[^>]*>/g, "").substring(0, 160)
+    : "서울 파운더스 클럽 이벤트";
+
+  return {
+    title: `${event.title} | Seoul Founders Club`,
+    description: cleanDescription,
+  };
+}
 
 export default async function EventDetailPage({
   params,
@@ -20,23 +51,36 @@ export default async function EventDetailPage({
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 이벤트 정보 조회
-  const { data: event } = await supabase
-    .from("events")
-    .select(`
-      *,
-      profiles:created_by (
-        id,
-        full_name,
-        avatar_url,
-        email,
-        bio
-      )
-    `)
-    .eq("id", id)
-    .single();
+  // 이벤트 정보 조회 (에러 처리 강화)
+  let event;
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select(`
+        *,
+        profiles:created_by (
+          id,
+          full_name,
+          avatar_url,
+          email,
+          bio
+        )
+      `)
+      .eq("id", id)
+      .single();
 
-  if (!event) {
+    if (error) {
+      console.error("Event fetch error:", error);
+      notFound();
+    }
+
+    if (!data) {
+      notFound();
+    }
+
+    event = data;
+  } catch (error) {
+    console.error("Unexpected error fetching event:", error);
     notFound();
   }
 
@@ -129,7 +173,7 @@ export default async function EventDetailPage({
             이벤트 목록
           </Link>
           
-          {isCreator && (
+          {isCreator && user && (
             <div className="flex items-center gap-2">
               <Link href={`/events/${id}/manage`}>
                 <Button variant="outline" size="sm" className="bg-white border-slate-300 hover:bg-slate-50 text-slate-700">
@@ -137,16 +181,7 @@ export default async function EventDetailPage({
                   관리자 설정
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-white border-slate-300 hover:bg-slate-50 text-slate-700"
-                onClick={() => alert("수정 기능은 준비 중입니다.")}
-              >
-                <Edit className="mr-2 h-3.5 w-3.5" />
-                수정
-              </Button>
-              <DeleteEventButton eventId={id} />
+              <EventActionButtons eventId={id} userId={user.id} />
             </div>
           )}
         </div>
