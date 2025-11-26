@@ -9,7 +9,10 @@ import { UserManagementRow } from "@/components/user-management"
 export default async function UsersManagementPage() {
   const { supabase, user, isMaster } = await requireAdmin()
 
-  const { data: users } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
+  const { data: users } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role, membership_tier, points, created_at")
+    .order("created_at", { ascending: false })
 
   return (
     <div className="min-h-screen bg-white p-4 md:p-8 pt-20 md:pt-8">

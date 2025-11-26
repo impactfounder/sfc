@@ -97,7 +97,7 @@ export default async function BoardPostDetailPage({
   const [categoryResult, userResult, postResult] = await Promise.all([
     slug !== "announcements" ? supabase
       .from("board_categories")
-      .select("*")
+      .select("id, name, description, slug, is_active")
       .eq("slug", dbSlug) // ★ dbSlug 사용
       .eq("is_active", true)
       .single() : Promise.resolve({ data: null }),

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import Link from "next/link"
 import { LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -7,9 +8,9 @@ import NotificationsDropdown from "@/components/notifications-dropdown"
 
 export default async function SidebarProfile() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userProfile = await getCurrentUserProfile(supabase)
 
-  if (!user) {
+  if (!userProfile || !userProfile.user) {
     // 로그인 안 된 상태 UI
     return (
       <div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center">
@@ -26,13 +27,7 @@ export default async function SidebarProfile() {
     )
   }
 
-  // DB에서 최신 프로필 정보 조회
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle()
-
+  const { user, profile } = userProfile
   const userRole = profile?.role || "member"
 
   // 최신 정보로 UI 렌더링 (깜빡임 없음)
@@ -49,12 +44,12 @@ export default async function SidebarProfile() {
             <Avatar className="h-10 w-10 flex-shrink-0 border border-slate-100">
               <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
               <AvatarFallback className="bg-blue-100 text-blue-600 text-sm font-bold">
-                {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold text-slate-900 truncate">
-                {profile?.full_name || user.email?.split("@")[0]}
+                {profile?.full_name || user.email?.split("@")[0] || "사용자"}
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 font-medium truncate">

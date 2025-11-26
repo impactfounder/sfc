@@ -83,7 +83,7 @@ export function RegisterButton({
     try {
       const { data, error } = await supabase
         .from("event_registration_fields")
-        .select("*")
+        .select("id, field_name, field_type, field_options, is_required, order_index")
         .eq("event_id", eventId)
         .order("order_index", { ascending: true });
 

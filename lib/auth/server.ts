@@ -20,11 +20,13 @@ export async function requireAuth() {
     c.name.includes('supabase')
   )
   
-  console.log("[requireAuth] Cookie check:", {
-    totalCookies: allCookies.length,
-    authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 })),
-    allCookieNames: allCookies.map(c => c.name),
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[requireAuth] Cookie check:", {
+      totalCookies: allCookies.length,
+      authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 })),
+      allCookieNames: allCookies.map(c => c.name),
+    })
+  }
   
   // getUser를 사용하여 JWT 토큰 검증 (쿠키에서 자동으로 읽음)
   // getUser는 쿠키에서 access_token을 읽고 Supabase 서버에서 검증합니다
@@ -48,10 +50,12 @@ export async function requireAuth() {
     redirect("/auth/login")
   }
 
-  console.log("[requireAuth] Auth successful:", {
-    userId: user.id,
-    email: user.email,
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[requireAuth] Auth successful:", {
+      userId: user.id,
+      email: user.email,
+    })
+  }
 
   return { user, supabase }
 }

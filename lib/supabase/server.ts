@@ -13,10 +13,12 @@ export async function createClient() {
     c.name.includes('supabase')
   )
   
-  if (authCookies.length > 0) {
-    console.log("[createClient] Found auth cookies:", authCookies.map(c => c.name))
-  } else {
-    console.log("[createClient] No auth cookies found. Total cookies:", allCookies.length)
+  if (process.env.NODE_ENV === 'development') {
+    if (authCookies.length > 0) {
+      console.log("[createClient] Found auth cookies:", authCookies.map(c => c.name))
+    } else {
+      console.log("[createClient] No auth cookies found. Total cookies:", allCookies.length)
+    }
   }
 
   // @supabase/ssr의 createServerClient를 사용하여 쿠키 자동 처리

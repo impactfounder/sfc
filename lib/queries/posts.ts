@@ -1,44 +1,47 @@
 import { SupabaseClient } from "@supabase/supabase-js"
+import type { PostForDisplay, ReviewForDisplay } from "@/lib/types/posts"
 
-export type PostForDisplay = {
+// 타입 재export (하위 호환성 유지)
+export type { PostForDisplay, ReviewForDisplay }
+
+// Supabase 쿼리 결과 타입
+type PostFromDB = {
   id: string
   title: string
-  content?: string | null
+  content: string | null
   created_at: string
-  visibility?: "public" | "group"
-  likes_count?: number
-  comments_count?: number
-  profiles?: {
-    id?: string
-    full_name?: string | null
+  visibility: string | null
+  likes_count: number | null
+  comments_count: number | null
+  profiles: {
+    id: string
+    full_name: string | null
   } | null
-  board_categories?: {
-    name?: string | null
-    slug?: string | null
-  } | null
-  communities?: {
-    name?: string | null
+  board_categories: {
+    name: string | null
+    slug: string | null
   } | null
 }
 
-export type ReviewForDisplay = {
+type ReviewFromDB = {
   id: string
   title: string
-  content?: string | null
+  content: string | null
   created_at: string
-  likes_count?: number
-  comments_count?: number
-  profiles?: {
-    id?: string
-    full_name?: string | null
-    avatar_url?: string | null
+  likes_count: number | null
+  comments_count: number | null
+  profiles: {
+    id: string
+    full_name: string | null
+    avatar_url: string | null
   } | null
-  events?: {
-    id?: string
-    title?: string | null
-    thumbnail_url?: string | null
+  events: {
+    id: string
+    title: string | null
+    thumbnail_url: string | null
   } | null
 }
+
 
 /**
  * 최신 게시글 목록 가져오기 (Inner Join 필터링 방식)
@@ -60,7 +63,9 @@ export async function getLatestPosts(
       categorySlug = 'announcement';
     }
 
-    console.log(`[getLatestPosts] Fetching for slug: ${categorySlug || 'all'}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[getLatestPosts] Fetching for slug: ${categorySlug || 'all'}`);
+    }
 
     // 1. 기본 쿼리 작성 (Select + Join)
     // !inner를 사용하여 카테고리가 있는 글만 확실하게 가져옴
@@ -100,12 +105,12 @@ export async function getLatestPosts(
     }
 
     // 4. 데이터 변환 (Type Mapping)
-    return (posts || []).map((post: any) => ({
+    return (posts || []).map((post: PostFromDB): PostForDisplay => ({
       id: post.id,
       title: post.title,
       content: post.content,
       created_at: post.created_at,
-      visibility: post.visibility || 'public',
+      visibility: (post.visibility as "public" | "group") || 'public',
       likes_count: post.likes_count || 0,
       comments_count: post.comments_count || 0,
       profiles: post.profiles ? { 
@@ -134,7 +139,9 @@ export async function getLatestReviews(
   limit: number = 10
 ): Promise<ReviewForDisplay[]> {
   try {
-    console.log(`[getLatestReviews] Fetching latest reviews (limit: ${limit})`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[getLatestReviews] Fetching latest reviews (limit: ${limit})`);
+    }
 
     // 후기 전용 쿼리: board_categories.slug가 'reviews'인 게시글만
     // related_event_id를 통해 events 테이블 조인
@@ -169,7 +176,7 @@ export async function getLatestReviews(
     }
 
     // 데이터 변환 (Type Mapping)
-    return (reviews || []).map((review: any) => ({
+    return (reviews || []).map((review: ReviewFromDB): ReviewForDisplay => ({
       id: review.id,
       title: review.title,
       content: review.content,

@@ -1,6 +1,7 @@
 "use client"
 
 import { createClient } from "@/lib/supabase/client"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle, LogOut } from "lucide-react"
 import Link from "next/link"
@@ -21,11 +22,41 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import type { User, Profile } from "@/lib/types/profile"
+import type { EventListItem } from "@/lib/types/events"
+import type { PostListItem } from "@/lib/types/posts"
+import type { VisibleBadge, Badge, UserBadgeWithBadge } from "@/lib/types/badges"
+import type { LucideIcon } from "lucide-react"
 
-type TabType = "points" | "posts" | "created_events" | "participated_events";
+type TabType = "points" | "posts" | "created_events" | "participated_events"
 
-// 뱃지 데이터 타입 정의
-type VisibleBadge = { icon: string; name: string }
+// 포인트 거래 내역 타입
+type PointTransaction = {
+  id: string
+  amount: number
+  description: string | null
+  created_at: string
+}
+
+// 이벤트 등록 쿼리 결과 타입
+type EventRegistrationQueryResult = {
+  registered_at: string
+  events: {
+    id: string
+    title: string
+    thumbnail_url: string | null
+    event_date: string
+    location: string | null
+  } | null
+}
+
+// 뱃지 쿼리 결과 타입
+type BadgeQueryResult = {
+  badges: {
+    icon: string
+    name: string
+  } | null
+}
 
 // ------------------------------------------------------------------
 // 하위 컴포넌트들 (주요 컴포넌트보다 먼저 정의되어야 함)
@@ -42,7 +73,7 @@ function EmptyState({ message }: { message: string }) {
   )
 }
 
-function PostListItem({ post }: { post: any }) {
+function PostListItem({ post }: { post: PostListItem }) {
     return (
         <Link key={post.id} href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`} className="flex flex-col p-5 hover:bg-slate-50 transition-colors group">
             <div className="flex items-center gap-2 mb-1.5">
@@ -64,7 +95,7 @@ function PostListItem({ post }: { post: any }) {
     )
 }
 
-function EventListItem({ event }: { event: any }) {
+function EventListItem({ event }: { event: EventListItem }) {
     // 날짜 비교를 통한 상태 판별 로직
     const eventDate = new Date(event.event_date)
     const now = new Date()
@@ -116,17 +147,17 @@ function EventListItem({ event }: { event: any }) {
 export default function ProfilePage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   
   // Data States
-  const [createdEvents, setCreatedEvents] = useState<any[]>([])
-  const [userPosts, setUserPosts] = useState<any[]>([])
-  const [registeredEvents, setRegisteredEvents] = useState<any[]>([])
-  const [transactions, setTransactions] = useState<any[]>([])
+  const [createdEvents, setCreatedEvents] = useState<EventListItem[]>([])
+  const [userPosts, setUserPosts] = useState<PostListItem[]>([])
+  const [registeredEvents, setRegisteredEvents] = useState<EventListItem[]>([])
+  const [transactions, setTransactions] = useState<PointTransaction[]>([])
   const [visibleBadges, setVisibleBadges] = useState<VisibleBadge[]>([]) // 노출 뱃지 목록
-  const [userBadges, setUserBadges] = useState<any[]>([]) // 편집 모달용 전체 뱃지 목록
-  const [allBadges, setAllBadges] = useState<any[]>([]) // 사용 가능한 모든 뱃지 목록
+  const [userBadges, setUserBadges] = useState<UserBadgeWithBadge[]>([]) // 편집 모달용 전체 뱃지 목록
+  const [allBadges, setAllBadges] = useState<Badge[]>([]) // 사용 가능한 모든 뱃지 목록
   
   // UI State
   const [activeTab, setActiveTab] = useState<TabType>("posts") // 기본값: 게시글
@@ -153,53 +184,43 @@ export default function ProfilePage() {
       try {
         setLoading(true)
         
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+        // 프로필 정보 가져오기 (재사용 함수 사용)
+        const userProfile = await getCurrentUserProfile(supabase)
 
-        if (userError || !currentUser) {
+        if (!userProfile || !userProfile.user) {
           setLoading(false) // 로딩 상태 먼저 해제
           router.push("/")
           return
         }
 
-        setUser(currentUser)
+        setUser(userProfile.user)
+        let profileData: Profile | null = userProfile.profile
 
         // 근본 원인: Promise.all은 하나의 쿼리가 무한 대기하면 전체가 블로킹됨
         // 해결: 각 쿼리를 개별 try-catch로 감싸서 독립적으로 처리
-        let profileData: any = null
-        let myEvents: any[] = []
-        let myPosts: any[] = []
-        let myRegistrations: any[] = []
-        let myTransactions: any[] = []
-        let badgesData: any[] = []
+        let myEvents: EventListItem[] = []
+        let myPosts: PostListItem[] = []
+        let myRegistrations: EventRegistrationQueryResult[] = []
+        let myTransactions: PointTransaction[] = []
+        let badgesData: BadgeQueryResult[] = []
 
         // 근본 원인: 모든 쿼리에 limit이 없어서 전체 데이터를 가져옴
         // 해결: 1) 프로필 정보를 먼저 로드하여 즉시 표시
         //       2) 나머지 데이터는 limit을 추가하여 최적화
         //       3) 필요한 필드만 선택하여 네트워크 트래픽 감소
         
-        // 1단계: 프로필 정보만 먼저 로드 (즉시 표시)
-        try {
-          const profileResult = await supabase
-            .from("profiles")
-            .select("id, full_name, avatar_url, role, points, bio, created_at")
-            .eq("id", currentUser.id)
-            .single()
-          if (!profileResult.error) {
-            profileData = profileResult.data
-        setProfile(profileData) // 즉시 프로필 정보 표시
-        setUser(currentUser)
-        
-        // 프로필 편집 폼 초기화
-        setEditForm({
-          full_name: profileData?.full_name || "",
-          company: profileData?.company || "",
-          position: profileData?.position || "",
-          introduction: profileData?.introduction || "",
-          is_profile_public: profileData?.is_profile_public || false,
-        })
-          }
-        } catch (error: any) {
-          console.error('프로필 로드 오류:', error)
+        // 1단계: 프로필 정보 표시 (이미 가져온 데이터 사용)
+        if (profileData) {
+          setProfile(profileData) // 즉시 프로필 정보 표시
+          
+          // 프로필 편집 폼 초기화
+          setEditForm({
+            full_name: profileData.full_name || "",
+            company: profileData.company || "",
+            position: profileData.position || "",
+            introduction: profileData.introduction || "",
+            is_profile_public: profileData.is_profile_public || false,
+          })
         }
 
         // 2단계: 나머지 데이터를 병렬로 로드 (limit 추가 및 필드 최적화)
@@ -209,11 +230,20 @@ export default function ProfilePage() {
               const result = await supabase
                 .from("events")
                 .select(`id, title, thumbnail_url, event_date, location, created_at`)
-                .eq("created_by", currentUser.id)
+                .eq("created_by", userProfile.user.id)
                 .order("created_at", { ascending: false })
                 .limit(20) // 최근 20개만
-              if (!result.error) myEvents = result.data || []
-            } catch (error: any) {
+              if (!result.error && result.data) {
+                myEvents = result.data.map((event) => ({
+                  id: event.id,
+                  title: event.title,
+                  thumbnail_url: event.thumbnail_url,
+                  event_date: event.event_date,
+                  location: event.location,
+                  created_at: event.created_at,
+                }))
+              }
+            } catch (error) {
               console.error('이벤트 로드 오류:', error)
             }
           })(),
@@ -222,11 +252,20 @@ export default function ProfilePage() {
               const result = await supabase
                 .from("posts")
                 .select(`id, title, created_at, board_categories (name, slug)`)
-                .eq("author_id", currentUser.id)
+                .eq("author_id", userProfile.user.id)
                 .order("created_at", { ascending: false })
                 .limit(20) // 최근 20개만
-              if (!result.error) myPosts = result.data || []
-            } catch (error: any) {
+              if (!result.error && result.data) {
+                myPosts = result.data.map((post) => ({
+                  id: post.id,
+                  title: post.title,
+                  created_at: post.created_at,
+                  board_categories: post.board_categories,
+                  likes_count: 0,
+                  comments_count: 0,
+                }))
+              }
+            } catch (error) {
               console.error('게시글 로드 오류:', error)
             }
           })(),
@@ -242,7 +281,7 @@ export default function ProfilePage() {
                     id, title, thumbnail_url, event_date, location
                   )
                 `)
-                .eq("user_id", currentUser.id)
+                .eq("user_id", userProfile.user.id)
                 .order("registered_at", { ascending: false })
                 .limit(20) // 최근 20개만
               
@@ -251,9 +290,11 @@ export default function ProfilePage() {
                 setTimeout(() => reject(new Error('쿼리 타임아웃')), 5000)
               )
               
-              const result = await Promise.race([queryPromise, timeoutPromise]) as any
-              if (!result.error) myRegistrations = result.data || []
-            } catch (error: any) {
+              const result = await Promise.race([queryPromise, timeoutPromise]) as { error?: Error; data?: EventRegistrationQueryResult[] }
+              if (!result.error && result.data) {
+                myRegistrations = result.data
+              }
+            } catch (error) {
               console.error('등록 이벤트 로드 오류:', error)
               // 타임아웃이나 에러가 발생해도 빈 배열로 설정하여 계속 진행
               myRegistrations = []
@@ -264,11 +305,13 @@ export default function ProfilePage() {
               const result = await supabase
                 .from("point_transactions")
                 .select("id, amount, description, created_at")
-                .eq("user_id", currentUser.id)
+                .eq("user_id", userProfile.user.id)
                 .order("created_at", { ascending: false })
                 .limit(50) // 최근 50개만
-              if (!result.error) myTransactions = result.data || []
-            } catch (error: any) {
+              if (!result.error && result.data) {
+                myTransactions = result.data
+              }
+            } catch (error) {
               console.error('포인트 내역 로드 오류:', error)
             }
           })(),
@@ -282,37 +325,45 @@ export default function ProfilePage() {
                     name
                   )
                 `)
-                .eq("user_id", currentUser.id)
+                .eq("user_id", userProfile.user.id)
                 .eq("is_visible", true)
                 .limit(10) // 최대 10개만
-              if (!result.error) badgesData = result.data || []
-            } catch (error: any) {
+              if (!result.error && result.data) {
+                badgesData = result.data
+              }
+            } catch (error) {
               console.error('뱃지 로드 오류:', error)
             }
           })()
         ])
 
         // 데이터 설정 (에러가 있어도 사용 가능한 데이터는 설정)
-        setProfile(profileData || null)
-        setCreatedEvents(Array.isArray(myEvents) ? myEvents : [])
-        setUserPosts(Array.isArray(myPosts) ? myPosts : [])
+        setProfile(profileData)
+        setCreatedEvents(myEvents)
+        setUserPosts(myPosts)
         
-        const flattenedRegistrations = Array.isArray(myRegistrations) 
-          ? myRegistrations.map((reg: any) => ({
-              ...reg.events,
-              registration_date: reg.registered_at
-            })).filter((reg: any) => reg?.id) 
-          : []
+        const flattenedRegistrations: EventListItem[] = myRegistrations
+          .map((reg) => {
+            if (!reg.events) return null
+            return {
+              id: reg.events.id,
+              title: reg.events.title,
+              thumbnail_url: reg.events.thumbnail_url,
+              event_date: reg.events.event_date,
+              location: reg.events.location,
+              created_at: reg.events.event_date, // 등록일이 없으므로 이벤트 날짜 사용
+              registration_date: reg.registered_at,
+            }
+          })
+          .filter((reg): reg is EventListItem => reg !== null)
         setRegisteredEvents(flattenedRegistrations)
         
-        setTransactions(Array.isArray(myTransactions) ? myTransactions : [])
+        setTransactions(myTransactions)
         
-        const mappedBadges = Array.isArray(badgesData)
-          ? badgesData
-              .map((ub: any) => ub.badges)
-              .filter(Boolean)
-              .map((badge: any) => ({ icon: badge.icon, name: badge.name }))
-          : []
+        const mappedBadges: VisibleBadge[] = badgesData
+          .map((ub) => ub.badges)
+          .filter((badge): badge is { icon: string; name: string } => badge !== null)
+          .map((badge) => ({ icon: badge.icon, name: badge.name }))
         setVisibleBadges(mappedBadges)
 
       } catch (error) {
@@ -363,7 +414,7 @@ export default function ProfilePage() {
     title: string, 
     count: number, 
     type: TabType, 
-    icon: any,
+    icon: LucideIcon,
     colorClass?: string 
   }) => (
     <div 
@@ -427,14 +478,17 @@ export default function ProfilePage() {
       }
       
       // 로컬 상태 업데이트
-      setProfile((prev: any) => ({
-        ...prev,
-        full_name: editForm.full_name,
-        company: editForm.company,
-        position: editForm.position,
-        introduction: editForm.introduction,
-        is_profile_public: editForm.is_profile_public,
-      }))
+      setProfile((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          full_name: editForm.full_name,
+          company: editForm.company,
+          position: editForm.position,
+          introduction: editForm.introduction,
+          is_profile_public: editForm.is_profile_public,
+        }
+      })
       
       setShowProfileEdit(false)
       alert("프로필이 저장되었습니다.")
@@ -451,7 +505,7 @@ export default function ProfilePage() {
   const handleAddBadge = async () => {
     if (!selectedBadgeId || !user) return
 
-    const existingBadge = userBadges.find((ub: any) => ub.badge_id === selectedBadgeId)
+    const existingBadge = userBadges.find((ub) => ub.badge_id === selectedBadgeId)
     if (existingBadge) {
       alert("이미 부여된 뱃지입니다.")
       return
@@ -480,22 +534,23 @@ export default function ProfilePage() {
         .order("created_at", { ascending: false })
 
       if (data) {
-        setUserBadges(data as any)
+        setUserBadges(data as UserBadgeWithBadge[])
         // visibleBadges도 업데이트
-        const visible = data
-          .filter((ub: any) => ub.is_visible)
-          .map((ub: any) => ({
-            icon: ub.badges?.icon || "",
-            name: ub.badges?.name || "",
+        const visible: VisibleBadge[] = data
+          .filter((ub) => ub.is_visible && ub.badges)
+          .map((ub) => ({
+            icon: ub.badges!.icon,
+            name: ub.badges!.name,
           }))
         setVisibleBadges(visible)
       }
       
       setSelectedBadgeId("")
       alert("뱃지가 추가되었습니다.")
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to add badge:", error)
-      alert(error.message || "뱃지 추가에 실패했습니다.")
+      const errorMessage = error instanceof Error ? error.message : "뱃지 추가에 실패했습니다."
+      alert(errorMessage)
     } finally {
       setAddingBadge(false)
     }
@@ -530,20 +585,21 @@ export default function ProfilePage() {
           .order("created_at", { ascending: false })
 
         if (data) {
-          setUserBadges(data as any)
+          setUserBadges(data as UserBadgeWithBadge[])
           // visibleBadges도 업데이트
-          const visible = data
-            .filter((ub: any) => ub.is_visible)
-            .map((ub: any) => ({
-              icon: ub.badges?.icon || "",
-              name: ub.badges?.name || "",
+          const visible: VisibleBadge[] = data
+            .filter((ub) => ub.is_visible && ub.badges)
+            .map((ub) => ({
+              icon: ub.badges!.icon,
+              name: ub.badges!.name,
             }))
           setVisibleBadges(visible)
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to remove badge:", error)
-      alert(error.message || "뱃지 삭제에 실패했습니다.")
+      const errorMessage = error instanceof Error ? error.message : "뱃지 삭제에 실패했습니다."
+      alert(errorMessage)
     }
   }
 
@@ -578,10 +634,10 @@ export default function ProfilePage() {
       ])
 
       if (userBadgesResult.data) {
-        setUserBadges(userBadgesResult.data as any)
+        setUserBadges(userBadgesResult.data as UserBadgeWithBadge[])
       }
       if (allBadgesResult.data) {
-        setAllBadges(allBadgesResult.data)
+        setAllBadges(allBadgesResult.data as Badge[])
       }
     }
   }
@@ -618,10 +674,13 @@ export default function ProfilePage() {
       await updateProfileAvatar(uploadData.url)
 
       // 3단계: 로컬 상태 업데이트
-      setProfile((prev: any) => ({
-        ...prev,
-        avatar_url: uploadData.url,
-      }))
+      setProfile((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          avatar_url: uploadData.url,
+        }
+      })
     } catch (error) {
       console.error("Avatar upload error:", error)
       alert("프로필 이미지 업로드에 실패했습니다.")
@@ -748,7 +807,7 @@ export default function ProfilePage() {
                   </SelectTrigger>
                   <SelectContent>
                     {allBadges
-                      .filter((badge) => !userBadges.some((ub: any) => ub.badge_id === badge.id))
+                      .filter((badge) => !userBadges.some((ub) => ub.badge_id === badge.id))
                       .slice(0, 20)
                       .map((badge) => (
                         <SelectItem key={badge.id} value={badge.id}>
@@ -782,7 +841,7 @@ export default function ProfilePage() {
               {/* 현재 뱃지 목록 */}
               <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-slate-200 rounded-lg bg-slate-50">
                 {userBadges.length > 0 ? (
-                  userBadges.map((userBadge: any) => {
+                  userBadges.map((userBadge) => {
                     const badge = userBadge.badges
                     if (!badge) return null
                     return (
@@ -1028,7 +1087,7 @@ export default function ProfilePage() {
                   {activeTab === "points" && (
                     <div className="divide-y divide-slate-100">
                       {transactions.length > 0 ? (
-                        transactions.map((tx) => (
+                        transactions.map((tx: PointTransaction) => (
                           <div key={tx.id} className="flex items-center justify-between p-5 hover:bg-slate-50 transition-colors">
                             <div>
                               <p className="font-medium text-slate-900">{tx.description}</p>

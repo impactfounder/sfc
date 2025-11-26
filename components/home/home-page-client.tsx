@@ -16,30 +16,14 @@ import { EventRequestSection } from "@/components/home/event-request-section"
 import { ReviewsSection } from "@/components/home/reviews-section"
 import { EventCardEvent } from "@/components/ui/event-card"
 import { getLatestPosts, getLatestReviews } from "@/lib/queries/posts"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
+import { getBadgesForUsers } from "@/lib/queries/badges"
+import type { PostForDisplay, ReviewForDisplay, BoardCategory } from "@/lib/types/posts"
+import type { User, Profile } from "@/lib/types/profile"
+import type { VisibleBadge } from "@/lib/types/badges"
 
-type BoardCategory = {
-  id: string
-  name: string
-  slug: string
-}
-
-type Post = {
-  id: string
-  title: string
-  content?: string | null
-  created_at: string
-  board_categories?: {
-    name?: string | null
-    slug?: string | null
-  } | null
-  profiles?: {
-    full_name?: string | null
-    id?: string
-  } | null
-  visible_badges?: Array<{
-    icon: string
-    name: string
-  }>
+type Post = PostForDisplay & {
+  visible_badges?: VisibleBadge[]
 }
 
 type HomePageClientProps = {
@@ -48,10 +32,10 @@ type HomePageClientProps = {
   initialEvents?: EventCardEvent[]
   initialPosts?: Post[]
   initialEventRequests?: Post[]
-  initialReviews?: any[]
+  initialReviews?: ReviewForDisplay[]
   initialBoardCategories?: BoardCategory[]
-  initialUser?: any
-  initialProfile?: any
+  initialUser?: User | null
+  initialProfile?: Profile | null
 }
 
 export function HomePageClient({
@@ -70,11 +54,11 @@ export function HomePageClient({
   const [events, setEvents] = useState<EventCardEvent[]>(initialEvents)
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [eventRequests, setEventRequests] = useState<Post[]>(initialEventRequests)
-  const [reviews, setReviews] = useState<any[]>(initialReviews)
+  const [reviews, setReviews] = useState<ReviewForDisplay[]>(initialReviews)
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>(initialBoardCategories)
-  const [user, setUser] = useState<any>(initialUser)
-  const [profile, setProfile] = useState<any>(initialProfile)
-  const userRef = useRef<any>(initialUser)
+  const [user, setUser] = useState<User | null>(initialUser || null)
+  const [profile, setProfile] = useState<Profile | null>(initialProfile || null)
+  const userRef = useRef<User | null>(initialUser || null)
   
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -91,29 +75,24 @@ export function HomePageClient({
       userRef.current = user
 
       // user가 존재할 경우, profiles 테이블에서 최신 프로필 정보를 가져옴
-      if (user) {
-        try {
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single()
-          setProfile(profileData || null)
-        } catch (error) {
-          console.error('프로필 로드 오류:', error)
-          setProfile(null)
-        }
+      const userProfile = await getCurrentUserProfile(supabase)
+      if (userProfile) {
+        setUser(userProfile.user)
+        setProfile(userProfile.profile)
+        userRef.current = userProfile.user
       } else {
+        setUser(null)
         setProfile(null)
+        userRef.current = null
       }
 
       // 각 쿼리를 독립적으로 처리
-      let categoriesData: any[] = []
-      let announcementData: any = null
-      let eventsData: any[] = []
-      let postsData: any[] = []
-      let eventRequestsData: any[] = []
-      let reviewsData: any[] = []
+      let categoriesData: BoardCategory[] = []
+      let announcementData: { id: string; title: string } | null = null
+      let eventsData: EventCardEvent[] = []
+      let postsData: Post[] = []
+      let eventRequestsData: PostForDisplay[] = []
+      let reviewsData: ReviewForDisplay[] = []
 
       // 1. 카테고리
       try {
@@ -125,9 +104,12 @@ export function HomePageClient({
           .order("order_index", { ascending: true })
         
         if (!error && data) {
-          categoriesData = data
+          categoriesData = data.map((cat) => {
+            if (cat.slug === "free-board") return { ...cat, slug: "free" }
+            return cat
+          }) as BoardCategory[]
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('카테고리 로드 오류:', error)
         categoriesData = []
       }
@@ -143,9 +125,9 @@ export function HomePageClient({
           .maybeSingle()
         
         if (!error && data) {
-          announcementData = data
+          announcementData = { id: data.id, title: data.title }
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('공지사항 로드 오류:', error)
         announcementData = null
       }
@@ -169,14 +151,24 @@ export function HomePageClient({
           .limit(9)
         
         if (!error && data) {
-          eventsData = data.map((event: any) => ({
-            ...event,
-            event_type: event.event_type || 'networking'
+          eventsData = data.map((event) => ({
+            id: event.id,
+            title: event.title,
+            thumbnail_url: event.thumbnail_url,
+            event_date: event.event_date,
+            event_time: null,
+            location: event.location,
+            max_participants: event.max_participants,
+            current_participants: event.event_registrations?.[0]?.count || 0,
+            host_name: event.profiles?.full_name || "알 수 없음",
+            host_avatar_url: event.profiles?.avatar_url || null,
+            host_bio: event.profiles?.bio || null,
+            event_type: event.event_type || 'networking',
           }))
         } else {
           eventsData = []
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('이벤트 로드 오류:', error)
         eventsData = []
       }
@@ -203,11 +195,38 @@ export function HomePageClient({
           .limit(50)
         
         if (!error && data) {
-          postsData = data
+          // 뱃지 가져오기 (재사용 함수 사용)
+          const authorIds = [...new Set(data.map((post) => post.author_id).filter(Boolean) as string[])]
+          const badgesMap = await getBadgesForUsers(supabase, authorIds)
+
+          postsData = data.map((post) => {
+            let slug = post.board_categories?.slug
+            if (slug === "free-board") slug = "free"
+            const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
+            return {
+              id: post.id,
+              title: post.title,
+              content: post.content,
+              created_at: post.created_at,
+              visibility: 'public' as const,
+              likes_count: 0,
+              comments_count: 0,
+              profiles: post.profiles ? {
+                id: post.profiles.id,
+                full_name: post.profiles.full_name,
+              } : null,
+              board_categories: post.board_categories ? {
+                name: post.board_categories.name,
+                slug: slug || post.board_categories.slug,
+              } : null,
+              communities: null,
+              visible_badges: visibleBadges,
+            } as Post
+          })
         } else {
           postsData = []
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('게시글 로드 오류:', error)
         postsData = []
       }
@@ -215,12 +234,8 @@ export function HomePageClient({
       // 5. 열어주세요(Event Requests)
       try {
         const requestsData = await getLatestPosts(supabase, 6, 'event-requests')
-        if (requestsData) {
-          eventRequestsData = requestsData
-        } else {
-          eventRequestsData = []
-        }
-      } catch (error: any) {
+        eventRequestsData = requestsData || []
+      } catch (error) {
         console.error('열어주세요 로드 오류:', error)
         eventRequestsData = []
       }
@@ -228,113 +243,29 @@ export function HomePageClient({
       // 6. 후기 (Reviews)
       try {
         const reviewsResult = await getLatestReviews(supabase, 10)
-        if (reviewsResult) {
-          reviewsData = reviewsResult
-        } else {
-          reviewsData = []
-        }
-      } catch (error: any) {
+        reviewsData = reviewsResult || []
+      } catch (error) {
         console.error('후기 로드 오류:', error)
         reviewsData = []
       }
 
       // 카테고리 처리
-      if (categoriesData.length > 0) {
-        const mappedCategories = categoriesData.map((cat) => {
-          if (cat.slug === "free-board") return { ...cat, slug: "free" }
-          return cat
-        })
-        setBoardCategories(mappedCategories as BoardCategory[])
-      }
+      setBoardCategories(categoriesData)
 
       // 공지사항 처리
-      if (announcementData) {
-        setAnnouncement({ id: announcementData.id, title: announcementData.title })
-      }
+      setAnnouncement(announcementData)
 
       // 이벤트 처리
-      if (eventsData.length > 0) {
-        const transformedEvents = eventsData.map((event: any) => ({
-          id: event.id,
-          title: event.title,
-          thumbnail_url: event.thumbnail_url,
-          event_date: event.event_date,
-          event_time: null,
-          location: event.location,
-          max_participants: event.max_participants,
-          current_participants: event.event_registrations?.[0]?.count || 0,
-          host_name: event.profiles?.full_name || "알 수 없음",
-          host_avatar_url: event.profiles?.avatar_url || null,
-          host_bio: event.profiles?.bio || null,
-          event_type: event.event_type || 'networking',
-        }))
-        setEvents(transformedEvents)
-      } else {
-        setEvents([])
-      }
+      setEvents(eventsData)
 
-      // 게시글 처리 (N+1 문제 해결: 배치로 뱃지 가져오기)
-      if (postsData.length > 0) {
-        const authorIds = [...new Set(postsData.map((post: any) => post.author_id).filter(Boolean))]
-        
-        const badgesMap = new Map<string, Array<{ icon: string; name: string }>>()
-        if (authorIds.length > 0) {
-          try {
-            const { data: allBadgesData, error: badgesError } = await supabase
-              .from("user_badges")
-              .select(`
-                user_id,
-                badges:badge_id (
-                  icon,
-                  name
-                )
-              `)
-              .in("user_id", authorIds)
-              .eq("is_visible", true)
-            
-            if (!badgesError && allBadgesData) {
-              allBadgesData.forEach((ub: any) => {
-                if (ub.badges && ub.user_id) {
-                  const existing = badgesMap.get(ub.user_id) || []
-                  badgesMap.set(ub.user_id, [...existing, { icon: ub.badges.icon, name: ub.badges.name }])
-                }
-              })
-            }
-          } catch (error: any) {
-            console.error('뱃지 로드 오류:', error)
-          }
-        }
-
-        const postsWithBadges = postsData.map((post: any) => {
-          let slug = post.board_categories?.slug
-          if (slug === "free-board") slug = "free"
-
-          const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
-
-          return {
-            ...post,
-            board_categories: { ...post.board_categories, slug },
-            visible_badges: visibleBadges,
-          }
-        })
-        setPosts(postsWithBadges as Post[])
-      } else {
-        setPosts([])
-      }
+      // 게시글 처리 (이미 뱃지가 포함된 상태)
+      setPosts(postsData)
 
       // 열어주세요 처리
-      if (eventRequestsData.length > 0) {
-        setEventRequests(eventRequestsData as Post[])
-      } else {
-        setEventRequests([])
-      }
+      setEventRequests(eventRequestsData as Post[])
 
       // 후기 처리
-      if (reviewsData.length > 0) {
-        setReviews(reviewsData)
-      } else {
-        setReviews([])
-      }
+      setReviews(reviewsData)
 
     } catch (error) {
       console.error('데이터 로드 중 오류 발생:', error)

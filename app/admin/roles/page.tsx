@@ -10,7 +10,7 @@ export default async function RolesManagementPage() {
 
   const { data: users } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, full_name, email, role, created_at")
     .neq("id", user.id)
     .order("created_at", { ascending: false });
 

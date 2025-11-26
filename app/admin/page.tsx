@@ -9,14 +9,20 @@ export default async function AdminDashboard() {
     // Users: 전체 프로필 (최신순)
     supabase
       .from("profiles")
-      .select("*")
+      .select("id, full_name, email, role, membership_tier, points, created_at")
       .order("created_at", { ascending: false }),
     
     // Events: 전체 이벤트 (최신순, 호스트 정보 포함)
     supabase
       .from("events")
       .select(`
-        *,
+        id,
+        title,
+        thumbnail_url,
+        event_date,
+        location,
+        max_participants,
+        created_at,
         profiles:created_by (
           id,
           full_name,
@@ -29,7 +35,9 @@ export default async function AdminDashboard() {
     supabase
       .from("posts")
       .select(`
-        *,
+        id,
+        title,
+        created_at,
         profiles:author_id (
           id,
           full_name,

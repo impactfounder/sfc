@@ -69,7 +69,11 @@ export function Sidebar({
       setUser(user)
 
       if (user) {
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, role")
+          .eq("id", user.id)
+          .single()
 
         if (profileData) {
           setUserRole(profileData.role || "member")
@@ -93,7 +97,12 @@ export function Sidebar({
         // 로그인 상태가 유지되면 사용자 정보만 업데이트
         setUser(session.user)
         // 프로필 정보가 없을 때만 다시 로드
-        supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data: profileData }) => {
+        supabase
+          .from("profiles")
+          .select("id, role")
+          .eq("id", session.user.id)
+          .single()
+          .then(({ data: profileData }) => {
           if (profileData) {
             setUserRole(profileData.role || "member")
           }

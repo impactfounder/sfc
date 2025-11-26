@@ -14,7 +14,7 @@ export default async function EditEventPage({
   // 이벤트 정보 조회
   const { data: event, error } = await supabase
     .from("events")
-    .select("*")
+    .select("id, title, description, event_date, end_date, location, price, max_participants, thumbnail_url, created_by")
     .eq("id", id)
     .single()
 

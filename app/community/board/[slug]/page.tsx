@@ -81,8 +81,10 @@ export default async function BoardPage({
     dbSlug = 'announcement';
   }
 
-  // 디버깅용 로그: 서버 로그에서 확인 가능
-  console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
+  // 디버깅용 로그: 개발 환경에서만 출력
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
+  }
 
   // 매핑 검증: 유효한 슬러그인지 확인
   const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests'];
@@ -94,7 +96,7 @@ export default async function BoardPage({
   const [categoryResult, userResult] = await Promise.all([
     supabase
       .from("board_categories")
-      .select("*")
+      .select("id, name, description, slug, is_active")
       .eq("slug", dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
       .eq("is_active", true)
       .single(),

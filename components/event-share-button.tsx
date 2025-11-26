@@ -38,7 +38,7 @@ export function EventShareButton({
         return
       } catch (error: any) {
         // 사용자가 공유를 취소한 경우는 정상 동작이므로 에러 무시
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && process.env.NODE_ENV === 'development') {
           console.log('Error sharing', error)
         }
       }

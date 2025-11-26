@@ -4,8 +4,19 @@
 import { createClient } from "@/lib/supabase/server"
 
 export default async function DebugPage() {
-  // 운영 환경에서는 접근 제한 (선택사항)
+  // 운영 환경에서는 접근 차단
   const isProduction = process.env.NODE_ENV === 'production'
+  
+  if (isProduction) {
+    return (
+      <div className="p-8 max-w-6xl mx-auto">
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h1 className="text-2xl font-bold text-red-800 mb-2">접근 제한됨</h1>
+          <p className="text-red-700">이 페이지는 운영 환경에서 접근할 수 없습니다.</p>
+        </div>
+      </div>
+    )
+  }
   
   const supabase = await createClient()
 
@@ -45,11 +56,9 @@ export default async function DebugPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">디버깅 정보</h1>
-      {isProduction && (
-        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800 text-sm">⚠️ 운영 환경에서 디버깅 페이지가 활성화되어 있습니다. 보안을 위해 제거하거나 접근 제한을 권장합니다.</p>
-        </div>
-      )}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-blue-800 text-sm">ℹ️ 이 페이지는 개발 환경에서만 접근 가능합니다.</p>
+      </div>
       
       <div className="space-y-6">
         <div className="p-6 bg-white rounded-lg border border-gray-200">

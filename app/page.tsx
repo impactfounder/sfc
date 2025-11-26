@@ -1,29 +1,21 @@
 import { createClient } from "@/lib/supabase/server"
 import { getLatestPosts, getLatestReviews } from "@/lib/queries/posts"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
+import { getBadgesForUsers } from "@/lib/queries/badges"
 import { HomePageClient } from "@/components/home/home-page-client"
 import AnnouncementBanner from "@/components/home/announcement-banner"
+import type { EventCardEvent } from "@/components/ui/event-card"
+import type { PostForDisplay, ReviewForDisplay, BoardCategory } from "@/lib/types/posts"
+import type { VisibleBadge } from "@/lib/types/badges"
 
 
 export default async function HomePage() {
   const supabase = await createClient()
 
   // 서버에서 초기 데이터 가져오기
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // 프로필 정보 가져오기
-  let profile = null
-  if (user) {
-    try {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
-      profile = profileData || null
-    } catch (error) {
-      console.error('프로필 로드 오류:', error)
-    }
-  }
+  const userProfile = await getCurrentUserProfile(supabase)
+  const user = userProfile?.user || null
+  const profile = userProfile?.profile || null
 
   // 공지사항
   let announcement = null
@@ -43,7 +35,7 @@ export default async function HomePage() {
   }
 
   // 이벤트
-  let events: any[] = []
+  let events: EventCardEvent[] = []
   try {
     const { data } = await supabase
       .from("events")
@@ -62,7 +54,7 @@ export default async function HomePage() {
       .limit(9)
     
     if (data) {
-      events = data.map((event: any) => ({
+      events = data.map((event) => ({
         id: event.id,
         title: event.title,
         thumbnail_url: event.thumbnail_url,
@@ -82,7 +74,7 @@ export default async function HomePage() {
   }
 
   // 게시글
-  let posts: any[] = []
+  let posts: PostForDisplay[] = []
   try {
     const { data } = await supabase
       .from("posts")
@@ -104,46 +96,34 @@ export default async function HomePage() {
       .limit(50)
     
     if (data) {
-      // 뱃지 가져오기
-      const authorIds = [...new Set(data.map((post: any) => post.author_id).filter(Boolean))]
-      const badgesMap = new Map<string, Array<{ icon: string; name: string }>>()
-      
-      if (authorIds.length > 0) {
-        try {
-          const { data: allBadgesData } = await supabase
-            .from("user_badges")
-            .select(`
-              user_id,
-              badges:badge_id (
-                icon,
-                name
-              )
-            `)
-            .in("user_id", authorIds)
-            .eq("is_visible", true)
-          
-          if (allBadgesData) {
-            allBadgesData.forEach((ub: any) => {
-              if (ub.badges && ub.user_id) {
-                const existing = badgesMap.get(ub.user_id) || []
-                badgesMap.set(ub.user_id, [...existing, { icon: ub.badges.icon, name: ub.badges.name }])
-              }
-            })
-          }
-        } catch (error) {
-          console.error('뱃지 로드 오류:', error)
-        }
-      }
+      // 뱃지 가져오기 (재사용 함수 사용)
+      const authorIds = [...new Set(data.map((post) => post.author_id).filter(Boolean) as string[])]
+      const badgesMap = await getBadgesForUsers(supabase, authorIds)
 
-      posts = data.map((post: any) => {
+      posts = data.map((post) => {
         let slug = post.board_categories?.slug
         if (slug === "free-board") slug = "free"
         const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
         return {
-          ...post,
-          board_categories: { ...post.board_categories, slug },
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          created_at: post.created_at,
+          visibility: 'public' as const,
+          likes_count: 0,
+          comments_count: 0,
+          profiles: post.profiles ? {
+            id: post.profiles.id,
+            full_name: post.profiles.full_name,
+          } : null,
+          board_categories: post.board_categories ? {
+            name: post.board_categories.name,
+            slug: slug || post.board_categories.slug,
+          } : null,
+          communities: null,
+          // visible_badges는 PostForDisplay 타입에 없으므로 타입 단언 사용
           visible_badges: visibleBadges,
-        }
+        } as PostForDisplay & { visible_badges?: VisibleBadge[] }
       })
     }
   } catch (error) {
@@ -151,7 +131,7 @@ export default async function HomePage() {
   }
 
   // 열어주세요
-  let eventRequests: any[] = []
+  let eventRequests: PostForDisplay[] = []
   try {
     eventRequests = await getLatestPosts(supabase, 6, 'event-requests')
   } catch (error) {
@@ -159,7 +139,7 @@ export default async function HomePage() {
   }
 
   // 후기
-  let reviews: any[] = []
+  let reviews: ReviewForDisplay[] = []
   try {
     reviews = await getLatestReviews(supabase, 10)
   } catch (error) {
@@ -167,7 +147,7 @@ export default async function HomePage() {
   }
 
   // 카테고리
-  let boardCategories: any[] = []
+  let boardCategories: BoardCategory[] = []
   try {
     const { data } = await supabase
       .from("board_categories")
@@ -180,7 +160,7 @@ export default async function HomePage() {
       boardCategories = data.map((cat) => {
         if (cat.slug === "free-board") return { ...cat, slug: "free" }
         return cat
-      })
+      }) as BoardCategory[]
     }
   } catch (error) {
     console.error('카테고리 로드 오류:', error)

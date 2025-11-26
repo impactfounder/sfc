@@ -29,7 +29,7 @@ export default async function ManageEventPage({
   // 이벤트 정보
   const { data: event } = await supabase
     .from("events")
-    .select("*")
+    .select("id, title, created_by, status")
     .eq("id", id)
     .single();
 
@@ -39,7 +39,7 @@ export default async function ManageEventPage({
   // 커스텀 필드
   const { data: customFields } = await supabase
     .from("event_registration_fields")
-    .select("*")
+    .select("id, field_name, field_type, order_index")
     .eq("event_id", id)
     .order("order_index", { ascending: true });
 

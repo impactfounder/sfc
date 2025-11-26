@@ -33,12 +33,10 @@ export default async function CommunityDashboardPage() {
     (cat) => !excludedSlugs.includes(cat.slug)
   )
 
-  // 각 게시글의 커뮤니티 멤버십 확인 (나중에 최적화 가능)
+  // 각 게시글의 커뮤니티 멤버십 확인
   // 주의: communities 조인이 제거되었으므로 임시로 모든 게시글에 isMember: true 설정
+  // 향후 개선: visibility가 'group'인 경우 실제 멤버십 체크 로직 추가 필요
   const postsWithMembership = transformedPosts.map((post: any) => {
-    // TODO: 실제 community_id를 가져와서 멤버십 체크
-    // 현재는 communities 조인이 제거되어 임시로 true로 설정
-    // visibility가 'group'인 경우 나중에 실제 멤버십 체크 로직 추가 필요
     return { ...post, isMember: true }
   })
 

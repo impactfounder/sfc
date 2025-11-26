@@ -10,7 +10,7 @@ export default async function NewEventRequestPage() {
   // Verify board category exists
   const { data: category } = await supabase
     .from("board_categories")
-    .select("*")
+    .select("id, name, slug")
     .eq("slug", slug)
     .eq("is_active", true)
     .single();

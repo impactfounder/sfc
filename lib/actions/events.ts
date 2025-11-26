@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { isAdmin } from "@/lib/utils"
+import type { EventInsertData, EventUpdateData } from "@/lib/types/events"
 
 /**
  * 이벤트 생성 (보안 강화: 세션 기반)
@@ -39,7 +40,7 @@ export async function createEvent(data: {
   }
 
   // ★ 보안: 클라이언트에서 보낸 created_by는 무시하고, 세션의 user.id만 사용
-  const insertData: any = {
+  const insertData: EventInsertData = {
     title: data.title.trim(),
     description: data.description.trim(),
     event_date: data.event_date,
@@ -183,7 +184,7 @@ export async function updateEvent(eventId: string, data: {
     throw new Error("Unauthorized: Only event creators can update events")
   }
 
-  const updateData: any = {
+  const updateData: EventUpdateData = {
     title: data.title.trim(),
     description: data.description.trim(),
     event_date: data.event_date,

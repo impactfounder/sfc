@@ -13,7 +13,13 @@ export default async function AdminEventsPage() {
   const { data: events } = await supabase
     .from("events")
     .select(`
-      *,
+      id,
+      title,
+      thumbnail_url,
+      event_date,
+      location,
+      max_participants,
+      created_at,
       profiles:created_by (
         id,
         full_name,
