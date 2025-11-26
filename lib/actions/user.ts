@@ -29,40 +29,51 @@ export async function updateProfileAvatar(avatarUrl: string) {
 }
 
 export async function updateProfileInfo(data: {
+  full_name?: string
   company?: string
   position?: string
-  roles?: string[]
   introduction?: string
   is_profile_public?: boolean
 }) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
 
-  // Update profile info
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      company: data.company || null,
-      position: data.position || null,
-      roles: data.roles || [],
-      introduction: data.introduction || null,
+    // Update profile info
+    // null 값 처리를 명확하게 하여 DB 에러 방지
+    const updates = {
+      full_name: data.full_name?.trim() || null,
+      company: data.company?.trim() || null,
+      position: data.position?.trim() || null,
+      introduction: data.introduction?.trim() || null,
       is_profile_public: data.is_profile_public ?? false,
-    })
-    .eq("id", user.id)
+      updated_at: new Date().toISOString(), // 업데이트 시간 갱신
+    }
 
-  if (error) {
-    throw new Error(error.message)
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", user.id)
+
+    if (error) {
+      console.error("Supabase Update Error:", error)
+      throw new Error(error.message)
+    }
+
+    revalidatePath("/community/profile")
+    revalidatePath("/member")
+    return { success: true }
+    
+  } catch (error) {
+    console.error("updateProfileInfo Error:", error)
+    return { success: false, error: "Failed to update profile" }
   }
-
-  revalidatePath("/community/profile")
-  revalidatePath("/member")
-  return { success: true }
 }
 

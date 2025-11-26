@@ -17,9 +17,7 @@ import { updateProfileAvatar, updateProfileInfo } from "@/lib/actions/user"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Switch } from "@/components/ui/switch"
-import { Save } from "lucide-react"
 
 type TabType = "points" | "posts" | "created_events" | "participated_events";
 
@@ -136,9 +134,9 @@ export default function ProfilePage() {
   
   // 프로필 편집 폼 상태
   const [editForm, setEditForm] = useState({
+    full_name: "",
     company: "",
     position: "",
-    roles: [] as string[],
     introduction: "",
     is_profile_public: false,
   })
@@ -186,9 +184,9 @@ export default function ProfilePage() {
         
         // 프로필 편집 폼 초기화
         setEditForm({
+          full_name: profileData?.full_name || "",
           company: profileData?.company || "",
           position: profileData?.position || "",
-          roles: profileData?.roles || [],
           introduction: profileData?.introduction || "",
           is_profile_public: profileData?.is_profile_public || false,
         })
@@ -401,22 +399,31 @@ export default function ProfilePage() {
 
   // 프로필 정보 저장 핸들러
   const handleSaveProfile = async () => {
+    if (!editForm.full_name.trim()) {
+      alert("이름을 입력해주세요.")
+      return
+    }
+    
     setIsSaving(true)
     try {
-      await updateProfileInfo({
+      const result = await updateProfileInfo({
+        full_name: editForm.full_name,
         company: editForm.company,
         position: editForm.position,
-        roles: editForm.roles,
         introduction: editForm.introduction,
         is_profile_public: editForm.is_profile_public,
       })
       
+      if (!result.success) {
+        throw new Error("서버 저장 실패")
+      }
+      
       // 로컬 상태 업데이트
       setProfile((prev: any) => ({
         ...prev,
+        full_name: editForm.full_name,
         company: editForm.company,
         position: editForm.position,
-        roles: editForm.roles,
         introduction: editForm.introduction,
         is_profile_public: editForm.is_profile_public,
       }))
@@ -424,8 +431,8 @@ export default function ProfilePage() {
       setShowProfileEdit(false)
       alert("프로필이 저장되었습니다.")
     } catch (error) {
-      console.error("Profile save error:", error)
-      alert("프로필 저장에 실패했습니다.")
+      console.error("Profile save failed:", error)
+      alert("프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")
     } finally {
       setIsSaving(false)
     }
@@ -501,91 +508,103 @@ export default function ProfilePage() {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">프로필 편집</DialogTitle>
           </DialogHeader>
-          <div className="mt-6 space-y-6 max-h-[80vh] overflow-y-auto">
-            {/* 역할 선택 */}
+          <div className="mt-6 space-y-6 max-h-[80vh] overflow-y-auto px-1">
+            {/* 이름 입력 필드 */}
             <div>
-              <Label className="mb-2">역할</Label>
-              <ToggleGroup
-                type="multiple"
-                value={editForm.roles}
-                onValueChange={(value) => setEditForm({ ...editForm, roles: value })}
-                className="flex-wrap"
-              >
-                <ToggleGroupItem value="사업가">사업가</ToggleGroupItem>
-                <ToggleGroupItem value="투자자">투자자</ToggleGroupItem>
-                <ToggleGroupItem value="인플루언서">인플루언서</ToggleGroupItem>
-              </ToggleGroup>
+              <Label htmlFor="full_name" className="mb-2 block text-slate-700">이름 <span className="text-red-500">*</span></Label>
+              <Input
+                id="full_name"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                placeholder="이름을 입력하세요"
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+              />
             </div>
 
             {/* 소속 */}
             <div>
-              <Label htmlFor="company" className="mb-2">소속</Label>
+              <Label htmlFor="company" className="mb-2 block text-slate-700">소속</Label>
               <Input
                 id="company"
                 value={editForm.company}
                 onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
                 placeholder="회사 또는 조직명"
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
               />
             </div>
 
             {/* 직책 */}
             <div>
-              <Label htmlFor="position" className="mb-2">직책</Label>
+              <Label htmlFor="position" className="mb-2 block text-slate-700">직책</Label>
               <Input
                 id="position"
                 value={editForm.position}
                 onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
                 placeholder="예: CEO, 대표이사, 파트너"
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
               />
             </div>
 
             {/* 자기소개 */}
             <div>
-              <Label htmlFor="introduction" className="mb-2">한줄 자기소개</Label>
+              <Label htmlFor="introduction" className="mb-2 block text-slate-700">한줄 자기소개</Label>
               <Textarea
                 id="introduction"
                 value={editForm.introduction}
                 onChange={(e) => setEditForm({ ...editForm, introduction: e.target.value })}
                 placeholder="간단한 자기소개를 입력해주세요"
                 rows={3}
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none min-h-[80px]"
               />
             </div>
 
             {/* 공개 설정 */}
-            <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+            <div 
+              className="flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => setEditForm(prev => ({ ...prev, is_profile_public: !prev.is_profile_public }))}
+            >
               <div className="flex-1">
-                <Label htmlFor="is_public" className="font-medium">
+                <Label className="font-medium cursor-pointer pointer-events-none">
                   멤버 리스트에 내 프로필을 공개합니다
                 </Label>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1 pointer-events-none">
                   공개 시 멤버 페이지에서 프로필을 확인할 수 있습니다
                 </p>
               </div>
               <Switch
-                id="is_public"
                 checked={editForm.is_profile_public}
                 onCheckedChange={(checked) =>
-                  setEditForm({ ...editForm, is_profile_public: checked })
+                  setEditForm(prev => ({ ...prev, is_profile_public: checked }))
                 }
+                className="data-[state=checked]:bg-blue-600"
               />
             </div>
 
             {/* 저장 버튼 */}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setShowProfileEdit(false)}>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowProfileEdit(false)}
+                className="h-11 px-6"
+              >
                 취소
               </Button>
-              <Button onClick={handleSaveProfile} disabled={isSaving}>
+              <Button 
+                onClick={handleSaveProfile} 
+                disabled={isSaving}
+                className={cn(
+                  "h-11 px-8 font-bold transition-all",
+                  "bg-slate-900 hover:bg-slate-800 text-white shadow-md hover:shadow-lg",
+                  isSaving && "opacity-70 cursor-not-allowed"
+                )}
+              >
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     저장 중...
                   </>
                 ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    저장
-                  </>
+                  "저장하기"
                 )}
               </Button>
             </div>
