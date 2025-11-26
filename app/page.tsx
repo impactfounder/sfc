@@ -4,7 +4,6 @@ import { getLatestPosts, getLatestReviews } from "@/lib/queries/posts"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { getBadgesForUsers } from "@/lib/queries/badges"
 import { HomePageClient } from "@/components/home/home-page-client"
-import AnnouncementBanner from "@/components/home/announcement-banner"
 import SidebarProfile from "@/components/sidebar-profile"
 import type { EventCardEvent } from "@/components/ui/event-card"
 import type { PostForDisplay, ReviewForDisplay, BoardCategory } from "@/lib/types/posts"
@@ -18,23 +17,6 @@ export default async function HomePage() {
   const userProfile = await getCurrentUserProfile(supabase)
   const user = userProfile?.user || null
   const profile = userProfile?.profile || null
-
-  // 공지사항
-  let announcement = null
-  try {
-    const { data } = await supabase
-      .from("posts")
-      .select(`id, title, board_categories!inner(slug)`)
-      .eq("board_categories.slug", "announcement")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (data) {
-      announcement = { id: data.id, title: data.title }
-    }
-  } catch (error) {
-    console.error('공지사항 로드 오류:', error)
-  }
 
   // 이벤트
   let events: EventCardEvent[] = []
@@ -175,7 +157,6 @@ export default async function HomePage() {
           <SidebarProfile />
         </Suspense>
       }
-      initialAnnouncement={announcement}
       initialEvents={events}
       initialPosts={posts}
       initialEventRequests={eventRequests}
@@ -183,8 +164,6 @@ export default async function HomePage() {
       initialBoardCategories={boardCategories}
       initialUser={user}
       initialProfile={profile}
-    >
-      <AnnouncementBanner />
-    </HomePageClient>
+    />
   )
 }

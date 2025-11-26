@@ -37,14 +37,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <div className="hidden lg:block fixed inset-y-0 left-6 z-50">
-        <Sidebar />
-      </div>
-
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <MobileHeader />
 
-      <div className="flex-1 flex flex-col lg:pl-[344px]">
+      <div className="flex-1 w-full max-w-[1440px] mx-auto flex items-start pt-16 lg:pt-0">
+        <aside className="hidden lg:block w-72 shrink-0 sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white">
+          <Sidebar />
+        </aside>
+
+        <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] lg:min-h-screen">
           
           <Card className="w-full max-w-[420px] p-8 border-none shadow-xl rounded-2xl bg-white animate-in fade-in zoom-in-95 duration-500">
@@ -123,6 +124,7 @@ export default function LoginPage() {
             </CardContent>
           </Card>
         </main>
+        </div>
       </div>
     </div>
   )

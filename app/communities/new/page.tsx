@@ -6,7 +6,7 @@ export default async function NewCommunityPage() {
   const userId = user.id
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 pt-20 md:pt-12 lg:pl-[344px]">
+    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 pt-20 md:pt-12">
       <div className="mx-auto max-w-6xl">
         <div className="mb-10">
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">새 커뮤니티 만들기</h1>

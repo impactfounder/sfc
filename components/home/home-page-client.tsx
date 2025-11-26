@@ -14,6 +14,7 @@ import { EventsSection } from "@/components/home/events-section"
 import { PostsSection } from "@/components/home/posts-section"
 import { EventRequestSection } from "@/components/home/event-request-section"
 import { ReviewsSection } from "@/components/home/reviews-section"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { EventCardEvent } from "@/components/ui/event-card"
 import { getLatestPosts, getLatestReviews } from "@/lib/queries/posts"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
@@ -29,7 +30,6 @@ type Post = PostForDisplay & {
 type HomePageClientProps = {
   children?: ReactNode
   sidebarProfile?: ReactNode
-  initialAnnouncement?: { id: string; title: string } | null
   initialEvents?: EventCardEvent[]
   initialPosts?: Post[]
   initialEventRequests?: Post[]
@@ -42,7 +42,6 @@ type HomePageClientProps = {
 export function HomePageClient({
   children,
   sidebarProfile,
-  initialAnnouncement = null,
   initialEvents = [],
   initialPosts = [],
   initialEventRequests = [],
@@ -52,7 +51,6 @@ export function HomePageClient({
   initialProfile = null,
 }: HomePageClientProps) {
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
-  const [announcement, setAnnouncement] = useState<{ id: string; title: string } | null>(initialAnnouncement)
   const [events, setEvents] = useState<EventCardEvent[]>(initialEvents)
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [eventRequests, setEventRequests] = useState<Post[]>(initialEventRequests)
@@ -90,7 +88,6 @@ export function HomePageClient({
 
       // 각 쿼리를 독립적으로 처리
       let categoriesData: BoardCategory[] = []
-      let announcementData: { id: string; title: string } | null = null
       let eventsData: EventCardEvent[] = []
       let postsData: Post[] = []
       let eventRequestsData: PostForDisplay[] = []
@@ -116,25 +113,7 @@ export function HomePageClient({
         categoriesData = []
       }
 
-      // 2. 공지사항
-      try {
-        const { data, error } = await supabase
-          .from("posts")
-          .select(`id, title, board_categories!inner(slug)`)
-          .eq("board_categories.slug", "announcement")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        
-        if (!error && data) {
-          announcementData = { id: data.id, title: data.title }
-        }
-      } catch (error) {
-        console.error('공지사항 로드 오류:', error)
-        announcementData = null
-      }
-
-      // 3. 이벤트
+      // 2. 이벤트
       try {
         const { data, error } = await supabase
           .from("events")
@@ -175,7 +154,7 @@ export function HomePageClient({
         eventsData = []
       }
 
-      // 4. 게시글
+      // 3. 게시글
       try {
         const { data, error } = await supabase
           .from("posts")
@@ -233,7 +212,7 @@ export function HomePageClient({
         postsData = []
       }
 
-      // 5. 열어주세요(Event Requests)
+      // 4. 열어주세요(Event Requests)
       try {
         const requestsData = await getLatestPosts(supabase, 6, 'event-requests')
         eventRequestsData = requestsData || []
@@ -242,7 +221,7 @@ export function HomePageClient({
         eventRequestsData = []
       }
 
-      // 6. 후기 (Reviews)
+      // 5. 후기 (Reviews)
       try {
         const reviewsResult = await getLatestReviews(supabase, 10)
         reviewsData = reviewsResult || []
@@ -253,9 +232,6 @@ export function HomePageClient({
 
       // 카테고리 처리
       setBoardCategories(categoriesData)
-
-      // 공지사항 처리
-      setAnnouncement(announcementData)
 
       // 이벤트 처리
       setEvents(eventsData)
@@ -320,34 +296,32 @@ export function HomePageClient({
         ) : undefined
       }
     >
-      <div className="flex flex-col">
-        <div className="mb-6">
-          <HeroSection user={user} profile={profile} onLogin={handleLogin} />
-        </div>
-        {children && (
-          <div className="mb-16">
-            {children}
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
+          {/* [LEFT] 메인 콘텐츠 영역 (9칸) */}
+          <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+            <HeroSection user={user} profile={profile} onLogin={handleLogin} />
+            {children && <div>{children}</div>}
+            <div id="events-section">
+              <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+            </div>
+            <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
+            <ReviewsSection reviews={reviews} isLoading={isLoading} />
+            <PostsSection
+              posts={posts}
+              boardCategories={boardCategories}
+              selectedBoard={selectedBoard}
+              onBoardChange={setSelectedBoard}
+              isLoading={isLoading}
+            />
           </div>
-        )}
-        <div id="events-section" className="mb-20">
-          <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+
+          {/* [RIGHT] 우측 사이드바 영역 (3칸) */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+            <div className="sticky top-8 flex flex-col gap-6 h-fit">
+              <StandardRightSidebar />
+            </div>
+          </div>
         </div>
-        <div className="mb-20">
-          <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
-        </div>
-        <div className="mb-20">
-          <ReviewsSection reviews={reviews} isLoading={isLoading} />
-        </div>
-        <div>
-          <PostsSection
-            posts={posts}
-            boardCategories={boardCategories}
-            selectedBoard={selectedBoard}
-            onBoardChange={setSelectedBoard}
-            isLoading={isLoading}
-          />
-        </div>
-      </div>
 
       <Sheet open={showCreateSheet} onOpenChange={setShowCreateSheet}>
         <SheetContent side="bottom" className="h-[95vh] p-0 rounded-t-2xl overflow-hidden" hideClose>

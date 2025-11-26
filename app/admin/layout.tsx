@@ -9,21 +9,20 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* 1. 데스크탑 사이드바 */}
-      <div className="hidden lg:block fixed inset-y-0 left-6 z-50">
-        <Sidebar>
-          <SidebarProfile />
-        </Sidebar>
-      </div>
-
-      {/* 2. 모바일 헤더 */}
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <MobileHeader />
 
-      {/* 3. 메인 콘텐츠 영역 */}
-      <main className="flex-1 overflow-y-auto w-full pt-16 lg:pt-0 lg:pl-[344px]" style={{ scrollbarGutter: 'stable' }}>
-        <div className="max-w-full overflow-x-hidden">{children}</div>
-      </main>
+      <div className="flex-1 w-full max-w-[1440px] mx-auto flex items-start pt-16 lg:pt-0">
+        <aside className="hidden lg:block w-72 shrink-0 sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white">
+          <Sidebar>
+            <SidebarProfile />
+          </Sidebar>
+        </aside>
+
+        <main className="flex-1 min-w-0 overflow-y-auto px-4 py-8 md:px-8" style={{ scrollbarGutter: 'stable' }}>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

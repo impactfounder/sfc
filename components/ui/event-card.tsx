@@ -83,9 +83,9 @@ export default function EventCard({ event, href, className, layout = "card" }: P
       {/* 콘텐츠 레이어 */}
       <div className="relative h-full flex flex-col justify-between p-5 md:p-6">
         
-        {/* 상단: 제목 (여백을 pt-6으로 늘려 시원하게 내림) */}
-        <div className="pt-6">
-          <h3 className="text-lg md:text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
+        {/* 상단: 제목 (여백을 pt-5로 조정) */}
+        <div className="pt-5">
+          <h3 className="text-xl md:text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
             {event.title}
           </h3>
         </div>

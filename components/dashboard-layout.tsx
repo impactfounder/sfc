@@ -6,31 +6,32 @@ import { MobileHeader } from "@/components/mobile-header"
 
 interface DashboardLayoutProps {
   children: ReactNode
-  sidebarProfile?: ReactNode // 서버에서 전달받을 컴포넌트
+  sidebarProfile?: ReactNode
 }
 
 export function DashboardLayout({ children, sidebarProfile }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 모바일 헤더 */}
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <MobileHeader />
       
-      {/* 데스크탑 사이드바 (고정) */}
-      <div className="hidden lg:block">
-        <Sidebar>
-          {sidebarProfile}
-        </Sidebar>
-      </div>
+      {/* 메인 컨테이너 */}
+      <div className="flex-1 flex justify-center w-full">
+        {/* 최대 너비 제한 컨테이너 (중앙 정렬) */}
+        <div className="flex w-full max-w-[1920px] mx-auto">
+          
+          {/* [좌측 사이드바] Sticky 포지셔닝 */}
+          <aside className="hidden lg:block w-80 shrink-0 sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white z-30">
+            <Sidebar>
+              {sidebarProfile}
+            </Sidebar>
+          </aside>
 
-      {/* 메인 영역 컨테이너 */}
-      {/* lg:pl-[344px]: 사이드바 공간 확보를 여기서 중앙 통제 */}
-      <main className="w-full min-h-screen pt-20 pb-24 lg:pt-8 lg:pb-10 lg:pl-[344px] bg-slate-50">
-        {/* 콘텐츠 중앙 정렬 래퍼 */}
-        <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
-          {children}
+          {/* [중앙 본문] overflow 제거, padding 제거 (개별 페이지에서 제어) */}
+          <main className="flex-1 min-w-0 bg-slate-50">
+            {children}
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
-

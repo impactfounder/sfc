@@ -20,6 +20,7 @@ export type Post = {
   comments_count: number
   created_at: string
   updated_at: string
+  thumbnail_url?: string | null
 }
 
 /**
@@ -46,6 +47,7 @@ export type PostForDisplay = {
   visibility?: "public" | "group"
   likes_count?: number
   comments_count?: number
+  thumbnail_url?: string | null
   profiles?: {
     id?: string
     full_name?: string | null

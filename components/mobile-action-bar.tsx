@@ -95,7 +95,7 @@ export function MobileActionBar() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur lg:hidden safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 lg:hidden pb-[env(safe-area-inset-bottom)]">
       <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
         <NavButton
           icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />}

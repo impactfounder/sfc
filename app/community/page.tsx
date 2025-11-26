@@ -5,6 +5,8 @@ import { getBoardCategories } from "@/lib/queries/board-categories"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { CreateCommunityButton } from "@/components/create-community-button"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 
 export default async function CommunityDashboardPage() {
   const supabase = await createClient()
@@ -58,11 +60,12 @@ export default async function CommunityDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+    <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
+      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
+      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
         {/* 커뮤니티 섹션 */}
         {featuredCommunities.length > 0 && (
-          <div className="mb-16">
+          <div>
             <h2 className="text-3xl font-bold text-slate-900 mb-6">커뮤니티</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {featuredCommunities.map((community) => (
@@ -71,7 +74,6 @@ export default async function CommunityDashboardPage() {
                   href={`/community/board/${community.slug}`}
                   className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-md transition-all flex gap-4 group min-h-[120px]"
                 >
-                  {/* 좌측: 원형 썸네일 */}
                   <div className="flex-shrink-0">
                     <Avatar className="h-16 w-16">
                       <AvatarImage src={undefined} alt={community.name} />
@@ -80,7 +82,6 @@ export default async function CommunityDashboardPage() {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  {/* 우측: 정보 */}
                   <div className="flex-1 min-w-0 flex flex-col justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-slate-900 mb-1">
@@ -90,7 +91,6 @@ export default async function CommunityDashboardPage() {
                         {getClubDescription(community.slug)}
                       </p>
                     </div>
-                    {/* 하단: 화살표 아이콘 */}
                     <div className="flex items-center justify-end mt-2">
                       <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-1 transition-all" />
                     </div>
@@ -105,8 +105,18 @@ export default async function CommunityDashboardPage() {
         <PostsSection
           posts={postsWithMembership}
           boardCategories={filteredBoardCategories}
+          selectedBoard="all"
           hideTabs={false}
         />
+
+        <CreateCommunityButton />
+      </div>
+
+      {/* [RIGHT] 우측 사이드바 영역 (3칸) */}
+      <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+        <div className="sticky top-8 flex flex-col gap-6 h-fit">
+          <StandardRightSidebar />
+        </div>
       </div>
     </div>
   )

@@ -1,21 +1,11 @@
-import { Sidebar } from "@/components/sidebar"
-import { MobileHeader } from "@/components/mobile-header"
+import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function TermsPage() {
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <div className="hidden lg:block fixed inset-y-0 left-6 z-50">
-        <Sidebar>
-          <SidebarProfile />
-        </Sidebar>
-      </div>
-
-      <MobileHeader />
-
-      <div className="flex-1 flex flex-col lg:pl-[344px] pt-16 lg:pt-0">
-        <div className="max-w-4xl mx-auto p-6 w-full">
+    <DashboardLayout sidebarProfile={<SidebarProfile />}>
+      <div className="max-w-4xl mx-auto p-6 w-full">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle className="text-2xl font-bold">이용약관</CardTitle>
@@ -138,9 +128,8 @@ export default function TermsPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

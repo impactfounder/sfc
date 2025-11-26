@@ -906,8 +906,11 @@ export default function ProfilePage() {
 
           <div className="grid gap-6 lg:grid-cols-12">
             
-            {/* 1. 왼쪽: 프로필 정보 카드 - 4칸 */}
-            <Card className="lg:col-span-4 h-fit border-slate-200 bg-white shadow-sm overflow-hidden">
+            {/* 1. 왼쪽 컬럼 (4칸) */}
+            <div className="lg:col-span-4 flex flex-col gap-4">
+              
+              {/* 상단: 프로필 정보 카드 */}
+              <Card className="border-slate-200 bg-white shadow-sm overflow-hidden h-fit">
               <CardContent className="p-8 flex flex-col items-center text-center bg-white">
                 
                 <div className="mb-6 relative group">
@@ -1022,19 +1025,22 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* 로그아웃 카드 */}
-            <Card className="lg:col-span-4 border-slate-200 bg-white shadow-sm">
-              <CardContent className="p-6">
+            {/* 하단: 별도 로그아웃 카드 */}
+            <Card className="border-red-100 bg-red-50/10 shadow-sm overflow-hidden hover:border-red-200 transition-colors">
+              <CardContent className="p-0">
                 <Button
                   onClick={handleSignOut}
                   disabled={isSigningOut}
-                  className="w-full h-12 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-100 bg-white font-medium transition-all"
+                  variant="ghost"
+                  className="w-full h-12 rounded-none text-red-600 hover:text-red-700 hover:bg-red-50 font-medium flex items-center justify-center gap-2"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
+                  <LogOut className="h-4 w-4" />
                   {isSigningOut ? "로그아웃 중..." : "로그아웃"}
                 </Button>
               </CardContent>
             </Card>
+
+            </div>
 
             {/* 2. 오른쪽: 통계 카드 및 리스트 영역 - 8칸 */}
             <div className="lg:col-span-8 space-y-6">

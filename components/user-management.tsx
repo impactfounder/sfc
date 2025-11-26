@@ -135,10 +135,7 @@ export function UserManagementRow({
 
         {/* 등급 */}
         <TableCell className="py-4">
-          <div className="flex flex-col gap-1">
-            {getRoleBadge()}
-            {getMembershipBadge()}
-          </div>
+          {getRoleBadge()}
         </TableCell>
 
         {/* 가입일 */}
@@ -172,18 +169,6 @@ export function UserManagementRow({
                   </SelectContent>
                 </Select>
               )}
-
-              <Select value={membershipTier} onValueChange={handleMembershipChange} disabled={isUpdating}>
-                <SelectTrigger className="w-28 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="plus">Plus</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="master">Master</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           ) : (
             <span className="text-sm text-slate-400">본인</span>

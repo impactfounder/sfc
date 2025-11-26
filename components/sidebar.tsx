@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket } from "lucide-react"
+import { Calendar, LogOut, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket, Zap } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo, useRef } from "react"
 import Image from "next/image"
@@ -21,9 +21,10 @@ const navigationSections = [
     groupStyle: "major"
   },
   { 
-    title: "핵심 활동", 
+    title: "성장", 
     links: [
-      { name: "이벤트", href: "/events", icon: Calendar }
+      { name: "이벤트", href: "/events", icon: Calendar },
+      { name: "인사이트", href: "/community/board/insights", icon: Zap }
     ],
     groupStyle: "major"
   },
@@ -191,7 +192,7 @@ export function Sidebar({
     <>
       <div 
         ref={sidebarRef}
-        className="fixed inset-y-0 left-6 z-50 flex h-screen w-80 flex-col bg-white border-r border-slate-100 overflow-y-scroll scrollbar-hide rounded-r-2xl shadow-sm"
+        className="flex h-full w-80 flex-col bg-white border-r border-slate-100 overflow-y-scroll scrollbar-hide shadow-sm"
       >
         <div className="border-b border-slate-100">
           
@@ -215,8 +216,10 @@ export function Sidebar({
             />
           </Link>
 
-          {/* 유저 프로필 & 로그인 버튼 - 서버 컴포넌트로 대체 */}
-          {children}
+          {/* 유저 프로필 & 로그인 버튼 - 서버 컴포넌트로 대체 (모바일 전용) */}
+          <div className="lg:hidden">
+            {children}
+          </div>
         </div>
 
         <nav className="flex-1 px-2 py-4 pb-8">

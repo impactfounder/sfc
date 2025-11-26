@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
-const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
+const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
@@ -54,21 +54,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 전체 공개 게시판의 게시글들
   try {
     for (const slug of PUBLIC_BOARDS) {
-      const categorySlug = slug === "announcements" ? "announcement" : slug;
+      // URL slug를 DB slug로 변환
+      let dbSlug = slug;
+      if (slug === 'free') dbSlug = 'free-board';
+      if (slug === 'announcements') dbSlug = 'announcement';
+      
       const { data: posts } = await supabase
         .from("posts")
-        .select("id, updated_at, created_at")
-        .eq("category", categorySlug)
+        .select(`
+          id, 
+          updated_at, 
+          created_at,
+          board_categories!inner(slug)
+        `)
+        .eq("board_categories.slug", dbSlug)
         .order("created_at", { ascending: false })
         .limit(100); // 최근 100개만 포함
 
       if (posts) {
-        posts.forEach((post) => {
+        posts.forEach((post: any) => {
+          // 인사이트 게시글은 priority를 0.8로 설정
+          const priority = slug === "insights" ? 0.8 : 0.6;
+          
           routes.push({
             url: `${siteUrl}/community/board/${slug}/${post.id}`,
             lastModified: new Date(post.updated_at || post.created_at),
             changeFrequency: 'weekly',
-            priority: 0.6,
+            priority: priority,
           });
         });
       }

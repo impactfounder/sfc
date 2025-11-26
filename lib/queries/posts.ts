@@ -13,6 +13,7 @@ type PostFromDB = {
   visibility: string | null
   likes_count: number | null
   comments_count: number | null
+  thumbnail_url: string | null
   profiles: {
     id: string
     full_name: string | null
@@ -68,21 +69,25 @@ export async function getLatestPosts(
     }
 
     // 1. 기본 쿼리 작성 (Select + Join)
-    // !inner를 사용하여 카테고리가 있는 글만 확실하게 가져옴
+    // Left Join을 사용하여 RLS 정책 충돌 방지
     // profiles 조인 시 id 필드를 반드시 포함하여 N+1 문제 예방
     let query = supabase
       .from("posts")
       .select(`
-        id, title, content, created_at, visibility, likes_count, comments_count,
+        id, title, content, thumbnail_url, created_at, visibility, likes_count, comments_count,
         profiles:author_id(id, full_name),
-        board_categories!inner(name, slug)
-      `);
+        board_categories(name, slug)
+      `); // !inner 제거하여 Left Join으로 변경
 
     // 2. 필터링 조건 적용
     if (!categorySlug || categorySlug === 'all') {
-      // [통합 피드] 공지사항/자유게시판/event-requests/reviews 제외 (소모임 글만)
-      // not.in 필터가 확실하게 작동하도록 설정
-      query = query.not('board_categories.slug', 'in', '("announcement","free-board","event-requests","reviews")');
+      // [통합 피드] 공지사항, 자유게시판, '열어주세요', 후기 제외하고 나머지는 모두 가져옴
+      // 카테고리가 있는 것만 필터링 (null 제외)
+      query = query.not('board_categories', 'is', null);
+      query = query.neq('board_categories.slug', 'announcement')
+        .neq('board_categories.slug', 'free-board')
+        .neq('board_categories.slug', 'event-requests')
+        .neq('board_categories.slug', 'reviews');
       query = query.order("created_at", { ascending: false });
     } else if (categorySlug === 'event-requests') {
       // [Event Requests] likes_count 기준 내림차순 정렬
@@ -100,7 +105,13 @@ export async function getLatestPosts(
     const { data: posts, error } = await query;
 
     if (error) {
-      console.error("🚨 [getLatestPosts] Query Error:", error);
+      console.error("🚨 [getLatestPosts] Query Error:", JSON.stringify(error, null, 2));
+      console.error("🚨 [getLatestPosts] Error Details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return [];
     }
 
@@ -113,6 +124,7 @@ export async function getLatestPosts(
       visibility: (post.visibility as "public" | "group") || 'public',
       likes_count: post.likes_count || 0,
       comments_count: post.comments_count || 0,
+      thumbnail_url: post.thumbnail_url,
       profiles: post.profiles ? { 
         id: post.profiles.id,
         full_name: post.profiles.full_name 
@@ -124,7 +136,10 @@ export async function getLatestPosts(
     }));
 
   } catch (error) {
-    console.error("🚨 [getLatestPosts] Unexpected Error:", error);
+    console.error("🚨 [getLatestPosts] Unexpected Error:", JSON.stringify(error, null, 2));
+    if (error instanceof Error) {
+      console.error("🚨 [getLatestPosts] Error Stack:", error.stack);
+    }
     return [];
   }
 }

@@ -28,10 +28,8 @@ export default async function CommunitiesPage() {
     .order("created_at", { ascending: false })
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
-      <div className="mx-auto max-w-6xl">
-        
-        {/* Header */}
+    <div className="w-full">
+      {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">커뮤니티</h1>
@@ -114,7 +112,6 @@ export default async function CommunitiesPage() {
             </CardContent>
           </Card>
         )}
-      </div>
     </div>
   )
 }

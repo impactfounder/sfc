@@ -21,9 +21,8 @@
     @apply border-slate-200;
   }
   body {
-    /* ★ 수정: 스크롤바 점프 방지: overflow-y-scroll 추가 (항상 스크롤바가 공간을 차지하도록 강제) */
-    @apply bg-slate-50 text-slate-900 overflow-y-scroll;
-    /* Tailwind @apply 블록 바깥에 순수 CSS를 추가하여 빌드 에러 방지 */
+    @apply bg-slate-50 text-slate-900;
+    /* 스크롤바 점프 방지: 항상 스크롤바 공간을 확보 */
     scrollbar-gutter: stable;
   }
 }

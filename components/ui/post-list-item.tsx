@@ -8,6 +8,7 @@ import { formatRelativeTime } from "@/lib/format-time"
 import { LikeButton } from "@/components/like-button"
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import Image from "next/image"
 
 type Badge = {
   icon: string
@@ -22,6 +23,7 @@ type Post = {
   visibility?: "public" | "group"
   likes_count?: number
   comments_count?: number
+  thumbnail_url?: string | null
   board_categories?: {
     name?: string | null
     slug?: string | null
@@ -158,6 +160,17 @@ export function PostListItem({
           className
         )}
       >
+        {/* 썸네일 이미지 (피드형 뷰에서만 표시) */}
+        {post.thumbnail_url && (
+          <div className="relative w-full aspect-[2/1] md:aspect-[21/9] overflow-hidden">
+            <Image
+              src={post.thumbnail_url}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-300 hover:scale-105"
+            />
+          </div>
+        )}
         <div className="p-5">
           {/* 헤더: 작성자 아바타 + 메타 정보 */}
           <div className="flex items-center gap-3 mb-4">
