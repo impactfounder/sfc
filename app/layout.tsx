@@ -5,6 +5,7 @@ import "./globals.css"
 import { DailyLoginChecker } from "@/components/daily-login-checker"
 import { MobileActionBar } from "@/components/mobile-action-bar"
 import { cn } from "@/lib/utils"
+import Providers from "./providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -81,9 +82,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={cn(inter.className, "pb-16 lg:pb-0")}>
-        <DailyLoginChecker />
-        {children}
-        <MobileActionBar />
+        <Providers>
+          <DailyLoginChecker />
+          {children}
+          <MobileActionBar />
+        </Providers>
       </body>
     </html>
   )

@@ -1,8 +1,7 @@
-"use client"
-
 import type { ReactNode } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
+import SidebarProfile from "@/components/sidebar-profile"
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -12,7 +11,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       
       {/* 데스크탑 사이드바 (고정) */}
       <div className="hidden lg:block">
-        <Sidebar />
+        <Sidebar>
+          <SidebarProfile />
+        </Sidebar>
       </div>
 
       {/* 메인 영역 컨테이너 */}

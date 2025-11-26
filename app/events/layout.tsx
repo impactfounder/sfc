@@ -1,6 +1,7 @@
 import type React from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
+import SidebarProfile from "@/components/sidebar-profile"
 
 export default function EventsLayout({
   children,
@@ -11,7 +12,9 @@ export default function EventsLayout({
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* 1. 데스크탑 사이드바 */}
       <div className="hidden md:block">
-        <Sidebar />
+        <Sidebar>
+          <SidebarProfile />
+        </Sidebar>
       </div>
 
       {/* 2. 모바일 헤더 */}

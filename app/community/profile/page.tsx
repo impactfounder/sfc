@@ -9,11 +9,14 @@ import { useEffect, useState, useMemo, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Camera, Loader2 } from "lucide-react"
 import { BadgeManager } from "@/components/badge-manager" // 뱃지 관리 컴포넌트
 import { updateProfileAvatar, updateProfileInfo } from "@/lib/actions/user"
+import { grantBadge, removeBadge } from "@/lib/actions/badges"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { X, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -122,6 +125,8 @@ export default function ProfilePage() {
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([])
   const [transactions, setTransactions] = useState<any[]>([])
   const [visibleBadges, setVisibleBadges] = useState<VisibleBadge[]>([]) // 노출 뱃지 목록
+  const [userBadges, setUserBadges] = useState<any[]>([]) // 편집 모달용 전체 뱃지 목록
+  const [allBadges, setAllBadges] = useState<any[]>([]) // 사용 가능한 모든 뱃지 목록
   
   // UI State
   const [activeTab, setActiveTab] = useState<TabType>("posts") // 기본값: 게시글
@@ -131,6 +136,8 @@ export default function ProfilePage() {
   const [showProfileEdit, setShowProfileEdit] = useState(false) // 프로필 편집 모달 상태
   const [isSaving, setIsSaving] = useState(false) // 프로필 저장 중 상태
   const [isSigningOut, setIsSigningOut] = useState(false) // 로그아웃 상태
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string>("") // 편집 모달에서 선택한 뱃지
+  const [addingBadge, setAddingBadge] = useState(false) // 뱃지 추가 중 상태
   
   // 프로필 편집 폼 상태
   const [editForm, setEditForm] = useState({
@@ -415,7 +422,8 @@ export default function ProfilePage() {
       })
       
       if (!result.success) {
-        throw new Error("서버 저장 실패")
+        const errorMessage = result.error || "서버 저장 실패"
+        throw new Error(errorMessage)
       }
       
       // 로컬 상태 업데이트
@@ -432,9 +440,149 @@ export default function ProfilePage() {
       alert("프로필이 저장되었습니다.")
     } catch (error) {
       console.error("Profile save failed:", error)
-      alert("프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")
+      const errorMessage = error instanceof Error ? error.message : "프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요."
+      alert(`프로필 저장에 실패했습니다.\n\n오류: ${errorMessage}`)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  // 뱃지 추가 핸들러 (편집 모달용)
+  const handleAddBadge = async () => {
+    if (!selectedBadgeId || !user) return
+
+    const existingBadge = userBadges.find((ub: any) => ub.badge_id === selectedBadgeId)
+    if (existingBadge) {
+      alert("이미 부여된 뱃지입니다.")
+      return
+    }
+
+    setAddingBadge(true)
+    try {
+      await grantBadge(user.id, selectedBadgeId)
+      
+      // 뱃지 목록 다시 로드
+      const { data } = await supabase
+        .from("user_badges")
+        .select(`
+          id,
+          badge_id,
+          is_visible,
+          badges:badge_id (
+            id,
+            name,
+            icon,
+            category,
+            description
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (data) {
+        setUserBadges(data as any)
+        // visibleBadges도 업데이트
+        const visible = data
+          .filter((ub: any) => ub.is_visible)
+          .map((ub: any) => ({
+            icon: ub.badges?.icon || "",
+            name: ub.badges?.name || "",
+          }))
+        setVisibleBadges(visible)
+      }
+      
+      setSelectedBadgeId("")
+      alert("뱃지가 추가되었습니다.")
+    } catch (error: any) {
+      console.error("Failed to add badge:", error)
+      alert(error.message || "뱃지 추가에 실패했습니다.")
+    } finally {
+      setAddingBadge(false)
+    }
+  }
+
+  // 뱃지 삭제 핸들러 (편집 모달용)
+  const handleRemoveBadge = async (userBadgeId: string) => {
+    if (!showProfileEdit) return // 편집 모달이 열려있을 때만 작동
+    
+    if (!confirm("뱃지를 삭제하시겠습니까?")) return
+
+    try {
+      await removeBadge(userBadgeId)
+      
+      // 뱃지 목록 다시 로드
+      if (user) {
+        const { data } = await supabase
+          .from("user_badges")
+          .select(`
+            id,
+            badge_id,
+            is_visible,
+            badges:badge_id (
+              id,
+              name,
+              icon,
+              category,
+              description
+            )
+          `)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+
+        if (data) {
+          setUserBadges(data as any)
+          // visibleBadges도 업데이트
+          const visible = data
+            .filter((ub: any) => ub.is_visible)
+            .map((ub: any) => ({
+              icon: ub.badges?.icon || "",
+              name: ub.badges?.name || "",
+            }))
+          setVisibleBadges(visible)
+        }
+      }
+    } catch (error: any) {
+      console.error("Failed to remove badge:", error)
+      alert(error.message || "뱃지 삭제에 실패했습니다.")
+    }
+  }
+
+  // 프로필 편집 모달 열 때 뱃지 데이터 로드
+  const handleOpenProfileEdit = async () => {
+    setShowProfileEdit(true)
+    
+    if (user) {
+      // 전체 뱃지 목록 로드
+      const [userBadgesResult, allBadgesResult] = await Promise.all([
+        supabase
+          .from("user_badges")
+          .select(`
+            id,
+            badge_id,
+            is_visible,
+            badges:badge_id (
+              id,
+              name,
+              icon,
+              category,
+              description
+            )
+          `)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("badges")
+          .select("id, name, icon, category, description")
+          .order("category", { ascending: true })
+          .order("name", { ascending: true })
+      ])
+
+      if (userBadgesResult.data) {
+        setUserBadges(userBadgesResult.data as any)
+      }
+      if (allBadgesResult.data) {
+        setAllBadges(allBadgesResult.data)
+      }
     }
   }
 
@@ -507,6 +655,9 @@ export default function ProfilePage() {
         <DialogContent className="sm:max-w-lg bg-white rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">프로필 편집</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              다른 멤버들에게 보여질 프로필 정보를 수정합니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="mt-6 space-y-6 max-h-[80vh] overflow-y-auto px-1">
             {/* 이름 입력 필드 */}
@@ -578,6 +729,85 @@ export default function ProfilePage() {
                 }
                 className="data-[state=checked]:bg-blue-600"
               />
+            </div>
+
+            {/* 뱃지 관리 섹션 */}
+            <div>
+              <Label className="mb-2 block text-slate-700">
+                뱃지 관리
+              </Label>
+              <p className="text-xs text-slate-500 mb-3">
+                자신을 표현하는 키워드를 선택하고 추가하세요 (최대 5개)
+              </p>
+              
+              {/* 뱃지 추가 입력창 */}
+              <div className="flex gap-2 mb-4">
+                <Select value={selectedBadgeId} onValueChange={setSelectedBadgeId}>
+                  <SelectTrigger className="flex-1 h-11 bg-white border-slate-200 focus-visible:ring-slate-900">
+                    <SelectValue placeholder="뱃지를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allBadges
+                      .filter((badge) => !userBadges.some((ub: any) => ub.badge_id === badge.id))
+                      .slice(0, 20)
+                      .map((badge) => (
+                        <SelectItem key={badge.id} value={badge.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{badge.icon}</span>
+                            <span>{badge.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={handleAddBadge}
+                  disabled={!selectedBadgeId || addingBadge || userBadges.length >= 5}
+                  className="h-11 px-6 shrink-0"
+                >
+                  {addingBadge ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      추가 중...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      추가
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* 현재 뱃지 목록 */}
+              <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-slate-200 rounded-lg bg-slate-50">
+                {userBadges.length > 0 ? (
+                  userBadges.map((userBadge: any) => {
+                    const badge = userBadge.badges
+                    if (!badge) return null
+                    return (
+                      <div
+                        key={userBadge.id}
+                        className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-slate-200 shadow-sm"
+                      >
+                        <span className="text-base">{badge.icon}</span>
+                        <span>{badge.name}</span>
+                        <button
+                          onClick={() => handleRemoveBadge(userBadge.id)}
+                          className="ml-1 hover:bg-red-50 rounded-full p-0.5 transition-colors"
+                          aria-label="뱃지 삭제"
+                        >
+                          <X className="h-3.5 w-3.5 text-slate-400 hover:text-red-600" />
+                        </button>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <p className="text-sm text-slate-500 w-full text-center py-2">
+                    추가된 뱃지가 없습니다.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 저장 버튼 */}
@@ -707,35 +937,18 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowProfileEdit(true)}
-                  className="w-full mb-3"
+                  onClick={handleOpenProfileEdit}
+                  className="w-full mb-6"
                 >
                   <Edit3 className="h-4 w-4 mr-2" />
                   프로필 편집
                 </Button>
 
-                {/* 로그아웃 버튼 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSignOut}
-                  disabled={isSigningOut}
-                  className="w-full mb-6 text-red-500 hover:text-red-600 hover:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  {isSigningOut ? "로그아웃 중..." : "로그아웃"}
-                </Button>
-
-                {/* 내 뱃지 영역 (실제 데이터 기반) */}
+                {/* 내 뱃지 영역 (보기 전용) */}
                 <div className="w-full space-y-3">
-                  <div className="flex items-center gap-2 mb-3 justify-between">
-                    <div className="flex items-center gap-2">
-                        <Medal className="h-4 w-4 text-slate-900" />
-                        <span className="text-sm font-bold text-slate-900">내 뱃지</span>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowBadgeManager(true)} className="text-xs">
-                        관리 및 등록
-                    </Button>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Medal className="h-4 w-4 text-slate-900" />
+                    <span className="text-sm font-bold text-slate-900">내 뱃지</span>
                   </div>
                   
                   <div className="bg-white rounded-xl p-4 min-h-[80px] flex flex-wrap gap-2 justify-center md:justify-start border border-slate-200">
@@ -747,6 +960,20 @@ export default function ProfilePage() {
                   <Calendar className="h-3 w-3" />
                   가입일: {new Date(user.created_at).toLocaleDateString()}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* 로그아웃 카드 */}
+            <Card className="lg:col-span-4 border-slate-200 bg-white shadow-sm">
+              <CardContent className="p-6">
+                <Button
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="w-full h-12 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-100 bg-white font-medium transition-all"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {isSigningOut ? "로그아웃 중..." : "로그아웃"}
+                </Button>
               </CardContent>
             </Card>
 

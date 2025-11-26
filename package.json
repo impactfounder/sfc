@@ -41,6 +41,8 @@
     "@react-google-maps/api": "^2.20.7",
     "@supabase/ssr": "0.7.0",
     "@supabase/supabase-js": "latest",
+    "@tanstack/react-query": "^5.90.11",
+    "@tanstack/react-query-devtools": "^5.91.1",
     "@tiptap/core": "latest",
     "@tiptap/extension-image": "latest",
     "@tiptap/pm": "latest",

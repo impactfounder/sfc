@@ -1,6 +1,7 @@
 import type React from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
+import SidebarProfile from "@/components/sidebar-profile"
 
 export default function ProjectsLayout({
   children,
@@ -10,7 +11,9 @@ export default function ProjectsLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <div className="hidden md:block">
-        <Sidebar />
+        <Sidebar>
+          <SidebarProfile />
+        </Sidebar>
       </div>
 
       <MobileHeader />

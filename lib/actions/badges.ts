@@ -69,3 +69,29 @@ export async function grantBadge(userId: string, badgeId: string) {
   return { success: true }
 }
 
+export async function removeBadge(userBadgeId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Delete user_badge
+  const { error } = await supabase
+    .from("user_badges")
+    .delete()
+    .eq("id", userBadgeId)
+    .eq("user_id", user.id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community/profile")
+  return { success: true }
+}
+

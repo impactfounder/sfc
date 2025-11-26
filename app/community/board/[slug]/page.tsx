@@ -1,12 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
-import { Button } from "@/components/ui/button";
-import { PostsSection } from "@/components/home/posts-section";
-import { getLatestPosts } from "@/lib/queries/posts";
-import Link from "next/link";
-import { Plus } from 'lucide-react';
 import { isAdmin } from "@/lib/utils";
 import type { Metadata } from "next";
+import { BoardPageClient } from "./board-page-client";
 
 // 전체 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
@@ -95,7 +91,7 @@ export default async function BoardPage({
     notFound();
   }
 
-  const [categoryResult, userResult, transformedPosts] = await Promise.all([
+  const [categoryResult, userResult] = await Promise.all([
     supabase
       .from("board_categories")
       .select("*")
@@ -103,7 +99,6 @@ export default async function BoardPage({
       .eq("is_active", true)
       .single(),
     supabase.auth.getUser(),
-    getLatestPosts(supabase, 50, dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
   ]);
 
   const category = categoryResult.data;
@@ -124,98 +119,13 @@ export default async function BoardPage({
     isUserAdmin = isAdmin(profile?.role, profile?.email);
   }
 
-  // 구조화된 데이터 (JSON-LD) - 전체 공개 게시판만
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  
-  const structuredData = isPublic && transformedPosts.length > 0 ? {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "name": category.name,
-    "description": category.description || `${category.name} 게시판입니다.`,
-    "url": `${siteUrl}/community/board/${slug}`,
-    "mainEntity": {
-      "@type": "ItemList",
-      "itemListElement": transformedPosts.slice(0, 10).map((post: any, index: number) => ({
-        "@type": "ListItem",
-        "position": index + 1,
-        "item": {
-          "@type": "Article",
-          "headline": post.title,
-          "description": post.content?.replace(/<[^>]*>/g, "").substring(0, 200) || "",
-          "url": `${siteUrl}/community/board/${slug}/${post.id}`,
-          "author": {
-            "@type": "Person",
-            "name": post.profiles?.full_name || "익명"
-          },
-          "datePublished": post.created_at,
-        }
-      }))
-    }
-  } : null;
-
-  // 게시글 데이터에 isMember 추가 (PostsSection 형식에 맞춤)
-  let postsWithMembership = transformedPosts.map((post: any) => ({
-    ...post,
-    isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
-  }))
-
-  // 디버깅: 데이터 확인
-  console.log(`[BoardPage] ✅ slug: "${slug}", dbSlug: "${dbSlug}", 게시글 수: ${postsWithMembership.length}`)
-  
-  // 게시글이 없을 때 경고 (테스트 데이터는 제거 - DB에 반드시 데이터가 있어야 함)
-  if (postsWithMembership.length === 0) {
-    console.warn(`[BoardPage] ⚠️ 게시글이 없습니다. slug: "${slug}", dbSlug: "${dbSlug}", category: ${category?.name}`)
-    console.warn(`[BoardPage] 💡 scripts/099_rebuild_community_schema.sql을 실행하여 테스트 데이터를 생성하세요.`)
-  }
-
   return (
-    <>
-      {structuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-      )}
-      <div className="min-h-screen bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
-          {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{category.name}</h1>
-              {category.description && (
-                <p className="mt-1.5 text-sm text-slate-600">{category.description}</p>
-              )}
-            </div>
-            {(slug !== "announcements" || isUserAdmin) && (
-              <div>
-                {user ? (
-                  <Link href={`/community/board/${slug}/new`}>
-                    <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
-                      <Plus className="h-4 w-4" />
-                      글쓰기
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/auth/login">
-                    <Button variant="outline" className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
-                      <Plus className="h-4 w-4" />
-                      로그인하고 글쓰기
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Posts Section - 투명 배경으로 통일 */}
-          <PostsSection
-            posts={postsWithMembership}
-            boardCategories={[]}
-            hideTabs={true}
-          />
-        </div>
-      </div>
-    </>
+    <BoardPageClient
+      slug={slug}
+      dbSlug={dbSlug}
+      category={category}
+      isUserAdmin={isUserAdmin}
+      user={user}
+    />
   );
 }

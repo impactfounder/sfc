@@ -73,7 +73,8 @@ export async function updateProfileInfo(data: {
     
   } catch (error) {
     console.error("updateProfileInfo Error:", error)
-    return { success: false, error: "Failed to update profile" }
+    const errorMessage = error instanceof Error ? error.message : "Failed to update profile"
+    return { success: false, error: errorMessage }
   }
 }
 

@@ -1,39 +1,35 @@
+import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { Bell } from "lucide-react"
+import { Megaphone } from "lucide-react"
 
-type Announcement = {
-  id: string
-  title: string
-}
+export default async function AnnouncementBanner() {
+  const supabase = await createClient()
 
-interface AnnouncementBannerProps {
-  announcement: Announcement | null
-}
+  // 1. 최신 공지사항 1개만 가져오기
+  const { data: announcement } = await supabase
+    .from("posts")
+    .select("id, title, board_categories!inner(slug)")
+    .eq("board_categories.slug", "announcement")
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-export function AnnouncementBanner({ announcement }: AnnouncementBannerProps) {
+  // 공지사항이 없으면 배너 자체를 보여주지 않음
   if (!announcement) return null
 
   return (
-    <div className="w-full">
-      <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm py-3 px-5 flex items-center gap-3 transition-shadow hover:shadow-md">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-          <Bell className="w-4 h-4" />
-        </div>
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600">
-            공지
-          </span>
-          <Link
-            href={`/community/posts/${announcement.id}`}
-            className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline truncate block"
+    // 오리지널 디자인: 파란색 배경, 깔끔한 한 줄
+    <div className="bg-blue-600 text-white px-4 py-3">
+      <div className="mx-auto max-w-7xl flex items-center justify-start">
+        <div className="flex items-center gap-2 text-sm font-medium truncate">
+          <Megaphone className="h-4 w-4 flex-shrink-0" />
+          <Link 
+            href={`/community/board/${announcement.board_categories?.slug || "announcement"}/${announcement.id}`} 
+            className="hover:underline truncate"
           >
             {announcement.title}
           </Link>
-        </div>
-        <div className="shrink-0">
-           <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-           </svg>
         </div>
       </div>
     </div>

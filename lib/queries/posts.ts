@@ -21,6 +21,25 @@ export type PostForDisplay = {
   } | null
 }
 
+export type ReviewForDisplay = {
+  id: string
+  title: string
+  content?: string | null
+  created_at: string
+  likes_count?: number
+  comments_count?: number
+  profiles?: {
+    id?: string
+    full_name?: string | null
+    avatar_url?: string | null
+  } | null
+  events?: {
+    id?: string
+    title?: string | null
+    thumbnail_url?: string | null
+  } | null
+}
+
 /**
  * 최신 게시글 목록 가져오기 (Inner Join 필터링 방식)
  * @param supabase Supabase 클라이언트
@@ -56,9 +75,9 @@ export async function getLatestPosts(
 
     // 2. 필터링 조건 적용
     if (!categorySlug || categorySlug === 'all') {
-      // [통합 피드] 공지사항/자유게시판/event-requests 제외 (소모임 글만)
+      // [통합 피드] 공지사항/자유게시판/event-requests/reviews 제외 (소모임 글만)
       // not.in 필터가 확실하게 작동하도록 설정
-      query = query.not('board_categories.slug', 'in', '("announcement","free-board","event-requests")');
+      query = query.not('board_categories.slug', 'in', '("announcement","free-board","event-requests","reviews")');
       query = query.order("created_at", { ascending: false });
     } else if (categorySlug === 'event-requests') {
       // [Event Requests] likes_count 기준 내림차순 정렬
@@ -101,6 +120,76 @@ export async function getLatestPosts(
 
   } catch (error) {
     console.error("🚨 [getLatestPosts] Unexpected Error:", error);
+    return [];
+  }
+}
+
+/**
+ * 최신 후기 목록 가져오기
+ * @param supabase Supabase 클라이언트
+ * @param limit 가져올 후기 수 (기본값: 10)
+ */
+export async function getLatestReviews(
+  supabase: SupabaseClient,
+  limit: number = 10
+): Promise<ReviewForDisplay[]> {
+  try {
+    console.log(`[getLatestReviews] Fetching latest reviews (limit: ${limit})`);
+
+    // 후기 전용 쿼리: board_categories.slug가 'reviews'인 게시글만
+    // related_event_id를 통해 events 테이블 조인
+    const { data: reviews, error } = await supabase
+      .from("posts")
+      .select(`
+        id,
+        title,
+        content,
+        created_at,
+        likes_count,
+        comments_count,
+        profiles:author_id(
+          id,
+          full_name,
+          avatar_url
+        ),
+        events:related_event_id(
+          id,
+          title,
+          thumbnail_url
+        ),
+        board_categories!inner(name, slug)
+      `)
+      .eq('board_categories.slug', 'reviews')
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("🚨 [getLatestReviews] Query Error:", error);
+      return [];
+    }
+
+    // 데이터 변환 (Type Mapping)
+    return (reviews || []).map((review: any) => ({
+      id: review.id,
+      title: review.title,
+      content: review.content,
+      created_at: review.created_at,
+      likes_count: review.likes_count || 0,
+      comments_count: review.comments_count || 0,
+      profiles: review.profiles ? {
+        id: review.profiles.id,
+        full_name: review.profiles.full_name,
+        avatar_url: review.profiles.avatar_url
+      } : null,
+      events: review.events ? {
+        id: review.events.id,
+        title: review.events.title,
+        thumbnail_url: review.events.thumbnail_url
+      } : null
+    }));
+
+  } catch (error) {
+    console.error("🚨 [getLatestReviews] Unexpected Error:", error);
     return [];
   }
 }

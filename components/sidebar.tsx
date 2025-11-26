@@ -3,13 +3,12 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, LogIn, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Calendar, LogOut, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo, useRef } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import NotificationsDropdown from "@/components/notifications-dropdown"
 import Image from "next/image"
+import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
+import type React from "react"
 
 const navigationSections = [
 // ... (navigationSections 배열은 기존과 동일)
@@ -47,14 +46,20 @@ const navigationSections = [
   },
 ]
 
-export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
+export function Sidebar({ 
+  isMobile = false, 
+  children 
+}: { 
+  isMobile?: boolean
+  children?: React.ReactNode
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
-  const [profile, setProfile] = useState<any>(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const prefetch = usePrefetchPosts()
 
   useEffect(() => {
     const loadUser = async () => {
@@ -67,7 +72,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
         const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
         if (profileData) {
-          setProfile(profileData)
           setUserRole(profileData.role || "member")
         }
       }
@@ -85,24 +89,20 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setUserRole("member")
-        setProfile(null)
       } else if (session?.user) {
-        // 로그인 상태가 유지되면 사용자 정보만 업데이트 (프로필은 유지)
+        // 로그인 상태가 유지되면 사용자 정보만 업데이트
         setUser(session.user)
         // 프로필 정보가 없을 때만 다시 로드
-        if (!profile) {
-          supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data: profileData }) => {
-            if (profileData) {
-              setProfile(profileData)
-              setUserRole(profileData.role || "member")
-            }
-          })
-        }
+        supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data: profileData }) => {
+          if (profileData) {
+            setUserRole(profileData.role || "member")
+          }
+        })
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, profile])
+  }, [supabase])
 
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -136,10 +136,6 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
     window.location.replace('/?logout=' + Date.now())
   }
 
-  const handleLogin = () => {
-    // 모달을 없애기로 했으므로 페이지 이동으로 통일
-    router.push("/auth/login") 
-  }
 
   const isAdmin = userRole === "admin" || userRole === "master"
 
@@ -210,61 +206,8 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
             />
           </Link>
 
-          {/* 유저 프로필 & 로그인 버튼 */}
-          <div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center">
-            {user ? (
-              <div className="space-y-2">
-                {/* 프로필 영역과 알림 버튼을 형제 요소로 분리 */}
-                <div className="flex items-center gap-2">
-                  {/* 1. 프로필 영역 (클릭 시 이동) */}
-                  <Link
-                    href="/community/profile"
-                    className={cn(
-                      "flex-1 flex items-center gap-3 rounded-xl px-3 py-3 transition-all border border-slate-200 min-w-0",
-                      isLinkActive("/community/profile") 
-                        ? "bg-slate-100 border-slate-300" 
-                        : "bg-white hover:bg-slate-50 hover:border-slate-300"
-                    )}
-                  >
-                    <Avatar className="h-10 w-10 flex-shrink-0 border border-slate-100">
-                      <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-blue-100 text-blue-600 text-sm font-bold">
-                        {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-900 truncate">
-                        {profile?.full_name || user.email?.split("@")[0]}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 font-medium truncate">
-                          {userRole === "admin" || userRole === "master" ? "관리자" : "멤버"}
-                        </span>
-                        {profile?.points !== undefined && profile.points !== null && (
-                          <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5">
-                            💎 {profile.points.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* 2. 알림 버튼 (독립된 영역) */}
-                  <div className="flex-shrink-0">
-                    <NotificationsDropdown />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Button
-                onClick={handleLogin}
-                className="w-full h-10 rounded-full bg-slate-800/10 hover:bg-slate-800/20 text-slate-700 hover:text-slate-900 text-sm font-medium transition-all duration-300 shadow-sm hover:shadow border border-slate-300/50"
-              >
-                <LogIn className="mr-2 h-4 w-4" />
-                로그인
-              </Button>
-            )}
-          </div>
+          {/* 유저 프로필 & 로그인 버튼 - 서버 컴포넌트로 대체 */}
+          {children}
         </div>
 
         <nav className="flex-1 px-2 py-4 pb-8">
@@ -300,10 +243,25 @@ export function Sidebar({ isMobile = false }: { isMobile?: boolean }) {
                   const useExactMatch = item.href === "/community"
                   const isActive = isLinkActive(item.href, !useExactMatch)
                   const Icon = item.icon
+                  // 게시판 링크인지 확인 (/community/board/로 시작)
+                  const isBoardLink = item.href.startsWith("/community/board/")
+                  // URL에서 slug 추출 (예: /community/board/free -> free)
+                  const boardSlug = isBoardLink ? item.href.split("/").pop() : null
+                  // URL 슬러그를 DB 슬러그로 변환
+                  let dbSlug = boardSlug
+                  if (boardSlug === 'free') dbSlug = 'free-board'
+                  if (boardSlug === 'announcements') dbSlug = 'announcement'
+                  
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
+                      prefetch={isBoardLink ? true : undefined}
+                      onMouseEnter={() => {
+                        if (isBoardLink && dbSlug) {
+                          prefetch(dbSlug)
+                        }
+                      }}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
                         isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",

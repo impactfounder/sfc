@@ -1,4 +1,6 @@
--- 새 사용자 가입시 프로필 자동 생성 트리거
+-- 새 사용자 가입시 프로필 자동 생성 트리거 (개선 버전)
+-- role 필드 추가 및 더 완전한 메타데이터 처리
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -6,17 +8,37 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name, avatar_url)
+  insert into public.profiles (
+    id, 
+    email, 
+    full_name, 
+    avatar_url, 
+    role
+  )
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', split_part(new.email, '@', 1)),
-    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture', null)
+    coalesce(
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'name',
+      split_part(new.email, '@', 1)
+    ),
+    coalesce(
+      new.raw_user_meta_data->>'avatar_url',
+      new.raw_user_meta_data->>'picture',
+      null
+    ),
+    coalesce(
+      new.raw_user_meta_data->>'role',
+      'member'
+    )
   )
   on conflict (id) do update
   set
     full_name = coalesce(excluded.full_name, profiles.full_name),
-    avatar_url = coalesce(excluded.avatar_url, profiles.avatar_url);
+    avatar_url = coalesce(excluded.avatar_url, profiles.avatar_url),
+    role = coalesce(excluded.role, profiles.role),
+    email = coalesce(excluded.email, profiles.email);
   
   return new;
 end;
