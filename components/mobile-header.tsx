@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
-import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
 
 // 사이드바와 동일한 메뉴 구조
 const navigationSections = [
@@ -46,7 +45,6 @@ const navigationSections = [
 export function MobileHeader() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const prefetch = usePrefetchPosts()
 
   const isLinkActive = (href: string) => {
     if (href === '/community') return pathname === href
@@ -99,23 +97,12 @@ export function MobileHeader() {
                       const active = isLinkActive(item.href)
                       // 게시판 링크인지 확인 (/community/board/로 시작)
                       const isBoardLink = item.href.startsWith("/community/board/")
-                      // URL에서 slug 추출 (예: /community/board/free -> free)
-                      const boardSlug = isBoardLink ? item.href.split("/").pop() : null
-                      // URL 슬러그를 DB 슬러그로 변환
-                      let dbSlug = boardSlug
-                      if (boardSlug === 'free') dbSlug = 'free-board'
-                      if (boardSlug === 'announcements') dbSlug = 'announcement'
                       
                       return (
                         <Link
                           key={item.name}
                           href={item.href}
                           prefetch={isBoardLink ? true : undefined}
-                          onMouseEnter={() => {
-                            if (isBoardLink && dbSlug) {
-                              prefetch(dbSlug)
-                            }
-                          }}
                           onClick={() => setIsOpen(false)}
                           className={cn(
                             "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
