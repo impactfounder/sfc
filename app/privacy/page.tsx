@@ -1,12 +1,15 @@
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
+import SidebarProfile from "@/components/sidebar-profile"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function PrivacyPage() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <div className="hidden lg:block fixed inset-y-0 left-6 z-50">
-        <Sidebar />
+        <Sidebar>
+          <SidebarProfile />
+        </Sidebar>
       </div>
 
       <MobileHeader />

@@ -10,6 +10,21 @@ export default async function HomePage() {
   // 서버에서 초기 데이터 가져오기
   const { data: { user } } = await supabase.auth.getUser()
 
+  // 프로필 정보 가져오기
+  let profile = null
+  if (user) {
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+      profile = profileData || null
+    } catch (error) {
+      console.error('프로필 로드 오류:', error)
+    }
+  }
+
   // 공지사항
   let announcement = null
   try {
@@ -180,6 +195,7 @@ export default async function HomePage() {
       initialReviews={reviews}
       initialBoardCategories={boardCategories}
       initialUser={user}
+      initialProfile={profile}
     >
       <AnnouncementBanner />
     </HomePageClient>

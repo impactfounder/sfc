@@ -1,9 +1,15 @@
+"use client"
+
 import type { ReactNode } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import SidebarProfile from "@/components/sidebar-profile"
 
-export function DashboardLayout({ children }: { children: ReactNode }) {
+interface DashboardLayoutProps {
+  children: ReactNode
+  sidebarProfile?: ReactNode // 서버에서 전달받을 컴포넌트
+}
+
+export function DashboardLayout({ children, sidebarProfile }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 모바일 헤더 */}
@@ -12,7 +18,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       {/* 데스크탑 사이드바 (고정) */}
       <div className="hidden lg:block">
         <Sidebar>
-          <SidebarProfile />
+          {sidebarProfile}
         </Sidebar>
       </div>
 

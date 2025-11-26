@@ -8,12 +8,16 @@ import { cn } from "@/lib/utils" // cn import 추가 (혹시 몰라 추가합니
 
 interface HeroSectionProps {
   user: any
+  profile?: any
   onLogin: () => void
 }
 
-export function HeroSection({ user, onLogin }: HeroSectionProps) {
+export function HeroSection({ user, profile, onLogin }: HeroSectionProps) {
   // 1. 로그인한 유저
   if (user) {
+    // displayName 변수 생성: profile.full_name 우선, 없으면 user.user_metadata.full_name, 없으면 "멤버"
+    const displayName = profile?.full_name || user.user_metadata?.full_name || "멤버"
+    
     return (
       <div className="mb-8 rounded-2xl bg-slate-900 text-white p-6 md:p-8 shadow-lg overflow-hidden relative">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
@@ -25,7 +29,7 @@ export function HeroSection({ user, onLogin }: HeroSectionProps) {
               <span>멤버십 혜택을 누려보세요</span>
             </div>
             <h1 className="text-xl md:text-2xl font-bold mb-2 leading-tight">
-              반갑습니다, {user.user_metadata?.full_name || "멤버"}님! 👋
+              반갑습니다, {displayName}님! 👋
             </h1>
             <p className="text-slate-300 text-sm">
               오늘도 새로운 기회와 연결될 준비가 되셨나요?

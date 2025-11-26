@@ -51,6 +51,7 @@ type HomePageClientProps = {
   initialReviews?: any[]
   initialBoardCategories?: BoardCategory[]
   initialUser?: any
+  initialProfile?: any
 }
 
 export function HomePageClient({
@@ -62,6 +63,7 @@ export function HomePageClient({
   initialReviews = [],
   initialBoardCategories = [],
   initialUser = null,
+  initialProfile = null,
 }: HomePageClientProps) {
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [announcement, setAnnouncement] = useState<{ id: string; title: string } | null>(initialAnnouncement)
@@ -71,6 +73,7 @@ export function HomePageClient({
   const [reviews, setReviews] = useState<any[]>(initialReviews)
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>(initialBoardCategories)
   const [user, setUser] = useState<any>(initialUser)
+  const [profile, setProfile] = useState<any>(initialProfile)
   const userRef = useRef<any>(initialUser)
   
   const [showCreateSheet, setShowCreateSheet] = useState(false)
@@ -86,6 +89,23 @@ export function HomePageClient({
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       userRef.current = user
+
+      // user가 존재할 경우, profiles 테이블에서 최신 프로필 정보를 가져옴
+      if (user) {
+        try {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single()
+          setProfile(profileData || null)
+        } catch (error) {
+          console.error('프로필 로드 오류:', error)
+          setProfile(null)
+        }
+      } else {
+        setProfile(null)
+      }
 
       // 각 쿼리를 독립적으로 처리
       let categoriesData: any[] = []
@@ -361,7 +381,7 @@ export function HomePageClient({
     <DashboardLayout>
       <div className="flex flex-col">
         <div className="mb-6">
-          <HeroSection user={user} onLogin={handleLogin} />
+          <HeroSection user={user} profile={profile} onLogin={handleLogin} />
         </div>
         {children && (
           <div className="mb-16">
