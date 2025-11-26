@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { Sidebar } from "@/components/sidebar"
 import SidebarProfile from "@/components/sidebar-profile"
 import { MobileHeader } from "@/components/mobile-header"
@@ -8,7 +9,9 @@ export default function AboutPage() {
     <div className="flex min-h-screen bg-slate-50">
       <div className="hidden md:block">
         <Sidebar>
-          <SidebarProfile />
+          <Suspense fallback={<div className="h-10 w-10 bg-slate-100 rounded-full animate-pulse" />}>
+            <SidebarProfile />
+          </Suspense>
         </Sidebar>
       </div>
       <MobileHeader />

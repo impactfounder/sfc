@@ -6,9 +6,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
-import { useRouter } from "next/navigation"
-import { useState, useEffect, useMemo } from "react" 
-import { createClient } from "@/lib/supabase/client"
 
 // 뱃지 정보 (최종 개편안 반영 - UI 렌더링용)
 const BADGE_GROUPS = [
@@ -107,10 +104,8 @@ const BADGE_GROUPS = [
 ]
 
 export default function AboutContent() {
-
-
   return (
-    <div className="flex-1 overflow-auto pt-16 md:pt-0 pb-16 md:pl-[344px]">
+    <div className="flex-1 overflow-auto w-full pt-16 md:pt-0 pb-16 md:pl-[344px]">
       
       {/* HERO: Seoul Founders Club는 어떤 사람들의 커뮤니티인가 */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 md:px-8 py-12 md:py-20 text-white">

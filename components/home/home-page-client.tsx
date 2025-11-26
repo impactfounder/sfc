@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef, useCallback, ReactNode } from "react"
+import { useEffect, useMemo, useState, useRef, useCallback, ReactNode, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 
@@ -28,6 +28,7 @@ type Post = PostForDisplay & {
 
 type HomePageClientProps = {
   children?: ReactNode
+  sidebarProfile?: ReactNode
   initialAnnouncement?: { id: string; title: string } | null
   initialEvents?: EventCardEvent[]
   initialPosts?: Post[]
@@ -40,6 +41,7 @@ type HomePageClientProps = {
 
 export function HomePageClient({
   children,
+  sidebarProfile,
   initialAnnouncement = null,
   initialEvents = [],
   initialPosts = [],
@@ -309,7 +311,15 @@ export function HomePageClient({
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout 
+      sidebarProfile={
+        sidebarProfile ? (
+          <Suspense fallback={<div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center"><div className="h-10 w-full bg-slate-100 rounded-full animate-pulse" /></div>}>
+            {sidebarProfile}
+          </Suspense>
+        ) : undefined
+      }
+    >
       <div className="flex flex-col">
         <div className="mb-6">
           <HeroSection user={user} profile={profile} onLogin={handleLogin} />

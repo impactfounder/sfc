@@ -1,9 +1,11 @@
+import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { getLatestPosts, getLatestReviews } from "@/lib/queries/posts"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { getBadgesForUsers } from "@/lib/queries/badges"
 import { HomePageClient } from "@/components/home/home-page-client"
 import AnnouncementBanner from "@/components/home/announcement-banner"
+import SidebarProfile from "@/components/sidebar-profile"
 import type { EventCardEvent } from "@/components/ui/event-card"
 import type { PostForDisplay, ReviewForDisplay, BoardCategory } from "@/lib/types/posts"
 import type { VisibleBadge } from "@/lib/types/badges"
@@ -168,6 +170,11 @@ export default async function HomePage() {
 
   return (
     <HomePageClient
+      sidebarProfile={
+        <Suspense fallback={<div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center"><div className="h-10 w-full bg-slate-100 rounded-full animate-pulse" /></div>}>
+          <SidebarProfile />
+        </Suspense>
+      }
       initialAnnouncement={announcement}
       initialEvents={events}
       initialPosts={posts}
