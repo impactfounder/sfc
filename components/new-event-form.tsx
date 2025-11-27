@@ -233,6 +233,7 @@ type InitialData = {
   max_participants?: number | null
   thumbnail_url?: string | null
   event_type?: 'networking' | 'class' | 'activity' | null
+  customFields?: CustomField[]
 }
 
 export function NewEventForm({ 
@@ -346,6 +347,11 @@ export function NewEventForm({
       setPrice(initialData.price && initialData.price > 0 ? String(initialData.price) : "")
       setMaxParticipants(initialData.max_participants && initialData.max_participants > 0 ? String(initialData.max_participants) : "")
       setEventType(initialData.event_type || "networking")
+
+      // 커스텀 필드 로드
+      if (initialData.customFields && initialData.customFields.length > 0) {
+        setCustomFields(initialData.customFields)
+      }
 
       // 날짜/시간 파싱
       if (initialData.event_date) {
