@@ -17,6 +17,7 @@ type PostFromDB = {
   profiles: {
     id: string
     full_name: string | null
+    avatar_url: string | null
   } | null
   board_categories: {
     name: string | null
@@ -74,10 +75,10 @@ export async function getLatestPosts(
     let query = supabase
       .from("posts")
       .select(`
-        id, title, content, thumbnail_url, created_at, visibility, likes_count, comments_count,
-        profiles:author_id(id, full_name),
+        id, title, thumbnail_url, created_at, visibility, likes_count, comments_count,
+        profiles:author_id(id, full_name, avatar_url),
         board_categories(name, slug)
-      `); // !inner 제거하여 Left Join으로 변경
+      `); // content 필드 제거하여 쿼리 경량화 (리스트에서는 본문 전체가 필요 없음)
 
     // 2. 필터링 조건 적용
     if (!categorySlug || categorySlug === 'all') {
@@ -102,7 +103,9 @@ export async function getLatestPosts(
     query = query.limit(limit);
 
     // 3. 쿼리 실행
+    console.time('DB: getLatestPosts 쿼리');
     const { data: posts, error } = await query;
+    console.timeEnd('DB: getLatestPosts 쿼리');
 
     if (error) {
       console.error("🚨 [getLatestPosts] Query Error:", JSON.stringify(error, null, 2));
@@ -119,7 +122,7 @@ export async function getLatestPosts(
     return (posts || []).map((post: PostFromDB): PostForDisplay => ({
       id: post.id,
       title: post.title,
-      content: post.content,
+      content: null, // 리스트에서는 본문 전체가 필요 없으므로 null로 설정
       created_at: post.created_at,
       visibility: (post.visibility as "public" | "group") || 'public',
       likes_count: post.likes_count || 0,
@@ -127,7 +130,8 @@ export async function getLatestPosts(
       thumbnail_url: post.thumbnail_url,
       profiles: post.profiles ? { 
         id: post.profiles.id,
-        full_name: post.profiles.full_name 
+        full_name: post.profiles.full_name,
+        avatar_url: post.profiles.avatar_url
       } : null,
       board_categories: post.board_categories
         ? { name: post.board_categories.name, slug: post.board_categories.slug }

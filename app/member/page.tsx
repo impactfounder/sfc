@@ -7,6 +7,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { PageHeader } from "@/components/page-header"
 
 export default async function MemberPage() {
   const supabase = await createClient()
@@ -72,13 +73,13 @@ export default async function MemberPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-        {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
-        <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
-          
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">멤버</h1>
-            <p className="mt-2 text-slate-600">검증된 멤버들의 쇼케이스</p>
-          </div>
+      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
+      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+        {/* PageHeader 적용 */}
+        <PageHeader 
+          title="멤버"
+          description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
+        />
 
           {/* 비공개 안내 배너 */}
           {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (

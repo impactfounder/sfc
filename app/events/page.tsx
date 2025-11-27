@@ -5,6 +5,7 @@ import { Calendar, Plus } from "lucide-react"
 import Link from "next/link"
 import EventCard from "@/components/ui/event-card"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { PageHeader } from "@/components/page-header"
 
 export default async function EventsPage() {
   const supabase = await createClient()
@@ -50,33 +51,29 @@ export default async function EventsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-        {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
-        <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
-          {/* Header */}
-          <div className="mb-6 md:mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-xl md:text-2xl md:text-[26px] font-bold text-gray-900">이벤트</h1>
-              <p className="mt-1 text-sm text-slate-600">커뮤니티 이벤트를 찾아보세요</p>
-            </div>
-            {/* 데스크탑에서만 버튼 표시 */}
-            <div className="hidden md:block">
-              {user ? (
-                <Link href="/events/new">
-                  <button className={buttonStyle}>
-                    <Plus className="w-4 h-4" />
-                    새 이벤트
-                  </button>
-                </Link>
-              ) : (
-                <Link href="/auth/login">
-                  <button className={buttonStyle}>
-                    <Plus className="w-4 h-4" />
-                    로그인하고 이벤트 만들기
-                  </button>
-                </Link>
-              )}
-            </div>
-          </div>
+      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
+      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+        {/* PageHeader 적용 */}
+        <PageHeader 
+          title="이벤트"
+          description="함께 성장하는 네트워킹 파티와 인사이트 세미나를 놓치지 마세요."
+        >
+          {user ? (
+            <Link href="/events/new">
+              <Button className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm border-0">
+                <Plus className="w-4 h-4 mr-2" />
+                새 이벤트
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/auth/login">
+              <Button className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm border-0">
+                <Plus className="w-4 h-4 mr-2" />
+                로그인하고 만들기
+              </Button>
+            </Link>
+          )}
+        </PageHeader>
 
           {/* Upcoming Events */}
           <div className="mb-10">
@@ -109,18 +106,8 @@ export default async function EventsPage() {
                       </div>
                     )
                   })}
-                </div>
-                
-                {/* 리스트 하단에 '이벤트 만들기' 카드 추가 (모바일 전용) */}
-                <div className="mt-4 md:hidden">
-                  <Link href={user ? "/events/new" : "/auth/login"}>
-                    <Button variant="outline" className="w-full h-12 border-dashed border-2 text-slate-600">
-                      <Plus className="mr-2 h-4 w-4" />
-                      {user ? "새 이벤트 만들기" : "로그인하고 이벤트 만들기"}
-                    </Button>
-                  </Link>
-                </div>
-              </>
+              </div>
+            </>
             ) : (
               <Card className="border-slate-200">
                 <CardContent className="py-12 text-center">

@@ -31,6 +31,7 @@ type Post = {
   profiles?: {
     full_name?: string | null
     id?: string
+    avatar_url?: string | null
   } | null
   visible_badges?: Badge[]
   communities?: {
@@ -175,7 +176,7 @@ export function PostListItem({
           {/* 헤더: 작성자 아바타 + 메타 정보 */}
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarImage src={post.profiles?.id ? `/api/avatar/${post.profiles.id}` : undefined} />
+              <AvatarImage src={post.profiles?.avatar_url || undefined} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs font-semibold">
                 {(post.profiles?.full_name || "익명")[0]?.toUpperCase() || "U"}
               </AvatarFallback>

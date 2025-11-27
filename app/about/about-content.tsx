@@ -5,40 +5,24 @@ import { Users, Zap, Handshake, TrendingUp, ArrowRight, Target } from "lucide-re
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { PageHeader } from "@/components/page-header"
 
 export default function AboutContent() {
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-        {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
-        <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
-          {/* Hero 섹션: 메인 화면과 동일한 배너 스타일 */}
-          <div className="relative bg-slate-900 text-white w-full rounded-3xl overflow-hidden shadow-sm">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900/90" />
-            
-            <div className="relative z-10 px-6 py-10 md:py-14 text-center">
-              <div className="inline-block px-3 py-1 mb-4 rounded-full border border-slate-600 bg-slate-800/50 text-slate-300 text-[10px] font-medium tracking-wider backdrop-blur-sm">
-                SEOUL FOUNDERS CLUB
-              </div>
-              
-              <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 leading-tight tracking-tight text-balance">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">새로운 가치</span>를 만드는 사람들의<br className="md:hidden" /> 베이스캠프
-              </h1>
-              
-              <p className="text-slate-300 text-xs md:text-sm mb-5 max-w-2xl mx-auto leading-relaxed font-light text-balance">
-                서울을 기반으로 활동하는 <strong>창업가, 투자자, 크리에이터</strong>가 모여<br className="hidden sm:block" />
-                신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Link href="/auth/login">
-                  <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-bold bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full shadow-xl">
-                    3초만에 가입하기
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
+      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
+      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+        {/* PageHeader 적용 */}
+        <PageHeader 
+          title="새로운 가치를 만드는 사람들의 베이스캠프"
+          description="서울을 기반으로 활동하는 창업가, 투자자, 크리에이터가 모여 신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다."
+        >
+          <Link href="/auth/login">
+            <Button className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm border-0">
+              3초만에 가입하기
+            </Button>
+          </Link>
+        </PageHeader>
           {/* 2. WHO WE ARE: 대상 명확화 */}
           <div className="py-16 px-6 bg-white border-b border-slate-100 rounded-2xl">
         <div className="max-w-5xl mx-auto">

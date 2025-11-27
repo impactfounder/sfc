@@ -269,7 +269,9 @@ export function NewEventForm({
         max_participants: maxParticipantsValue,
         thumbnail_url: thumbnailUrl || null,
         event_type: eventType,
-        customFields: customFields.length > 0 ? customFields : undefined,
+        // 수정 모드에서는 항상 customFields를 전달 (빈 배열이어도 기존 질문 삭제를 위해)
+        // 생성 모드에서는 질문이 있을 때만 전달
+        customFields: initialData ? customFields : (customFields.length > 0 ? customFields : undefined),
       }
 
       let result
@@ -673,7 +675,7 @@ export function NewEventForm({
         </div>
 
         {customFields.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-32">
             {customFields.map((field, index) => (
               <Card key={field.id} className="border-slate-200 bg-white">
                 <CardContent className="p-4 space-y-4">
@@ -812,6 +814,31 @@ export function NewEventForm({
                 </CardContent>
               </Card>
             ))}
+            
+            {/* 하단 질문 추가 버튼 */}
+            <div className="flex justify-end mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCustomFields([
+                    ...customFields,
+                    {
+                      id: `field-${Date.now()}`,
+                      label: "",
+                      type: "text",
+                      options: [],
+                      required: false,
+                    },
+                  ])
+                }}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                질문 추가
+              </Button>
+            </div>
           </div>
         )}
       </div>

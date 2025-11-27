@@ -157,6 +157,13 @@ export async function updateEvent(eventId: string, data: {
   max_participants?: number | null
   thumbnail_url?: string | null
   event_type?: 'networking' | 'class' | 'activity' | null
+  customFields?: Array<{
+    id: string
+    label: string
+    type: 'text' | 'select'
+    options: string[]
+    required: boolean
+  }>
 }) {
   const supabase = await createClient()
 
@@ -210,6 +217,50 @@ export async function updateEvent(eventId: string, data: {
 
   if (error) {
     throw new Error(error.message)
+  }
+
+  // 커스텀 필드 업데이트: 기존 질문 삭제 후 새로 등록
+  console.log('[updateEvent] customFields received:', data.customFields?.length || 0, 'fields');
+  if (data.customFields !== undefined) {
+    // 기존 질문 모두 삭제
+    console.log('[updateEvent] Deleting existing fields for event:', eventId);
+    const { error: deleteError } = await supabase
+      .from("event_registration_fields")
+      .delete()
+      .eq("event_id", eventId)
+
+    if (deleteError) {
+      console.error("Failed to delete existing custom fields:", deleteError)
+      throw new Error(`기존 질문 삭제 실패: ${deleteError.message}`)
+    }
+
+    // 새로운 질문들 등록
+    if (data.customFields && data.customFields.length > 0) {
+      const fieldsToInsert = data.customFields
+        .filter(field => field.label.trim() !== '') // 빈 질문 제외
+        .map((field, index) => ({
+          event_id: eventId,
+          field_name: field.label.trim(),
+          field_type: field.type,
+          field_options: field.type === 'select' && field.options.length > 0 
+            ? field.options.filter(opt => opt.trim() !== '') // 빈 옵션 제외
+            : null,
+          is_required: field.required,
+          order_index: index,
+        }))
+
+      console.log('[updateEvent] Inserting', fieldsToInsert.length, 'new fields');
+      if (fieldsToInsert.length > 0) {
+        const { error: fieldsError } = await supabase
+          .from("event_registration_fields")
+          .insert(fieldsToInsert)
+
+        if (fieldsError) {
+          console.error("Failed to insert custom fields:", fieldsError)
+          throw new Error(`질문 저장 실패: ${fieldsError.message}`)
+        }
+      }
+    }
   }
 
   revalidatePath(`/events/${eventId}`)

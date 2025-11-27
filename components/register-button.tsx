@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { CheckCircle, Loader2, Sparkles, Coins, AlertCircle, LogIn } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,7 @@ export function RegisterButton({
     const supabase = createClient();
     setIsLoadingFields(true);
     try {
+      console.log("[RegisterButton] Loading custom fields for event:", eventId);
       const { data, error } = await supabase
         .from("event_registration_fields")
         .select("id, field_name, field_type, field_options, is_required, order_index")
@@ -88,13 +89,28 @@ export function RegisterButton({
         .order("order_index", { ascending: true });
 
       if (error) {
-        console.error("Failed to load custom fields:", error);
+        console.error("[RegisterButton] Failed to load custom fields - Error:", error);
+        console.error("[RegisterButton] Error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
         return [];
       }
 
+      console.log("[RegisterButton] Custom fields loaded successfully:", data?.length || 0, "fields");
+      if (data && data.length > 0) {
+        console.log("[RegisterButton] Fields:", data);
+      }
+      console.log('Loaded fields:', data);
       return data || [];
     } catch (error) {
-      console.error("Failed to load custom fields:", error);
+      console.error("[RegisterButton] Exception while loading custom fields:", error);
+      if (error instanceof Error) {
+        console.error("[RegisterButton] Error message:", error.message);
+        console.error("[RegisterButton] Error stack:", error.stack);
+      }
       return [];
     } finally {
       setIsLoadingFields(false);
@@ -103,10 +119,13 @@ export function RegisterButton({
 
   // 모달 열기 (버튼 클릭 시 항상 모달 열기)
   const handleOpenDialog = async () => {
+    console.log("[RegisterButton] Opening dialog for event:", eventId);
+    setIsDialogOpen(true); // 먼저 모달을 열어서 로딩 상태를 표시
     const fields = await loadCustomFields();
+    console.log("[RegisterButton] Setting custom fields:", fields.length);
+    console.log("[RegisterButton] Fields data to set:", fields);
     setCustomFields(fields);
     setFieldResponses({});
-    setIsDialogOpen(true);
   };
 
   // 최대 사용 가능 포인트 계산
@@ -416,9 +435,12 @@ export function RegisterButton({
 
       {/* 신청 모달 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>참가 신청서</DialogTitle>
+            <DialogDescription>
+              이벤트 참가 신청을 위해 아래 정보를 입력해주세요.
+            </DialogDescription>
           </DialogHeader>
           
           {isLoadingFields ? (
@@ -444,24 +466,6 @@ export function RegisterButton({
                 </div>
               )}
 
-              {/* 로그인 사용자: 기본 정보 표시 */}
-              {userId && userProfile && (
-                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-sm font-semibold text-slate-900 mb-3">기본 정보</h3>
-                  <div className="space-y-2">
-                    <div>
-                      <Label className="text-xs text-slate-500">이름</Label>
-                      <p className="text-sm font-medium text-slate-900">{userProfile.full_name || "이름 없음"}</p>
-                    </div>
-                    {userProfile.email && (
-                      <div>
-                        <Label className="text-xs text-slate-500">이메일</Label>
-                        <p className="text-sm font-medium text-slate-900">{userProfile.email}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* 비로그인 사용자: 이름/연락처 입력 */}
               {!userId && (
@@ -534,11 +538,26 @@ export function RegisterButton({
                             <SelectValue placeholder="선택해주세요" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(field.field_options as string[] || []).map((option, index) => (
-                              <SelectItem key={index} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
+                            {(() => {
+                              // field_options가 JSONB이므로 안전하게 파싱
+                              let options: string[] = [];
+                              if (field.field_options) {
+                                if (Array.isArray(field.field_options)) {
+                                  options = field.field_options;
+                                } else if (typeof field.field_options === 'string') {
+                                  try {
+                                    options = JSON.parse(field.field_options);
+                                  } catch (e) {
+                                    console.error('Failed to parse field_options:', e);
+                                  }
+                                }
+                              }
+                              return options.map((option, index) => (
+                                <SelectItem key={index} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                       )}
@@ -572,7 +591,7 @@ export function RegisterButton({
                     }
                   }}
                   disabled={isLoading || (!userId && (!guestName.trim() || !guestContact.trim()))}
-                  className="bg-slate-900 hover:bg-slate-800"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   신청 완료

@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { PageHeader } from "@/components/page-header"
 
 interface BoardPageClientProps {
   slug: string
@@ -60,41 +61,33 @@ export function BoardPageClient({
 
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-        {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
-        <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
-          {/* 커뮤니티 헤더 (강조된 스타일) */}
-          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop')] bg-cover bg-center opacity-10" />
-            <div className="relative z-10 px-6 py-8 md:py-12">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{category.name}</h1>
-                  {category.description && (
-                    <p className="text-slate-300 text-base md:text-lg max-w-2xl">{category.description}</p>
-                  )}
-                </div>
-                {(slug !== "announcements" || isUserAdmin) && (
-                  <div>
-                    {user ? (
-                      <Link href={`/community/board/${slug}/new`}>
-                        <Button className="gap-2 bg-white text-slate-900 hover:bg-slate-100 transition-all active:scale-[0.98] hover:shadow-lg">
-                          <Plus className="h-4 w-4" />
-                          글쓰기
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href="/auth/login">
-                        <Button variant="outline" className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 transition-all active:scale-[0.98] hover:shadow-lg">
-                          <Plus className="h-4 w-4" />
-                          로그인하고 글쓰기
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
+      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+        {/* PageHeader 적용 */}
+        <PageHeader
+          title={category.name}
+          description={category.description || undefined}
+        >
+          {(slug !== "announcements" || isUserAdmin) && (
+            <>
+              {user ? (
+                <Link href={`/community/board/${slug}/new`}>
+                  <Button className="bg-white text-slate-900 hover:bg-slate-100 transition-all font-bold border-0 shadow-sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    글쓰기
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/auth/login">
+                  <Button className="bg-white text-slate-900 hover:bg-slate-100 transition-all font-bold border-0 shadow-sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    로그인하고 글쓰기
+                  </Button>
+                </Link>
+              )}
+            </>
+          )}
+        </PageHeader>
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
