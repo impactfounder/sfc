@@ -103,9 +103,7 @@ export async function getLatestPosts(
     query = query.limit(limit);
 
     // 3. 쿼리 실행
-    console.time('DB: getLatestPosts 쿼리');
     const { data: posts, error } = await query;
-    console.timeEnd('DB: getLatestPosts 쿼리');
 
     if (error) {
       console.error("🚨 [getLatestPosts] Query Error:", JSON.stringify(error, null, 2));

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2 } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -16,9 +16,211 @@ import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
 import { createEvent, updateEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
 import { useLoadScript, Autocomplete } from "@react-google-maps/api"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 // Google Maps libraries 설정 (컴포넌트 외부에 정적 선언)
 const libraries: ("places")[] = ["places"]
+
+// SortableItem 컴포넌트
+type CustomField = {
+  id: string
+  label: string
+  type: 'text' | 'select'
+  options: string[]
+  required: boolean
+}
+
+type SortableItemProps = {
+  field: CustomField
+  index: number
+  customFields: CustomField[]
+  setCustomFields: (fields: CustomField[]) => void
+}
+
+function SortableItem({ field, index, customFields, setCustomFields }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: field.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className={`border-slate-200 bg-white ${isDragging ? 'shadow-lg' : ''}`}>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-4">
+              {/* 질문 제목 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    type="button"
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors p-1 -ml-1"
+                    aria-label="드래그하여 순서 변경"
+                  >
+                    <GripVertical className="h-5 w-5" />
+                  </button>
+                  <Label className="text-sm font-semibold text-slate-700">
+                    질문 제목
+                  </Label>
+                </div>
+                <Input
+                  placeholder="예: 참가 동기, 티셔츠 사이즈 등"
+                  value={field.label}
+                  onChange={(e) => {
+                    const updated = [...customFields]
+                    updated[index].label = e.target.value
+                    setCustomFields(updated)
+                  }}
+                  className="bg-slate-50"
+                />
+              </div>
+
+              {/* 답변 타입 선택 */}
+              <div>
+                <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+                  답변 타입
+                </Label>
+                <Select
+                  value={field.type}
+                  onValueChange={(value: 'text' | 'select') => {
+                    const updated = [...customFields]
+                    updated[index].type = value
+                    if (value === 'text') {
+                      updated[index].options = []
+                    } else if (value === 'select' && updated[index].options.length === 0) {
+                      updated[index].options = ['']
+                    }
+                    setCustomFields(updated)
+                  }}
+                >
+                  <SelectTrigger className="bg-slate-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    <SelectItem value="text">주관식 텍스트</SelectItem>
+                    <SelectItem value="select">객관식 선택</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 객관식 옵션 추가/삭제 */}
+              {field.type === 'select' && (
+                <div>
+                  <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+                    선택지
+                  </Label>
+                  <div className="space-y-2">
+                    {field.options.map((option, optIndex) => (
+                      <div key={optIndex} className="flex items-center gap-2">
+                        <Input
+                          placeholder={`선택지 ${optIndex + 1}`}
+                          value={option}
+                          onChange={(e) => {
+                            const updated = [...customFields]
+                            updated[index].options[optIndex] = e.target.value
+                            setCustomFields(updated)
+                          }}
+                          className="bg-slate-50"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const updated = [...customFields]
+                            updated[index].options = updated[index].options.filter((_, i) => i !== optIndex)
+                            setCustomFields(updated)
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const updated = [...customFields]
+                        updated[index].options.push('')
+                        setCustomFields(updated)
+                      }}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      선택지 추가
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* 필수 항목 체크박스 */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`required-${field.id}`}
+                  checked={field.required}
+                  onCheckedChange={(checked) => {
+                    const updated = [...customFields]
+                    updated[index].required = checked === true
+                    setCustomFields(updated)
+                  }}
+                />
+                <Label
+                  htmlFor={`required-${field.id}`}
+                  className="text-sm text-slate-700 cursor-pointer"
+                >
+                  필수 항목
+                </Label>
+              </div>
+            </div>
+
+            {/* 삭제 버튼 */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCustomFields(customFields.filter((_, i) => i !== index))
+              }}
+              className="text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 type InitialData = {
   id: string
@@ -65,14 +267,29 @@ export function NewEventForm({
   const [scriptLoadError, setScriptLoadError] = useState(false)
   
   // 커스텀 필드 상태
-  type CustomField = {
-    id: string
-    label: string
-    type: 'text' | 'select'
-    options: string[]
-    required: boolean
-  }
   const [customFields, setCustomFields] = useState<CustomField[]>([])
+  
+  // 드래그 앤 드롭 센서 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+  
+  // 드래그 종료 핸들러
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    
+    if (over && active.id !== over.id) {
+      setCustomFields((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id)
+        const newIndex = items.findIndex((item) => item.id === over.id)
+        
+        return arrayMove(items, oldIndex, newIndex)
+      })
+    }
+  }
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
@@ -675,170 +892,53 @@ export function NewEventForm({
         </div>
 
         {customFields.length > 0 && (
-          <div className="space-y-4 pb-32">
-            {customFields.map((field, index) => (
-              <Card key={field.id} className="border-slate-200 bg-white">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-4">
-                      {/* 질문 제목 */}
-                      <div>
-                        <Label className="text-sm font-semibold text-slate-700 mb-2 block">
-                          질문 제목
-                        </Label>
-                        <Input
-                          placeholder="예: 참가 동기, 티셔츠 사이즈 등"
-                          value={field.label}
-                          onChange={(e) => {
-                            const updated = [...customFields]
-                            updated[index].label = e.target.value
-                            setCustomFields(updated)
-                          }}
-                          className="bg-slate-50"
-                        />
-                      </div>
-
-                      {/* 답변 타입 선택 */}
-                      <div>
-                        <Label className="text-sm font-semibold text-slate-700 mb-2 block">
-                          답변 타입
-                        </Label>
-                        <Select
-                          value={field.type}
-                          onValueChange={(value: 'text' | 'select') => {
-                            const updated = [...customFields]
-                            updated[index].type = value
-                            if (value === 'text') {
-                              updated[index].options = []
-                            } else if (value === 'select' && updated[index].options.length === 0) {
-                              updated[index].options = ['']
-                            }
-                            setCustomFields(updated)
-                          }}
-                        >
-                          <SelectTrigger className="bg-slate-50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-[100]">
-                            <SelectItem value="text">주관식 텍스트</SelectItem>
-                            <SelectItem value="select">객관식 선택</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* 객관식 옵션 추가/삭제 */}
-                      {field.type === 'select' && (
-                        <div>
-                          <Label className="text-sm font-semibold text-slate-700 mb-2 block">
-                            선택지
-                          </Label>
-                          <div className="space-y-2">
-                            {field.options.map((option, optIndex) => (
-                              <div key={optIndex} className="flex items-center gap-2">
-                                <Input
-                                  placeholder={`선택지 ${optIndex + 1}`}
-                                  value={option}
-                                  onChange={(e) => {
-                                    const updated = [...customFields]
-                                    updated[index].options[optIndex] = e.target.value
-                                    setCustomFields(updated)
-                                  }}
-                                  className="bg-slate-50"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const updated = [...customFields]
-                                    updated[index].options = updated[index].options.filter((_, i) => i !== optIndex)
-                                    setCustomFields(updated)
-                                  }}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const updated = [...customFields]
-                                updated[index].options.push('')
-                                setCustomFields(updated)
-                              }}
-                              className="gap-2"
-                            >
-                              <Plus className="h-4 w-4" />
-                              선택지 추가
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 필수 항목 체크박스 */}
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={`required-${field.id}`}
-                          checked={field.required}
-                          onCheckedChange={(checked) => {
-                            const updated = [...customFields]
-                            updated[index].required = checked === true
-                            setCustomFields(updated)
-                          }}
-                        />
-                        <Label
-                          htmlFor={`required-${field.id}`}
-                          className="text-sm text-slate-700 cursor-pointer"
-                        >
-                          필수 항목
-                        </Label>
-                      </div>
-                    </div>
-
-                    {/* 삭제 버튼 */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setCustomFields(customFields.filter((_, i) => i !== index))
-                      }}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {/* 하단 질문 추가 버튼 */}
-            <div className="flex justify-end mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setCustomFields([
-                    ...customFields,
-                    {
-                      id: `field-${Date.now()}`,
-                      label: "",
-                      type: "text",
-                      options: [],
-                      required: false,
-                    },
-                  ])
-                }}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                질문 추가
-              </Button>
-            </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={customFields.map((field) => field.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4 pb-32">
+                {customFields.map((field, index) => (
+                  <SortableItem
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    customFields={customFields}
+                    setCustomFields={setCustomFields}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+        
+        {customFields.length > 0 && (
+          <div className="flex justify-end mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setCustomFields([
+                  ...customFields,
+                  {
+                    id: `field-${Date.now()}`,
+                    label: "",
+                    type: "text",
+                    options: [],
+                    required: false,
+                  },
+                ])
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              질문 추가
+            </Button>
           </div>
         )}
       </div>

@@ -69,6 +69,9 @@ export function RegisterButton({
           if (data) {
             setUserProfile({ full_name: data.full_name || undefined, email: data.email || undefined });
             setCurrentUserPoints(data.points || 0);
+            // 로그인 유저의 이름/연락처 초기값 설정
+            if (data.full_name) setGuestName(data.full_name);
+            if (data.email) setGuestContact(data.email);
           }
         });
     } else if (userPoints !== undefined) {
@@ -137,6 +140,12 @@ export function RegisterButton({
   const handleUserRegister = async () => {
     if (!userId) return;
 
+    // 이름/연락처 검증
+    if (!guestName.trim() || !guestContact.trim()) {
+      alert("이름과 연락처를 모두 입력해주세요");
+      return;
+    }
+
     // 포인트 사용 검증
     if (usedPoints > 0) {
       if (usedPoints < 100) {
@@ -185,6 +194,18 @@ export function RegisterButton({
           .single();
         
         registrationId = regData?.id || null;
+        
+        // 포인트 사용 시에도 guest_name, guest_contact 저장
+        if (registrationId && (guestName.trim() || guestContact.trim())) {
+          await supabase
+            .from("event_registrations")
+            .update({
+              guest_name: guestName.trim() || null,
+              guest_contact: guestContact.trim() || null,
+            })
+            .eq("id", registrationId);
+        }
+        
         setUsedPoints(0);
       } else {
         // 포인트를 사용하지 않는 경우
@@ -193,6 +214,8 @@ export function RegisterButton({
           .insert({
             event_id: eventId,
             user_id: userId,
+            guest_name: guestName.trim() || null,
+            guest_contact: guestContact.trim() || null,
           })
           .select("id")
           .single();
@@ -467,37 +490,35 @@ export function RegisterButton({
               )}
 
 
-              {/* 비로그인 사용자: 이름/연락처 입력 */}
-              {!userId && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="guestName" className="text-sm font-semibold text-slate-700">
-                      이름 <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="guestName"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="참석자 성함"
-                      className="mt-1.5 h-11 bg-slate-50 focus:bg-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="guestContact" className="text-sm font-semibold text-slate-700">
-                      연락처 <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="guestContact"
-                      value={guestContact}
-                      onChange={(e) => setGuestContact(e.target.value)}
-                      placeholder="이메일 또는 전화번호"
-                      className="mt-1.5 h-11 bg-slate-50 focus:bg-white"
-                      required
-                    />
-                  </div>
+              {/* 이름/연락처 입력 (모든 사용자) */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="guestName" className="text-sm font-semibold text-slate-700">
+                    이름 (실명 입력) <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="guestName"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder={userId ? (userProfile?.full_name || "이름 (실명 입력)") : "참석자 성함"}
+                    className="mt-1.5 h-11 bg-slate-50 focus:bg-white"
+                    required
+                  />
                 </div>
-              )}
+                <div>
+                  <Label htmlFor="guestContact" className="text-sm font-semibold text-slate-700">
+                    연락처 (수정 가능) <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="guestContact"
+                    value={guestContact}
+                    onChange={(e) => setGuestContact(e.target.value)}
+                    placeholder={userId ? (userProfile?.email || "연락처 (수정 가능)") : "이메일 또는 전화번호"}
+                    className="mt-1.5 h-11 bg-slate-50 focus:bg-white"
+                    required
+                  />
+                </div>
+              </div>
 
               {/* 커스텀 필드 */}
               {customFields.length > 0 && (
@@ -537,7 +558,7 @@ export function RegisterButton({
                           <SelectTrigger className="bg-slate-50">
                             <SelectValue placeholder="선택해주세요" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[9999] bg-white">
                             {(() => {
                               // field_options가 JSONB이므로 안전하게 파싱
                               let options: string[] = [];
@@ -590,7 +611,7 @@ export function RegisterButton({
                       handleGuestRegister();
                     }
                   }}
-                  disabled={isLoading || (!userId && (!guestName.trim() || !guestContact.trim()))}
+                  disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

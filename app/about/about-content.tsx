@@ -8,6 +8,7 @@ import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { PageHeader } from "@/components/page-header"
 
 export default function AboutContent() {
+  console.log("🚩 About Content 시작")
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
       {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}

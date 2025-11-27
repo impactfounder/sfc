@@ -11,7 +11,6 @@ import type { VisibleBadge } from "@/lib/types/badges"
 
 
 export default async function HomePage() {
-  console.time('Page: HomePage 전체 로딩');
   const supabase = await createClient()
 
   // 서버에서 초기 데이터 가져오기
@@ -173,8 +172,6 @@ export default async function HomePage() {
   const eventRequests = eventRequestsResult;
   const reviews = reviewsResult;
   const boardCategories = boardCategoriesResult;
-
-  console.timeEnd('Page: HomePage 전체 로딩');
 
   return (
     <HomePageClient

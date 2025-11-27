@@ -7,8 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import NotificationsDropdown from "@/components/notifications-dropdown"
 
 export default async function SidebarProfile() {
+  console.log("🚩 Sidebar Profile 시작")
   const supabase = await createClient()
   const userProfile = await getCurrentUserProfile(supabase)
+  console.log("✅ Sidebar Profile 로딩 완료")
 
   if (!userProfile || !userProfile.user) {
     // 로그인 안 된 상태 UI
