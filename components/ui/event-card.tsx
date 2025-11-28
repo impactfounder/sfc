@@ -102,6 +102,8 @@ export default function EventCard({ event, href, className, layout = "card" }: P
                   alt={event.host_name || "Host"}
                   fill
                   className="object-cover"
+                  unoptimized
+                  quality={100}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">

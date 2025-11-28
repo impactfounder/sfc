@@ -77,7 +77,7 @@ export function AddGuestForm({ eventId }: AddGuestFormProps) {
               className="border-slate-300"
             />
           </div>
-          <Button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 hover:bg-slate-800">
+          <Button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 hover:bg-slate-800 text-white">
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

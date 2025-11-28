@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket, Zap } from "lucide-react"
+import { Calendar, LogOut, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket, Zap, Headset } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo, useRef } from "react"
 import Image from "next/image"
@@ -192,26 +192,30 @@ export function Sidebar({
     <>
       <div 
         ref={sidebarRef}
-        className="flex h-full w-80 flex-col bg-white border-r border-slate-100 overflow-y-scroll scrollbar-hide shadow-sm"
+        className="flex h-full w-72 flex-col bg-white border-r border-slate-100 overflow-y-auto overflow-x-hidden no-scrollbar shadow-sm"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
       >
         <div className="border-b border-slate-100">
           
           {/* 로고 & 타이틀 */}
-          <Link href="/" className="flex flex-col items-center justify-center px-6 py-8 hover:opacity-80 transition-opacity">
+          <Link href="/" className="w-full px-6 py-6 flex flex-col items-center justify-center hover:opacity-80 transition-opacity">
             <Image
               src="/images/logo.png"
               alt="Seoul Founders Club"
-              width={200}
-              height={200}
-              className="w-40 h-40"
+              width={112}
+              height={112}
+              className="w-28 h-28 object-contain"
               priority
             />
             <Image
               src="/images/logo-text.png"
               alt="SEOUL FOUNDERS CLUB"
-              width={240}
-              height={40}
-              className="mt-5 w-56"
+              width={150}
+              height={25}
+              className="mt-4 w-full max-w-[150px] object-contain"
               priority
             />
           </Link>
@@ -222,14 +226,20 @@ export function Sidebar({
           </div>
         </div>
 
-        <nav className="flex-1 px-2 py-4 pb-8">
+        <nav 
+          className="px-2 pt-4 pb-2 overflow-y-auto no-scrollbar"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
           
           {/* 1. 홈 (Top Level) */}
-          <div className="space-y-0.5 mb-6">
+          <div className="space-y-0.5 mb-2">
             <Link
               href="/"
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-all",
+                "flex items-center gap-3 rounded-xl px-[27px] py-2 text-[15px] font-medium transition-all",
                 isLinkActive("/") ? "bg-slate-100 text-slate-900 font-bold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
@@ -240,9 +250,9 @@ export function Sidebar({
 
           {/* 2. 구조화된 메뉴 섹션 */}
           {navigationSections.map((section) => (
-            <div key={section.title} className="mt-4 mb-6">
+            <div key={section.title} className="mt-3 mb-2">
               
-              <div className="px-3 mb-2">
+              <div className="px-[27px] mb-1">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   {section.title}
                 </span>
@@ -275,7 +285,7 @@ export function Sidebar({
                         }
                       }}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
+                        "flex items-center gap-3 px-[27px] py-2 text-[15px] transition-all rounded-xl",
                         isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
                       )}
                     >
@@ -289,16 +299,26 @@ export function Sidebar({
           ))}
 
           {/* 5. 기타 활동 및 관리자 섹션 */}
-          <div className="mt-6">
-            <div className="px-3 mb-2">
+          <div className="mt-3 mb-2">
+            <div className="px-[27px] mb-1">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">기타</span>
             </div>
             <div className="space-y-0.5">
+              <a
+                href="mailto:support@seoulfounders.club"
+                className={cn(
+                  "flex items-center gap-3 px-[27px] py-2 text-[15px] transition-all rounded-xl",
+                  "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                )}
+              >
+                <Headset className="h-5 w-5 flex-shrink-0" />
+                <span>고객센터</span>
+              </a>
               {isAdmin && (
                 <Link
                   href="/admin"
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
+                    "flex items-center gap-3 px-[27px] py-2 text-[15px] transition-all rounded-xl",
                     isLinkActive("/admin", true)
                       ? "bg-slate-100 text-slate-900 font-medium"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
@@ -311,6 +331,11 @@ export function Sidebar({
             </div>
           </div>
         </nav>
+
+        {/* 프로필 영역 (메뉴 바로 아래 배치) */}
+        <div className="mt-2 border-t border-slate-100 bg-white">
+          {children}
+        </div>
       </div>
     </>
   )

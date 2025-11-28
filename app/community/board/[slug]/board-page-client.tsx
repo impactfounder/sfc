@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { CommunityRightSidebar } from "@/components/community-right-sidebar"
 import { PageHeader } from "@/components/page-header"
 
 interface BoardPageClientProps {
@@ -39,6 +40,10 @@ export function BoardPageClient({
   const posts = data?.posts || []
   const totalPosts = data?.count || 0
 
+  // 시스템 게시판 목록 (기존 사이드바 사용)
+  const systemBoards = ['announcement', 'announcements', 'free', 'free-board', 'event-requests', 'insights', 'reviews']
+  const isSystemBoard = systemBoards.includes(dbSlug)
+
   // 게시글 데이터에 isMember 추가 (PostsSection 형식에 맞춤)
   const postsWithMembership = posts.map((post: any) => ({
     ...post,
@@ -47,8 +52,8 @@ export function BoardPageClient({
 
   if (isError) {
     return (
-      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-        <div className="lg:col-span-9">
+      <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+        <div className="flex-1 min-w-0">
           <div className="text-center py-16">
             <h2 className="text-xl font-semibold text-slate-900 mb-2">데이터를 불러오는데 실패했습니다</h2>
             <p className="text-slate-500 mb-4">잠시 후 다시 시도해주세요.</p>
@@ -60,34 +65,14 @@ export function BoardPageClient({
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
-      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+    <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+      {/* [LEFT] 중앙 콘텐츠 영역 */}
+      <div className="flex-1 min-w-0 flex flex-col gap-10">
         {/* PageHeader 적용 */}
         <PageHeader
           title={category.name}
           description={category.description || undefined}
-        >
-          {(slug !== "announcements" || isUserAdmin) && (
-            <>
-              {user ? (
-                <Link href={`/community/board/${slug}/new`}>
-                  <Button className="bg-white text-slate-900 hover:bg-slate-100 transition-all font-bold border-0 shadow-sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    글쓰기
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/auth/login">
-                  <Button className="bg-white text-slate-900 hover:bg-slate-100 transition-all font-bold border-0 shadow-sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    글 작성하기
-                  </Button>
-                </Link>
-              )}
-            </>
-          )}
-        </PageHeader>
+        />
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -110,10 +95,14 @@ export function BoardPageClient({
           )}
         </div>
 
-        {/* [RIGHT] 우측 사이드바 영역 (3칸) */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+        {/* [RIGHT] 우측 사이드바 영역 */}
+        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
           <div className="sticky top-8 flex flex-col gap-6 h-fit">
-            <StandardRightSidebar />
+            {isSystemBoard ? (
+              <StandardRightSidebar />
+            ) : (
+              <CommunityRightSidebar slug={dbSlug} />
+            )}
           </div>
         </div>
     </div>

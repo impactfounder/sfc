@@ -162,8 +162,8 @@ export default async function EventDetailPage({
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-8">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <div className="min-h-screen bg-slate-50 py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         {/* 상단 네비게이션 */}
         <div className="mb-6 flex items-center justify-between">
@@ -234,8 +234,8 @@ export default async function EventDetailPage({
             </div>
 
             {/* Row 1 - Right (4) */}
-            <Card className="lg:col-span-4 border-slate-200 shadow-md bg-white h-full">
-              <CardContent className="p-6">
+            <Card className="lg:col-span-4 border-slate-200 shadow-md bg-white h-full flex flex-col">
+              <CardContent className="p-6 flex flex-col h-full">
                 <CardHeader 
                   icon={Ticket} 
                   title="참가 신청" 
@@ -267,50 +267,42 @@ export default async function EventDetailPage({
                   ) : null}
                 </div>
 
-                <div className="space-y-4">
-                  {isPastEvent ? (
-                    <Button className="w-full bg-slate-100 text-slate-500 hover:bg-slate-200 border-0 h-12 text-base font-medium" disabled>
-                      <AlertCircle className="mr-2 h-5 w-5" />
-                      이벤트가 종료되었습니다
-                    </Button>
-                  ) : isCreator ? (
-                    <>
-                      {/* 버튼 1: 이벤트 수정 */}
-                      <Link href={`/events/${id}/edit`}>
-                        <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-12 text-base font-medium">
-                          <Edit className="mr-2 h-5 w-5" />
-                          이벤트 수정
-                        </Button>
-                      </Link>
+                <div className="flex flex-col flex-1">
+                  <div className="flex flex-col gap-2.5">
+                    {isPastEvent ? (
+                      <Button className="w-full bg-slate-100 text-slate-500 hover:bg-slate-200 border-0 h-12 text-base font-medium" disabled>
+                        <AlertCircle className="mr-2 h-5 w-5" />
+                        이벤트가 종료되었습니다
+                      </Button>
+                    ) : isCreator ? (
+                      <>
+                        {/* 버튼 1: 이벤트 수정 */}
+                        <Link href={`/events/${id}/edit`}>
+                          <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-12 text-base font-medium">
+                            <Edit className="mr-2 h-5 w-5" />
+                            이벤트 수정
+                          </Button>
+                        </Link>
 
-                      {/* 버튼 2: 참석자 관리 */}
-                      <Link href={`/events/${id}/manage`}>
-                        <Button variant="outline" className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-12 text-base font-medium mt-3">
-                          <Users className="mr-2 h-5 w-5" />
-                          참석자 관리
-                        </Button>
-                      </Link>
+                        {/* 버튼 2: 참석자 관리 */}
+                        <Link href={`/events/${id}/manage`}>
+                          <Button variant="outline" className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-12 text-base font-medium">
+                            <Users className="mr-2 h-5 w-5" />
+                            참석자 관리
+                          </Button>
+                        </Link>
 
-                      {/* 버튼 3: 공유하기 */}
-                      <EventShareButton
-                        title={event.title}
-                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                        variant="outline"
-                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow mt-3"
-                      >
-                        공유하기
-                      </EventShareButton>
-
-                      {/* 버튼 4: 이벤트 삭제 */}
-                      <div className="mt-3">
-                        <DeleteEventButton
-                          eventId={id}
+                        {/* 버튼 3: 공유하기 */}
+                        <EventShareButton
+                          title={event.title}
+                          description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
                           variant="outline"
-                          className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11"
-                        />
-                      </div>
-                    </>
-                  ) : (
+                          className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 text-base font-medium transition-all shadow-sm hover:shadow"
+                        >
+                          공유하기
+                        </EventShareButton>
+                      </>
+                    ) : (
                     <>
                       <RegisterButton
                         eventId={event.id}
@@ -333,11 +325,23 @@ export default async function EventDetailPage({
                         title={event.title}
                         description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
                         variant="outline"
-                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow"
+                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 text-base font-medium transition-all shadow-sm hover:shadow"
                       >
                         공유하기
                       </EventShareButton>
                     </>
+                  )}
+                  </div>
+
+                  {/* 이벤트 삭제 버튼 (호스트일 때만, 최하단 별도 배치) */}
+                  {isCreator && !isPastEvent && (
+                    <div className="mt-auto pt-4 border-t border-slate-100">
+                      <DeleteEventButton
+                        eventId={id}
+                        variant="outline"
+                        className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11 text-base font-medium"
+                      />
+                    </div>
                   )}
                 </div>
               </CardContent>

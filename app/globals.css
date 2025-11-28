@@ -39,6 +39,25 @@
   .scrollbar-gutter-stable {
     scrollbar-gutter: stable;
   }
+  /* 크롬, 사파리, 엣지, 오페라 */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
+  }
+  .no-scrollbar::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+  .no-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent !important;
+  }
+  
+  /* 파이어폭스, IE */
+  .no-scrollbar {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+  }
 }
 
 /* Rich Text Editor 이미지 스타일 */

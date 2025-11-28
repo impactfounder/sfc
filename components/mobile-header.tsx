@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, BookOpen, Users, Calendar, Bell, MessageSquare, Ticket, Lightbulb, Zap } from "lucide-react"
+import { Menu, BookOpen, Users, Calendar, Bell, MessageSquare, Ticket, Lightbulb, Zap, Headset } from "lucide-react"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -126,6 +126,23 @@ export function MobileHeader() {
                     </div>
                   </div>
                 ))}
+                
+                {/* 기타 섹션 */}
+                <div className="mb-6 px-4">
+                  <h4 className="mb-2 px-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    기타
+                  </h4>
+                  <div className="space-y-1">
+                    <a
+                      href="mailto:support@seoulfounders.club"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                    >
+                      <Headset className="h-5 w-5 flex-shrink-0 text-slate-400" />
+                      <span>고객센터</span>
+                    </a>
+                  </div>
+                </div>
                 
                 {/* 하단 여백 (하단바에 가려지지 않도록) */}
                 <div className="h-12" />

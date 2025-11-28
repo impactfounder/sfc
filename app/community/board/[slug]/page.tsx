@@ -27,7 +27,7 @@ export async function generateMetadata({
     .select("name, description")
     .eq("slug", dbSlug)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
 
   const isPublic = PUBLIC_BOARDS.includes(slug);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";

@@ -40,7 +40,6 @@ export const fetchPosts = async ({
       `,
         { count: "exact" }
       )
-      .eq("visibility", "public")
       .eq("board_categories.slug", dbSlug)
       .order("created_at", { ascending: false })
       .range(from, to)
@@ -57,7 +56,6 @@ export const fetchPosts = async ({
       `,
         { count: "exact" }
       )
-      .eq("visibility", "public")
       .not('board_categories.slug', 'in', '("announcement","free-board","event-requests","reviews")')
       .order("created_at", { ascending: false })
       .range(from, to)

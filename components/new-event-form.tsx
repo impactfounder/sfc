@@ -239,6 +239,68 @@ type InitialData = {
   customFields?: CustomField[]
 }
 
+// 날짜/시간 파싱 헬퍼 함수
+const parseDateTime = (dateString?: string | null) => {
+  if (!dateString) return { date: "", time: "" }
+  const dateObj = new Date(dateString)
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0")
+  const day = String(dateObj.getDate()).padStart(2, "0")
+  const hours = String(dateObj.getHours()).padStart(2, "0")
+  const minutes = String(dateObj.getMinutes()).padStart(2, "0")
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hours}:${minutes}`,
+  }
+}
+
+// 초기값 계산 함수
+const getInitialValues = (initialData?: InitialData) => {
+  if (!initialData) {
+    // 생성 모드: 기본값 설정
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, "0")
+    const day = String(now.getDate()).padStart(2, "0")
+    
+    return {
+      title: "",
+      description: "",
+      eventType: "networking" as const,
+      startDate: `${year}-${month}-${day}`,
+      startTime: "19:00",
+      endDate: `${year}-${month}-${day}`,
+      endTime: "21:00",
+      location: "",
+      price: "",
+      maxParticipants: "",
+      thumbnailUrl: "",
+      customFields: [],
+      isEndDateManuallyChanged: false,
+    }
+  }
+
+  // 수정 모드: initialData에서 값 추출
+  const startDateTime = parseDateTime(initialData.event_date)
+  const endDateTime = initialData.end_date ? parseDateTime(initialData.end_date) : startDateTime
+
+  return {
+    title: initialData.title || "",
+    description: initialData.description || "",
+    eventType: (initialData.event_type || "networking") as "networking" | "class" | "activity",
+    startDate: startDateTime.date,
+    startTime: startDateTime.time,
+    endDate: endDateTime.date,
+    endTime: endDateTime.time,
+    location: initialData.location || "",
+    price: initialData.price && initialData.price > 0 ? String(initialData.price) : "",
+    maxParticipants: initialData.max_participants && initialData.max_participants > 0 ? String(initialData.max_participants) : "",
+    thumbnailUrl: initialData.thumbnail_url || "",
+    customFields: initialData.customFields || [],
+    isEndDateManuallyChanged: !!initialData.end_date,
+  }
+}
+
 export function NewEventForm({ 
   userId, 
   onSuccess,
@@ -248,17 +310,19 @@ export function NewEventForm({
   onSuccess?: () => void
   initialData?: InitialData
 }) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("") // Editor content (HTML)
-  const [eventType, setEventType] = useState<"networking" | "class" | "activity">("networking")
-  const [startDate, setStartDate] = useState("")
-  const [startTime, setStartTime] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [endTime, setEndTime] = useState("")
-  const [location, setLocation] = useState("")
-  const [price, setPrice] = useState("")
-  const [maxParticipants, setMaxParticipants] = useState("")
-  const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const initialValues = getInitialValues(initialData)
+  
+  const [title, setTitle] = useState(initialValues.title)
+  const [description, setDescription] = useState(initialValues.description) // Editor content (HTML)
+  const [eventType, setEventType] = useState<"networking" | "class" | "activity">(initialValues.eventType)
+  const [startDate, setStartDate] = useState(initialValues.startDate)
+  const [startTime, setStartTime] = useState(initialValues.startTime)
+  const [endDate, setEndDate] = useState(initialValues.endDate)
+  const [endTime, setEndTime] = useState(initialValues.endTime)
+  const [location, setLocation] = useState(initialValues.location)
+  const [price, setPrice] = useState(initialValues.price)
+  const [maxParticipants, setMaxParticipants] = useState(initialValues.maxParticipants)
+  const [thumbnailUrl, setThumbnailUrl] = useState(initialValues.thumbnailUrl)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -268,11 +332,11 @@ export function NewEventForm({
   const [isSearching, setIsSearching] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
-  const [isEndDateManuallyChanged, setIsEndDateManuallyChanged] = useState(false)
+  const [isEndDateManuallyChanged, setIsEndDateManuallyChanged] = useState(initialValues.isEndDateManuallyChanged)
   const [scriptLoadError, setScriptLoadError] = useState(false)
   
   // 커스텀 필드 상태
-  const [customFields, setCustomFields] = useState<CustomField[]>([])
+  const [customFields, setCustomFields] = useState<CustomField[]>(initialValues.customFields)
   
   // 드래그 앤 드롭 센서 설정
   const sensors = useSensors(
@@ -336,7 +400,7 @@ export function NewEventForm({
   }
   const timeOptions = generateTimeOptions()
 
-  // 초기 데이터 설정 (수정 모드) 또는 기본값 설정 (생성 모드)
+  // userId 설정 (initialData와 무관하게 실행)
   useEffect(() => {
     if (!userId) {
       const fetchUser = async () => {
@@ -346,63 +410,7 @@ export function NewEventForm({
       }
       fetchUser()
     }
-
-    if (initialData) {
-      // 수정 모드: 기존 데이터로 폼 채우기
-      setTitle(initialData.title || "")
-      setDescription(initialData.description || "")
-      setThumbnailUrl(initialData.thumbnail_url || "")
-      setLocation(initialData.location || "")
-      setPrice(initialData.price && initialData.price > 0 ? String(initialData.price) : "")
-      setMaxParticipants(initialData.max_participants && initialData.max_participants > 0 ? String(initialData.max_participants) : "")
-      setEventType(initialData.event_type || "networking")
-
-      // 커스텀 필드 로드
-      if (initialData.customFields && initialData.customFields.length > 0) {
-        setCustomFields(initialData.customFields)
-      }
-
-      // 날짜/시간 파싱
-      if (initialData.event_date) {
-        const startDateObj = new Date(initialData.event_date)
-        const year = startDateObj.getFullYear()
-        const month = String(startDateObj.getMonth() + 1).padStart(2, "0")
-        const day = String(startDateObj.getDate()).padStart(2, "0")
-        const hours = String(startDateObj.getHours()).padStart(2, "0")
-        const minutes = String(startDateObj.getMinutes()).padStart(2, "0")
-
-        setStartDate(`${year}-${month}-${day}`)
-        setStartTime(`${hours}:${minutes}`)
-
-        if (initialData.end_date) {
-          const endDateObj = new Date(initialData.end_date)
-          const endYear = endDateObj.getFullYear()
-          const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0")
-          const endDay = String(endDateObj.getDate()).padStart(2, "0")
-          const endHours = String(endDateObj.getHours()).padStart(2, "0")
-          const endMinutes = String(endDateObj.getMinutes()).padStart(2, "0")
-
-          setEndDate(`${endYear}-${endMonth}-${endDay}`)
-          setEndTime(`${endHours}:${endMinutes}`)
-          setIsEndDateManuallyChanged(true)
-        } else {
-          setEndDate(`${year}-${month}-${day}`)
-          setEndTime(`${hours}:${minutes}`)
-        }
-      }
-    } else {
-      // 생성 모드: 기본값 설정 (오후 7시 ~ 9시)
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, "0")
-      const day = String(now.getDate()).padStart(2, "0")
-
-      setStartDate(`${year}-${month}-${day}`)
-      setStartTime("19:00") // 오후 7시
-      setEndDate(`${year}-${month}-${day}`)
-      setEndTime("21:00") // 오후 9시
-    }
-  }, [userId, initialData])
+  }, [userId])
 
   // startDate 변경 시 endDate 자동 설정 (사용자가 수동으로 수정한 경우 제외)
   useEffect(() => {
@@ -915,7 +923,7 @@ export function NewEventForm({
       </div>
 
       {/* 커스텀 필드 섹션 */}
-      <div className="space-y-4 pt-6 border-t border-slate-200 bg-white rounded-2xl p-6">
+      <div className="space-y-4 bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
         <div className="flex items-center justify-between">
           <Label className="text-lg font-semibold text-slate-900">참가자 질문 추가</Label>
           <Button

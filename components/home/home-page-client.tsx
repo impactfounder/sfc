@@ -50,6 +50,9 @@ export function HomePageClient({
   initialUser = null,
   initialProfile = null,
 }: HomePageClientProps) {
+  // '열어주세요(EventRequestSection)' 섹션 표시 여부 제어
+  // 나중에 다시 사용할 때는 이 값을 true로 변경하면 됩니다.
+  const SHOW_EVENT_REQUESTS = false;
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [events, setEvents] = useState<EventCardEvent[]>(initialEvents)
   const [posts, setPosts] = useState<Post[]>(initialPosts)
@@ -181,7 +184,11 @@ export function HomePageClient({
           const badgesMap = await getBadgesForUsers(supabase, authorIds)
 
           postsData = data.map((post) => {
-            let slug = post.board_categories?.slug
+            // 배열이면 첫 번째 요소를, 아니면 그대로 사용
+            const categoryData = Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories
+            const profileData = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+            
+            let slug = categoryData?.slug
             if (slug === "free-board") slug = "free"
             const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
             return {
@@ -192,13 +199,13 @@ export function HomePageClient({
               visibility: 'public' as const,
               likes_count: 0,
               comments_count: 0,
-              profiles: post.profiles ? {
-                id: post.profiles.id,
-                full_name: post.profiles.full_name,
+              profiles: profileData ? {
+                id: profileData.id,
+                full_name: profileData.full_name,
               } : null,
-              board_categories: post.board_categories ? {
-                name: post.board_categories.name,
-                slug: slug || post.board_categories.slug,
+              board_categories: categoryData ? {
+                name: categoryData.name,
+                slug: slug || categoryData.slug,
               } : null,
               communities: null,
               visible_badges: visibleBadges,
@@ -296,15 +303,17 @@ export function HomePageClient({
         ) : undefined
       }
     >
-      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-          {/* [LEFT] 메인 콘텐츠 영역 (9칸) */}
-          <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+      <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+          {/* [LEFT] 메인 콘텐츠 영역 */}
+          <div className="flex-1 min-w-0 flex flex-col gap-10">
             <HeroSection user={user} profile={profile} onLogin={handleLogin} />
             {children && <div>{children}</div>}
             <div id="events-section">
               <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
             </div>
-            <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
+            {SHOW_EVENT_REQUESTS && (
+              <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
+            )}
             <ReviewsSection reviews={reviews} isLoading={isLoading} />
             <PostsSection
               posts={posts}
@@ -315,8 +324,8 @@ export function HomePageClient({
             />
           </div>
 
-          {/* [RIGHT] 우측 사이드바 영역 (3칸) */}
-          <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+          {/* [RIGHT] 우측 사이드바 영역 */}
+          <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
             <div className="sticky top-8 flex flex-col gap-6 h-fit">
               <StandardRightSidebar />
             </div>

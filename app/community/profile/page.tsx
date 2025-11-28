@@ -930,9 +930,12 @@ export default function ProfilePage() {
                       {profile?.avatar_url ? (
                         <Image
                           src={profile.avatar_url}
-                          alt={profile.full_name}
-                          width={128}
-                          height={128}
+                          alt={profile.full_name || "Profile"}
+                          width={256}
+                          height={256}
+                          quality={100}
+                          priority
+                          unoptimized
                           className="object-cover h-full w-full"
                         />
                       ) : (

@@ -74,8 +74,8 @@ export default async function EditEventPage({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+    <div className="min-h-screen bg-slate-50 py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">이벤트 수정</h1>
           <p className="mt-2 text-slate-600">이벤트 정보를 수정할 수 있습니다.</p>

@@ -50,30 +50,14 @@ export default async function EventsPage() {
   const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
 
   return (
-    <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
-      <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
+    <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+      {/* [LEFT] 중앙 콘텐츠 영역 */}
+      <div className="flex-1 min-w-0 flex flex-col gap-10">
         {/* PageHeader 적용 */}
         <PageHeader 
           title="이벤트"
           description="함께 성장하는 네트워킹 파티와 인사이트 세미나를 놓치지 마세요."
-        >
-          {user ? (
-            <Link href="/events/new">
-              <Button className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm border-0">
-                <Plus className="w-4 h-4 mr-2" />
-                새 이벤트
-              </Button>
-            </Link>
-          ) : (
-            <Link href="/auth/login">
-              <Button className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm border-0">
-                <Plus className="w-4 h-4 mr-2" />
-                로그인하고 만들기
-              </Button>
-            </Link>
-          )}
-        </PageHeader>
+        />
 
           {/* Upcoming Events */}
           <div className="mb-10">
@@ -163,8 +147,8 @@ export default async function EventsPage() {
           )}
         </div>
 
-        {/* [RIGHT] 우측 사이드바 영역 (3칸) */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col gap-6">
+        {/* [RIGHT] 우측 사이드바 영역 */}
+        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
           <div className="sticky top-8 flex flex-col gap-6 h-fit">
             <StandardRightSidebar />
           </div>

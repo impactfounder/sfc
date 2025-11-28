@@ -22,9 +22,11 @@ type PostActionsProps = {
   isAuthor: boolean
   isMaster?: boolean
   isAdmin?: boolean
+  slug?: string // 게시판 slug (선택사항)
+  redirectUrl?: string // 삭제 후 리다이렉트 URL (선택사항)
 }
 
-export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = false }: PostActionsProps) {
+export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = false, slug, redirectUrl }: PostActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
@@ -34,7 +36,8 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
     try {
       await deletePost(postId)
       router.refresh()
-      router.push("/community/posts")
+      // redirectUrl이 있으면 그것을 사용, 없으면 기본값
+      router.push(redirectUrl || (slug ? `/community/board/${slug}` : "/community/posts"))
     } catch (error) {
       console.error("Failed to delete post:", error)
       alert("게시글 삭제에 실패했습니다.")
@@ -63,7 +66,13 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {canEdit && (
-            <DropdownMenuItem onClick={() => router.push(`/community/posts/${postId}/edit`)}>
+            <DropdownMenuItem onClick={() => {
+              // slug가 있으면 게시판별 수정 페이지로, 없으면 기본 수정 페이지로
+              const editUrl = slug 
+                ? `/community/board/${slug}/${postId}/edit`
+                : `/community/posts/${postId}/edit`
+              router.push(editUrl)
+            }}>
               <Edit className="mr-2 h-4 w-4" />
               수정
             </DropdownMenuItem>
