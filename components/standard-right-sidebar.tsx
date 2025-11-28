@@ -46,10 +46,10 @@ export function StandardRightSidebar() {
     <div className="flex flex-col gap-6 h-full">
       {/* 공지사항 위젯 */}
       <Card className="bg-white border border-slate-200 rounded-xl shadow-sm">
-        <CardContent className="p-5">
-          <Link href="/community/board/announcements" className="flex items-center gap-2 mb-4 group">
+        <CardContent className="p-4">
+          <Link href="/community/board/announcements" className="flex items-center gap-2 mb-3 group">
             <Bell className="h-5 w-5 text-slate-700" />
-            <h3 className="text-lg font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">공지사항</h3>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-slate-700 transition-colors">공지사항</h3>
             <ChevronRight className="h-4 w-4 text-slate-400 ml-auto group-hover:text-slate-600 transition-colors" />
           </Link>
           {isLoading ? (

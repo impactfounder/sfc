@@ -2,13 +2,16 @@
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const next = searchParams.get("next") || "/"
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -17,11 +20,16 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
 
+    const redirectUrl = new URL(`${window.location.origin}/auth/callback`)
+    if (next) {
+      redirectUrl.searchParams.set("next", next)
+    }
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl.toString(),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -36,9 +44,7 @@ export default function LoginPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-6">
-        <Card className="w-full max-w-[420px] p-8 border-none shadow-xl rounded-2xl bg-white animate-in fade-in zoom-in-95 duration-500">
+    <Card className="w-full max-w-[420px] p-8 border-none shadow-xl rounded-2xl bg-white animate-in fade-in zoom-in-95 duration-500">
           <CardHeader className="flex flex-col items-center space-y-4 pb-0">
             
             {/* 로고 영역 (확실하게 키움 w-32) */}
@@ -59,7 +65,7 @@ export default function LoginPage() {
                 alt="SEOUL FOUNDERS CLUB" 
                 width={160} 
                 height={28} 
-                className="object-contain opacity-90"
+                className="object-contain opacity-90 h-auto"
                 quality={100}
                 priority
               />
@@ -113,6 +119,16 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <DashboardLayout>
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-6">
+        <Suspense fallback={<div>Loading...</div>}>
+          <LoginContent />
+        </Suspense>
       </div>
     </DashboardLayout>
   )

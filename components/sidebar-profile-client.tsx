@@ -55,7 +55,6 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
 
   const userRole = profile?.role || "member"
   const displayName = profile?.full_name || user.email?.split("@")[0] || "사용자"
-  const roleLabel = userRole === "admin" || userRole === "master" ? "관리자" : "멤버"
 
   // 로그인 상태 UI
   // isMounted가 false일 때는 드롭다운 없이 단순 버튼만 표시 (하이드레이션 에러 방지)
@@ -77,16 +76,6 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
             <div className="flex-1 min-w-0 text-left">
               <div className="text-xs font-bold text-slate-900 truncate">
                 {displayName}
-              </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[9px] px-1 py-0.5 bg-slate-100 rounded text-slate-500 font-medium truncate">
-                  {roleLabel}
-                </span>
-                {profile?.points !== undefined && profile.points !== null && (
-                  <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5">
-                    💎 {profile.points.toLocaleString()}
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -116,22 +105,12 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
                 <div className="text-xs font-bold text-slate-900 truncate">
                   {displayName}
                 </div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[9px] px-1 py-0.5 bg-slate-100 rounded text-slate-500 font-medium truncate">
-                    {roleLabel}
-                  </span>
-                  {profile?.points !== undefined && profile.points !== null && (
-                    <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5">
-                      💎 {profile.points.toLocaleString()}
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
             <MoreHorizontal className="h-4 w-4 text-slate-400 flex-shrink-0 ml-1" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-48 bg-white">
           <DropdownMenuItem asChild>
             <Link href="/community/profile" className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />

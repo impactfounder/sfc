@@ -20,6 +20,15 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<"public" | "group">("group"); // 기본값: 그룹 공개
+  
+  // 공개 설정 옵션을 보여줄지 여부 결정
+  // slug가 없거나(일반 글쓰기), 공개 게시판 리스트에 포함되면 옵션을 숨김 (자동 전체 공개)
+  const isPublicBoard = !slug || 
+                        slug === "insights" || 
+                        slug === "free-board" || slug === "free" || 
+                        slug === "announcement" || slug === "announcements" || 
+                        slug === "event-requests";
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -33,7 +42,7 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
       await createPost({
         title,
         content,
-        visibility,
+        visibility: isPublicBoard ? "public" : visibility,
         boardCategoryId,
         communityId,
         category: slug, // slug를 category로 전달
@@ -79,6 +88,7 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
         />
       </div>
 
+      {!isPublicBoard && (
       <div className="space-y-2">
         <Label>공개 설정</Label>
         <RadioGroup
@@ -112,21 +122,28 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
           </div>
         </RadioGroup>
       </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-600">{error}</p>
       )}
 
-      <div className="flex gap-3">
-        <Button type="submit" className="flex-1" disabled={isLoading}>
-          {isLoading ? "작성 중..." : "작성하기"}
-        </Button>
+      {/* 버튼 영역 수정: 우측 정렬 및 강조 */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
+          className="h-12 px-6 text-base"
         >
           취소
+        </Button>
+        <Button 
+          type="submit" 
+          className="h-12 px-10 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all" 
+          disabled={isLoading}
+        >
+          {isLoading ? "저장 중..." : "작성하기"}
         </Button>
       </div>
     </form>

@@ -215,7 +215,7 @@ export function Sidebar({
               alt="SEOUL FOUNDERS CLUB"
               width={150}
               height={25}
-              className="mt-4 w-full max-w-[150px] object-contain"
+              className="mt-4 w-full max-w-[150px] h-auto object-contain"
               priority
             />
           </Link>

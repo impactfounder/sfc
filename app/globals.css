@@ -17,6 +17,10 @@
 }
 
 @layer base {
+  html {
+    /* 스크롤바 공간을 무조건 차지하게 해서 페이지 이동 시 너비 변화 방지 */
+    overflow-y: scroll;
+  }
   * {
     @apply border-slate-200;
   }

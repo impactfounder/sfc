@@ -61,7 +61,9 @@ export function PostsSection({
 }: PostsSectionProps) {
   
   const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
-  const [internalViewMode, setInternalViewMode] = useState<"feed" | "list">("feed")
+  // 공지사항/자유게시판은 기본값을 "list"로 설정, 나머지는 "feed"
+  const defaultViewMode = (selectedBoard === "announcement" || selectedBoard === "announcements" || selectedBoard === "free" || selectedBoard === "free-board") ? "list" : "feed"
+  const [internalViewMode, setInternalViewMode] = useState<"feed" | "list">(propViewMode && propViewMode !== "blog" ? propViewMode : defaultViewMode)
   
   // propViewMode가 있으면 그것을 사용, 없으면 내부 상태 사용
   // isInsight가 true면 자동으로 blog 모드
@@ -112,11 +114,17 @@ export function PostsSection({
     <div className="w-full space-y-6 bg-transparent">
       {/* 상단 헤더 영역: 제목 + 뷰 모드 토글 */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">최신 글</h2>
+        {/* hideTabs가 true일 때는 '최신 글' 제목 숨김 (개별 게시판에서는 PageHeader가 이미 있음) */}
+        {!hideTabs && (
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900">최신 글</h2>
+        )}
         
-        {/* 뷰 모드 토글 (블로그 모드일 때는 숨김) */}
+        {/* 뷰 모드 토글 (블로그 모드일 때는 숨김, hideTabs와 관계없이 항상 표시) */}
         {!isBlogMode && (
-          <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
+          <div className={cn(
+            "inline-flex items-center p-1 bg-slate-100/80 rounded-xl",
+            hideTabs && "ml-auto" // hideTabs일 때는 우측 정렬
+          )}>
             <button
               onClick={() => setInternalViewMode("feed")}
               className={cn(

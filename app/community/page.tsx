@@ -60,7 +60,7 @@ export default async function CommunityDashboardPage() {
   }
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+    <div className="w-full flex flex-col lg:flex-row gap-10">
       {/* [LEFT] 중앙 콘텐츠 영역 */}
       <div className="flex-1 min-w-0 flex flex-col gap-10">
         {/* 커뮤니티 섹션 */}

@@ -11,7 +11,7 @@ export default function AboutContent() {
   const [isBadgeExpanded, setIsBadgeExpanded] = useState(false)
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+    <div className="w-full flex flex-col lg:flex-row gap-10">
       <div className="flex-1 min-w-0 flex flex-col gap-10">
         
         {/* Hero Section (메인 화면과 100% 동일하게 수정됨) */}

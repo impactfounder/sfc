@@ -39,10 +39,9 @@ export default async function ProjectsPage() {
     .limit(6);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="w-full">
+      {/* Header */}
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
               프로젝트
@@ -182,7 +181,6 @@ export default async function ProjectsPage() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

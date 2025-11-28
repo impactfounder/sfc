@@ -3,8 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BoardLoading() {
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="mx-auto max-w-4xl">
+    <div className="w-full flex flex-col lg:flex-row gap-10">
+      {/* [LEFT] 콘텐츠 영역 */}
+      <div className="flex-1 min-w-0 flex flex-col gap-10">
         <div className="mb-8">
           <Skeleton className="h-10 w-48 mb-2" />
           <Skeleton className="h-5 w-96" />
@@ -25,6 +26,17 @@ export default function BoardLoading() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </div>
+
+      {/* [RIGHT] 사이드바 영역 */}
+      <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
+        <div className="sticky top-8 flex flex-col gap-6 h-fit">
+          {/* 사이드바 스켈레톤 */}
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
         </div>
       </div>
     </div>

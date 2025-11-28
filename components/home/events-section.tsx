@@ -8,6 +8,7 @@ import { Navigation } from "swiper/modules"
 import type { Swiper as SwiperType } from "swiper"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 import {
   Empty,
@@ -23,10 +24,13 @@ import "swiper/css/navigation"
 type EventsSectionProps = {
   events: EventCardEvent[]
   onCreateEvent?: () => void
+  createLink?: string
   isLoading?: boolean
+  title?: string
+  hideTitle?: boolean
 }
 
-export function EventsSection({ events, onCreateEvent, isLoading = false }: EventsSectionProps) {
+export function EventsSection({ events, onCreateEvent, createLink, isLoading = false, title = "이벤트", hideTitle = false }: EventsSectionProps) {
   const swiperRef = useRef<SwiperType | null>(null)
   const [filter, setFilter] = useState<"all" | "networking" | "class" | "activity">("all")
   const hasEvents = events && events.length > 0
@@ -40,18 +44,25 @@ export function EventsSection({ events, onCreateEvent, isLoading = false }: Even
   return (
     <div className="w-full">
       {/* 헤더 */}
-      <div className="flex items-center justify-between w-full mb-6">
-        <h2 className="text-3xl font-bold text-slate-900">이벤트</h2>
-        {onCreateEvent && (
-          <button
-            onClick={onCreateEvent}
-            className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            새 이벤트
-          </button>
-        )}
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center justify-between w-full mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900">{title}</h2>
+          {createLink ? (
+            <Link href={createLink} className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm">
+              <Plus className="w-4 h-4" />
+              새 이벤트
+            </Link>
+          ) : onCreateEvent ? (
+            <button
+              onClick={onCreateEvent}
+              className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              새 이벤트
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {/* 필터 UI */}
       {hasEvents && (

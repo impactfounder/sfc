@@ -52,7 +52,7 @@ export function BoardPageClient({
 
   if (isError) {
     return (
-      <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+      <div className="w-full flex flex-col lg:flex-row gap-10">
         <div className="flex-1 min-w-0">
           <div className="text-center py-16">
             <h2 className="text-xl font-semibold text-slate-900 mb-2">데이터를 불러오는데 실패했습니다</h2>
@@ -64,14 +64,19 @@ export function BoardPageClient({
     )
   }
 
+  // 인사이트 게시판의 경우 description 오버라이드
+  const displayDescription = slug === "insights" 
+    ? "성장에 필요한 인사이트 있는 칼럼과 팁을 공유합니다"
+    : (category.description || undefined)
+
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
+    <div className="w-full flex flex-col lg:flex-row gap-10">
       {/* [LEFT] 중앙 콘텐츠 영역 */}
       <div className="flex-1 min-w-0 flex flex-col gap-10">
         {/* PageHeader 적용 */}
         <PageHeader
           title={category.name}
-          description={category.description || undefined}
+          description={displayDescription}
         />
           {isLoading ? (
             <div className="space-y-4">

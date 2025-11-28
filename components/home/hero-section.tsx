@@ -19,23 +19,26 @@ export function HeroSection({ user, profile, onLogin }: HeroSectionProps) {
     const displayName = profile?.full_name || user.user_metadata?.full_name || "멤버"
     
     return (
-      <div className="mb-8 rounded-2xl bg-slate-900 text-white p-6 md:p-8 shadow-lg overflow-hidden relative">
+      <div className="mb-6 rounded-2xl bg-slate-900 text-white px-6 py-6 shadow-lg overflow-hidden relative min-h-[140px] flex flex-col justify-center">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[11px] font-medium mb-3 border border-white/10">
-              <Sparkles className="w-3 h-3 text-yellow-400" />
-              <span>멤버십 혜택을 누려보세요</span>
-            </div>
-            <h1 className="text-xl md:text-2xl font-bold mb-2 leading-tight">
+            <h1 className="text-xl md:text-2xl font-bold mb-1 leading-tight">
               반갑습니다, {displayName}님! 👋
             </h1>
             <p className="text-slate-300 text-sm">
               오늘도 새로운 기회와 연결될 준비가 되셨나요?
             </p>
           </div>
-          <div className="flex gap-3 shrink-0">
+          <div className="flex items-center gap-4 shrink-0">
+            {/* 포인트 표시 */}
+            <div className="hidden md:flex flex-col items-end mr-2">
+              <span className="text-[10px] text-slate-400 font-medium mb-0.5">내 포인트</span>
+              <span className="text-lg font-bold text-yellow-400 leading-none">
+                {profile?.points?.toLocaleString() ?? 0} P
+              </span>
+            </div>
             <Button onClick={() => document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white text-slate-900 hover:bg-slate-100 font-semibold border-none h-10 text-sm">
               이벤트 참여
             </Button>

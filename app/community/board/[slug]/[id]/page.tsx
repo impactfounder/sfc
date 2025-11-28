@@ -118,18 +118,20 @@ export default async function BoardPostDetailPage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* 헤더 */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-8 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      {/* 본문 Flex Layout */}
+      <div className="w-full flex flex-col lg:flex-row gap-10">
+        
+        {/* [LEFT] 메인 콘텐츠 */}
+        <div className="flex-1 min-w-0 flex flex-col gap-6">
+
+          {/* 헤더 (카드 바로 위로 이동) */}
+          <div className="flex items-center justify-between">
             <Link href={`/community/board/${slug}`}>
-              <Button variant="ghost" size="sm" className="gap-1 text-slate-600">
+              <Button variant="ghost" size="sm" className="gap-1 text-slate-600 hover:text-slate-900 -ml-2">
                 <ArrowLeft className="h-4 w-4" />
                 {boardName} 목록
               </Button>
             </Link>
-          </div>
-          <div className="flex items-center gap-2">
             {(isAuthor || isUserAdmin) && (
               <PostActions 
                 postId={post.id} 
@@ -141,14 +143,6 @@ export default async function BoardPostDetailPage({
               />
             )}
           </div>
-        </div>
-      </div>
-
-      {/* 본문 Flex Layout */}
-      <div className="w-full flex flex-col lg:flex-row gap-10 pt-8 pb-20">
-        
-        {/* [LEFT] 메인 콘텐츠 */}
-        <div className="flex-1 min-w-0 flex flex-col gap-6">
           <Card className="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden">
             <CardContent className="p-6 md:p-8">
               {/* 게시판 태그 */}
