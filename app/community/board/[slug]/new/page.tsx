@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NewBoardPostForm } from "@/components/new-board-post-form";
+import { NewPostForm } from "@/components/new-post-form";
 
 export default async function NewBoardPostPage({
   params,
@@ -37,7 +37,7 @@ export default async function NewBoardPostPage({
             <CardTitle className="text-2xl">새 글 작성 - {category.name}</CardTitle>
           </CardHeader>
           <CardContent>
-            <NewBoardPostForm slug={slug} boardCategoryId={category.id} />
+            <NewPostForm slug={slug} boardCategoryId={category.id} />
           </CardContent>
         </Card>
       </div>

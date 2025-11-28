@@ -5,8 +5,8 @@ import { getBoardCategories } from "@/lib/queries/board-categories"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { CreateCommunityButton } from "@/components/create-community-button"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import type { PostForDisplay } from "@/lib/types/posts"
 
 export default async function CommunityDashboardPage() {
   const supabase = await createClient()
@@ -38,7 +38,7 @@ export default async function CommunityDashboardPage() {
   // 각 게시글의 커뮤니티 멤버십 확인
   // 주의: communities 조인이 제거되었으므로 임시로 모든 게시글에 isMember: true 설정
   // 향후 개선: visibility가 'group'인 경우 실제 멤버십 체크 로직 추가 필요
-  const postsWithMembership = transformedPosts.map((post: any) => {
+  const postsWithMembership = transformedPosts.map((post: PostForDisplay) => {
     return { ...post, isMember: true }
   })
 
@@ -108,8 +108,6 @@ export default async function CommunityDashboardPage() {
           selectedBoard="all"
           hideTabs={false}
         />
-
-        <CreateCommunityButton />
       </div>
 
       {/* [RIGHT] 우측 사이드바 영역 (3칸) */}

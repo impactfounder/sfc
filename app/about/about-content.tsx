@@ -1,34 +1,62 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Users, Zap, Handshake, TrendingUp, ArrowRight, Target } from "lucide-react"
+import { Users, Zap, Handshake, TrendingUp, ArrowRight, Target, ChevronDown, ChevronUp } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { PageHeader } from "@/components/page-header"
 
 export default function AboutContent() {
-  console.log("🚩 About Content 시작")
+  const [isBadgeExpanded, setIsBadgeExpanded] = useState(false)
+
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 px-4 lg:px-8 pt-8 pb-20">
-      {/* [LEFT] 중앙 콘텐츠 영역 (9칸) */}
       <div className="lg:col-span-9 flex flex-col gap-10 min-w-0">
-        {/* PageHeader 적용 */}
-        <PageHeader 
-          title="새로운 가치를 만드는 사람들의 베이스캠프"
-          description="서울을 기반으로 활동하는 창업가, 투자자, 크리에이터가 모여 신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다."
-        >
-          <Link href="/auth/login">
-            <Button className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm border-0">
-              3초만에 가입하기
-            </Button>
-          </Link>
-        </PageHeader>
+        
+        {/* Hero Section (메인 화면과 100% 동일하게 수정됨) */}
+        <div className="relative w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md mb-10">
+          {/* 배경 이미지 */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop')] bg-cover bg-center opacity-20" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-slate-900/95" />
+          </div>
+
+          {/* 콘텐츠 (중앙 정렬 + 컴팩트한 패딩) */}
+          <div className="relative z-10 px-4 py-8 md:py-10 flex flex-col items-center text-center max-w-5xl mx-auto">
+            
+            {/* 뱃지 */}
+            <div className="inline-block px-3 py-0.5 mb-3 rounded-full border border-slate-600 bg-slate-800/50 text-slate-300 text-[10px] font-medium tracking-wider backdrop-blur-sm">
+              SEOUL FOUNDERS CLUB
+            </div>
+            
+            {/* 제목 */}
+            <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight tracking-tight">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">새로운 가치</span>를 만드는 사람들의 베이스캠프
+            </h1>
+            
+            {/* 설명 */}
+            <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto mb-5">
+              서울을 기반으로 활동하는 <strong>창업가, 투자자, 크리에이터</strong>가 모여<br className="hidden md:block" />
+              신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다.
+            </p>
+            
+            {/* 버튼 */}
+            <Link href="/auth/login">
+              <Button 
+                size="sm" 
+                className="h-10 px-6 text-sm bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-lg border-0"
+              >
+                3초만에 가입하기
+              </Button>
+            </Link>
+          </div>
+        </div>
           {/* 2. WHO WE ARE: 대상 명확화 */}
           <div className="py-16 px-6 bg-white border-b border-slate-100 rounded-2xl">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">우리는 서로의 레버리지입니다</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">우리는 서로의 성장 동력입니다</h2>
             <p className="text-slate-500 text-lg">각자의 영역에서 성과를 증명한 리더들이 모입니다.</p>
           </div>
 
@@ -38,7 +66,7 @@ export default function AboutContent() {
               <div className="w-20 h-20 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Target className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">창업가 & 경영진</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">창업가 & 사업가</h3>
               <p className="text-slate-500 leading-relaxed text-sm">
                 문제를 해결하고 세상을 바꾸는<br/>
                 비즈니스 빌더 (Builder)
@@ -50,7 +78,7 @@ export default function AboutContent() {
               <div className="w-20 h-20 rounded-2xl bg-green-50 flex items-center justify-center text-green-600 mb-6 group-hover:scale-110 transition-transform duration-300">
                 <TrendingUp className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">투자자 & 엑셀러레이터</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">투자자</h3>
               <p className="text-slate-500 leading-relaxed text-sm">
                 가능성을 알아보고 자원을 더해주는<br/>
                 성장 조력자 (Backer)
@@ -161,7 +189,518 @@ export default function AboutContent() {
         </div>
       </div>
 
-          {/* 4. CTA SECTION */}
+      {/* 4. 뱃지 시스템 소개 */}
+      <div className="py-20 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="mb-8 text-center text-3xl font-bold text-slate-900">
+            신뢰를 증명하는 뱃지 시스템
+          </h2>
+          <p className="text-center text-slate-600 mb-10 max-w-2xl mx-auto text-lg">
+            Seoul Founders Club의 검증된 자격과 성과를 인증받아 멤버들의 신뢰를 얻는 뱃지입니다.
+          </p>
+          
+          {/* 토글 버튼 */}
+          <div className="flex justify-center mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => setIsBadgeExpanded(!isBadgeExpanded)}
+              className="flex items-center gap-2"
+            >
+              {isBadgeExpanded ? (
+                <>
+                  접기
+                  <ChevronUp className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  뱃지 종류 자세히 보기
+                  <ChevronDown className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+
+          {isBadgeExpanded && (
+            <>
+              <div className="space-y-12">
+            {/* 개인 자산 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">💰</span>
+                개인 자산 (Asset)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-green-100/50 text-green-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">자산 5억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">순자산 5억 원 이상 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-green-100/50 text-green-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💎</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">자산 10억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">순자산 10억 원 이상 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-green-100/50 text-green-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💎</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">자산 50억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">순자산 50억 원 이상 인증</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 기업 매출 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">📈</span>
+                기업 매출 (Revenue)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">📈</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">매출 10억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">연 매출 10억 원 이상 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">📈</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">매출 50억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">연 매출 50억 원 이상 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">📈</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">매출 100억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">연 매출 100억 원 이상 인증</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 투자 규모 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">💰</span>
+                투자 규모 (Investment Tier)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-amber-100/50 text-amber-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">투자 1억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">누적 투자 집행액 1억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-amber-100/50 text-amber-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">투자 5억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">누적 투자 집행액 5억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-amber-100/50 text-amber-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">투자 10억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">누적 투자 집행액 10억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-amber-100/50 text-amber-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">투자 30억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">누적 투자 집행액 30억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-amber-100/50 text-amber-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">투자 50억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">누적 투자 집행액 50억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-amber-100/50 text-amber-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">투자 100억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">누적 투자 집행액 100억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 기업가치 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">🏙️</span>
+                기업가치 (Valuation Tier)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-indigo-100/50 text-indigo-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🏙️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">기업가치 30억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">최근 투자 유치 기준 기업가치 30억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-indigo-100/50 text-indigo-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🏙️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">기업가치 50억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">최근 투자 유치 기준 기업가치 50억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-indigo-100/50 text-indigo-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🏙️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">기업가치 100억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">최근 투자 유치 기준 기업가치 100억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-indigo-100/50 text-indigo-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🏙️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">기업가치 300억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">최근 투자 유치 기준 기업가치 300억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-indigo-100/50 text-indigo-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🏙️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">기업가치 1000억+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">최근 투자 유치 기준 기업가치 1000억 원 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-indigo-100/50 text-indigo-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🦄</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">유니콘+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">기업가치 1조 원 이상 (유니콘)</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 인플루언서 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">📣</span>
+                인플루언서 (Influence Tier)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-red-100/50 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">📣</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">팔로워 1만+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SNS 팔로워 1만 명 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-red-100/50 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🔥</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">팔로워 5만+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SNS 팔로워 5만 명 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-red-100/50 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">⭐</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">팔로워 10만+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SNS 팔로워 10만 명 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-red-100/50 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">👑</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">팔로워 20만+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SNS 팔로워 20만 명 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-red-100/50 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🚀</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">팔로워 50만+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SNS 팔로워 50만 명 이상</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-red-100/50 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🌌</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">팔로워 100만+</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SNS 팔로워 100만 명 이상</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 전문직 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">⚖️</span>
+                전문직 (Professional License)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">⚖️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">변호사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 변호사 자격 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">📘</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">공인회계사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 공인회계사 자격 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🧾</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">세무사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 세무사 자격 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💡</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">변리사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 변리사 자격 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🤝</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">노무사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 공인노무사 자격 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🩺</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">의사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 의사 면허 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🌿</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">한의사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 한의사 면허 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🐾</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">수의사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 수의사 면허 인증</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-blue-100/50 text-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">💊</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">약사</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">대한민국 약사 면허 인증</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* 커뮤니티 */}
+            <div>
+              <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <span className="text-2xl pt-1">🛡️</span>
+                커뮤니티 (Community)
+              </h3>
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-purple-100/50 text-purple-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">👑</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">선착순 100인</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SFC 초기 가입 멤버 (로열티)</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-purple-100/50 text-purple-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🛡️</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">커뮤니티 리더</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">SFC 커뮤니티 운영진 및 리더</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3 shadow-sm border-slate-200 transition-shadow hover:shadow-md bg-purple-100/50 text-purple-700">
+                  <div className="flex items-start gap-3">
+                    <div className="hidden md:block flex-shrink-0 text-xl pt-1 text-slate-700">
+                      <span className="text-2xl">🌟</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 leading-tight line-clamp-1">우수활동 회원</div>
+                      <div className="text-xs text-slate-700 mt-0.5 leading-snug line-clamp-1">커뮤니티 내 활동 지수 상위 1% 회원</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 p-4 rounded-xl bg-blue-50 border border-blue-200 text-center">
+              <p className="text-sm text-blue-700 font-medium">
+                모든 뱃지는 관리자 검증을 통해 인증되면 프로필에 표시됩니다.
+              </p>
+            </div>
+            </>
+          )}
+        </div>
+      </div>
+
+          {/* 5. CTA SECTION */}
           <div className="py-24 px-6 bg-white text-center">
             <div className="max-w-3xl mx-auto">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">

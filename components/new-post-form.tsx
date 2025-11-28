@@ -3,14 +3,20 @@
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { createPost } from "@/lib/actions/posts";
 
-export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: string; boardCategoryId?: string; communityId?: string }) {
+type NewPostFormProps = {
+  userId?: string; // Optional: 서버 액션에서 자동으로 가져옴
+  boardCategoryId?: string;
+  communityId?: string;
+  slug?: string; // 게시판 slug (리다이렉트 경로 결정용)
+}
+
+export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewPostFormProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<"public" | "group">("group"); // 기본값: 그룹 공개
@@ -30,95 +36,99 @@ export function NewPostForm({ userId, boardCategoryId, communityId }: { userId: 
         visibility,
         boardCategoryId,
         communityId,
+        category: slug, // slug를 category로 전달
       });
 
-      router.push("/community/posts");
+      // slug가 있으면 해당 게시판으로, 없으면 일반 게시글 목록으로 리다이렉트
+      if (slug) {
+        router.push(`/community/board/${slug}`);
+      } else {
+        router.push("/community/posts");
+      }
       router.refresh();
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Failed to create post");
+      setError(error instanceof Error ? error.message : "게시글 작성에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="border-slate-200">
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              placeholder="Enter a descriptive title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="mt-2"
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="title" className="text-sm font-medium text-slate-900">
+          제목
+        </Label>
+        <Input
+          id="title"
+          placeholder="제목을 입력하세요"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          className="w-full"
+        />
+      </div>
 
-          <div>
-            <Label htmlFor="content">Content</Label>
-            <div className="mt-2">
-              <RichTextEditor
-                content={content}
-                onChange={(html) => setContent(html)}
-              />
-            </div>
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="content" className="text-sm font-medium text-slate-900">
+          내용
+        </Label>
+        <RichTextEditor
+          content={content}
+          onChange={(html) => setContent(html)}
+        />
+      </div>
 
-          <div>
-            <Label>공개 설정</Label>
-            <RadioGroup
-              value={visibility}
-              onValueChange={(value) => setVisibility(value as "public" | "group")}
-              className="mt-2"
-            >
-              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                <RadioGroupItem value="public" id="public" />
-                <Label htmlFor="public" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span>🌍</span>
-                    <div>
-                      <div className="font-medium text-slate-900">전체 공개</div>
-                      <div className="text-xs text-slate-500">멤버 누구나 볼 수 있습니다.</div>
-                    </div>
-                  </div>
-                </Label>
+      <div className="space-y-2">
+        <Label>공개 설정</Label>
+        <RadioGroup
+          value={visibility}
+          onValueChange={(value) => setVisibility(value as "public" | "group")}
+          className="mt-2"
+        >
+          <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+            <RadioGroupItem value="public" id="public" />
+            <Label htmlFor="public" className="flex-1 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <span>🌍</span>
+                <div>
+                  <div className="font-medium text-slate-900">전체 공개</div>
+                  <div className="text-xs text-slate-500">멤버 누구나 볼 수 있습니다.</div>
+                </div>
               </div>
-              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                <RadioGroupItem value="group" id="group" />
-                <Label htmlFor="group" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span>🔒</span>
-                    <div>
-                      <div className="font-medium text-slate-900">그룹 공개</div>
-                      <div className="text-xs text-slate-500">이 커뮤니티 멤버만 볼 수 있습니다.</div>
-                    </div>
-                  </div>
-                </Label>
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+            <RadioGroupItem value="group" id="group" />
+            <Label htmlFor="group" className="flex-1 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <span>🔒</span>
+                <div>
+                  <div className="font-medium text-slate-900">그룹 공개</div>
+                  <div className="text-xs text-slate-500">이 커뮤니티 멤버만 볼 수 있습니다.</div>
+                </div>
               </div>
-            </RadioGroup>
+            </Label>
           </div>
+        </RadioGroup>
+      </div>
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+      {error && (
+        <p className="text-sm text-red-600">{error}</p>
+      )}
 
-          <div className="flex gap-3">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Post"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      <div className="flex gap-3">
+        <Button type="submit" className="flex-1" disabled={isLoading}>
+          {isLoading ? "작성 중..." : "작성하기"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+        >
+          취소
+        </Button>
+      </div>
+    </form>
   );
 }

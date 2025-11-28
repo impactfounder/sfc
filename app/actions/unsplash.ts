@@ -1,6 +1,8 @@
 "use server"
 
-export async function searchUnsplashImages(query: string) {
+import type { UnsplashSearchResponse } from "@/lib/types/unsplash"
+
+export async function searchUnsplashImages(query: string): Promise<UnsplashSearchResponse> {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY
 
   if (!accessKey) {

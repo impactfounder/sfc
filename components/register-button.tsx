@@ -9,6 +9,7 @@ import { CheckCircle, Loader2, Sparkles, Coins, AlertCircle, LogIn } from 'lucid
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 type CustomField = {
   id: string;
@@ -36,6 +37,7 @@ export function RegisterButton({
   const [isRegistered, setIsRegistered] = useState(initialRegistered);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   // 모달 상태
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -142,22 +144,38 @@ export function RegisterButton({
 
     // 이름/연락처 검증
     if (!guestName.trim() || !guestContact.trim()) {
-      alert("이름과 연락처를 모두 입력해주세요");
+      toast({
+        variant: "destructive",
+        title: "입력 필요",
+        description: "이름과 연락처를 모두 입력해주세요",
+      })
       return;
     }
 
     // 포인트 사용 검증
     if (usedPoints > 0) {
       if (usedPoints < 100) {
-        alert("포인트는 최소 100 P 이상부터 사용할 수 있어요.");
+        toast({
+          variant: "destructive",
+          title: "포인트 사용 오류",
+          description: "포인트는 최소 100 P 이상부터 사용할 수 있어요.",
+        })
         return;
       }
       if (usedPoints > currentUserPoints) {
-        alert("보유 포인트가 부족합니다.");
+        toast({
+          variant: "destructive",
+          title: "포인트 부족",
+          description: "보유 포인트가 부족합니다.",
+        })
         return;
       }
       if (eventPointCost && usedPoints > eventPointCost) {
-        alert(`사용 가능한 포인트는 이벤트 비용(${eventPointCost}P)을 초과할 수 없습니다.`);
+        toast({
+          variant: "destructive",
+          title: "포인트 사용 오류",
+          description: `사용 가능한 포인트는 이벤트 비용(${eventPointCost}P)을 초과할 수 없습니다.`,
+        })
         return;
       }
     }
@@ -165,7 +183,11 @@ export function RegisterButton({
     // 커스텀 필드 필수 항목 검증
     for (const field of customFields) {
       if (field.is_required && (!fieldResponses[field.id] || fieldResponses[field.id].trim() === '')) {
-        alert(`"${field.field_name}"은(는) 필수 항목입니다.`);
+        toast({
+          variant: "destructive",
+          title: "필수 항목",
+          description: `"${field.field_name}"은(는) 필수 항목입니다.`,
+        })
         return;
       }
     }
@@ -263,9 +285,14 @@ export function RegisterButton({
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to register:", error);
-      alert(error?.message || "신청에 실패했습니다. 다시 시도해주세요.");
+      const errorMessage = error instanceof Error ? error.message : "신청에 실패했습니다. 다시 시도해주세요."
+      toast({
+        variant: "destructive",
+        title: "신청 실패",
+        description: errorMessage,
+      })
     } finally {
       setIsLoading(false);
     }
@@ -274,14 +301,22 @@ export function RegisterButton({
   // 게스트 신청 처리
   const handleGuestRegister = async () => {
     if (!guestName.trim() || !guestContact.trim()) {
-      alert("이름과 연락처를 모두 입력해주세요");
+      toast({
+        variant: "destructive",
+        title: "입력 필요",
+        description: "이름과 연락처를 모두 입력해주세요",
+      })
       return;
     }
 
     // 커스텀 필드 필수 항목 검증
     for (const field of customFields) {
       if (field.is_required && (!fieldResponses[field.id] || fieldResponses[field.id].trim() === '')) {
-        alert(`"${field.field_name}"은(는) 필수 항목입니다.`);
+        toast({
+          variant: "destructive",
+          title: "필수 항목",
+          description: `"${field.field_name}"은(는) 필수 항목입니다.`,
+        })
         return;
       }
     }
@@ -325,9 +360,14 @@ export function RegisterButton({
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to register as guest:", error);
-      alert(error?.message || "참가 신청에 실패했습니다. 다시 시도해주세요.");
+      const errorMessage = error instanceof Error ? error.message : "참가 신청에 실패했습니다. 다시 시도해주세요."
+      toast({
+        variant: "destructive",
+        title: "신청 실패",
+        description: errorMessage,
+      })
     } finally {
       setIsLoading(false);
     }
@@ -351,9 +391,13 @@ export function RegisterButton({
 
       setIsRegistered(false);
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to cancel:", error);
-      alert("취소에 실패했습니다. 다시 시도해주세요.");
+      toast({
+        variant: "destructive",
+        title: "취소 실패",
+        description: "취소에 실패했습니다. 다시 시도해주세요.",
+      })
     } finally {
       setIsLoading(false);
     }

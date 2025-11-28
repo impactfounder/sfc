@@ -15,6 +15,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
 import { createEvent, updateEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
+import { cn } from "@/lib/utils"
+import type { UnsplashImage } from "@/lib/types/unsplash"
+import { useToast } from "@/hooks/use-toast"
 import { useLoadScript, Autocomplete } from "@react-google-maps/api"
 import {
   DndContext,
@@ -260,7 +263,8 @@ export function NewEventForm({
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [unsplashQuery, setUnsplashQuery] = useState("")
-  const [unsplashResults, setUnsplashResults] = useState<any[]>([])
+  const [unsplashResults, setUnsplashResults] = useState<UnsplashImage[]>([])
+  const { toast } = useToast()
   const [isSearching, setIsSearching] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
@@ -422,7 +426,11 @@ export function NewEventForm({
       setThumbnailUrl(data.url)
     } catch (error) {
       console.error("이미지 업로드 실패:", error)
-      alert("이미지 업로드 실패")
+      toast({
+        variant: "destructive",
+        title: "업로드 실패",
+        description: "이미지 업로드에 실패했습니다. 다시 시도해주세요.",
+      })
     } finally {
       setIsUploading(false)
     }
@@ -445,11 +453,19 @@ export function NewEventForm({
         }
       } else {
         // 에러 발생 시 피드백
-        alert(result.error || "이미지 검색에 실패했습니다.")
+        toast({
+          variant: "destructive",
+          title: "검색 실패",
+          description: result.error || "이미지 검색에 실패했습니다.",
+        })
       }
     } catch (error) {
       console.error("Unsplash search error:", error)
-      alert("이미지 검색 중 오류가 발생했습니다.")
+      toast({
+        variant: "destructive",
+        title: "오류 발생",
+        description: "이미지 검색 중 오류가 발생했습니다.",
+      })
     } finally {
       setIsSearching(false)
     }
@@ -465,7 +481,14 @@ export function NewEventForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title) return alert("이벤트 이름을 입력해주세요.")
+    if (!title) {
+      toast({
+        variant: "destructive",
+        title: "입력 필요",
+        description: "이벤트 이름을 입력해주세요.",
+      })
+      return
+    }
 
     setIsLoading(true)
     setError(null)
@@ -516,8 +539,14 @@ export function NewEventForm({
         else router.push("/events")
       }
       router.refresh()
-    } catch (error: any) {
-      setError(error.message || (initialData ? "이벤트 수정에 실패했습니다." : "이벤트 생성에 실패했습니다."))
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : (initialData ? "이벤트 수정에 실패했습니다." : "이벤트 생성에 실패했습니다.")
+      setError(errorMessage)
+      toast({
+        variant: "destructive",
+        title: initialData ? "수정 실패" : "생성 실패",
+        description: errorMessage,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -690,39 +719,48 @@ export function NewEventForm({
               onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
               className="flex gap-3"
             >
-              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex-1">
-                <RadioGroupItem value="networking" id="networking" />
+              <div 
+                className={cn(
+                  "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
+                  eventType === "networking" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                )}
+                onClick={() => setEventType("networking")}
+              >
+                <RadioGroupItem value="networking" id="networking" className="text-slate-900" />
                 <Label htmlFor="networking" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-500">🔵</span>
-                    <div>
-                      <div className="font-medium text-slate-900">네트워킹</div>
-                      <div className="text-xs text-slate-500">모임, 파티, 네트워킹</div>
-                    </div>
+                  <div>
+                    <div className="font-medium text-slate-900">네트워킹</div>
+                    <div className="text-xs text-slate-500">모임, 소셜링, 파티</div>
                   </div>
                 </Label>
               </div>
-              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex-1">
-                <RadioGroupItem value="class" id="class" />
+              <div 
+                className={cn(
+                  "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
+                  eventType === "class" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                )}
+                onClick={() => setEventType("class")}
+              >
+                <RadioGroupItem value="class" id="class" className="text-slate-900" />
                 <Label htmlFor="class" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="text-purple-500">🟣</span>
-                    <div>
-                      <div className="font-medium text-slate-900">클래스</div>
-                      <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
-                    </div>
+                  <div>
+                    <div className="font-medium text-slate-900">클래스</div>
+                    <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
                   </div>
                 </Label>
               </div>
-              <div className="flex items-center space-x-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex-1">
-                <RadioGroupItem value="activity" id="activity" />
+              <div 
+                className={cn(
+                  "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
+                  eventType === "activity" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                )}
+                onClick={() => setEventType("activity")}
+              >
+                <RadioGroupItem value="activity" id="activity" className="text-slate-900" />
                 <Label htmlFor="activity" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="text-green-500">🟢</span>
-                    <div>
-                      <div className="font-medium text-slate-900">액티비티</div>
-                      <div className="text-xs text-slate-500">운동, 야외 활동</div>
-                    </div>
+                  <div>
+                    <div className="font-medium text-slate-900">액티비티</div>
+                    <div className="text-xs text-slate-500">운동, 야외 활동</div>
                   </div>
                 </Label>
               </div>
@@ -791,6 +829,7 @@ export function NewEventForm({
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                 <MapPin className="h-5 w-5" />
               </div>
+              <span className="text-sm font-semibold w-12 shrink-0">장소</span>
               <div className="flex-1 relative">
                 {isLoaded && !scriptLoadError ? (
                   <Autocomplete
@@ -833,6 +872,7 @@ export function NewEventForm({
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                 <Ticket className="h-5 w-5" />
               </div>
+              <span className="text-sm font-semibold w-12 shrink-0">가격</span>
               <div className="flex items-center gap-2 w-full">
                 <Input
                   type="number"
@@ -850,6 +890,7 @@ export function NewEventForm({
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                 <Users className="h-5 w-5" />
               </div>
+              <span className="text-sm font-semibold w-12 shrink-0">인원</span>
               <div className="flex items-center gap-2 w-full">
                 <Input
                   type="number"

@@ -1,15 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, ShieldCheck, Edit } from 'lucide-react';
 import { RegisterButton } from "@/components/register-button";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { EventActionButtons } from "@/components/event-action-buttons";
 import { EventShareButton } from "@/components/event-share-button";
+import { DeleteEventButton } from "@/components/delete-event-button";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -173,10 +173,6 @@ export default async function EventDetailPage({
             </div>
             이벤트 목록
           </Link>
-          
-          {isCreator && user && (
-            <EventActionButtons eventId={id} userId={user.id} />
-          )}
         </div>
 
         <div className="flex flex-col gap-8">
@@ -278,39 +274,71 @@ export default async function EventDetailPage({
                       이벤트가 종료되었습니다
                     </Button>
                   ) : isCreator ? (
-                    <Link href={`/events/${id}/manage`}>
-                      <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 text-base font-medium transition-all shadow-sm hover:shadow-md active:scale-[0.98] transform">
-                        <Settings className="mr-2 h-5 w-5" />
-                        이벤트 관리
-                      </Button>
-                    </Link>
+                    <>
+                      {/* 버튼 1: 이벤트 수정 */}
+                      <Link href={`/events/${id}/edit`}>
+                        <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-12 text-base font-medium">
+                          <Edit className="mr-2 h-5 w-5" />
+                          이벤트 수정
+                        </Button>
+                      </Link>
+
+                      {/* 버튼 2: 참석자 관리 */}
+                      <Link href={`/events/${id}/manage`}>
+                        <Button variant="outline" className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-12 text-base font-medium mt-3">
+                          <Users className="mr-2 h-5 w-5" />
+                          참석자 관리
+                        </Button>
+                      </Link>
+
+                      {/* 버튼 3: 공유하기 */}
+                      <EventShareButton
+                        title={event.title}
+                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                        variant="outline"
+                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow mt-3"
+                      >
+                        공유하기
+                      </EventShareButton>
+
+                      {/* 버튼 4: 이벤트 삭제 */}
+                      <div className="mt-3">
+                        <DeleteEventButton
+                          eventId={id}
+                          variant="outline"
+                          className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11"
+                        />
+                      </div>
+                    </>
                   ) : (
-                    <RegisterButton
-                      eventId={event.id}
-                      userId={user?.id}
-                      isRegistered={isRegistered}
-                      isFull={!!isFull}
-                      userPoints={userPoints}
-                      eventPointCost={event.point_cost || undefined}
-                    />
-                  )}
-                  
-                  {!isRegistered && !isPastEvent && !isCreator && (
-                    <p className="text-xs text-center text-slate-400 mt-4 font-medium">
-                      신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
-                    </p>
-                  )}
+                    <>
+                      <RegisterButton
+                        eventId={event.id}
+                        userId={user?.id}
+                        isRegistered={isRegistered}
+                        isFull={!!isFull}
+                        userPoints={userPoints}
+                        eventPointCost={event.point_cost || undefined}
+                      />
+                      
+                      {!isRegistered && (
+                        <p className="text-xs text-center text-slate-400 mt-4 font-medium">
+                          신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
+                        </p>
+                      )}
 
-                  <Separator className="my-4 bg-slate-100" />
+                      <Separator className="my-4 bg-slate-100" />
 
-                  <EventShareButton
-                    title={event.title}
-                    description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                    variant="outline"
-                    className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow"
-                  >
-                    이 이벤트 공유하기
-                  </EventShareButton>
+                      <EventShareButton
+                        title={event.title}
+                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                        variant="outline"
+                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-11 font-medium transition-all shadow-sm hover:shadow"
+                      >
+                        공유하기
+                      </EventShareButton>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

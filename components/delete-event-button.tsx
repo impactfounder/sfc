@@ -18,9 +18,13 @@ import { deleteEvent } from "@/lib/actions/events"
 
 type DeleteEventButtonProps = {
   eventId: string
+  className?: string
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  size?: "default" | "sm" | "lg" | "icon"
+  label?: string
 }
 
-export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
+export function DeleteEventButton({ eventId, className, variant = "outline", size = "sm", label = "이벤트 삭제" }: DeleteEventButtonProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
@@ -43,13 +47,13 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
   return (
     <>
       <Button
-        variant="outline"
-        size="sm"
-        className="bg-white border-red-300 text-red-600 hover:bg-red-50"
+        variant={variant}
+        size={size}
+        className={className || "bg-white border-red-300 text-red-600 hover:bg-red-50"}
         onClick={() => setShowDeleteDialog(true)}
       >
         <Trash2 className="mr-2 h-3.5 w-3.5" />
-        삭제
+        {label}
       </Button>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

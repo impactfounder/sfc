@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { DailyLoginChecker } from "@/components/daily-login-checker"
 import { MobileActionBar } from "@/components/mobile-action-bar"
+import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import Providers from "./providers"
 
@@ -80,12 +81,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body className={cn(inter.className, "pb-16 lg:pb-0")}>
+        {/* Providers가 최상위에서 감싸야 합니다 */}
         <Providers>
           <DailyLoginChecker />
           {children}
           <MobileActionBar />
+          <Toaster />
         </Providers>
       </body>
     </html>

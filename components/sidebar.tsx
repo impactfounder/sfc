@@ -197,7 +197,7 @@ export function Sidebar({
         <div className="border-b border-slate-100">
           
           {/* 로고 & 타이틀 */}
-          <Link href="/" className="flex flex-col items-center justify-center px-6 py-6">
+          <Link href="/" className="flex flex-col items-center justify-center px-6 py-8 hover:opacity-80 transition-opacity">
             <Image
               src="/images/logo.png"
               alt="Seoul Founders Club"
@@ -209,9 +209,9 @@ export function Sidebar({
             <Image
               src="/images/logo-text.png"
               alt="SEOUL FOUNDERS CLUB"
-              width={180}
-              height={30}
-              className="mt-4 w-44"
+              width={240}
+              height={40}
+              className="mt-5 w-56"
               priority
             />
           </Link>
