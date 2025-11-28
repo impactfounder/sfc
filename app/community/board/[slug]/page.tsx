@@ -3,40 +3,8 @@ import { notFound } from 'next/navigation';
 import { isAdmin } from "@/lib/utils";
 import { BoardPageClient } from "./board-page-client";
 
-// 전체 공개 게시판 slug 목록
+// 전체 공개 게시판 slug 목록 (참고용, 메타데이터 생성에선 안 쓰지만 로직엔 필요할 수 있음)
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
-
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  
-  if (!category) {
-    return {
-      title: "게시판을 찾을 수 없습니다",
-    };
-  }
-
-  const title = `${category.name} | Seoul Founders Club`;
-  const description = category.description || `${category.name} 게시판입니다.`;
-
-  return {
-    title,
-    description,
-    openGraph: isPublic ? {
-      title,
-      description,
-      url: `${siteUrl}/community/board/${slug}`,
-      siteName: "Seoul Founders Club",
-      type: "website",
-    } : undefined,
-    robots: isPublic ? {
-      index: true,
-      follow: true,
-    } : {
-      index: false,
-      follow: false,
-    },
-  };
-}
 
 export default async function BoardPage({
   params,
