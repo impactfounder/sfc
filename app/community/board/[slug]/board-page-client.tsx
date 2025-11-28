@@ -95,7 +95,13 @@ export function BoardPageClient({
               hideTabs={true}
               isLoading={isLoading}
               isInsight={slug === "insights"}
-              viewMode={slug === "insights" ? "blog" : undefined}
+              viewMode={
+                slug === "insights" 
+                  ? "blog" 
+                  : (slug === "free" || dbSlug === "free-board") 
+                    ? "feed" 
+                    : undefined
+              }
             />
           )}
         </div>
