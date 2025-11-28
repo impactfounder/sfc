@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical, Target } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -300,18 +300,23 @@ export function NewEventForm({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const router = useRouter()
 
-  // Google Maps 스크립트 로드
+  // Google Maps API 키 확인
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+  const hasApiKey = googleMapsApiKey.length > 0
+
+  // Google Maps 스크립트 로드 (API 키가 있을 때만)
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries,
+    googleMapsApiKey: hasApiKey ? googleMapsApiKey : "",
+    libraries: hasApiKey ? libraries : [],
+    ...(hasApiKey ? {} : { preventGoogleFontsLoading: true }),
   })
 
   // 스크립트 로드 실패 시 fallback 활성화
   useEffect(() => {
-    if (loadError) {
+    if (loadError || !hasApiKey) {
       setScriptLoadError(true)
     }
-  }, [loadError])
+  }, [loadError, hasApiKey])
 
   // 시간 옵션 생성
   const generateTimeOptions = () => {
@@ -711,57 +716,7 @@ export function NewEventForm({
         {/* [Right] Event Info Section (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           
-          {/* Event Type Selection */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700">이벤트 유형</Label>
-            <RadioGroup
-              value={eventType}
-              onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
-              className="flex gap-3"
-            >
-              <label
-                htmlFor="networking"
-                className={cn(
-                  "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
-                  eventType === "networking" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
-                )}
-              >
-                <RadioGroupItem value="networking" id="networking" className="text-slate-900" />
-                <div className="flex-1">
-                  <div className="font-medium text-slate-900">네트워킹</div>
-                  <div className="text-xs text-slate-500">모임, 소셜링, 파티</div>
-                </div>
-              </label>
-              <label
-                htmlFor="class"
-                className={cn(
-                  "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
-                  eventType === "class" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
-                )}
-              >
-                <RadioGroupItem value="class" id="class" className="text-slate-900" />
-                <div className="flex-1">
-                  <div className="font-medium text-slate-900">클래스</div>
-                  <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
-                </div>
-              </label>
-              <label
-                htmlFor="activity"
-                className={cn(
-                  "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
-                  eventType === "activity" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
-                )}
-              >
-                <RadioGroupItem value="activity" id="activity" className="text-slate-900" />
-                <div className="flex-1">
-                  <div className="font-medium text-slate-900">액티비티</div>
-                  <div className="text-xs text-slate-500">운동, 야외 활동</div>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
-
-          {/* Title Input (Big & Bold like Luma) */}
+          {/* Title Input (Big & Bold like Luma) - 최상단 */}
           <div>
             <input
               type="text"
@@ -825,7 +780,7 @@ export function NewEventForm({
               </div>
               <span className="text-sm font-semibold w-12 shrink-0">장소</span>
               <div className="flex-1 relative">
-                {isLoaded && !scriptLoadError ? (
+                {hasApiKey && isLoaded && !scriptLoadError ? (
                   <Autocomplete
                     onLoad={(autocomplete) => {
                       autocompleteRef.current = autocomplete
@@ -851,11 +806,10 @@ export function NewEventForm({
                   </Autocomplete>
                 ) : (
                   <Input
-                    placeholder={isLoaded ? "강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등" : "지도를 불러오는 중..."}
+                    placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
-                    disabled={!isLoaded && !scriptLoadError}
                   />
                 )}
               </div>
@@ -893,6 +847,61 @@ export function NewEventForm({
                   onChange={(e) => setMaxParticipants(e.target.value)}
                   className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
                 />
+              </div>
+            </div>
+
+            {/* Event Type Row */}
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
+                <Target className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-semibold block mb-2">이벤트 유형</span>
+                <RadioGroup
+                  value={eventType}
+                  onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
+                  className="grid grid-cols-3 gap-3 w-full"
+                >
+                  <label
+                    htmlFor="networking"
+                    className={cn(
+                      "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all w-full cursor-pointer",
+                      eventType === "networking" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                    )}
+                  >
+                    <RadioGroupItem value="networking" id="networking" className="text-slate-900" />
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900">네트워킹</div>
+                      <div className="text-xs text-slate-500">모임, 소셜링, 파티</div>
+                    </div>
+                  </label>
+                  <label
+                    htmlFor="class"
+                    className={cn(
+                      "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all w-full cursor-pointer",
+                      eventType === "class" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                    )}
+                  >
+                    <RadioGroupItem value="class" id="class" className="text-slate-900" />
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900">클래스</div>
+                      <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
+                    </div>
+                  </label>
+                  <label
+                    htmlFor="activity"
+                    className={cn(
+                      "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all w-full cursor-pointer",
+                      eventType === "activity" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                    )}
+                  >
+                    <RadioGroupItem value="activity" id="activity" className="text-slate-900" />
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900">액티비티</div>
+                      <div className="text-xs text-slate-500">운동, 야외 활동</div>
+                    </div>
+                  </label>
+                </RadioGroup>
               </div>
             </div>
           </div>
@@ -990,11 +999,11 @@ export function NewEventForm({
         </div>
       )}
 
-      <div className="flex justify-end pt-6 border-t border-slate-100 sticky bottom-0 bg-slate-50 z-10 pb-10">
+      <div className="sticky bottom-0 z-20 bg-slate-50/80 backdrop-blur-md border-t border-slate-200/60 py-4 px-6 mt-8 flex justify-end">
         <Button 
           type="submit" 
           size="lg" 
-          className="bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-full text-base font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+          className="bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-full text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300"
           disabled={isLoading}
         >
           {isLoading ? (

@@ -71,9 +71,9 @@ export function RegisterButton({
           if (data) {
             setUserProfile({ full_name: data.full_name || undefined, email: data.email || undefined });
             setCurrentUserPoints(data.points || 0);
-            // 로그인 유저의 이름/연락처 초기값 설정
+            // 로그인 유저의 이름 초기값 설정 (연락처는 빈 값으로 시작)
             if (data.full_name) setGuestName(data.full_name);
-            if (data.email) setGuestContact(data.email);
+            setGuestContact(""); // 연락처는 항상 빈 값으로 시작
           }
         });
     } else if (userPoints !== undefined) {

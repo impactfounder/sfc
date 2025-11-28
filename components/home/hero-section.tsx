@@ -79,9 +79,17 @@ export function HeroSection({ user, profile, onLogin }: HeroSectionProps) {
         </h1>
         
         {/* 서브 카피 */}
-        <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto mb-5">
-          서울을 기반으로 활동하는 <strong>창업가, 투자자, 크리에이터</strong>가 모여<br className="hidden md:block" /> 신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다.
-        </p>
+        <div className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto mb-5">
+          <p>
+            서울을 기반으로 활동하는 <strong>창업가, 투자자, 크리에이터</strong>가 모여
+          </p>
+          <p className="hidden md:block">
+            신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다.
+          </p>
+          <p className="md:hidden">
+            신뢰를 바탕으로 연결되고, 함께 성장하는 비즈니스 커뮤니티입니다.
+          </p>
+        </div>
         
         {/* CTA Button */}
         <div className="flex flex-col sm:flex-row items-center justify-center w-full">
