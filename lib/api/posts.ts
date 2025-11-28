@@ -21,6 +21,9 @@ export const fetchPosts = async ({
   if (categorySlug === 'announcements') {
     dbSlug = 'announcement'
   }
+  if (categorySlug === 'insights') {
+    dbSlug = 'insights'
+  }
 
   // categorySlug가 "all"이 아닐 때는 !inner로 강제하여 엄격한 필터링
   let query

@@ -81,7 +81,7 @@ export function BoardPageClient({
                 <Link href="/auth/login">
                   <Button className="bg-white text-slate-900 hover:bg-slate-100 transition-all font-bold border-0 shadow-sm">
                     <Plus className="h-4 w-4 mr-2" />
-                    로그인하고 글쓰기
+                    글 작성하기
                   </Button>
                 </Link>
               )}
@@ -104,6 +104,8 @@ export function BoardPageClient({
               selectedBoard={dbSlug}
               hideTabs={true}
               isLoading={isLoading}
+              isInsight={slug === "insights"}
+              viewMode={slug === "insights" ? "blog" : undefined}
             />
           )}
         </div>

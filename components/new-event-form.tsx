@@ -719,51 +719,45 @@ export function NewEventForm({
               onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
               className="flex gap-3"
             >
-              <div 
+              <label
+                htmlFor="networking"
                 className={cn(
                   "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
                   eventType === "networking" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
                 )}
-                onClick={() => setEventType("networking")}
               >
                 <RadioGroupItem value="networking" id="networking" className="text-slate-900" />
-                <Label htmlFor="networking" className="flex-1 cursor-pointer">
-                  <div>
-                    <div className="font-medium text-slate-900">네트워킹</div>
-                    <div className="text-xs text-slate-500">모임, 소셜링, 파티</div>
-                  </div>
-                </Label>
-              </div>
-              <div 
+                <div className="flex-1">
+                  <div className="font-medium text-slate-900">네트워킹</div>
+                  <div className="text-xs text-slate-500">모임, 소셜링, 파티</div>
+                </div>
+              </label>
+              <label
+                htmlFor="class"
                 className={cn(
                   "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
                   eventType === "class" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
                 )}
-                onClick={() => setEventType("class")}
               >
                 <RadioGroupItem value="class" id="class" className="text-slate-900" />
-                <Label htmlFor="class" className="flex-1 cursor-pointer">
-                  <div>
-                    <div className="font-medium text-slate-900">클래스</div>
-                    <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
-                  </div>
-                </Label>
-              </div>
-              <div 
+                <div className="flex-1">
+                  <div className="font-medium text-slate-900">클래스</div>
+                  <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
+                </div>
+              </label>
+              <label
+                htmlFor="activity"
                 className={cn(
                   "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all flex-1 cursor-pointer",
                   eventType === "activity" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
                 )}
-                onClick={() => setEventType("activity")}
               >
                 <RadioGroupItem value="activity" id="activity" className="text-slate-900" />
-                <Label htmlFor="activity" className="flex-1 cursor-pointer">
-                  <div>
-                    <div className="font-medium text-slate-900">액티비티</div>
-                    <div className="text-xs text-slate-500">운동, 야외 활동</div>
-                  </div>
-                </Label>
-              </div>
+                <div className="flex-1">
+                  <div className="font-medium text-slate-900">액티비티</div>
+                  <div className="text-xs text-slate-500">운동, 야외 활동</div>
+                </div>
+              </label>
             </RadioGroup>
           </div>
 

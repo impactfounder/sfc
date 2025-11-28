@@ -45,7 +45,7 @@ export default async function PostsPage() {
             <Link href="/auth/login">
               <Button className="gap-2 transition-all active:scale-[0.98] hover:shadow-lg">
                 <Plus className="h-4 w-4" />
-                로그인하고 글쓰기
+                글 작성하기
               </Button>
             </Link>
           )}
@@ -99,7 +99,7 @@ export default async function PostsPage() {
                   </Link>
                 ) : (
                   <Link href="/auth/login">
-                    <Button className="transition-all active:scale-[0.98] hover:shadow-lg">로그인하고 글쓰기</Button>
+                    <Button className="transition-all active:scale-[0.98] hover:shadow-lg">글 작성하기</Button>
                   </Link>
                 )}
               </CardContent>

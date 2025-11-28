@@ -20,6 +20,7 @@ export async function generateMetadata({
   let dbSlug = slug;
   if (slug === 'free') dbSlug = 'free-board';
   if (slug === 'announcements') dbSlug = 'announcement';
+  if (slug === 'insights') dbSlug = 'insights';
   
   const { data: category } = await supabase
     .from("board_categories")
@@ -86,8 +87,13 @@ export default async function BoardPage({
     console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
   }
 
+  // insights slug 매핑
+  if (slug === 'insights') {
+    dbSlug = 'insights';
+  }
+
   // 매핑 검증: 유효한 슬러그인지 확인
-  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests'];
+  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests', 'insights'];
   if (!validSlugs.includes(dbSlug)) {
     console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
     notFound();

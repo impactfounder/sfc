@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { PostListItem } from "@/components/ui/post-list-item"
+import { InsightCard } from "@/components/ui/insight-card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle, EmptyMedia } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -44,6 +45,8 @@ interface PostsSectionProps {
   onBoardChange?: (slug: string) => void
   isLoading?: boolean
   hideTabs?: boolean // 카테고리 필터 탭 숨기기 (개별 게시판용)
+  viewMode?: "feed" | "list" | "blog" // blog 모드 추가
+  isInsight?: boolean // 인사이트 게시판 여부 (viewMode="blog"와 동일 효과)
 }
 
 export function PostsSection({ 
@@ -52,11 +55,18 @@ export function PostsSection({
   selectedBoard = "all",
   onBoardChange,
   isLoading = false,
-  hideTabs = false
+  hideTabs = false,
+  viewMode: propViewMode,
+  isInsight = false
 }: PostsSectionProps) {
   
   const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
-  const [viewMode, setViewMode] = useState<"feed" | "list">("feed")
+  const [internalViewMode, setInternalViewMode] = useState<"feed" | "list">("feed")
+  
+  // propViewMode가 있으면 그것을 사용, 없으면 내부 상태 사용
+  // isInsight가 true면 자동으로 blog 모드
+  const viewMode = isInsight ? "blog" : (propViewMode || internalViewMode)
+  const isBlogMode = viewMode === "blog"
   const currentBoard = onBoardChange ? selectedBoard : internalSelectedBoard
   const handleBoardChange = onBoardChange 
     ? onBoardChange 
@@ -104,33 +114,35 @@ export function PostsSection({
       <div className="flex items-center justify-between">
         <h2 className="text-2xl md:text-3xl font-bold text-slate-900">최신 글</h2>
         
-        {/* 뷰 모드 토글 (카테고리 필터와 동일한 디자인 적용) */}
-        <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
-          <button
-            onClick={() => setViewMode("feed")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-              viewMode === "feed"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-500 hover:text-slate-700"
-            )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">피드형</span>
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-              viewMode === "list"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-500 hover:text-slate-700"
-            )}
-          >
-            <List className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">리스트형</span>
-          </button>
-        </div>
+        {/* 뷰 모드 토글 (블로그 모드일 때는 숨김) */}
+        {!isBlogMode && (
+          <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
+            <button
+              onClick={() => setInternalViewMode("feed")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                viewMode === "feed"
+                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">피드형</span>
+            </button>
+            <button
+              onClick={() => setInternalViewMode("list")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                viewMode === "list"
+                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <List className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">리스트형</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 카테고리 필터 (hideTabs가 false일 때만 표시) */}
@@ -167,24 +179,65 @@ export function PostsSection({
       )}
 
       {/* Posts List */}
-      {/* 리스트 뷰일 때는 space-y-4(간격) 제거 */}
+      {/* 블로그 모드일 때는 space-y-6, 리스트 뷰일 때는 space-y-0 */}
       <div className={cn(
         "w-full",
-        viewMode === "feed" ? "space-y-4" : "space-y-0 flex flex-col border-t border-slate-100"
+        isBlogMode 
+          ? "space-y-6" 
+          : viewMode === "feed" 
+            ? "space-y-4" 
+            : "space-y-0 flex flex-col border-t border-slate-100"
       )}>
         {isLoading ? (
-          [1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className={cn(
-              "w-full bg-white",
-              viewMode === "feed" ? "h-24 rounded-xl border border-gray-200 p-4" : "h-16 border-b border-gray-100 px-4 py-3"
-            )}>
-              <Skeleton className="h-4 w-3/4 mb-2" />
-              <Skeleton className="h-3 w-1/4" />
-            </div>
-          ))
+          [1, 2, 3, 4, 5].map((i) => {
+            // 블로그 모드일 때는 블로그 스타일 스켈레톤
+            if (isBlogMode) {
+              return (
+                <div key={i} className="w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="flex-1 p-6 md:p-8">
+                      <Skeleton className="h-5 w-20 mb-3" />
+                      <Skeleton className="h-7 w-3/4 mb-3" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3 mb-6" />
+                      <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </div>
+                    <Skeleton className="w-full md:w-64 lg:w-80 h-48 md:h-full" />
+                  </div>
+                </div>
+              )
+            }
+            
+            // 일반 모드 스켈레톤
+            return (
+              <div key={i} className={cn(
+                "w-full bg-white",
+                viewMode === "feed" ? "h-24 rounded-xl border border-gray-200 p-4" : "h-16 border-b border-gray-100 px-4 py-3"
+              )}>
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/4" />
+              </div>
+            )
+          })
         ) : filteredPosts.length > 0 ? (
           filteredPosts.map((post) => {
             const boardSlug = post.board_categories?.slug || "free-board"
+            
+            // 블로그 모드일 때 InsightCard 사용
+            if (isBlogMode) {
+              return (
+                <InsightCard
+                  key={post.id}
+                  post={post}
+                  href={`/community/board/${boardSlug}/${post.id}`}
+                />
+              )
+            }
+            
+            // 일반 모드일 때 PostListItem 사용
             return (
               <PostListItem
                 key={post.id}
