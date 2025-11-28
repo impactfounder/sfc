@@ -1050,6 +1050,7 @@ export default function ProfilePage() {
               
               {/* 상단 통계 카드 (클릭 가능) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* 포인트 숨김
                 <StatCard 
                   title="포인트" 
                   count={profile?.points || 0} 
@@ -1057,6 +1058,7 @@ export default function ProfilePage() {
                   icon={Coins}
                   colorClass="bg-white border-slate-200"
                 />
+                */}
                 <StatCard 
                   title="작성한 게시글" 
                   count={userPosts.length} 
@@ -1081,7 +1083,7 @@ export default function ProfilePage() {
               <Card className="border-slate-200 bg-white shadow-sm min-h-[400px]">
                 <CardHeader className="pb-4 border-b border-slate-100 bg-white">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    {activeTab === "points" && <><Coins className="h-5 w-5 text-amber-500" /> 포인트 내역</>}
+                    {/* {activeTab === "points" && <><Coins className="h-5 w-5 text-amber-500" /> 포인트 내역</>} */}
                     {activeTab === "posts" && <><Edit3 className="h-5 w-5 text-blue-500" /> 작성한 게시글</>}
                     {activeTab === "created_events" && <><CalendarDays className="h-5 w-5 text-green-500" /> 만든 이벤트</>}
                     {activeTab === "participated_events" && <><Ticket className="h-5 w-5 text-purple-500" /> 참석 신청</>}
@@ -1092,8 +1094,8 @@ export default function ProfilePage() {
                   style={{ scrollbarGutter: 'stable' }}
                 >
                   
-                  {/* 1. 포인트 내역 리스트 */}
-                  {activeTab === "points" && (
+                  {/* 1. 포인트 내역 리스트 (숨김) */}
+                  {/* {activeTab === "points" && (
                     <div className="divide-y divide-slate-100">
                       {transactions.length > 0 ? (
                         transactions.map((tx: PointTransaction) => (
@@ -1113,7 +1115,7 @@ export default function ProfilePage() {
                         <EmptyState message="포인트 내역이 없습니다." />
                       )}
                     </div>
-                  )}
+                  )} */}
 
                   {/* 2. 작성한 게시글 리스트 */}
                   {activeTab === "posts" && (

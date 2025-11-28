@@ -11,40 +11,9 @@ import { UserBadges } from "@/components/user-badges";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StandardRightSidebar } from "@/components/standard-right-sidebar";
 import { isMasterAdmin, isAdmin } from "@/lib/utils";
-import type { Metadata } from "next";
 
 // 전체 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights", "reviews"];
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string; id: string }>;
-}): Promise<Metadata> {
-  const { slug, id } = await params;
-  const supabase = await createClient();
-  
-  let dbSlug = slug;
-  if (slug === 'free') dbSlug = 'free-board';
-  if (slug === 'announcements') dbSlug = 'announcement';
-  
-  const { data: post } = await supabase
-    .from("posts")
-    .select("title, content")
-    .eq("id", id)
-    .single();
-
-  if (!post) return { title: "게시글을 찾을 수 없습니다" };
-
-  const isPublic = PUBLIC_BOARDS.includes(slug);
-  const cleanContent = post.content?.replace(/<[^>]*>/g, "").substring(0, 100) || "";
-
-  return {
-    title: `${post.title} | Seoul Founders Club`,
-    description: cleanContent,
-    robots: isPublic ? { index: true, follow: true } : { index: false, follow: false },
-  };
-}
 
 export default async function BoardPostDetailPage({
   params,

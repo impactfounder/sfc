@@ -10,37 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { EventShareButton } from "@/components/event-share-button";
 import { DeleteEventButton } from "@/components/delete-event-button";
-import type { Metadata } from "next";
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const supabase = await createClient();
-
-  const { data: event } = await supabase
-    .from("events")
-    .select("title, description")
-    .eq("id", id)
-    .single();
-
-  if (!event) {
-    return {
-      title: "이벤트를 찾을 수 없습니다",
-    };
-  }
-
-  const cleanDescription = event.description
-    ? event.description.replace(/<[^>]*>/g, "").substring(0, 160)
-    : "서울 파운더스 클럽 이벤트";
-
-  return {
-    title: `${event.title} | Seoul Founders Club`,
-    description: cleanDescription,
-  };
-}
 
 export default async function EventDetailPage({
   params,
@@ -92,7 +61,7 @@ export default async function EventDetailPage({
     const [registrationResult, profileResult] = await Promise.all([
       supabase
         .from("event_registrations")
-        .select("id")
+        .select("id, payment_status")
         .eq("event_id", id)
         .eq("user_id", user.id)
         .single(),
@@ -308,9 +277,9 @@ export default async function EventDetailPage({
                         eventId={event.id}
                         userId={user?.id}
                         isRegistered={isRegistered}
+                        paymentStatus={userRegistration?.payment_status}
                         isFull={!!isFull}
-                        userPoints={userPoints}
-                        eventPointCost={event.point_cost || undefined}
+                        price={event.price || 0}
                       />
                       
                       {!isRegistered && (
@@ -466,9 +435,9 @@ export default async function EventDetailPage({
                 eventId={event.id}
                 userId={user?.id}
                 isRegistered={isRegistered}
+                paymentStatus={userRegistration?.payment_status}
                 isFull={!!isFull}
-                userPoints={userPoints}
-                eventPointCost={event.point_cost || undefined}
+                price={event.price || 0}
               />
             )}
           </div>

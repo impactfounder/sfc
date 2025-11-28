@@ -128,10 +128,11 @@ export function UserManagementRow({
           <div className="text-sm text-slate-600">{user.email || "-"}</div>
         </TableCell>
 
-        {/* 포인트 */}
-        <TableCell className="py-4">
+        {/* 포인트 숨김 */}
+        {/* <TableCell className="py-4">
           <div className="font-medium text-slate-900">{formatPoints(user.points)}</div>
         </TableCell>
+        */}
 
         {/* 등급 */}
         <TableCell className="py-4">

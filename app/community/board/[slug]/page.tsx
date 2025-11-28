@@ -1,33 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
 import { isAdmin } from "@/lib/utils";
-import type { Metadata } from "next";
 import { BoardPageClient } from "./board-page-client";
 
 // 전체 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
-
-// 동적 metadata 생성
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const supabase = await createClient();
-  
-  // URL 슬러그를 DB 슬러그로 매핑
-  let dbSlug = slug;
-  if (slug === 'free') dbSlug = 'free-board';
-  if (slug === 'announcements') dbSlug = 'announcement';
-  if (slug === 'insights') dbSlug = 'insights';
-  
-  const { data: category } = await supabase
-    .from("board_categories")
-    .select("name, description")
-    .eq("slug", dbSlug)
-    .eq("is_active", true)
-    .maybeSingle();
 
   const isPublic = PUBLIC_BOARDS.includes(slug);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";

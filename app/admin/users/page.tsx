@@ -42,7 +42,7 @@ export default async function UsersManagementPage() {
                   <TableRow>
                     <TableHead>이름</TableHead>
                     <TableHead>이메일</TableHead>
-                    <TableHead>포인트</TableHead>
+                    {/* <TableHead>포인트</TableHead> */}
                     <TableHead>등급</TableHead>
                     <TableHead>가입일</TableHead>
                     <TableHead className="text-right">관리</TableHead>

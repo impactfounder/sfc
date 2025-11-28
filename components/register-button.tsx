@@ -1,38 +1,46 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
-import { CheckCircle, Loader2, Sparkles, Coins, AlertCircle, LogIn } from 'lucide-react';
+import { CheckCircle, Loader2, LogIn } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { TossPaymentWidget } from "@/components/payment/toss-payment-widget";
 
 type CustomField = {
   id: string;
   field_name: string;
-  field_type: 'text' | 'select';
+  field_type: "text" | "select";
   field_options: string[] | null;
   is_required: boolean;
 };
+
+// [추가] 짧고 유니크한 주문 ID 생성 함수 (64자 제한 준수)
+function generateOrderId() {
+  const timestamp = Date.now().toString(36); // 타임스탬프를 36진수로 변환 (짧아짐)
+  const random = Math.random().toString(36).substring(2, 9); // 랜덤 문자열
+  return `ORD-${timestamp}-${random}`.toUpperCase();
+}
 
 export function RegisterButton({
   eventId,
   userId,
   isRegistered: initialRegistered,
   isFull,
-  userPoints,
-  eventPointCost,
+  price = 0,
+  paymentStatus = 'pending',
 }: {
   eventId: string;
   userId?: string;
   isRegistered: boolean;
   isFull: boolean;
-  userPoints?: number;
-  eventPointCost?: number;
+  price?: number | null;
+  paymentStatus?: string;
 }) {
   const [isRegistered, setIsRegistered] = useState(initialRegistered);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,52 +49,37 @@ export function RegisterButton({
 
   // 모달 상태
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentOrderId, setPaymentOrderId] = useState("");
   const [isLoadingFields, setIsLoadingFields] = useState(false);
 
-  // 로그인 사용자 정보
+  // 사용자 정보
   const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string } | null>(null);
-
-  // 게스트 정보
   const [guestName, setGuestName] = useState("");
   const [guestContact, setGuestContact] = useState("");
-
-  // 포인트 관련
-  const [usedPoints, setUsedPoints] = useState<number>(0);
-  const [currentUserPoints, setCurrentUserPoints] = useState<number>(userPoints || 0);
-
-  // 커스텀 필드 관련
+  
+  // 커스텀 필드
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [fieldResponses, setFieldResponses] = useState<Record<string, string>>({});
 
-  // 사용자 프로필 및 포인트 로드
+  // 사용자 프로필 로드
   useEffect(() => {
     if (userId) {
       const supabase = createClient();
-      supabase
-        .from("profiles")
-        .select("full_name, email, points")
-        .eq("id", userId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setUserProfile({ full_name: data.full_name || undefined, email: data.email || undefined });
-            setCurrentUserPoints(data.points || 0);
-            // 로그인 유저의 이름 초기값 설정 (연락처는 빈 값으로 시작)
-            if (data.full_name) setGuestName(data.full_name);
-            setGuestContact(""); // 연락처는 항상 빈 값으로 시작
-          }
-        });
-    } else if (userPoints !== undefined) {
-      setCurrentUserPoints(userPoints);
+      supabase.from("profiles").select("full_name, email").eq("id", userId).single().then(({ data }) => {
+        if (data) {
+          setUserProfile({ full_name: data.full_name || undefined, email: data.email || undefined });
+          if (data.full_name) setGuestName(data.full_name);
+        }
+      });
     }
-  }, [userId, userPoints]);
+  }, [userId]);
 
-  // 커스텀 필드 불러오기
+  // 커스텀 필드 로드
   const loadCustomFields = async () => {
     const supabase = createClient();
     setIsLoadingFields(true);
     try {
-      console.log("[RegisterButton] Loading custom fields for event:", eventId);
       const { data, error } = await supabase
         .from("event_registration_fields")
         .select("id, field_name, field_type, field_options, is_required, order_index")
@@ -95,89 +88,30 @@ export function RegisterButton({
 
       if (error) {
         console.error("[RegisterButton] Failed to load custom fields - Error:", error);
-        console.error("[RegisterButton] Error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
         return [];
       }
 
-      console.log("[RegisterButton] Custom fields loaded successfully:", data?.length || 0, "fields");
-      if (data && data.length > 0) {
-        console.log("[RegisterButton] Fields:", data);
-      }
-      console.log('Loaded fields:', data);
-      return data || [];
-    } catch (error) {
-      console.error("[RegisterButton] Exception while loading custom fields:", error);
-      if (error instanceof Error) {
-        console.error("[RegisterButton] Error message:", error.message);
-        console.error("[RegisterButton] Error stack:", error.stack);
-      }
-      return [];
+      return (data as any) || [];
     } finally {
       setIsLoadingFields(false);
     }
   };
 
-  // 모달 열기 (버튼 클릭 시 항상 모달 열기)
+  // 버튼 클릭 핸들러 (항상 모달 열기)
   const handleOpenDialog = async () => {
-    console.log("[RegisterButton] Opening dialog for event:", eventId);
-    setIsDialogOpen(true); // 먼저 모달을 열어서 로딩 상태를 표시
+    setIsDialogOpen(true);
     const fields = await loadCustomFields();
-    console.log("[RegisterButton] Setting custom fields:", fields.length);
-    console.log("[RegisterButton] Fields data to set:", fields);
     setCustomFields(fields);
     setFieldResponses({});
   };
 
-  // 최대 사용 가능 포인트 계산
-  const maxUsablePoints = eventPointCost
-    ? Math.min(currentUserPoints, eventPointCost)
-    : currentUserPoints;
-
-  // 로그인 사용자 신청 처리
-  const handleUserRegister = async () => {
+  // 로그인 사용자 신청
+  const handleUserRegister = async (payNow: boolean) => {
     if (!userId) return;
 
-    // 이름/연락처 검증
     if (!guestName.trim() || !guestContact.trim()) {
-      toast({
-        variant: "destructive",
-        title: "입력 필요",
-        description: "이름과 연락처를 모두 입력해주세요",
-      })
+      toast({ variant: "destructive", title: "입력 필요", description: "이름과 연락처를 모두 입력해주세요" });
       return;
-    }
-
-    // 포인트 사용 검증
-    if (usedPoints > 0) {
-      if (usedPoints < 100) {
-        toast({
-          variant: "destructive",
-          title: "포인트 사용 오류",
-          description: "포인트는 최소 100 P 이상부터 사용할 수 있어요.",
-        })
-        return;
-      }
-      if (usedPoints > currentUserPoints) {
-        toast({
-          variant: "destructive",
-          title: "포인트 부족",
-          description: "보유 포인트가 부족합니다.",
-        })
-        return;
-      }
-      if (eventPointCost && usedPoints > eventPointCost) {
-        toast({
-          variant: "destructive",
-          title: "포인트 사용 오류",
-          description: `사용 가능한 포인트는 이벤트 비용(${eventPointCost}P)을 초과할 수 없습니다.`,
-        })
-        return;
-      }
     }
 
     // 커스텀 필드 필수 항목 검증
@@ -187,7 +121,7 @@ export function RegisterButton({
           variant: "destructive",
           title: "필수 항목",
           description: `"${field.field_name}"은(는) 필수 항목입니다.`,
-        })
+        });
         return;
       }
     }
@@ -196,116 +130,58 @@ export function RegisterButton({
     setIsLoading(true);
 
     try {
-      let registrationId: string | null = null;
+      const { data: regData, error } = await supabase
+        .from("event_registrations")
+        .upsert({
+          event_id: eventId,
+          user_id: userId,
+          guest_name: guestName.trim() || null,
+          guest_contact: guestContact.trim() || null,
+          payment_status: (price ?? 0) > 0 ? 'pending' : null,
+        }, { onConflict: 'event_id, user_id' })
+        .select("id")
+        .single();
 
-      // 포인트를 사용하는 경우
-      if (usedPoints > 0) {
-        const { data, error } = await supabase.rpc('register_event_with_points', {
-          p_event_id: eventId,
-          p_user_id: userId,
-          p_used_points: usedPoints,
-        });
+      if (error) throw error;
+      const registrationId = regData?.id;
 
-        if (error) throw new Error(error.message);
-
-        const { data: regData } = await supabase
-          .from("event_registrations")
-          .select("id")
-          .eq("event_id", eventId)
-          .eq("user_id", userId)
-          .single();
-        
-        registrationId = regData?.id || null;
-        
-        // 포인트 사용 시에도 guest_name, guest_contact 저장
-        if (registrationId && (guestName.trim() || guestContact.trim())) {
-          await supabase
-            .from("event_registrations")
-            .update({
-              guest_name: guestName.trim() || null,
-              guest_contact: guestContact.trim() || null,
-            })
-            .eq("id", registrationId);
-        }
-        
-        setUsedPoints(0);
-      } else {
-        // 포인트를 사용하지 않는 경우
-        const { data: regData, error } = await supabase
-          .from("event_registrations")
-          .insert({
-            event_id: eventId,
-            user_id: userId,
-            guest_name: guestName.trim() || null,
-            guest_contact: guestContact.trim() || null,
-          })
-          .select("id")
-          .single();
-
-        if (error) throw error;
-        registrationId = regData?.id || null;
-
-        // 이벤트 참여 보상 지급
-        await supabase.rpc('award_points', {
-          p_user_id: userId,
-          p_amount: 10,
-          p_type: 'event_participation',
-          p_description: '이벤트 참여',
-          p_event_id: eventId
-        });
-      }
-
-      // 커스텀 필드 응답 저장
       if (registrationId && Object.keys(fieldResponses).length > 0) {
         const responsesToInsert = Object.entries(fieldResponses)
           .filter(([_, value]) => value && value.trim() !== '')
           .map(([fieldId, value]) => ({
-            registration_id: registrationId!,
+            registration_id: registrationId,
             field_id: fieldId,
             response_value: value.trim(),
           }));
 
         if (responsesToInsert.length > 0) {
-          await supabase
-            .from("event_registration_responses")
-            .insert(responsesToInsert);
+          await supabase.from("event_registration_responses").upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
         }
-      }
-
-      // 포인트 정보 갱신
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("points")
-        .eq("id", userId)
-        .single();
-      if (profileData) {
-        setCurrentUserPoints(profileData.points || 0);
       }
 
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
-    } catch (error) {
-      console.error("Failed to register:", error);
-      const errorMessage = error instanceof Error ? error.message : "신청에 실패했습니다. 다시 시도해주세요."
-      toast({
-        variant: "destructive",
-        title: "신청 실패",
-        description: errorMessage,
-      })
+
+      // [결제하기]를 선택했고 유료인 경우 결제창 오픈
+      if (payNow && price && price > 0) {
+        const newOrderId = generateOrderId(); // [수정] 짧은 ID 사용
+        setPaymentOrderId(newOrderId);
+        setShowPayment(true);
+      }
+
+    } catch (error: any) {
+      console.error("Registration Error:", error);
+      toast({ variant: "destructive", title: "신청 실패", description: error.message || "신청에 실패했습니다. 다시 시도해주세요." });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 게스트 신청 처리
-  const handleGuestRegister = async () => {
+  // 게스트 신청
+  const handleGuestRegister = async (payNow: boolean) => {
     if (!guestName.trim() || !guestContact.trim()) {
-      toast({
-        variant: "destructive",
-        title: "입력 필요",
-        description: "이름과 연락처를 모두 입력해주세요",
-      })
+      toast({ variant: "destructive", title: "입력 필요", description: "이름과 연락처를 모두 입력해주세요" });
       return;
     }
 
@@ -316,7 +192,7 @@ export function RegisterButton({
           variant: "destructive",
           title: "필수 항목",
           description: `"${field.field_name}"은(는) 필수 항목입니다.`,
-        })
+        });
         return;
       }
     }
@@ -332,15 +208,14 @@ export function RegisterButton({
           user_id: null,
           guest_name: guestName.trim(),
           guest_contact: guestContact.trim(),
+          payment_status: (price ?? 0) > 0 ? 'pending' : null,
         })
         .select("id")
         .single();
 
       if (error) throw error;
+      const registrationId = regData?.id;
 
-      const registrationId = regData?.id || null;
-
-      // 커스텀 필드 응답 저장
       if (registrationId && Object.keys(fieldResponses).length > 0) {
         const responsesToInsert = Object.entries(fieldResponses)
           .filter(([_, value]) => value && value.trim() !== '')
@@ -351,163 +226,113 @@ export function RegisterButton({
           }));
 
         if (responsesToInsert.length > 0) {
-          await supabase
-            .from("event_registration_responses")
-            .insert(responsesToInsert);
+          await supabase.from("event_registration_responses").upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
         }
       }
 
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
-    } catch (error) {
-      console.error("Failed to register as guest:", error);
-      const errorMessage = error instanceof Error ? error.message : "참가 신청에 실패했습니다. 다시 시도해주세요."
-      toast({
-        variant: "destructive",
-        title: "신청 실패",
-        description: errorMessage,
-      })
+
+      // [결제하기]를 선택했고 유료인 경우 결제창 오픈
+      if (payNow && price && price > 0) {
+        const newOrderId = generateOrderId(); // [수정] 짧은 ID 사용
+        setPaymentOrderId(newOrderId);
+        setShowPayment(true);
+      }
+
+    } catch (error: any) {
+      console.error("Guest Registration Error:", error);
+      toast({ variant: "destructive", title: "신청 실패", description: error.message || "참가 신청에 실패했습니다. 다시 시도해주세요." });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 신청 취소
+  // 취소
   const handleCancel = async () => {
     if (!userId) return;
-
     const supabase = createClient();
     setIsLoading(true);
-
     try {
-      const { error } = await supabase
-        .from("event_registrations")
-        .delete()
-        .eq("event_id", eventId)
-        .eq("user_id", userId);
-
-      if (error) throw error;
-
+      await supabase.from("event_registrations").delete().eq("event_id", eventId).eq("user_id", userId);
       setIsRegistered(false);
       router.refresh();
     } catch (error) {
-      console.error("Failed to cancel:", error);
+      console.error(error);
       toast({
         variant: "destructive",
         title: "취소 실패",
         description: "취소에 실패했습니다. 다시 시도해주세요.",
-      })
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 이미 신청한 경우
-  if (isRegistered) {
+  // ------------------------------------------------------------
+  // 렌더링
+  // ------------------------------------------------------------
+
+  // 1. 결제 완료 상태
+  const isPaid = paymentStatus === 'paid';
+  if (initialRegistered && isPaid) {
     return (
+      <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 border border-slate-200 text-slate-700">
+        <CheckCircle className="h-5 w-5 text-green-600" />
+        <span className="font-semibold text-sm">신청 및 결제가 완료되었습니다</span>
+      </div>
+    );
+  }
+
+  // 2. 마감 상태
+  if (isFull && !initialRegistered) {
+    return <div className="rounded-lg bg-slate-100 p-4 text-center text-slate-500 text-sm font-medium">모집이 마감되었습니다</div>;
+  }
+
+  // 3. 기본 상태 (버튼)
+  return (
+    <>
       <div className="space-y-3">
-        <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 border border-slate-200 text-slate-700">
-          <CheckCircle className="h-5 w-5 text-green-600" />
-          <span className="font-semibold text-sm">참석이 확정되었습니다</span>
-        </div>
-        {userId && (
+        {/* Case A: 신청 완료했으나 미결제 상태 */}
+        {initialRegistered && (price ?? 0) > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 border border-amber-200 text-amber-800 mb-2">
+              <div className="shrink-0 animate-pulse w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-sm font-medium">신청 완료! 결제가 대기 중입니다.</span>
+            </div>
+            <Button
+              onClick={() => {
+                const newOrderId = generateOrderId(); // [수정] 짧은 ID 사용
+                setPaymentOrderId(newOrderId);
+                setShowPayment(true);
+              }}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
+            >
+              지금 결제하기
+            </Button>
+            <Button variant="outline" onClick={handleCancel} className="w-full h-11 text-slate-500">
+              신청 취소하기
+            </Button>
+          </div>
+        ) : (
+          /* Case B: 미신청 상태 -> 버튼 하나로 통합 */
           <Button
-            variant="outline"
-            onClick={handleCancel}
+            onClick={handleOpenDialog}
             disabled={isLoading}
-            className="w-full h-12 border-slate-300 hover:bg-slate-50 text-slate-600"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? "취소 중..." : "신청 취소하기"}
+            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "참가 신청하기"}
           </Button>
         )}
       </div>
-    );
-  }
 
-  // 마감된 경우
-  if (isFull) {
-    return (
-      <div className="rounded-lg bg-slate-100 p-4 text-center text-slate-500 text-sm font-medium">
-        모집이 마감되었습니다
-      </div>
-    );
-  }
-
-  // 메인 버튼 (항상 모달 열기)
-  return (
-    <>
-      <div className="space-y-4">
-        {/* 포인트 사용 섹션 (로그인 사용자만) */}
-        {userId && currentUserPoints >= 100 && (
-          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="points" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <Coins className="h-4 w-4 text-yellow-600" />
-                포인트 사용 (선택)
-              </Label>
-              <span className="text-xs text-slate-500">
-                보유: <span className="font-bold text-slate-900">{currentUserPoints.toLocaleString()}P</span>
-              </span>
-            </div>
-            <Input
-              id="points"
-              type="number"
-              min={0}
-              max={maxUsablePoints}
-              step={1}
-              value={usedPoints || ""}
-              onChange={(e) => {
-                const value = parseInt(e.target.value) || 0;
-                if (value >= 0 && value <= maxUsablePoints) {
-                  setUsedPoints(value);
-                }
-              }}
-              placeholder="0"
-              className="h-11 bg-white focus:bg-white"
-            />
-            {usedPoints > 0 && usedPoints < 100 && (
-              <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
-                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                <p className="text-xs text-amber-800">
-                  포인트는 <span className="font-bold">100 P</span> 이상부터 사용할 수 있어요.
-                </p>
-              </div>
-            )}
-            {usedPoints >= 100 && (
-              <p className="text-xs text-slate-600">
-                {usedPoints.toLocaleString()}P 사용 시 잔여 {((currentUserPoints || 0) - usedPoints).toLocaleString()}P
-              </p>
-            )}
-          </div>
-        )}
-
-        <Button
-          onClick={handleOpenDialog}
-          disabled={isLoading || (userId && usedPoints > 0 && (usedPoints < 100 || usedPoints > currentUserPoints))}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-          {isLoading ? "처리 중..." : userId 
-            ? (usedPoints > 0 ? `${usedPoints}P 사용하여 신청하기` : "지금 신청하기")
-            : "참가 신청하기"}
-        </Button>
-        {userId && usedPoints === 0 && (
-          <p className="text-xs text-center text-slate-400 font-medium">
-            신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
-          </p>
-        )}
-      </div>
-
-      {/* 신청 모달 */}
+      {/* 1. 신청 정보 입력 모달 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>참가 신청서</DialogTitle>
-            <DialogDescription>
-              이벤트 참가 신청을 위해 아래 정보를 입력해주세요.
-            </DialogDescription>
+            <DialogDescription>이벤트 참가 신청을 위해 아래 정보를 입력해주세요.</DialogDescription>
           </DialogHeader>
           
           {isLoadingFields ? (
@@ -516,7 +341,7 @@ export function RegisterButton({
             </div>
           ) : (
             <div className="space-y-6 mt-4">
-              {/* 비로그인 사용자: 로그인 추천 버튼 */}
+              {/* 비로그인 사용자 로그인 유도 */}
               {!userId && (
                 <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4">
                   <Button
@@ -528,38 +353,31 @@ export function RegisterButton({
                     }}
                   >
                     <LogIn className="mr-2 h-4 w-4" />
-                    로그인하고 신청하기 (추천) +10P 적립
+                    로그인하고 신청하기 (추천)
                   </Button>
                 </div>
               )}
 
-
-              {/* 이름/연락처 입력 (모든 사용자) */}
+              {/* 입력 폼 */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="guestName" className="text-sm font-semibold text-slate-700">
-                    이름 (실명 입력) <span className="text-red-500">*</span>
-                  </Label>
+                  <Label htmlFor="guestName">이름 <span className="text-red-500">*</span></Label>
                   <Input
                     id="guestName"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder={userId ? (userProfile?.full_name || "이름 (실명 입력)") : "참석자 성함"}
-                    className="mt-1.5 h-11 bg-slate-50 focus:bg-white"
-                    required
+                    placeholder="성함을 입력해주세요"
+                    className="mt-1.5 h-11 bg-slate-50"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="guestContact" className="text-sm font-semibold text-slate-700">
-                    연락처 (수정 가능) <span className="text-red-500">*</span>
-                  </Label>
+                  <Label htmlFor="guestContact">연락처 <span className="text-red-500">*</span></Label>
                   <Input
                     id="guestContact"
                     value={guestContact}
                     onChange={(e) => setGuestContact(e.target.value)}
-                    placeholder={userId ? (userProfile?.email || "연락처 (수정 가능)") : "이메일 또는 전화번호"}
-                    className="mt-1.5 h-11 bg-slate-50 focus:bg-white"
-                    required
+                    placeholder="010-0000-0000"
+                    className="mt-1.5 h-11 bg-slate-50"
                   />
                 </div>
               </div>
@@ -585,7 +403,7 @@ export function RegisterButton({
                               [field.id]: e.target.value,
                             });
                           }}
-                          className="bg-slate-50"
+                          className="bg-slate-50 focus:bg-white"
                           required={field.is_required}
                         />
                       ) : (
@@ -599,7 +417,7 @@ export function RegisterButton({
                           }}
                           required={field.is_required}
                         >
-                          <SelectTrigger className="bg-slate-50">
+                          <SelectTrigger className="bg-slate-50 focus:bg-white">
                             <SelectValue placeholder="선택해주세요" />
                           </SelectTrigger>
                           <SelectContent className="z-[9999] bg-white">
@@ -638,31 +456,74 @@ export function RegisterButton({
                 </div>
               )}
 
-              {/* 액션 버튼 */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  disabled={isLoading}
-                >
-                  취소
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (userId) {
-                      handleUserRegister();
-                    } else {
-                      handleGuestRegister();
-                    }
-                  }}
-                  disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  신청 완료
-                </Button>
+              {/* 하단 액션 버튼 (분기 처리) */}
+              <div className="flex flex-col gap-3 pt-6 border-t mt-6">
+                {(price ?? 0) > 0 ? (
+                  <>
+                    <Button
+                      onClick={() => userId ? handleUserRegister(true) : handleGuestRegister(true)}
+                      disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 text-base"
+                    >
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "결제하고 신청 완료"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => userId ? handleUserRegister(false) : handleGuestRegister(false)}
+                      disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
+                      className="w-full h-12 text-slate-600 border-slate-300 hover:bg-slate-50"
+                    >
+                      일단 신청하고 나중에 결제하기
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => userId ? handleUserRegister(false) : handleGuestRegister(false)}
+                    disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
+                  >
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "신청 완료"}
+                  </Button>
+                )}
+                
+                <div className="text-center mt-2">
+                  <button 
+                    onClick={() => setIsDialogOpen(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 underline underline-offset-4"
+                  >
+                    취소하고 닫기
+                  </button>
+                </div>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. 결제 위젯 모달 */}
+      <Dialog open={showPayment} onOpenChange={(open) => {
+        setShowPayment(open);
+        if (!open) {
+          // 모달이 닫힐 때 orderId 초기화
+          setPaymentOrderId("");
+        }
+      }}>
+        <DialogContent className="max-w-2xl bg-white p-6">
+          <DialogHeader>
+            <DialogTitle>결제하기</DialogTitle>
+            <DialogDescription>결제를 진행하여 이벤트 신청을 완료합니다.</DialogDescription>
+          </DialogHeader>
+          
+          {paymentOrderId && (
+            <TossPaymentWidget
+              amount={price || 0}
+              orderId={paymentOrderId}
+              orderName="SFC 이벤트 참가"
+              customerName={userProfile?.full_name || guestName || "Guest"}
+              customerEmail={userProfile?.email || guestContact || "guest@example.com"}
+              successUrl="/payment/success"
+              failUrl="/payment/fail"
+            />
           )}
         </DialogContent>
       </Dialog>

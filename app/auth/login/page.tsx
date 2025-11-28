@@ -20,16 +20,13 @@ function LoginContent() {
     setIsLoading(true)
     setError(null)
 
-    const redirectUrl = new URL(`${window.location.origin}/auth/callback`)
-    if (next) {
-      redirectUrl.searchParams.set("next", next)
-    }
-
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: redirectUrl.toString(),
+          // 환경 변수 대신 현재 브라우저의 origin을 사용하여
+          // 로컬에서는 localhost로, 배포 환경에서는 도메인으로 이동하도록 수정
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

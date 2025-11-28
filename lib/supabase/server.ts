@@ -18,10 +18,9 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options)
             })
-          } catch (error) {
-            // 서버 컴포넌트에서는 쿠키를 설정할 수 없으므로 무시
-            // 클라이언트 컴포넌트나 Route Handler에서만 설정 가능
-            console.error("[createClient] Error setting cookies in server component:", error)
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing user sessions.
           }
         },
       },

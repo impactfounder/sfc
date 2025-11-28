@@ -32,13 +32,14 @@ export function HeroSection({ user, profile, onLogin }: HeroSectionProps) {
             </p>
           </div>
           <div className="flex items-center gap-4 shrink-0">
-            {/* 포인트 표시 */}
-            <div className="hidden md:flex flex-col items-end mr-2">
+            {/* 포인트 표시 (숨김 처리) */}
+            {/* <div className="hidden md:flex flex-col items-end mr-2">
               <span className="text-[10px] text-slate-400 font-medium mb-0.5">내 포인트</span>
               <span className="text-lg font-bold text-yellow-400 leading-none">
                 {profile?.points?.toLocaleString() ?? 0} P
               </span>
             </div>
+            */}
             <Button onClick={() => document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white text-slate-900 hover:bg-slate-100 font-semibold border-none h-10 text-sm">
               이벤트 참여
             </Button>
