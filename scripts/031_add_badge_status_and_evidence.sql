@@ -19,3 +19,4 @@ CREATE INDEX IF NOT EXISTS idx_user_badges_status ON user_badges(status);
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_status ON user_badges(user_id, status);
 
 
+
