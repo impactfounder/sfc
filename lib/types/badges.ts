@@ -25,6 +25,8 @@ export type UserBadge = {
   user_id: string
   badge_id: string
   is_visible: boolean
+  status?: 'pending' | 'approved' | 'rejected' | null
+  evidence?: string | null
   created_at: string
   updated_at: string
 }

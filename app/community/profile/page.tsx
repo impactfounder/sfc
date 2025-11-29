@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle, LogOut } from "lucide-react"
+import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle, LogOut, FileText } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState, useMemo, type ReactNode } from "react"
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import type { User, Profile } from "@/lib/types/profile"
 import type { EventListItem } from "@/lib/types/events"
 import type { PostListItem } from "@/lib/types/posts"
@@ -169,6 +170,8 @@ export default function ProfilePage() {
   const [isSigningOut, setIsSigningOut] = useState(false) // 로그아웃 상태
   const [selectedBadgeId, setSelectedBadgeId] = useState<string>("") // 편집 모달에서 선택한 뱃지
   const [addingBadge, setAddingBadge] = useState(false) // 뱃지 추가 중 상태
+  const [showBadgeRequestDialog, setShowBadgeRequestDialog] = useState(false) // 뱃지 신청 Dialog 상태
+  const [badgeEvidence, setBadgeEvidence] = useState("") // 증빙 자료 입력
   
   // 프로필 편집 폼 상태
   const [editForm, setEditForm] = useState({
@@ -501,19 +504,24 @@ export default function ProfilePage() {
     }
   }
 
-  // 뱃지 추가 핸들러 (편집 모달용)
-  const handleAddBadge = async () => {
-    if (!selectedBadgeId || !user) return
+  // 뱃지 신청 핸들러 (편집 모달용)
+  const handleRequestBadge = async () => {
+    if (!selectedBadgeId || !user || !badgeEvidence.trim()) {
+      alert("증빙 자료를 입력해주세요.")
+      return
+    }
 
     const existingBadge = userBadges.find((ub) => ub.badge_id === selectedBadgeId)
     if (existingBadge) {
-      alert("이미 부여된 뱃지입니다.")
+      alert("이미 신청하거나 부여된 뱃지입니다.")
       return
     }
 
     setAddingBadge(true)
     try {
-      await grantBadge(user.id, selectedBadgeId)
+      // requestBadge 액션 import 필요
+      const { requestBadge } = await import("@/lib/actions/badges")
+      await requestBadge(user.id, selectedBadgeId, badgeEvidence)
       
       // 뱃지 목록 다시 로드
       const { data } = await supabase
@@ -522,6 +530,8 @@ export default function ProfilePage() {
           id,
           badge_id,
           is_visible,
+          status,
+          evidence,
           badges:badge_id (
             id,
             name,
@@ -535,9 +545,9 @@ export default function ProfilePage() {
 
       if (data) {
         setUserBadges(data as UserBadgeWithBadge[])
-        // visibleBadges도 업데이트
+        // visibleBadges는 approved 상태만 표시
         const visible: VisibleBadge[] = data
-          .filter((ub) => ub.is_visible && ub.badges)
+          .filter((ub) => ub.is_visible && ub.badges && ub.status === 'approved')
           .map((ub) => ({
             icon: ub.badges!.icon,
             name: ub.badges!.name,
@@ -546,10 +556,12 @@ export default function ProfilePage() {
       }
       
       setSelectedBadgeId("")
-      alert("뱃지가 추가되었습니다.")
+      setBadgeEvidence("")
+      setShowBadgeRequestDialog(false)
+      alert("뱃지 신청이 완료되었습니다. 검토 후 승인되면 프로필에 노출됩니다.")
     } catch (error) {
-      console.error("Failed to add badge:", error)
-      const errorMessage = error instanceof Error ? error.message : "뱃지 추가에 실패했습니다."
+      console.error("Failed to request badge:", error)
+      const errorMessage = error instanceof Error ? error.message : "뱃지 신청에 실패했습니다."
       alert(errorMessage)
     } finally {
       setAddingBadge(false)
@@ -573,6 +585,8 @@ export default function ProfilePage() {
             id,
             badge_id,
             is_visible,
+            status,
+            evidence,
             badges:badge_id (
               id,
               name,
@@ -616,6 +630,8 @@ export default function ProfilePage() {
             id,
             badge_id,
             is_visible,
+            status,
+            evidence,
             badges:badge_id (
               id,
               name,
@@ -703,8 +719,69 @@ export default function ProfilePage() {
               뱃지 관리 및 노출 설정
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-6 max-h-[80vh] overflow-y-auto">
+          <div className="mt-6">
             <BadgeManager userId={user.id} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 뱃지 신청 Dialog */}
+      <Dialog open={showBadgeRequestDialog} onOpenChange={setShowBadgeRequestDialog}>
+        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {selectedBadgeId && allBadges.find(b => b.id === selectedBadgeId) 
+                ? `${allBadges.find(b => b.id === selectedBadgeId)!.name} 발급 신청`
+                : "뱃지 발급 신청"}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              해당 뱃지를 증명할 수 있는 링크나 설명을 입력해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6 space-y-4">
+            <div>
+              <Label htmlFor="badge_evidence" className="mb-2 block text-slate-700">
+                증빙 자료
+              </Label>
+              <Textarea
+                id="badge_evidence"
+                value={badgeEvidence}
+                onChange={(e) => setBadgeEvidence(e.target.value)}
+                placeholder="예: 링크, 설명, 참고 자료 등을 입력해주세요"
+                rows={5}
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowBadgeRequestDialog(false)
+                  setBadgeEvidence("")
+                }}
+                className="h-11 px-6"
+              >
+                취소
+              </Button>
+              <Button 
+                onClick={handleRequestBadge} 
+                disabled={!badgeEvidence.trim() || addingBadge}
+                className={cn(
+                  "h-11 px-8 font-bold transition-all",
+                  "bg-slate-900 hover:bg-slate-800 text-white shadow-md hover:shadow-lg",
+                  addingBadge && "opacity-70 cursor-not-allowed"
+                )}
+              >
+                {addingBadge ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    제출 중...
+                  </>
+                ) : (
+                  "제출하기"
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -718,7 +795,7 @@ export default function ProfilePage() {
               다른 멤버들에게 보여질 프로필 정보를 수정합니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-6 space-y-6 max-h-[80vh] overflow-y-auto px-1">
+          <div className="mt-6 space-y-6 px-1">
             {/* 이름 입력 필드 */}
             <div>
               <Label htmlFor="full_name" className="mb-2 block text-slate-700">이름 <span className="text-red-500">*</span></Label>
@@ -786,26 +863,26 @@ export default function ProfilePage() {
                 onCheckedChange={(checked) =>
                   setEditForm(prev => ({ ...prev, is_profile_public: checked }))
                 }
-                className="data-[state=checked]:bg-blue-600"
+                className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-400 border border-slate-300 data-[state=checked]:border-blue-600"
               />
             </div>
 
-            {/* 뱃지 관리 섹션 */}
+            {/* 뱃지 발급 신청 섹션 */}
             <div>
               <Label className="mb-2 block text-slate-700">
-                뱃지 관리
+                뱃지 발급 신청
               </Label>
               <p className="text-xs text-slate-500 mb-3">
-                자신을 표현하는 키워드를 선택하고 추가하세요 (최대 5개)
+                나의 성과를 증명할 뱃지를 신청하세요. 증빙 자료 검토 후 승인되면 프로필에 노출됩니다.
               </p>
               
               {/* 뱃지 추가 입력창 */}
               <div className="flex gap-2 mb-4">
                 <Select value={selectedBadgeId} onValueChange={setSelectedBadgeId}>
                   <SelectTrigger className="flex-1 h-11 bg-white border-slate-200 focus-visible:ring-slate-900">
-                    <SelectValue placeholder="뱃지를 선택하세요" />
+                    <SelectValue placeholder="신청할 뱃지 선택" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {allBadges
                       .filter((badge) => !userBadges.some((ub) => ub.badge_id === badge.id))
                       .slice(0, 20)
@@ -820,51 +897,121 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
                 <Button
-                  onClick={handleAddBadge}
+                  onClick={() => {
+                    if (!selectedBadgeId) return
+                    setShowBadgeRequestDialog(true)
+                  }}
                   disabled={!selectedBadgeId || addingBadge || userBadges.length >= 5}
                   className="h-11 px-6 shrink-0"
                 >
                   {addingBadge ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      추가 중...
+                      신청 중...
                     </>
                   ) : (
                     <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      추가
+                      <FileText className="h-4 w-4 mr-2" />
+                      신청하기
                     </>
                   )}
                 </Button>
               </div>
 
               {/* 현재 뱃지 목록 */}
-              <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-slate-200 rounded-lg bg-slate-50">
-                {userBadges.length > 0 ? (
-                  userBadges.map((userBadge) => {
-                    const badge = userBadge.badges
-                    if (!badge) return null
-                    return (
-                      <div
-                        key={userBadge.id}
-                        className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-slate-200 shadow-sm"
-                      >
-                        <span className="text-base">{badge.icon}</span>
-                        <span>{badge.name}</span>
-                        <button
-                          onClick={() => handleRemoveBadge(userBadge.id)}
-                          className="ml-1 hover:bg-red-50 rounded-full p-0.5 transition-colors"
-                          aria-label="뱃지 삭제"
-                        >
-                          <X className="h-3.5 w-3.5 text-slate-400 hover:text-red-600" />
-                        </button>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <p className="text-sm text-slate-500 w-full text-center py-2">
-                    추가된 뱃지가 없습니다.
-                  </p>
+              <div className="space-y-3">
+                {/* 승인된 뱃지 */}
+                {userBadges.filter(ub => ub.status === 'approved' || !ub.status).length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">승인된 뱃지</p>
+                    <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-slate-200 rounded-lg bg-slate-50">
+                      {userBadges
+                        .filter(ub => ub.status === 'approved' || !ub.status)
+                        .map((userBadge) => {
+                          const badge = userBadge.badges
+                          if (!badge) return null
+                          return (
+                            <div
+                              key={userBadge.id}
+                              className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-slate-200 shadow-sm"
+                            >
+                              <span className="text-base">{badge.icon}</span>
+                              <span>{badge.name}</span>
+                              <button
+                                onClick={() => handleRemoveBadge(userBadge.id)}
+                                className="ml-1 hover:bg-red-50 rounded-full p-0.5 transition-colors"
+                                aria-label="뱃지 삭제"
+                              >
+                                <X className="h-3.5 w-3.5 text-slate-400 hover:text-red-600" />
+                              </button>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 심사 중인 뱃지 */}
+                {userBadges.filter(ub => ub.status === 'pending').length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">심사 중인 뱃지</p>
+                    <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-amber-200 rounded-lg bg-amber-50">
+                      {userBadges
+                        .filter(ub => ub.status === 'pending')
+                        .map((userBadge) => {
+                          const badge = userBadge.badges
+                          if (!badge) return null
+                          return (
+                            <div
+                              key={userBadge.id}
+                              className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-amber-300 shadow-sm"
+                            >
+                              <span className="text-base">{badge.icon}</span>
+                              <span>{badge.name}</span>
+                              <Badge variant="outline" className="ml-1 text-xs bg-amber-100 text-amber-700 border-amber-300">
+                                심사 중
+                              </Badge>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 거절된 뱃지 */}
+                {userBadges.filter(ub => ub.status === 'rejected').length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">거절된 뱃지</p>
+                    <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-red-200 rounded-lg bg-red-50">
+                      {userBadges
+                        .filter(ub => ub.status === 'rejected')
+                        .map((userBadge) => {
+                          const badge = userBadge.badges
+                          if (!badge) return null
+                          return (
+                            <div
+                              key={userBadge.id}
+                              className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-red-300 shadow-sm opacity-60"
+                            >
+                              <span className="text-base">{badge.icon}</span>
+                              <span>{badge.name}</span>
+                              <Badge variant="outline" className="ml-1 text-xs bg-red-100 text-red-700 border-red-300">
+                                거절됨
+                              </Badge>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 뱃지가 없는 경우 */}
+                {userBadges.length === 0 && (
+                  <div className="flex flex-wrap gap-2 min-h-[60px] p-3 border border-slate-200 rounded-lg bg-slate-50">
+                    <p className="text-sm text-slate-500 w-full text-center py-2">
+                      추가된 뱃지가 없습니다.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

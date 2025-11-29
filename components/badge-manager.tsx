@@ -189,7 +189,7 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="뱃지를 선택하세요" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[9999]">
               {availableBadges.length > 0 ? (
                 availableBadges.map((badge) => (
                   <SelectItem key={badge.id} value={badge.id}>

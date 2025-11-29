@@ -57,16 +57,15 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
   const displayName = profile?.full_name || user.email?.split("@")[0] || "사용자"
 
   // 로그인 상태 UI
-  // isMounted가 false일 때는 드롭다운 없이 단순 버튼만 표시 (하이드레이션 에러 방지)
+  // isMounted가 false일 때는 드롭다운 없이 단순 링크만 표시 (하이드레이션 에러 방지)
   if (!isMounted) {
     return (
       <div className="px-4 py-3">
-        <Button
-          variant="ghost"
-          className="w-full p-1.5 rounded-lg hover:bg-slate-100 justify-between h-auto"
-          disabled
-        >
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center gap-2 w-full">
+          <Link
+            href="/community/profile"
+            className="flex items-center gap-2 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
             <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
               <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
               <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
@@ -78,9 +77,16 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
                 {displayName}
               </div>
             </div>
-          </div>
-          <MoreHorizontal className="h-4 w-4 text-slate-400 flex-shrink-0 ml-1" />
-        </Button>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0 rounded-lg hover:bg-slate-100"
+            disabled
+          >
+            <MoreHorizontal className="h-4 w-4 text-slate-400" />
+          </Button>
+        </div>
       </div>
     )
   }
@@ -88,39 +94,49 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
   // 마운트된 후 드롭다운 메뉴 렌더링
   return (
     <div className="px-4 py-3">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full p-1.5 rounded-lg hover:bg-slate-100 justify-between h-auto"
-          >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
-                <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
-                  {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-xs font-bold text-slate-900 truncate">
-                  {displayName}
-                </div>
-              </div>
+      <div className="flex items-center gap-2 w-full">
+        {/* 좌측: 프로필 링크 영역 */}
+        <Link
+          href="/community/profile"
+          className="flex items-center gap-2 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+        >
+          <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
+            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
+            <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
+              {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-xs font-bold text-slate-900 truncate">
+              {displayName}
             </div>
-            <MoreHorizontal className="h-4 w-4 text-slate-400 flex-shrink-0 ml-1" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 bg-white">
-          <DropdownMenuItem asChild>
-            <Link href="/community/profile" className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              내 프로필
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <SidebarLogoutItem />
-        </DropdownMenuContent>
-      </DropdownMenu>
+          </div>
+        </Link>
+
+        {/* 우측: 드롭다운 메뉴 트리거 */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0 rounded-lg hover:bg-slate-100"
+              aria-label="메뉴 열기"
+            >
+              <MoreHorizontal className="h-4 w-4 text-slate-400" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 bg-white">
+            <DropdownMenuItem asChild>
+              <Link href="/community/profile" className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                내 프로필
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <SidebarLogoutItem />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   )
 }

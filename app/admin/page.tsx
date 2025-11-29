@@ -5,7 +5,7 @@ export default async function AdminDashboard() {
   const { supabase, user, isMaster } = await requireAdmin()
 
   // Fetch all data in parallel
-  const [usersResult, eventsResult, postsResult] = await Promise.all([
+  const [usersResult, eventsResult, postsResult, badgesResult, pendingBadgesResult] = await Promise.all([
     // Users: 전체 프로필 (최신순)
     supabase
       .from("profiles")
@@ -50,6 +50,36 @@ export default async function AdminDashboard() {
         )
       `)
       .order("created_at", { ascending: false }),
+    
+    // Badges: 전체 뱃지 목록
+    supabase
+      .from("badges")
+      .select("id, name, icon, category, description")
+      .order("category", { ascending: true })
+      .order("name", { ascending: true }),
+    
+    // Pending Badges: 대기 중인 뱃지 신청
+    supabase
+      .from("user_badges")
+      .select(`
+        id,
+        status,
+        evidence,
+        created_at,
+        profiles:user_id (
+          id,
+          full_name,
+          email,
+          avatar_url
+        ),
+        badges:badge_id (
+          id,
+          name,
+          icon
+        )
+      `)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
   ])
 
   // Fetch registration counts for events
@@ -72,6 +102,8 @@ export default async function AdminDashboard() {
       users={usersResult.data || []}
       events={eventsWithCounts}
       posts={postsResult.data || []}
+      badges={badgesResult.data || []}
+      pendingBadges={pendingBadgesResult.data || []}
       currentUserId={user.id}
       isMaster={isMaster}
     />

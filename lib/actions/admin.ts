@@ -86,3 +86,193 @@ export async function updateUserMembershipTier(userId: string, membershipTier: s
   revalidatePath("/admin/users")
   return { success: true }
 }
+
+export async function updateBadgeStatus(userBadgeId: string, status: 'approved' | 'rejected') {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is admin or master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can update badge status")
+  }
+
+  // Update badge status
+  const updateData: { status: string; is_visible?: boolean } = { status }
+  
+  // 승인 시 is_visible을 true로 설정
+  if (status === 'approved') {
+    updateData.is_visible = true
+  } else {
+    // 거절 시 is_visible을 false로 유지
+    updateData.is_visible = false
+  }
+
+  const { error } = await supabase
+    .from("user_badges")
+    .update(updateData)
+    .eq("id", userBadgeId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin/badges")
+  return { success: true }
+}
+
+export async function createBadge(name: string, icon: string, category: string, description: string | null) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is admin or master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can create badges")
+  }
+
+  // Insert new badge
+  const { error } = await supabase
+    .from("badges")
+    .insert({
+      name,
+      icon,
+      category,
+      description,
+    })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true }
+}
+
+export async function updateBadge(badgeId: string, name: string, icon: string, category: string, description: string | null) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is admin or master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can update badges")
+  }
+
+  // Update badge
+  const { error } = await supabase
+    .from("badges")
+    .update({
+      name,
+      icon,
+      category,
+      description,
+    })
+    .eq("id", badgeId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true }
+}
+
+export async function deleteBadge(badgeId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is admin or master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can delete badges")
+  }
+
+  // Delete badge (cascade delete will handle user_badges)
+  const { error } = await supabase
+    .from("badges")
+    .delete()
+    .eq("id", badgeId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true }
+}

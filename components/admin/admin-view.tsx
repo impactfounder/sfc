@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Calendar, FileText } from "lucide-react"
+import { Users, Calendar, FileText, Eye, Trash2, Medal } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UserManagementRow } from "@/components/user-management"
 import { DeleteEventButton } from "@/components/delete-event-button"
@@ -9,7 +9,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Eye, Trash2 } from "lucide-react"
+import { BadgeManagementTab } from "./badge-management-tab"
 import { deletePost } from "@/lib/actions/posts"
 import {
   AlertDialog,
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-type TabType = "users" | "events" | "posts"
+type TabType = "users" | "events" | "posts" | "badges"
 
 type User = {
   id: string
@@ -66,15 +66,43 @@ type Post = {
   } | null
 }
 
+type Badge = {
+  id: string
+  name: string
+  icon: string
+  category: string
+  description: string | null
+}
+
+type PendingBadge = {
+  id: string
+  status: string
+  evidence: string | null
+  created_at: string
+  profiles: {
+    id: string
+    full_name: string | null
+    email: string | null
+    avatar_url: string | null
+  } | null
+  badges: {
+    id: string
+    name: string
+    icon: string
+  } | null
+}
+
 type AdminViewProps = {
   users: User[]
   events: Event[]
   posts: Post[]
+  badges: Badge[]
+  pendingBadges: PendingBadge[]
   currentUserId: string
   isMaster: boolean
 }
 
-export function AdminView({ users, events, posts, currentUserId, isMaster }: AdminViewProps) {
+export function AdminView({ users, events, posts, badges, pendingBadges, currentUserId, isMaster }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("users")
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -158,18 +186,19 @@ export function AdminView({ users, events, posts, currentUserId, isMaster }: Adm
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">관리자 대시보드</h1>
-          <p className="mt-2 text-slate-600">Seoul Founders Club 커뮤니티 관리</p>
-        </div>
+    <>
+      <div className="w-full">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">관리자 대시보드</h1>
+        <p className="mt-2 text-slate-600">Seoul Founders Club 커뮤니티 관리</p>
+      </div>
 
         {/* 메트릭 카드 (탭 버튼) */}
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
           <MetricCard tab="users" label="전체 회원" count={users.length} icon={Users} />
           <MetricCard tab="events" label="전체 이벤트" count={events.length} icon={Calendar} />
           <MetricCard tab="posts" label="전체 게시글" count={posts.length} icon={FileText} />
+          <MetricCard tab="badges" label="뱃지 관리" count={badges.length} icon={Medal} />
         </div>
 
         {/* 하단 콘텐츠 영역 */}
@@ -349,6 +378,14 @@ export function AdminView({ users, events, posts, currentUserId, isMaster }: Adm
               )}
             </div>
           )}
+
+          {/* 뱃지 관리 탭 */}
+          {activeTab === "badges" && (
+            <BadgeManagementTab 
+              badges={badges} 
+              pendingBadges={pendingBadges}
+            />
+          )}
         </div>
       </div>
 
@@ -369,7 +406,7 @@ export function AdminView({ users, events, posts, currentUserId, isMaster }: Adm
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   )
 }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, BookOpen, Users, Calendar, Bell, MessageSquare, Ticket, Lightbulb, Zap, Headset } from "lucide-react"
+import { Menu, BookOpen, Users, Calendar, Bell, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase } from "lucide-react"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,8 @@ const navigationSections = [
     title: "성장", 
     links: [
       { name: "이벤트", href: "/events", icon: Calendar },
-      { name: "인사이트", href: "/community/board/insights", icon: Zap }
+      { name: "인사이트", href: "/community/board/insights", icon: Zap },
+      { name: "파트너스", href: "/partners", icon: Briefcase }
     ]
   },
   { 
