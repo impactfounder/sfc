@@ -1,6 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import SidebarProfile from "@/components/sidebar-profile"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -116,25 +114,23 @@ export default async function PartnersPage() {
   const displayServices = allServices.length > 0 ? allServices : dummyPartners
 
   return (
-    <DashboardLayout sidebarProfile={<SidebarProfile />}>
-      <>
-        {/* 배너 (최상단, full width) */}
-        <PageHeader
-          title="파트너스"
-          description="멤버들을 위한 특별한 혜택을 만나보세요."
-          className="w-full"
-        />
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* 메인 콘텐츠 영역 (왼쪽 9칸) */}
+      <main className="lg:col-span-9 flex flex-col gap-6">
+          {/* 배너: 메인 영역의 첫 번째 요소 */}
+          <PageHeader
+            title="파트너스"
+            description="멤버들을 위한 특별한 혜택을 만나보세요."
+            className="w-full"
+          />
 
-        <div className="w-full flex flex-col lg:flex-row gap-10">
-          {/* [LEFT] 중앙 콘텐츠 영역 */}
-          <div className="flex-1 min-w-0 flex flex-col gap-10">
-            {/* 배너 아래 헤더 영역 */}
-            <div className="mt-8 mb-6 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-900">제휴 업체 목록</h2>
-              <PartnerProposalButtonClient />
-            </div>
+          {/* 헤더 (타이틀 + 버튼) */}
+          <div className="flex justify-between items-center mt-4">
+            <h2 className="text-xl font-bold text-slate-900">제휴 업체 목록</h2>
+            <PartnerProposalButtonClient />
+          </div>
 
-          {/* 카테고리 필터 (추후 클라이언트 컴포넌트로 확장 가능) */}
+          {/* 카테고리 필터 */}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -155,9 +151,9 @@ export default async function PartnersPage() {
             ))}
           </div>
 
-          {/* 서비스 리스트 */}
+          {/* 카드 리스트 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {displayServices.map((service) => {
+            {displayServices.map((service) => {
             const isDummy = service.id?.startsWith("dummy-")
             const serviceCategory = service.category || "기타"
             const categoryIndex = partnerCategories?.findIndex(cat => cat.name === serviceCategory) ?? 0
@@ -256,17 +252,15 @@ export default async function PartnersPage() {
             )
           })}
           </div>
-        </div>
+      </main>
 
-        {/* [RIGHT] 우측 사이드바 영역 */}
-        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
-          <div className="sticky top-8 flex flex-col gap-6 h-fit">
-            <StandardRightSidebar />
-          </div>
+      {/* 우측 사이드바 영역 (오른쪽 3칸) */}
+      <aside className="hidden lg:block lg:col-span-3">
+        <div className="sticky top-8 flex flex-col gap-6 h-fit">
+          <StandardRightSidebar />
         </div>
-      </div>
-      </>
-    </DashboardLayout>
+      </aside>
+    </div>
   )
 }
 

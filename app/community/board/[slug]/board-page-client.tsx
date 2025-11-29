@@ -121,20 +121,19 @@ export function BoardPageClient({
   const bannerConfig = getBannerConfig()
 
   return (
-    <>
-      {/* 배너 (최상단, full width) */}
-      <PageHeader
-        title={bannerConfig.title}
-        description={bannerConfig.description}
-        className="w-full"
-      />
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* [LEFT] 메인 콘텐츠 영역 (배너 + 헤더 + 리스트) */}
+      <div className="lg:col-span-9 flex flex-col gap-6">
+        {/* 배너: 메인 영역의 첫 번째 요소 */}
+        <PageHeader
+          title={bannerConfig.title}
+          description={bannerConfig.description}
+          className="w-full"
+        />
 
-      <div className="w-full flex flex-col lg:flex-row gap-10">
-        {/* [LEFT] 중앙 콘텐츠 영역 */}
-        <div className="flex-1 min-w-0 flex flex-col gap-10">
-          {/* 배너 아래 헤더 영역 */}
-          <div className="mt-8 mb-6 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900">{getSectionTitle()}</h2>
+        {/* 배너 아래 헤더 영역 (타이틀 + 버튼) */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold text-slate-900">{getSectionTitle()}</h2>
           {shouldShowButton && (
             <Button
               onClick={buttonConfig.onClick}
@@ -151,13 +150,15 @@ export function BoardPageClient({
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {slug === "insights" ? "인사이트 작성" : 
-                 isAnnouncement ? "공지사항 작성" : 
-                 "글 작성"}
+                {slug === "insights"
+                  ? "인사이트 작성"
+                  : isAnnouncement
+                    ? "공지사항 작성"
+                    : "글 작성"}
               </DialogTitle>
             </DialogHeader>
             <div className="mt-4">
-              <NewPostForm 
+              <NewPostForm
                 slug={slug}
                 boardCategoryId={category.id}
                 onSuccess={() => setIsWriteModalOpen(false)}
@@ -167,46 +168,46 @@ export function BoardPageClient({
           </DialogContent>
         </Dialog>
 
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="w-full h-24 rounded-xl border border-gray-200 p-4">
-                  <Skeleton className="h-4 w-3/4 mb-2" />
-                  <Skeleton className="h-3 w-1/4" />
-                </div>
-              ))}
-            </div>
+        {/* 게시글 리스트 / 로딩 스켈레톤 */}
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="w-full h-24 rounded-xl border border-gray-200 p-4">
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/4" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <PostsSection
+            posts={postsWithMembership}
+            boardCategories={[]}
+            selectedBoard={dbSlug}
+            hideTabs={true}
+            isLoading={isLoading}
+            isInsight={slug === "insights"}
+            viewMode={
+              slug === "insights"
+                ? "blog"
+                : (slug === "free" || dbSlug === "free-board")
+                  ? "feed"
+                  : undefined
+            }
+          />
+        )}
+      </div>
+
+      {/* [RIGHT] 우측 사이드바 영역 */}
+      <div className="hidden lg:block lg:col-span-3">
+        <div className="sticky top-8 flex flex-col gap-6 h-fit">
+          {isSystemBoard ? (
+            <StandardRightSidebar />
           ) : (
-            <PostsSection
-              posts={postsWithMembership}
-              boardCategories={[]}
-              selectedBoard={dbSlug}
-              hideTabs={true}
-              isLoading={isLoading}
-              isInsight={slug === "insights"}
-              viewMode={
-                slug === "insights" 
-                  ? "blog" 
-                  : (slug === "free" || dbSlug === "free-board") 
-                    ? "feed" 
-                    : undefined
-              }
-            />
+            <CommunityRightSidebar slug={dbSlug} />
           )}
         </div>
-
-        {/* [RIGHT] 우측 사이드바 영역 */}
-        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
-          <div className="sticky top-8 flex flex-col gap-6 h-fit">
-            {isSystemBoard ? (
-              <StandardRightSidebar />
-            ) : (
-              <CommunityRightSidebar slug={dbSlug} />
-            )}
-          </div>
-        </div>
       </div>
-    </>
+    </div>
   )
 }
 

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { PageHeader } from "@/components/page-header"
 import type { PostForDisplay } from "@/lib/types/posts"
 
 export default async function CommunityDashboardPage() {
@@ -60,13 +61,20 @@ export default async function CommunityDashboardPage() {
   }
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10">
-      {/* [LEFT] 중앙 콘텐츠 영역 */}
-      <div className="flex-1 min-w-0 flex flex-col gap-10">
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* [LEFT] 메인 콘텐츠 영역 */}
+      <main className="lg:col-span-9 flex flex-col gap-6">
+        {/* 배너: 메인 영역의 첫 번째 요소 */}
+        <PageHeader
+          title="커뮤니티"
+          description="다양한 주제로 소통하고 함께 성장하는 공간입니다."
+          className="w-full"
+        />
+
         {/* 커뮤니티 섹션 */}
         {featuredCommunities.length > 0 && (
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-6">커뮤니티</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-6">커뮤니티</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {featuredCommunities.map((community) => (
                 <Link
@@ -108,14 +116,14 @@ export default async function CommunityDashboardPage() {
           selectedBoard="all"
           hideTabs={false}
         />
-      </div>
+      </main>
 
       {/* [RIGHT] 우측 사이드바 영역 */}
-      <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
+      <aside className="hidden lg:block lg:col-span-3">
         <div className="sticky top-8 flex flex-col gap-6 h-fit">
           <StandardRightSidebar />
         </div>
-      </div>
+      </aside>
     </div>
   )
 }
