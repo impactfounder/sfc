@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Medal, Plus, Edit2, Trash2, CheckCircle2, XCircle, Eye } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Medal, Plus, Edit2, Trash2, CheckCircle2, XCircle, Eye, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -11,10 +11,31 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { createBadge, updateBadge, deleteBadge, updateBadgeStatus } from "@/lib/actions/admin"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch"
+import { createBadge, updateBadge, deleteBadge, updateBadgeStatus, toggleBadgeActive } from "@/lib/actions/admin"
+import { updateBadgeCategoryOrder } from "@/lib/actions/badge-categories"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 type BadgeType = {
   id: string
@@ -22,6 +43,7 @@ type BadgeType = {
   icon: string
   category: string
   description: string | null
+  is_active?: boolean | null
 }
 
 type PendingBadgeType = {
@@ -42,9 +64,16 @@ type PendingBadgeType = {
   } | null
 }
 
+type BadgeCategoryType = {
+  category_value: string
+  category_label: string
+  sort_order: number
+}
+
 type BadgeManagementTabProps = {
   badges: BadgeType[]
   pendingBadges: PendingBadgeType[]
+  badgeCategories?: BadgeCategoryType[]
 }
 
 const badgeCategories = [
@@ -57,11 +86,261 @@ const badgeCategories = [
   { value: "community", label: "커뮤니티" },
 ]
 
-export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTabProps) {
+// 개별 뱃지 행 컴포넌트 (로컬 state로 토글 상태 관리)
+function BadgeRow({
+  badge,
+  badgeCategories,
+  isProcessing,
+  processingAction,
+  onToggleActive,
+  onEdit,
+  onDelete,
+}: {
+  badge: BadgeType
+  badgeCategories: typeof badgeCategories
+  isProcessing: boolean
+  processingAction: 'create' | 'update' | 'delete' | 'approve' | 'reject' | null
+  onToggleActive: (badgeId: string, currentActive: boolean) => Promise<void>
+  onEdit: (badge: BadgeType) => void
+  onDelete: (badgeId: string) => void
+}) {
+  // 각 뱃지 행의 로컬 state (낙관적 업데이트용)
+  const initialActive = badge.is_active !== false // null이나 undefined도 true로 처리
+  const [isActive, setIsActive] = useState(initialActive)
+  
+  // props의 badge가 변경되면 로컬 state 동기화
+  useEffect(() => {
+    const newActive = badge.is_active !== false
+    setIsActive(newActive)
+  }, [badge.is_active])
+  
+  const handleToggle = async (checked: boolean) => {
+    const previousState = isActive
+    
+    console.log(`[BadgeRow] 토글 시도: badgeId=${badge.id}, previousState=${previousState}, newState=${checked}`)
+    
+    // 낙관적 업데이트: UI를 먼저 업데이트
+    setIsActive(checked)
+    
+    try {
+      // 서버 API 호출
+      console.log(`[BadgeRow] API 호출 시작: badgeId=${badge.id}, previousState=${previousState}, newState=${checked}`)
+      await onToggleActive(badge.id, previousState)
+      console.log(`[BadgeRow] 토글 성공: badgeId=${badge.id}, newState=${checked}`)
+    } catch (error) {
+      // 실패 시 이전 상태로 롤백
+      console.error("API Error Details:", error)
+      console.error("토글 실패 원인:", error)
+      console.error("토글 실패 상세:", {
+        badgeId: badge.id,
+        badgeName: badge.name,
+        previousState,
+        attemptedState: checked,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorName: error instanceof Error ? error.name : undefined,
+        errorCode: (error as any)?.code,
+        errorDetails: (error as any)?.details,
+        errorHint: (error as any)?.hint,
+      })
+      console.error("[BadgeRow] 상태 롤백: previousState=", previousState)
+      setIsActive(previousState)
+      throw error // 상위 컴포넌트에서 에러 처리하도록
+    }
+  }
+  
+  const isThisBadgeProcessing = isProcessing && processingAction === 'update'
+  
+  return (
+    <TableRow 
+      className={cn(
+        "transition-all duration-200",
+        !isActive && "opacity-50 grayscale"
+      )}
+    >
+      <TableCell>
+        <div className="flex items-center justify-center w-8 h-8">
+          <span className="text-2xl leading-none">{badge.icon}</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className="text-xs font-medium">
+          {badgeCategories.find(c => c.value === badge.category)?.label || badge.category}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="font-medium text-slate-900">{badge.name}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-slate-600 max-w-md truncate">
+          {badge.description || "-"}
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={isActive}
+              onCheckedChange={handleToggle}
+              disabled={isThisBadgeProcessing}
+              className={cn(
+                "w-11 h-6 transition-all duration-200",
+                isActive 
+                  ? "data-[state=checked]:bg-green-600" 
+                  : "data-[state=unchecked]:bg-gray-300"
+              )}
+            />
+            <span className={cn(
+              "text-sm whitespace-nowrap transition-colors duration-200 font-medium",
+              isActive ? "text-green-700" : "text-gray-500"
+            )}>
+              {isActive ? "공개" : "비공개"}
+            </span>
+          </div>
+          <Button
+            onClick={() => onEdit(badge)}
+            disabled={isThisBadgeProcessing}
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-8"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+            수정
+          </Button>
+          <Button
+            onClick={() => onDelete(badge.id)}
+            disabled={isThisBadgeProcessing}
+            size="sm"
+            variant="ghost"
+            className={cn(
+              "gap-1.5 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200",
+              "transition-colors duration-200"
+            )}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            삭제
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+// 테스트용 더미 데이터 (개발 환경에서만 사용)
+const DUMMY_BADGES: BadgeType[] = [
+  { id: '1', name: '자산 10억+', icon: '💎', category: 'personal_asset', description: '순자산 10억 원 이상 인증', is_active: true },
+  { id: '2', name: '매출 50억+', icon: '📈', category: 'corporate_revenue', description: '연 매출 50억 원 이상 인증', is_active: true },
+  { id: '3', name: '투자 10억+', icon: '💰', category: 'investment', description: '누적 투자 집행액 10억 원 이상', is_active: true },
+  { id: '4', name: '기업가치 100억+', icon: '🏙️', category: 'valuation', description: '최근 투자 유치 기준 기업가치 100억 원 이상', is_active: false },
+  { id: '5', name: '변호사', icon: '⚖️', category: 'professional', description: '대한민국 변호사 자격 인증', is_active: true },
+]
+
+// 카테고리 섹션 컴포넌트 (드래그 가능)
+function CategorySection({
+  categoryValue,
+  categoryLabel,
+  badges,
+  badgeCategories,
+  isProcessing,
+  processingAction,
+  onToggleActive,
+  onEdit,
+  onDelete,
+}: {
+  categoryValue: string
+  categoryLabel: string
+  badges: BadgeType[]
+  badgeCategories: typeof badgeCategories // 하드코딩된 배열 타입
+  isProcessing: boolean
+  processingAction: 'create' | 'update' | 'delete' | 'approve' | 'reject' | null
+  onToggleActive: (badgeId: string, currentActive: boolean) => Promise<void>
+  onEdit: (badge: BadgeType) => void
+  onDelete: (badgeId: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: categoryValue })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-6">
+      {/* 카테고리 헤더 */}
+      <div className="bg-gray-100 p-3 rounded-lg mb-3 flex items-center gap-3 cursor-move">
+        <div
+          {...attributes}
+          {...listeners}
+          className="flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900">
+          {categoryLabel}
+        </h3>
+        <Badge variant="outline" className="text-xs">
+          {badges.length}개
+        </Badge>
+      </div>
+
+      {/* 뱃지 리스트 (들여쓰기) */}
+      {badges.length > 0 ? (
+        <div className="ml-4 border border-slate-200 rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">썸네일</TableHead>
+                <TableHead className="w-32">카테고리</TableHead>
+                <TableHead className="w-48">이름</TableHead>
+                <TableHead>설명</TableHead>
+                <TableHead className="text-right w-64">관리</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {badges.map((badge) => (
+                <BadgeRow
+                  key={badge.id}
+                  badge={badge}
+                  badgeCategories={badgeCategories}
+                  isProcessing={isProcessing}
+                  processingAction={processingAction}
+                  onToggleActive={onToggleActive}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="ml-4 border border-slate-200 rounded-lg p-8 text-center text-slate-500">
+          이 카테고리에 뱃지가 없습니다
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: badgeCategoriesProp = [] }: BadgeManagementTabProps) {
   const router = useRouter()
+  const { toast } = useToast()
+  // badges가 비어있으면 더미 데이터 사용 (개발 환경)
+  const initialBadges = badges && badges.length > 0 ? badges : (process.env.NODE_ENV === 'development' ? DUMMY_BADGES : [])
+  const [localBadges, setLocalBadges] = useState<BadgeType[]>(initialBadges)
+  const [localBadgeCategories, setLocalBadgeCategories] = useState<BadgeCategoryType[]>(badgeCategories)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showEvidenceDialog, setShowEvidenceDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deletingBadgeId, setDeletingBadgeId] = useState<string | null>(null)
   const [editingBadge, setEditingBadge] = useState<BadgeType | null>(null)
   const [viewingEvidence, setViewingEvidence] = useState<string>("")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -73,6 +352,114 @@ export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTab
     category: "",
     description: "",
   })
+
+  // 드래그앤드롭 센서 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // badges prop이 변경되면 로컬 state 업데이트
+  useEffect(() => {
+    if (badges && badges.length > 0) {
+      setLocalBadges(badges)
+    } else if (process.env.NODE_ENV === 'development') {
+      // 개발 환경에서만 더미 데이터 사용
+      setLocalBadges(DUMMY_BADGES)
+    } else {
+      setLocalBadges([])
+    }
+  }, [badges])
+
+  // badgeCategories prop이 변경되면 로컬 state 업데이트
+  useEffect(() => {
+    if (badgeCategoriesProp && badgeCategoriesProp.length > 0) {
+      setLocalBadgeCategories(badgeCategoriesProp)
+    } else {
+      // DB에 데이터가 없으면 기본 카테고리 목록 사용
+      const defaultCategories: BadgeCategoryType[] = badgeCategories.map((cat, index) => ({
+        category_value: cat.value,
+        category_label: cat.label,
+        sort_order: index,
+      }))
+      setLocalBadgeCategories(defaultCategories)
+    }
+  }, [badgeCategoriesProp])
+
+  // 카테고리별로 뱃지 그룹화
+  const badgesByCategory = useMemo(() => {
+    const grouped: Record<string, BadgeType[]> = {}
+    
+    // 먼저 모든 카테고리에 대해 빈 배열 초기화
+    localBadgeCategories.forEach((cat) => {
+      grouped[cat.category_value] = []
+    })
+    
+    // 뱃지를 카테고리별로 분류
+    localBadges.forEach((badge) => {
+      if (!grouped[badge.category]) {
+        grouped[badge.category] = []
+      }
+      grouped[badge.category].push(badge)
+    })
+    
+    return grouped
+  }, [localBadges, localBadgeCategories])
+
+  // 카테고리 순서에 따라 정렬된 카테고리 목록
+  const sortedCategories = useMemo(() => {
+    return [...localBadgeCategories].sort((a, b) => a.sort_order - b.sort_order)
+  }, [localBadgeCategories])
+
+  // 드래그앤드롭 핸들러
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    const oldIndex = sortedCategories.findIndex((cat) => cat.category_value === active.id)
+    const newIndex = sortedCategories.findIndex((cat) => cat.category_value === over.id)
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return
+    }
+
+    // 낙관적 업데이트: 화면을 즉시 업데이트
+    const newCategories = arrayMove(sortedCategories, oldIndex, newIndex)
+    const updatedCategories = newCategories.map((cat, index) => ({
+      ...cat,
+      sort_order: index,
+    }))
+    setLocalBadgeCategories(updatedCategories)
+
+    // 백그라운드에서 DB 업데이트
+    try {
+      await updateBadgeCategoryOrder(
+        updatedCategories.map((cat) => ({
+          category_value: cat.category_value,
+          sort_order: cat.sort_order,
+        }))
+      )
+      toast({
+        title: "순서 변경 완료",
+        description: "카테고리 순서가 저장되었습니다.",
+      })
+      router.refresh()
+    } catch (error) {
+      console.error("Failed to update category order:", error)
+      // 실패 시 이전 상태로 롤백
+      setLocalBadgeCategories(badgeCategoriesProp)
+      toast({
+        variant: "destructive",
+        title: "순서 변경 실패",
+        description: error instanceof Error ? error.message : "카테고리 순서 변경에 실패했습니다.",
+      })
+    }
+  }
 
   const handleCreate = async () => {
     if (!formData.name || !formData.icon || !formData.category) {
@@ -141,17 +528,91 @@ export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTab
     }
   }
 
-  const handleDelete = async (badgeId: string) => {
-    if (!confirm("이 뱃지를 삭제하시겠습니까? 이 뱃지를 사용 중인 사용자들에게도 영향을 미칩니다.")) return
+  const handleDeleteClick = (badgeId: string) => {
+    setDeletingBadgeId(badgeId)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingBadgeId) return
 
     setIsProcessing(true)
     setProcessingAction('delete')
     try {
-      await deleteBadge(badgeId)
+      await deleteBadge(deletingBadgeId)
+      
+      // 로컬 state에서 즉시 제거
+      setLocalBadges((prev) => prev.filter((badge) => badge.id !== deletingBadgeId))
+      
+      // 성공 토스트 메시지
+      toast({
+        title: "삭제 완료",
+        description: "뱃지가 성공적으로 삭제되었습니다.",
+      })
+      
+      setShowDeleteDialog(false)
+      setDeletingBadgeId(null)
       router.refresh()
     } catch (error) {
       console.error("Failed to delete badge:", error)
-      alert("뱃지 삭제에 실패했습니다.")
+      toast({
+        variant: "destructive",
+        title: "삭제 실패",
+        description: error instanceof Error ? error.message : "뱃지 삭제에 실패했습니다.",
+      })
+    } finally {
+      setIsProcessing(false)
+      setProcessingAction(null)
+    }
+  }
+
+  const handleToggleActive = async (badgeId: string, currentActive: boolean) => {
+    const newActiveState = !currentActive
+    
+    console.log(`[handleToggleActive] 시작: badgeId=${badgeId}, currentActive=${currentActive}, newActiveState=${newActiveState}`)
+    
+    setIsProcessing(true)
+    setProcessingAction('update')
+    
+    try {
+      // 서버 API 호출
+      console.log(`[handleToggleActive] toggleBadgeActive 호출: badgeId=${badgeId}, newActiveState=${newActiveState}`)
+      await toggleBadgeActive(badgeId, newActiveState)
+      console.log(`[handleToggleActive] toggleBadgeActive 성공: badgeId=${badgeId}`)
+      
+      // 성공 시 로컬 state 업데이트 (BadgeRow의 로컬 state와 동기화)
+      setLocalBadges((prev) =>
+        prev.map((badge) =>
+          badge.id === badgeId ? { ...badge, is_active: newActiveState } : badge
+        )
+      )
+      
+      // 성공 시 토스트 메시지
+      toast({
+        title: newActiveState ? "뱃지 공개 처리" : "뱃지 비공개 처리",
+        description: newActiveState 
+          ? "뱃지가 공개로 설정되었습니다." 
+          : "뱃지가 비공개로 설정되었습니다.",
+      })
+    } catch (error) {
+      console.error("[handleToggleActive] API Error Details:", error)
+      console.error("[handleToggleActive] Failed to toggle badge active:", {
+        badgeId,
+        currentActive,
+        newActiveState,
+        error: error instanceof Error ? error.message : String(error),
+        errorCode: (error as any)?.code,
+        errorDetails: (error as any)?.details,
+        errorStack: error instanceof Error ? error.stack : undefined,
+      })
+      
+      toast({
+        variant: "destructive",
+        title: "상태 변경 실패",
+        description: error instanceof Error ? error.message : "뱃지 상태 변경에 실패했습니다.",
+      })
+      // 에러는 BadgeRow 컴포넌트에서 롤백 처리됨
+      throw error
     } finally {
       setIsProcessing(false)
       setProcessingAction(null)
@@ -277,7 +738,9 @@ export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTab
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
-                            onClick={() => handleApprove(badgeRequest.id)}
+                            onClick={async () => {
+                              await handleApprove(badgeRequest.id)
+                            }}
                             disabled={isProcessing}
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white"
@@ -295,7 +758,9 @@ export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTab
                             )}
                           </Button>
                           <Button
-                            onClick={() => handleReject(badgeRequest.id)}
+                            onClick={async () => {
+                              await handleReject(badgeRequest.id)
+                            }}
                             disabled={isProcessing}
                             size="sm"
                             variant="destructive"
@@ -344,85 +809,46 @@ export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTab
           </Button>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">전체 뱃지 목록 ({badges.length}개)</h3>
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">썸네일</TableHead>
-                  <TableHead className="w-32">카테고리</TableHead>
-                  <TableHead className="w-48">이름</TableHead>
-                  <TableHead>설명</TableHead>
-                  <TableHead className="text-right w-40">관리</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {badges.length > 0 ? (
-                  badges.map((badge) => (
-                    <TableRow key={badge.id}>
-                      <TableCell>
-                        <div className="flex items-center justify-center w-8 h-8">
-                          <span className="text-2xl leading-none">{badge.icon}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs font-medium">
-                          {badgeCategories.find(c => c.value === badge.category)?.label || badge.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-slate-900">{badge.name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-slate-600 max-w-md truncate">
-                          {badge.description || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            onClick={() => handleEdit(badge)}
-                            disabled={isProcessing}
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 h-8"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                            수정
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(badge.id)}
-                            disabled={isProcessing}
-                            size="sm"
-                            variant="destructive"
-                            className="gap-1.5 h-8"
-                          >
-                            {isProcessing && processingAction === 'delete' ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                삭제 중...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="h-3.5 w-3.5" />
-                                삭제
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-slate-500">
-                      등록된 뱃지가 없습니다
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">전체 뱃지 목록 ({localBadges.length}개)</h3>
+          
+          {localBadges.length > 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedCategories.map((cat) => cat.category_value)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-0">
+                  {sortedCategories.map((category) => {
+                    const categoryBadges = badgesByCategory[category.category_value] || []
+                    if (categoryBadges.length === 0) return null
+                    
+                    return (
+                      <CategorySection
+                        key={category.category_value}
+                        categoryValue={category.category_value}
+                        categoryLabel={category.category_label}
+                        badges={categoryBadges}
+                        badgeCategories={badgeCategories}
+                        isProcessing={isProcessing}
+                        processingAction={processingAction}
+                        onToggleActive={handleToggleActive}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                      />
+                    )
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className="border border-slate-200 rounded-lg p-12 text-center">
+              <p className="text-slate-500">등록된 뱃지가 없습니다</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -637,6 +1063,43 @@ export function BadgeManagementTab({ badges, pendingBadges }: BadgeManagementTab
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 뱃지 삭제 확인 Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-white z-[100]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>뱃지 삭제 확인</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 뱃지를 정말 삭제하시겠습니까? 이 뱃지를 사용 중인 사용자들에게도 영향을 미칩니다. 이 작업은 취소할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowDeleteDialog(false)
+                setDeletingBadgeId(null)
+              }}
+              disabled={isProcessing}
+            >
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isProcessing}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  삭제 중...
+                </>
+              ) : (
+                "삭제"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

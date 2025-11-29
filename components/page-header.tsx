@@ -10,13 +10,13 @@ interface PageHeaderProps {
 export function PageHeader({ title, description, children, className }: PageHeaderProps) {
   return (
     <div className={cn(
-      "relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white mb-6 shadow-md min-h-[140px] flex flex-col justify-center",
+      "relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white mb-6 shadow-md min-h-[160px] flex flex-col justify-center",
       className
     )}>
       {/* 배경 패턴 이미지 (투명도 조절) */}
       <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
       
-      <div className="relative z-10 px-6 py-6 md:py-8">
+      <div className="relative z-10 container mx-auto px-6 md:px-10 py-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           {/* 좌측: 타이틀 및 설명 */}
           <div className="flex-1">

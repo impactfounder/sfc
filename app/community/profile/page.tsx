@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle, LogOut, FileText } from "lucide-react"
+import { Mail, Calendar, Coins, MapPin, Users, CalendarDays, Medal, Edit3, Ticket, Crown, CheckCircle, LogOut, FileText, Linkedin, Instagram, Link as LinkIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState, useMemo, type ReactNode } from "react"
@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import type { User, Profile } from "@/lib/types/profile"
 import type { EventListItem } from "@/lib/types/events"
 import type { PostListItem } from "@/lib/types/posts"
@@ -180,6 +181,10 @@ export default function ProfilePage() {
     position: "",
     introduction: "",
     is_profile_public: false,
+    linkedin_url: "",
+    instagram_url: "",
+    threads_url: "",
+    website_url: "",
   })
 
   useEffect(() => {
@@ -223,6 +228,10 @@ export default function ProfilePage() {
             position: profileData.position || "",
             introduction: profileData.introduction || "",
             is_profile_public: profileData.is_profile_public || false,
+            linkedin_url: profileData.linkedin_url || "",
+            instagram_url: profileData.instagram_url || "",
+            threads_url: profileData.threads_url || "",
+            website_url: profileData.website_url || "",
           })
         }
 
@@ -473,6 +482,10 @@ export default function ProfilePage() {
         position: editForm.position,
         introduction: editForm.introduction,
         is_profile_public: editForm.is_profile_public,
+        linkedin_url: editForm.linkedin_url,
+        instagram_url: editForm.instagram_url,
+        threads_url: editForm.threads_url,
+        website_url: editForm.website_url,
       })
       
       if (!result.success) {
@@ -490,6 +503,10 @@ export default function ProfilePage() {
           position: editForm.position,
           introduction: editForm.introduction,
           is_profile_public: editForm.is_profile_public,
+          linkedin_url: editForm.linkedin_url,
+          instagram_url: editForm.instagram_url,
+          threads_url: editForm.threads_url,
+          website_url: editForm.website_url,
         }
       })
       
@@ -501,6 +518,24 @@ export default function ProfilePage() {
       alert(`프로필 저장에 실패했습니다.\n\n오류: ${errorMessage}`)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  // 프로필 공개 토글 핸들러 (즉시 DB 업데이트)
+  const handleToggleProfileVisibility = async (isPublic: boolean) => {
+    try {
+      const { updateProfileVisibility } = await import("@/lib/actions/user")
+      await updateProfileVisibility(isPublic)
+      
+      // 로컬 상태 업데이트
+      setProfile((prev) => {
+        if (!prev) return prev
+        return { ...prev, is_profile_public: isPublic }
+      })
+    } catch (error) {
+      console.error("Failed to update profile visibility:", error)
+      // 실패 시 이전 상태로 롤백
+      setEditForm(prev => ({ ...prev, is_profile_public: !isPublic }))
     }
   }
 
@@ -848,7 +883,12 @@ export default function ProfilePage() {
             {/* 공개 설정 */}
             <div 
               className="flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => setEditForm(prev => ({ ...prev, is_profile_public: !prev.is_profile_public }))}
+              onClick={() => {
+                const newValue = !editForm.is_profile_public
+                setEditForm(prev => ({ ...prev, is_profile_public: newValue }))
+                // 즉시 DB 업데이트
+                handleToggleProfileVisibility(newValue)
+              }}
             >
               <div className="flex-1">
                 <Label className="font-medium cursor-pointer pointer-events-none">
@@ -860,12 +900,88 @@ export default function ProfilePage() {
               </div>
               <Switch
                 checked={editForm.is_profile_public}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked) => {
                   setEditForm(prev => ({ ...prev, is_profile_public: checked }))
-                }
+                  // 즉시 DB 업데이트
+                  handleToggleProfileVisibility(checked)
+                }}
                 className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-400 border border-slate-300 data-[state=checked]:border-blue-600"
               />
             </div>
+
+            {/* 소셜 링크 섹션 (조건부 렌더링 + 애니메이션) */}
+            <Collapsible open={editForm.is_profile_public}>
+              <CollapsibleContent className="space-y-4 data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                <Label className="mb-2 block text-slate-700">소셜 링크</Label>
+                <p className="text-xs text-slate-500 mb-3">
+                  멤버 카드에 표시될 소셜 링크를 입력해주세요.
+                </p>
+                
+                {/* LinkedIn */}
+                <div>
+                  <Label htmlFor="linkedin_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
+                    <Linkedin className="h-4 w-4 text-blue-600" />
+                    LinkedIn
+                  </Label>
+                  <Input
+                    id="linkedin_url"
+                    type="url"
+                    value={editForm.linkedin_url}
+                    onChange={(e) => setEditForm({ ...editForm, linkedin_url: e.target.value })}
+                    placeholder="https://linkedin.com/in/..."
+                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                  />
+                </div>
+
+                {/* Instagram */}
+                <div>
+                  <Label htmlFor="instagram_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
+                    <Instagram className="h-4 w-4 text-pink-600" />
+                    Instagram
+                  </Label>
+                  <Input
+                    id="instagram_url"
+                    type="url"
+                    value={editForm.instagram_url}
+                    onChange={(e) => setEditForm({ ...editForm, instagram_url: e.target.value })}
+                    placeholder="https://instagram.com/..."
+                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                  />
+                </div>
+
+                {/* Threads */}
+                <div>
+                  <Label htmlFor="threads_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 text-slate-600" />
+                    Threads
+                  </Label>
+                  <Input
+                    id="threads_url"
+                    type="url"
+                    value={editForm.threads_url}
+                    onChange={(e) => setEditForm({ ...editForm, threads_url: e.target.value })}
+                    placeholder="https://threads.net/..."
+                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                  />
+                </div>
+
+                {/* Website */}
+                <div>
+                  <Label htmlFor="website_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 text-slate-600" />
+                    웹사이트
+                  </Label>
+                  <Input
+                    id="website_url"
+                    type="url"
+                    value={editForm.website_url}
+                    onChange={(e) => setEditForm({ ...editForm, website_url: e.target.value })}
+                    placeholder="https://example.com"
+                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* 뱃지 발급 신청 섹션 */}
             <div>

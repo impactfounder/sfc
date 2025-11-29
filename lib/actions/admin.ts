@@ -276,3 +276,92 @@ export async function deleteBadge(badgeId: string) {
   revalidatePath("/about")
   return { success: true }
 }
+
+export async function toggleBadgeActive(badgeId: string, isActive: boolean) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Check if current user is admin or master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error("Unauthorized")
+  }
+
+  // Use isAdmin helper to check admin or master
+  const { isAdmin } = await import("@/lib/utils")
+  if (!isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can toggle badge active status")
+  }
+
+  // Update badge active status
+  // is_active 컬럼이 없을 수 있으므로 에러 처리
+  // ⚠️ RLS 정책 확인 필요: Supabase의 Row Level Security 정책이 UPDATE를 막고 있을 수 있습니다.
+  //    badges 테이블에 관리자(admin, master)가 UPDATE할 수 있는 정책이 있는지 확인하세요.
+  console.log(`[toggleBadgeActive] 시작: badgeId=${badgeId}, isActive=${isActive}, userId=${user.id}`)
+  
+  const { data, error } = await supabase
+    .from("badges")
+    .update({ is_active: isActive })
+    .eq("id", badgeId)
+    .select() // 업데이트된 데이터를 반환받기 위해 .select() 추가
+
+  if (error) {
+    console.error("[toggleBadgeActive] Supabase 에러:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      badgeId,
+      isActive,
+      userId: user.id,
+    })
+    
+    // 컬럼이 없는 경우 (42703: undefined_column)
+    if (error.code === '42703') {
+      throw new Error("is_active 컬럼이 데이터베이스에 없습니다. 마이그레이션 스크립트(034_add_badge_is_active.sql)를 실행해주세요.")
+    }
+    
+    // RLS 정책 문제 (42501: insufficient_privilege)
+    if (error.code === '42501') {
+      throw new Error(`권한 부족: 뱃지 업데이트 권한이 없습니다. 관리자 권한을 확인해주세요. (에러 코드: ${error.code})`)
+    }
+    
+    // 기타 에러
+    throw new Error(`뱃지 상태 변경 실패: ${error.message} (에러 코드: ${error.code})`)
+  }
+  
+  // 실제로 업데이트된 행이 있는지 확인
+  if (!data || data.length === 0) {
+    console.error("[toggleBadgeActive] DB 업데이트 실패: 수정된 행이 없습니다.", {
+      badgeId,
+      isActive,
+      userId: user.id,
+      returnedData: data,
+      possibleCauses: [
+        "RLS 정책이 UPDATE를 막고 있을 수 있습니다",
+        "badgeId가 존재하지 않을 수 있습니다",
+        "조건에 맞는 행이 없을 수 있습니다",
+      ],
+    })
+    throw new Error("DB 업데이트 실패: 수정된 행이 없습니다. RLS 정책 또는 badgeId를 확인해주세요.")
+  }
+  
+  console.log(`[toggleBadgeActive] 성공: badgeId=${badgeId}, updatedData=`, data)
+  console.log(`[toggleBadgeActive] 업데이트된 행 수: ${data.length}`)
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true, updatedData: data[0] }
+}

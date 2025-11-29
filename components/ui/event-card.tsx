@@ -62,12 +62,7 @@ export default function EventCard({ event, href, className, layout = "card" }: P
 
       {/* 카테고리 뱃지 */}
       {event.event_type && (
-        <div className={cn(
-          "absolute top-4 left-4 z-10 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg backdrop-blur-sm",
-          event.event_type === 'networking' && "bg-blue-500/90",
-          event.event_type === 'class' && "bg-purple-500/90",
-          event.event_type === 'activity' && "bg-green-500/90"
-        )}>
+        <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-full text-xs font-medium text-white bg-black/40 backdrop-blur-md border border-white/10">
           {event.event_type === 'networking' && '네트워킹'}
           {event.event_type === 'class' && '클래스'}
           {event.event_type === 'activity' && '액티비티'}

@@ -54,25 +54,17 @@ export default async function EventDetailPage({
     notFound();
   }
 
-  // 사용자 등록 여부 및 포인트 조회
+  // 사용자 등록 여부 조회
   let userRegistration = null;
-  let userPoints = 0;
   if (user) {
-    const [registrationResult, profileResult] = await Promise.all([
-      supabase
-        .from("event_registrations")
-        .select("id, payment_status")
-        .eq("event_id", id)
-        .eq("user_id", user.id)
-        .single(),
-      supabase
-        .from("profiles")
-        .select("points")
-        .eq("id", user.id)
-        .single(),
-    ]);
-    userRegistration = registrationResult.data;
-    userPoints = profileResult.data?.points || 0;
+    const { data: registrationData } = await supabase
+      .from("event_registrations")
+      .select("id, payment_status")
+      .eq("event_id", id)
+      .eq("user_id", user.id)
+      .single();
+    
+    userRegistration = registrationData;
   }
 
   // 참석자 수 조회
@@ -281,12 +273,6 @@ export default async function EventDetailPage({
                         isFull={!!isFull}
                         price={event.price || 0}
                       />
-                      
-                      {!isRegistered && (
-                        <p className="text-xs text-center text-slate-400 mt-4 font-medium">
-                          신청 시 <span className="text-slate-900 font-bold underline underline-offset-2">10 포인트</span> 적립 🎁
-                        </p>
-                      )}
 
                       <Separator className="my-4 bg-slate-100" />
 

@@ -95,8 +95,8 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogCancel variant="outline">취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} variant="destructive">
               {isDeleting ? "삭제 중..." : "삭제"}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -11,6 +11,7 @@ export async function createPost(data: {
   boardCategoryId?: string
   communityId?: string
   category?: string
+  categoryId?: string // categories 테이블의 id (insight/partner 타입)
   // ★ 보안: authorId 등은 무시됨 (클라이언트에서 보내도 사용하지 않음)
 }) {
   const supabase = await createClient()
@@ -42,6 +43,10 @@ export async function createPost(data: {
 
   if (data.category) {
     insertData.category = data.category
+  }
+
+  if (data.categoryId) {
+    insertData.category_id = data.categoryId
   }
 
   const { error } = await supabase.from("posts").insert(insertData).select("id").single()

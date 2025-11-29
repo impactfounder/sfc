@@ -11,22 +11,20 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-const categoryLabels: Record<string, string> = {
-  development: "개발",
-  design: "디자인",
-  marketing: "마케팅",
-  business: "비즈니스",
-  consulting: "컨설팅",
-  other: "기타"
-}
-
-const categoryColors: Record<string, string> = {
-  development: "bg-blue-100 text-blue-700",
-  design: "bg-purple-100 text-purple-700",
-  marketing: "bg-pink-100 text-pink-700",
-  business: "bg-green-100 text-green-700",
-  consulting: "bg-amber-100 text-amber-700",
-  other: "bg-slate-100 text-slate-700"
+// 카테고리 색상 매핑 (기본 색상, 카테고리 이름에 따라 동적으로 할당)
+const getCategoryColor = (categoryName: string, categories: Array<{ name: string }>): string => {
+  const colors = [
+    "bg-blue-100 text-blue-700",
+    "bg-purple-100 text-purple-700",
+    "bg-pink-100 text-pink-700",
+    "bg-green-100 text-green-700",
+    "bg-amber-100 text-amber-700",
+    "bg-indigo-100 text-indigo-700",
+    "bg-teal-100 text-teal-700",
+    "bg-orange-100 text-orange-700",
+  ]
+  const index = categories.findIndex(cat => cat.name === categoryName)
+  return index >= 0 ? colors[index % colors.length] : "bg-slate-100 text-slate-700"
 }
 
 export default async function PartnerServiceDetailPage({
@@ -35,6 +33,21 @@ export default async function PartnerServiceDetailPage({
   params: { id: string }
 }) {
   const supabase = await createClient()
+
+  // 파트너 카테고리 가져오기
+  const { data: partnerCategories } = await supabase
+    .from("categories")
+    .select("id, name, type")
+    .eq("type", "partner")
+    .order("created_at", { ascending: true })
+
+  // 카테고리 이름 매핑 생성
+  const categoryLabels: Record<string, string> = {}
+  if (partnerCategories) {
+    partnerCategories.forEach(cat => {
+      categoryLabels[cat.name] = cat.name
+    })
+  }
 
   // 서비스 상세 정보 가져오기
   const { data: service } = await supabase
@@ -79,8 +92,11 @@ export default async function PartnerServiceDetailPage({
                   SFC 인증
                 </Badge>
               )}
-              <Badge className={cn("border-none shadow-sm", categoryColors[service.category] || categoryColors.other)}>
-                {categoryLabels[service.category] || "기타"}
+              <Badge className={cn(
+                "border-none shadow-sm",
+                getCategoryColor(service.category, partnerCategories || [])
+              )}>
+                {categoryLabels[service.category] || service.category || "기타"}
               </Badge>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
@@ -169,8 +185,11 @@ export default async function PartnerServiceDetailPage({
                 <div className="space-y-3">
                   <div>
                     <div className="text-xs text-slate-500 mb-1">카테고리</div>
-                    <Badge className={cn("border-none", categoryColors[service.category] || categoryColors.other)}>
-                      {categoryLabels[service.category] || "기타"}
+                    <Badge className={cn(
+                      "border-none",
+                      getCategoryColor(service.category, partnerCategories || [])
+                    )}>
+                      {categoryLabels[service.category] || service.category || "기타"}
                     </Badge>
                   </div>
                   <div>

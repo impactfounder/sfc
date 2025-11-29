@@ -61,10 +61,11 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
         setUserBadges(userBadgesData as any)
       }
 
-      // Load all available badges
+      // Load all available badges (활성화된 뱃지만)
       const { data: allBadgesData } = await supabase
         .from("badges")
         .select("id, name, icon, category, description")
+        .or("is_active.eq.true,is_active.is.null") // 활성화된 뱃지만 조회 (true 또는 null)
         .order("category", { ascending: true })
         .order("name", { ascending: true })
 

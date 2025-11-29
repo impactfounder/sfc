@@ -13,6 +13,7 @@ export type Badge = {
   icon: string
   category: string
   description: string | null
+  is_active?: boolean | null // 뱃지 공개/비공개 상태 (관리자용)
   created_at: string
 }
 

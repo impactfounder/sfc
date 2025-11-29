@@ -198,14 +198,14 @@ BEGIN
     RAISE EXCEPTION '이미 등록된 이벤트입니다.';
   END IF;
   
-  -- 이벤트 참여 보상 지급 (기존 로직 유지)
-  PERFORM award_points(
-    p_user_id,
-    10,
-    'event_participation',
-    '이벤트 참여 보상',
-    p_event_id
-  );
+  -- 이벤트 참여 보상 지급 (주석 처리됨)
+  -- PERFORM award_points(
+  --   p_user_id,
+  --   10,
+  --   'event_participation',
+  --   '이벤트 참여 보상',
+  --   p_event_id
+  -- );
   
   RETURN v_registration_id;
 END;

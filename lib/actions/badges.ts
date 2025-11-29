@@ -95,7 +95,12 @@ export async function removeBadge(userBadgeId: string) {
   return { success: true }
 }
 
-export async function requestBadge(userId: string, badgeId: string, evidence: string) {
+export async function requestBadge(
+  userId: string, 
+  badgeId: string, 
+  evidence: string,
+  proofUrl?: string | null
+) {
   const supabase = await createClient()
 
   const {
@@ -140,7 +145,8 @@ export async function requestBadge(userId: string, badgeId: string, evidence: st
       user_id: userId,
       badge_id: badgeId,
       status: 'pending',
-      evidence: evidence.trim(),
+      evidence: evidence.trim() || null,
+      proof_url: proofUrl || null,
       is_visible: false, // 승인 전까지는 노출하지 않음
     })
 

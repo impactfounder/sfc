@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,18 +8,30 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { createPost } from "@/lib/actions/posts";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type NewPostFormProps = {
   userId?: string; // Optional: 서버 액션에서 자동으로 가져옴
   boardCategoryId?: string;
   communityId?: string;
   slug?: string; // 게시판 slug (리다이렉트 경로 결정용)
+  onSuccess?: () => void; // 성공 시 콜백 (모달 닫기 등)
 }
 
-export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewPostFormProps) {
+export function NewPostForm({ userId, boardCategoryId, communityId, slug, onSuccess }: NewPostFormProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<"public" | "group">("group"); // 기본값: 그룹 공개
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [insightCategories, setInsightCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [partnerCategories, setPartnerCategories] = useState<Array<{ id: string; name: string }>>([]);
   
   // 공개 설정 옵션을 보여줄지 여부 결정
   // slug가 없거나(일반 글쓰기), 공개 게시판 리스트에 포함되면 옵션을 숨김 (자동 전체 공개)
@@ -29,14 +41,61 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
                         slug === "announcement" || slug === "announcements" || 
                         slug === "event-requests";
   
+  const isInsightBoard = slug === "insights";
+  const isPartnerBoard = slug === "partners";
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const supabase = createClient();
+
+  // 인사이트 카테고리 로드
+  useEffect(() => {
+    if (isInsightBoard) {
+      const loadCategories = async () => {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("id, name")
+          .eq("type", "insight")
+          .order("created_at", { ascending: true });
+
+        if (!error && data) {
+          setInsightCategories(data);
+        }
+      };
+      loadCategories();
+    }
+  }, [isInsightBoard, supabase]);
+
+  // 파트너스 카테고리 로드
+  useEffect(() => {
+    if (isPartnerBoard) {
+      const loadCategories = async () => {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("id, name")
+          .eq("type", "partner")
+          .order("created_at", { ascending: true });
+
+        if (!error && data) {
+          setPartnerCategories(data);
+        }
+      };
+      loadCategories();
+    }
+  }, [isPartnerBoard, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    // 인사이트 게시판일 때 카테고리 필수 검증
+    if (isInsightBoard && !selectedCategory) {
+      setError("카테고리를 선택해주세요.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       await createPost({
@@ -45,8 +104,14 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
         visibility: isPublicBoard ? "public" : visibility,
         boardCategoryId,
         communityId,
-        category: slug, // slug를 category로 전달
+        category: (isInsightBoard || isPartnerBoard) && selectedCategory ? selectedCategory : slug, // 인사이트/파트너스인 경우 선택된 카테고리 사용
+        categoryId: (isInsightBoard || isPartnerBoard) && selectedCategory ? selectedCategory : undefined, // category_id로 저장
       });
+
+      // 성공 콜백 실행 (모달 닫기 등)
+      if (onSuccess) {
+        onSuccess()
+      }
 
       // slug가 있으면 해당 게시판으로, 없으면 일반 게시글 목록으로 리다이렉트
       if (slug) {
@@ -64,6 +129,31 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 카테고리 선택 (인사이트/파트너스 게시판일 때만, 제목 위에 배치) */}
+      {(isInsightBoard || isPartnerBoard) && (
+        <div className="space-y-2">
+          <Label htmlFor="category" className="text-sm font-medium text-slate-900">
+            카테고리 {isInsightBoard && <span className="text-red-500">*</span>}
+          </Label>
+          <Select 
+            value={selectedCategory} 
+            onValueChange={setSelectedCategory}
+            required={isInsightBoard}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="카테고리를 선택해주세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {(isInsightBoard ? insightCategories : partnerCategories).map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="title" className="text-sm font-medium text-slate-900">
           제목
@@ -133,7 +223,13 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug }: NewP
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (onSuccess) {
+              onSuccess() // 모달이 열려있으면 모달 닫기
+            } else {
+              router.back() // 일반 페이지면 뒤로 가기
+            }
+          }}
           className="h-12 px-6 text-base"
         >
           취소

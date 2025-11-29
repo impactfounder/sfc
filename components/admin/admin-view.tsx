@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Calendar, FileText, Eye, Trash2, Medal } from "lucide-react"
+import { Users, Calendar, FileText, Eye, Trash2, Medal, Briefcase } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UserManagementRow } from "@/components/user-management"
 import { DeleteEventButton } from "@/components/delete-event-button"
@@ -10,7 +10,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BadgeManagementTab } from "./badge-management-tab"
+import { PartnerApplicationsTab } from "./partner-applications-tab"
+import { PostManagementTab } from "./posts/post-management-tab"
 import { deletePost } from "@/lib/actions/posts"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-type TabType = "users" | "events" | "posts" | "badges"
+type TabType = "users" | "events" | "posts" | "badges" | "partner-applications"
 
 type User = {
   id: string
@@ -92,17 +95,51 @@ type PendingBadge = {
   } | null
 }
 
+type Category = {
+  id: string
+  name: string
+  type: "insight" | "partner"
+  created_at: string
+}
+
+type PartnerApplication = {
+  id: string
+  created_at: string
+  status: "pending" | "approved" | "rejected"
+  company_name: string | null
+  current_usage: string | null
+  profiles: {
+    id: string
+    full_name: string | null
+    email: string | null
+  } | null
+  partners?: {
+    id: string
+    name: string
+  } | null
+  partner_name?: string | null
+}
+
+type BadgeCategory = {
+  category_value: string
+  category_label: string
+  sort_order: number
+}
+
 type AdminViewProps = {
   users: User[]
   events: Event[]
   posts: Post[]
   badges: Badge[]
   pendingBadges: PendingBadge[]
+  categories?: Category[]
+  partnerApplications?: PartnerApplication[]
+  badgeCategories?: BadgeCategory[]
   currentUserId: string
   isMaster: boolean
 }
 
-export function AdminView({ users, events, posts, badges, pendingBadges, currentUserId, isMaster }: AdminViewProps) {
+export function AdminView({ users, events, posts, badges, pendingBadges, categories = [], partnerApplications = [], badgeCategories = [], currentUserId, isMaster }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("users")
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -194,11 +231,12 @@ export function AdminView({ users, events, posts, badges, pendingBadges, current
       </div>
 
         {/* 메트릭 카드 (탭 버튼) */}
-        <div className="mb-8 grid gap-4 md:grid-cols-4">
+        <div className="mb-8 grid gap-4 md:grid-cols-5">
           <MetricCard tab="users" label="전체 회원" count={users.length} icon={Users} />
           <MetricCard tab="events" label="전체 이벤트" count={events.length} icon={Calendar} />
-          <MetricCard tab="posts" label="전체 게시글" count={posts.length} icon={FileText} />
+          <MetricCard tab="posts" label="게시판 관리" count={posts.length} icon={FileText} />
           <MetricCard tab="badges" label="뱃지 관리" count={badges.length} icon={Medal} />
+          <MetricCard tab="partner-applications" label="파트너스 신청" count={partnerApplications.length} icon={Briefcase} />
         </div>
 
         {/* 하단 콘텐츠 영역 */}
@@ -213,7 +251,6 @@ export function AdminView({ users, events, posts, badges, pendingBadges, current
                     <TableRow>
                       <TableHead>프로필</TableHead>
                       <TableHead>이메일</TableHead>
-                      <TableHead>포인트</TableHead>
                       <TableHead>등급</TableHead>
                       <TableHead>가입일</TableHead>
                       <TableHead className="text-right">관리</TableHead>
@@ -322,60 +359,64 @@ export function AdminView({ users, events, posts, badges, pendingBadges, current
             </div>
           )}
 
-          {/* 게시글 탭 */}
+          {/* 게시판 관리 탭 */}
           {activeTab === "posts" && (
             <div>
-              <h2 className="text-xl font-bold text-slate-900 mb-6">게시글 목록</h2>
-              {posts.length > 0 ? (
-                <div className="space-y-3">
-                  {posts.map((post) => {
-                    const boardSlug = post.board_categories?.slug || "free"
-                    const postUrl = `/community/board/${boardSlug}/${post.id}`
+              <h2 className="text-xl font-bold text-slate-900 mb-6">게시판 관리</h2>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full max-w-2xl grid-cols-5 mb-6">
+                  <TabsTrigger value="all">전체</TabsTrigger>
+                  <TabsTrigger value="free">자유게시판</TabsTrigger>
+                  <TabsTrigger value="insights">인사이트</TabsTrigger>
+                  <TabsTrigger value="partners">파트너스</TabsTrigger>
+                  <TabsTrigger value="announcement">공지사항</TabsTrigger>
+                </TabsList>
 
-                    return (
-                      <div
-                        key={post.id}
-                        className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-medium text-slate-900 truncate">{post.title}</h3>
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600 whitespace-nowrap">
-                              {post.board_categories?.name || "게시판"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-500">
-                            <span>작성자: {post.profiles?.full_name || "익명"}</span>
-                            <span>작성일: {formatShortDate(post.created_at)}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Link href={postUrl}>
-                            <Button variant="outline" size="sm" className="gap-2">
-                              <Eye className="h-4 w-4" />
-                              보기
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="gap-2 border-red-300 text-red-600 hover:bg-red-50"
-                            onClick={() => {
-                              setDeletingPostId(post.id)
-                              setShowDeleteDialog(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            삭제
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="py-12 text-center text-slate-500">등록된 게시글이 없습니다</div>
-              )}
+                <TabsContent value="all" className="mt-0">
+                  <PostManagementTab
+                    boardType="all"
+                    initialPosts={posts}
+                    initialCategories={categories}
+                  />
+                </TabsContent>
+
+                <TabsContent value="free" className="mt-0">
+                  <PostManagementTab
+                    boardType="free"
+                    initialPosts={posts.filter(p =>
+                      p.board_categories?.slug === "free" || p.board_categories?.slug === "free-board"
+                    )}
+                    initialCategories={categories}
+                  />
+                </TabsContent>
+
+                <TabsContent value="insights" className="mt-0">
+                  <PostManagementTab
+                    boardType="insights"
+                    initialPosts={posts.filter(p => p.board_categories?.slug === "insights")}
+                    initialCategories={categories.filter(c => c.type === "insight")}
+                  />
+                </TabsContent>
+
+                <TabsContent value="partners" className="mt-0">
+                  <PostManagementTab
+                    boardType="partners"
+                    initialPosts={posts.filter(p => p.board_categories?.slug === "partners")}
+                    initialCategories={categories.filter(c => c.type === "partner")}
+                  />
+                </TabsContent>
+
+                <TabsContent value="announcement" className="mt-0">
+                  <PostManagementTab
+                    boardType="announcement"
+                    initialPosts={posts.filter(p =>
+                      p.board_categories?.slug === "announcement" ||
+                      p.board_categories?.slug === "announcements"
+                    )}
+                    initialCategories={categories}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 
@@ -384,6 +425,14 @@ export function AdminView({ users, events, posts, badges, pendingBadges, current
             <BadgeManagementTab 
               badges={badges} 
               pendingBadges={pendingBadges}
+              badgeCategories={badgeCategories}
+            />
+          )}
+
+          {/* 파트너스 신청 관리 탭 */}
+          {activeTab === "partner-applications" && (
+            <PartnerApplicationsTab 
+              applications={partnerApplications}
             />
           )}
         </div>

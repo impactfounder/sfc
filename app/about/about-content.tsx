@@ -15,8 +15,15 @@ type Badge = {
   description: string | null
 }
 
+type BadgeCategory = {
+  category_value: string
+  category_label: string
+  sort_order: number
+}
+
 type AboutContentProps = {
   badges: Badge[]
+  badgeCategories?: BadgeCategory[]
 }
 
 const categoryConfig = {
@@ -64,10 +71,10 @@ const categoryConfig = {
   }
 } as const
 
-export default function AboutContent({ badges }: AboutContentProps) {
+export default function AboutContent({ badges, badgeCategories = [] }: AboutContentProps) {
   const [isBadgeExpanded, setIsBadgeExpanded] = useState(false)
 
-  // 카테고리별로 뱃지 그룹화
+  // 카테고리별로 뱃지 그룹화 (관리자 설정 순서 적용)
   const badgesByCategory = useMemo(() => {
     const grouped: Record<string, Badge[]> = {}
     badges.forEach((badge) => {
@@ -78,6 +85,31 @@ export default function AboutContent({ badges }: AboutContentProps) {
     })
     return grouped
   }, [badges])
+
+  // 관리자 설정 순서대로 카테고리 정렬
+  const sortedCategories = useMemo(() => {
+    if (badgeCategories.length === 0) {
+      // badge_categories 데이터가 없으면 기존 순서 유지
+      return Object.keys(badgesByCategory)
+    }
+    
+    // sort_order 기준으로 정렬된 카테고리 목록
+    const sorted = [...badgeCategories]
+      .sort((a, b) => {
+        // 1차 정렬: sort_order
+        if (a.sort_order !== b.sort_order) {
+          return a.sort_order - b.sort_order
+        }
+        // 2차 정렬: created_at (categoryConfig에 있는 순서)
+        return 0
+      })
+      .map(cat => cat.category_value)
+      .filter(cat => badgesByCategory[cat] && badgesByCategory[cat].length > 0) // 뱃지가 있는 카테고리만
+    
+    // badge_categories에 없는 카테고리도 추가 (기존 뱃지가 있는 경우)
+    const allCategories = new Set([...sorted, ...Object.keys(badgesByCategory)])
+    return Array.from(allCategories)
+  }, [badgeCategories, badgesByCategory])
 
   return (
     <div className="w-full flex flex-col lg:flex-row gap-10">
@@ -323,16 +355,23 @@ export default function AboutContent({ badges }: AboutContentProps) {
           {isBadgeExpanded && (
             <>
               <div className="space-y-12">
-                {/* 카테고리별로 뱃지 렌더링 */}
-                {Object.entries(badgesByCategory).map(([category, categoryBadges]) => {
+                {/* 카테고리별로 뱃지 렌더링 (관리자 설정 순서 적용) */}
+                {sortedCategories.map((category) => {
+                  const categoryBadges = badgesByCategory[category]
+                  if (!categoryBadges || categoryBadges.length === 0) return null
+                  
                   const config = categoryConfig[category as keyof typeof categoryConfig]
                   if (!config) return null
+
+                  // badge_categories에서 가져온 label 사용 (있으면)
+                  const categoryInfo = badgeCategories.find(cat => cat.category_value === category)
+                  const categoryLabel = categoryInfo?.category_label || config.label
 
                   return (
                     <div key={category}>
                       <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
                         <span className="text-2xl pt-1">{config.icon}</span>
-                        {config.label}
+                        {categoryLabel}
                       </h3>
                       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
                         {categoryBadges.map((badge) => (
