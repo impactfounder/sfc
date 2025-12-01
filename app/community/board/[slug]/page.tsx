@@ -72,6 +72,36 @@ export default async function BoardPage({
     isUserAdmin = isAdmin(profile?.role, profile?.email);
   }
 
+  // 커뮤니티 ID 및 멤버십 확인 (시스템 게시판 제외)
+  const systemBoards = ['announcement', 'free-board', 'event-requests', 'insights'];
+  const isSystemBoard = systemBoards.includes(dbSlug);
+
+  let communityId: string | null = null;
+  let isMember = false;
+
+  if (!isSystemBoard) {
+    // communities 테이블에서 커뮤니티 ID 가져오기
+    const { data: community } = await supabase
+      .from("communities")
+      .select("id")
+      .eq("name", category.name)
+      .single();
+
+    communityId = community?.id || null;
+
+    // 멤버십 확인
+    if (communityId && user) {
+      const { data: membership } = await supabase
+        .from("community_members")
+        .select("id")
+        .eq("community_id", communityId)
+        .eq("user_id", user.id)
+        .single();
+
+      isMember = !!membership;
+    }
+  }
+
   return (
     <BoardPageClient
       slug={slug}
@@ -79,6 +109,8 @@ export default async function BoardPage({
       category={category}
       isUserAdmin={isUserAdmin}
       user={user}
+      communityId={communityId}
+      isMember={isMember}
     />
   );
 }

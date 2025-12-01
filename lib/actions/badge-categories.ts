@@ -76,6 +76,7 @@ export async function updateBadgeCategoryOrder(items: { category_value: string; 
   }
 
   revalidatePath("/admin")
+  revalidatePath("/about")
   return { success: true }
 }
 

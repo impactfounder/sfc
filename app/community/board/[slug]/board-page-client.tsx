@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PostsSection } from "@/components/home/posts-section"
 import Link from "next/link"
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, UserPlus, UserCheck } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
@@ -13,6 +13,8 @@ import { CommunityRightSidebar } from "@/components/community-right-sidebar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { NewPostForm } from "@/components/new-post-form"
 import { PageHeader } from "@/components/page-header"
+import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
+import { useToast } from "@/hooks/use-toast"
 
 interface BoardPageClientProps {
   slug: string
@@ -24,6 +26,8 @@ interface BoardPageClientProps {
   }
   isUserAdmin: boolean
   user: any
+  communityId: string | null
+  isMember: boolean
 }
 
 export function BoardPageClient({
@@ -31,12 +35,17 @@ export function BoardPageClient({
   dbSlug,
   category,
   isUserAdmin,
-  user
+  user,
+  communityId,
+  isMember: initialIsMember
 }: BoardPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { toast } = useToast()
   const currentPage = Number(searchParams.get("page")) || 1
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false)
+  const [isMember, setIsMember] = useState(initialIsMember)
+  const [isJoining, setIsJoining] = useState(false)
 
   // ★ 수정: 커스텀 훅 사용
   const { data, isLoading, isError } = usePosts(dbSlug, currentPage)
@@ -47,6 +56,77 @@ export function BoardPageClient({
   // 시스템 게시판 목록 (기존 사이드바 사용)
   const systemBoards = ['announcement', 'announcements', 'free', 'free-board', 'event-requests', 'insights', 'reviews']
   const isSystemBoard = systemBoards.includes(dbSlug)
+
+  // 커뮤니티 가입 핸들러
+  const handleJoin = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "로그인 필요",
+        description: "커뮤니티에 참여하려면 로그인이 필요합니다.",
+      })
+      router.push("/auth/login")
+      return
+    }
+
+    if (!communityId) {
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: "커뮤니티 정보를 찾을 수 없습니다.",
+      })
+      return
+    }
+
+    setIsJoining(true)
+    try {
+      await joinCommunity(communityId)
+      setIsMember(true)
+      toast({
+        title: "참여 완료",
+        description: "커뮤니티에 참여했습니다.",
+      })
+      router.refresh()
+    } catch (error) {
+      console.error("커뮤니티 가입 오류:", error)
+      toast({
+        variant: "destructive",
+        title: "참여 실패",
+        description: error instanceof Error ? error.message : "커뮤니티 참여에 실패했습니다.",
+      })
+    } finally {
+      setIsJoining(false)
+    }
+  }
+
+  // 커뮤니티 탈퇴 핸들러
+  const handleLeave = async () => {
+    if (!communityId) return
+
+    if (!confirm("정말 이 커뮤니티에서 탈퇴하시겠습니까?")) {
+      return
+    }
+
+    setIsJoining(true)
+    try {
+      await leaveCommunity(communityId)
+      setIsMember(false)
+      toast({
+        title: "탈퇴 완료",
+        description: "커뮤니티에서 탈퇴했습니다.",
+      })
+      router.refresh()
+    } catch (error) {
+      console.error("커뮤니티 탈퇴 오류:", error)
+      toast({
+        variant: "destructive",
+        title: "탈퇴 실패",
+        description: error instanceof Error ? error.message : "커뮤니티 탈퇴에 실패했습니다.",
+      })
+    } finally {
+      setIsJoining(false)
+    }
+  }
 
   // 공지사항 여부 확인
   const isAnnouncement = dbSlug === 'announcement' || slug === 'announcements'
@@ -72,7 +152,7 @@ export function BoardPageClient({
   }
 
   // 인사이트 게시판의 경우 description 오버라이드
-  const displayDescription = slug === "insights" 
+  const displayDescription = slug === "insights"
     ? "성장에 필요한 인사이트 있는 칼럼과 팁을 공유합니다"
     : (category.description || undefined)
 
@@ -131,18 +211,47 @@ export function BoardPageClient({
           className="w-full"
         />
 
-        {/* 배너 아래 헤더 영역 (타이틀 + 버튼) */}
+        {/* 배너 아래 헤더 영역 (타이틀 + 버튼들) */}
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold text-slate-900">{getSectionTitle()}</h2>
-          {shouldShowButton && (
-            <Button
-              onClick={buttonConfig.onClick}
-              className="bg-white border border-gray-200 shadow-sm hover:bg-gray-50 text-black rounded-full px-4 h-10 inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              {buttonConfig.text}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* 커뮤니티 참여 버튼 (시스템 게시판 제외) */}
+            {!isSystemBoard && communityId && (
+              <>
+                {!isMember ? (
+                  <Button
+                    onClick={handleJoin}
+                    disabled={isJoining || !user}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-10 inline-flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    {isJoining ? "처리 중..." : "참여하기"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleLeave}
+                    disabled={isJoining}
+                    variant="outline"
+                    className="border-gray-200 text-gray-700 rounded-full px-4 h-10 inline-flex items-center gap-2"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    참여 중
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* 글쓰기 버튼 (멤버만 또는 시스템 게시판) */}
+            {(isSystemBoard || isMember) && shouldShowButton && (
+              <Button
+                onClick={buttonConfig.onClick}
+                className="bg-white border border-gray-200 shadow-sm hover:bg-gray-50 text-black rounded-full px-4 h-10 inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {buttonConfig.text}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* 글쓰기 모달 (모든 게시판 공통) */}

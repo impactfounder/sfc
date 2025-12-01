@@ -49,7 +49,7 @@ export async function createPost(data: {
     insertData.category_id = data.categoryId
   }
 
-  const { error } = await supabase.from("posts").insert(insertData).select("id").single()
+  const { data: newPost, error } = await supabase.from("posts").insert(insertData).select("id").single()
 
   if (error) {
     throw new Error(error.message)
@@ -57,7 +57,7 @@ export async function createPost(data: {
 
   revalidatePath("/community")
   revalidatePath("/community/posts")
-  return { success: true }
+  return newPost?.id || null
 }
 
 export async function deletePost(postId: string) {
@@ -112,20 +112,20 @@ export async function deletePost(postId: string) {
  */
 export async function likePostAnonymously(postId: string) {
   const supabase = await createClient()
-  
+
   // RPC 함수 호출
   const { error } = await supabase.rpc('increment_post_likes', {
     post_id: postId
   })
-  
+
   if (error) {
     console.error('익명 좋아요 실패:', error)
     throw new Error(error.message)
   }
-  
+
   // 관련 경로 재검증
   revalidatePath("/community")
   revalidatePath("/community/board")
-  
+
   return { success: true }
 }

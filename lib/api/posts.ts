@@ -36,7 +36,8 @@ export const fetchPosts = async ({
         *,
         profiles:author_id(full_name, avatar_url),
         board_categories!inner(name, slug),
-        _count: comments(count)
+        _count: comments(count),
+        post_images(id, image_url, sort_order)
       `,
         { count: "exact" }
       )
@@ -52,7 +53,8 @@ export const fetchPosts = async ({
         *,
         profiles:author_id(full_name, avatar_url),
         board_categories(name, slug),
-        _count: comments(count)
+        _count: comments(count),
+        post_images(id, image_url, sort_order)
       `,
         { count: "exact" }
       )
@@ -64,7 +66,7 @@ export const fetchPosts = async ({
   const { data, error, count } = await query
 
   if (error) throw error
-  
+
   return { posts: data || [], count: count || 0 }
 }
 

@@ -38,6 +38,11 @@ type Post = {
     name?: string | null
   } | null
   isMember?: boolean
+  post_images?: Array<{
+    id: string
+    image_url: string
+    sort_order: number
+  }>
 }
 
 type PostListItemProps = {
@@ -49,18 +54,18 @@ type PostListItemProps = {
   currentUserId?: string
 }
 
-export function PostListItem({ 
-  post, 
-  href, 
-  className, 
-  isMember = true, 
+export function PostListItem({
+  post,
+  href,
+  className,
+  isMember = true,
   viewMode = "feed",
-  currentUserId 
+  currentUserId
 }: PostListItemProps) {
   const [userId, setUserId] = useState<string | null>(currentUserId || null)
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(post.likes_count || 0)
-  
+
   // 사용자 정보 및 좋아요 상태 가져오기
   useEffect(() => {
     const loadUserAndLikeStatus = async () => {
@@ -82,7 +87,7 @@ export function PostListItem({
       loadUserAndLikeStatus()
     }
   }, [post.id, currentUserId])
-  
+
   // content에서 HTML 태그 제거하고 텍스트만 추출 (미리보기용)
   const getPlainText = (html?: string | null) => {
     if (!html) return ""
@@ -93,7 +98,7 @@ export function PostListItem({
   const contentPreview = getPlainText(post.content)
   const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
   const isGroupOnly = post.visibility === "group" && !isMember
-  
+
   // 대표 뱃지 (첫 번째 뱃지만)
   const primaryBadge = post.visible_badges && post.visible_badges.length > 0 ? post.visible_badges[0] : null
 
@@ -103,12 +108,12 @@ export function PostListItem({
       <Link href={href} className={cn("block w-full group", className)}>
         {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
         <div className="flex items-center gap-3 py-2 px-2 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
-          
+
           {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) */}
           <span className="bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 text-[11px] font-medium flex-shrink-0 w-16 text-center">
             {categoryName}
           </span>
-          
+
           {/* 제목 및 내용 */}
           <div className="flex-1 min-w-0 flex items-center gap-2">
             {/* 제목 */}
@@ -121,7 +126,7 @@ export function PostListItem({
           <div className="hidden sm:flex items-center gap-4 text-xs text-slate-400 flex-shrink-0">
             <span className="text-slate-500 w-16 text-right truncate">{post.profiles?.full_name || "익명"}</span>
             <span className="w-16 text-right">{formatRelativeTime(post.created_at)}</span>
-            
+
             <div className="flex items-center gap-2.5 ml-1 w-16 justify-end">
               {(post.likes_count || 0) > 0 && (
                 <div className="flex items-center gap-0.5 text-red-500">
@@ -155,7 +160,7 @@ export function PostListItem({
   // 피드형 뷰 (카드형 링크, 단순화)
   return (
     <Link href={href} className={cn("block", className)}>
-      <div 
+      <div
         className={cn(
           "flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
           className
@@ -205,7 +210,7 @@ export function PostListItem({
             <h3 className="text-lg font-bold tracking-tight text-slate-900 mb-2.5 leading-snug hover:text-blue-600 transition-colors">
               {post.title}
             </h3>
-            
+
             {/* 내용 미리보기 */}
             <div className="relative">
               <p className={cn(
@@ -214,12 +219,12 @@ export function PostListItem({
               )}>
                 {contentPreview}
               </p>
-              
+
               {/* 그라데이션 마스크 (더 읽으려면 누르세요 뉘앙스) */}
               {!isGroupOnly && contentPreview.length > 150 && (
                 <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
               )}
-              
+
               {isGroupOnly && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-lg">
                   <div className="flex flex-col items-center gap-2 text-center px-4">
@@ -234,15 +239,15 @@ export function PostListItem({
           {/* 푸터 (액션 버튼) */}
           <div className="flex items-center gap-4 pt-2" onClick={(e) => e.stopPropagation()}>
             <div className="z-10">
-              <LikeButton 
-                postId={post.id} 
-                userId={userId || undefined} 
+              <LikeButton
+                postId={post.id}
+                userId={userId || undefined}
                 initialLiked={isLiked}
                 initialCount={likeCount}
                 onLikeChange={(newCount) => setLikeCount(newCount)}
               />
             </div>
-            
+
             {/* 댓글 정보 표시 (링크 없음, 카드 클릭 시 이동) */}
             <div className="flex items-center gap-1.5 text-sm text-slate-600 px-3 py-1.5 rounded-lg">
               <MessageSquare className="h-4 w-4" />
