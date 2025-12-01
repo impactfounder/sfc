@@ -21,9 +21,12 @@ export type Profile = {
   avatar_url: string | null
   bio: string | null
   role: "member" | "admin" | "master"
+  roles: string[] | null
   points: number
   company: string | null
   position: string | null
+  company_2: string | null // 추가
+  position_2: string | null // 추가
   introduction: string | null
   is_profile_public: boolean
   membership_tier: string | null
@@ -47,6 +50,8 @@ export type ProfileForDisplay = {
   points: number
   company: string | null
   position: string | null
+  company_2: string | null // 추가
+  position_2: string | null // 추가
   introduction: string | null
   is_profile_public: boolean
   bio: string | null
@@ -60,4 +65,3 @@ export type UserWithProfile = {
   user: User
   profile: Profile | null
 }
-

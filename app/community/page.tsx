@@ -29,17 +29,24 @@ export default async function CommunityDashboardPage() {
     (cat) => cat.slug === 'vangol' || cat.slug === 'hightalk'
   )
 
-  // 공지사항과 자유게시판 제외 (소모임 카테고리만 표시)
-  // 'free-board'는 게시글에는 포함되지만 카테고리 탭에서는 제외
-  const excludedSlugs = ['announcement', 'announcements', 'free', 'free-board']
+  // 실제 개설된 커뮤니티(소모임) 슬러그 목록
+  const communitySlugs = ['vangol', 'hightalk']
+
+  // 탭 메뉴용 카테고리 필터링 (반골, 하이토크만)
   const filteredBoardCategories = (boardCategories || []).filter(
-    (cat) => !excludedSlugs.includes(cat.slug)
+    (cat) => communitySlugs.includes(cat.slug)
+  )
+
+  // 게시글 데이터 필터링 (반골, 하이토크 게시글만)
+  // getLatestPosts('all')은 인사이트 등 다른 글도 포함하므로 여기서 한번 더 필터링
+  const communityPosts = transformedPosts.filter(post => 
+    post.board_categories?.slug && communitySlugs.includes(post.board_categories.slug)
   )
 
   // 각 게시글의 커뮤니티 멤버십 확인
   // 주의: communities 조인이 제거되었으므로 임시로 모든 게시글에 isMember: true 설정
   // 향후 개선: visibility가 'group'인 경우 실제 멤버십 체크 로직 추가 필요
-  const postsWithMembership = transformedPosts.map((post: PostForDisplay) => {
+  const postsWithMembership = communityPosts.map((post: PostForDisplay) => {
     return { ...post, isMember: true }
   })
 

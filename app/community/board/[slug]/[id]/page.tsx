@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageSquare, Share2, ArrowLeft, Info, Users, Crown, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Heart, MessageSquare, ArrowLeft, Info, Users, Crown, ChevronRight, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { LikeButton } from "@/components/like-button";
 import { CommentSection } from "@/components/comment-section";
 import { PostActions } from "@/components/post-actions";
+import { EventShareButton } from "@/components/event-share-button";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserBadges } from "@/components/user-badges";
@@ -95,11 +96,11 @@ export default async function BoardPostDetailPage({
 
           {/* 헤더 (카드 바로 위로 이동) */}
           <div className="flex items-center justify-between">
-            <Link href={`/community/board/${slug}`}>
-              <Button variant="ghost" size="sm" className="gap-1 text-slate-600 hover:text-slate-900 -ml-2">
-                <ArrowLeft className="h-4 w-4" />
-                {boardName} 목록
-              </Button>
+            <Link href={`/community/board/${slug}`} className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+              <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
+                <ChevronLeft className="h-4 w-4" />
+              </div>
+              {boardName} 목록
             </Link>
             {(isAuthor || isUserAdmin) && (
               <PostActions 
@@ -171,10 +172,14 @@ export default async function BoardPostDetailPage({
                     <span>{post.comments_count || 0}</span>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="text-slate-500">
-                  <Share2 className="h-4 w-4 mr-2" />
+                <EventShareButton
+                  title={post.title}
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-500"
+                >
                   공유
-                </Button>
+                </EventShareButton>
               </div>
 
               {/* 댓글 섹션 */}

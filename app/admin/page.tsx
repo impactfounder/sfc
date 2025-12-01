@@ -104,6 +104,7 @@ export default async function AdminDashboard() {
         id,
         status,
         evidence,
+        proof_url,
         created_at,
         profiles:user_id (
           id,

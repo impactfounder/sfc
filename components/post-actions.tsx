@@ -87,7 +87,7 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
       </DropdownMenu>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle>게시글을 삭제하시겠습니까?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -96,7 +96,11 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel variant="outline">취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} variant="destructive">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={isDeleting} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
               {isDeleting ? "삭제 중..." : "삭제"}
             </AlertDialogAction>
           </AlertDialogFooter>

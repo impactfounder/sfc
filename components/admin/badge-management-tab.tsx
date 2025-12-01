@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Medal, Plus, Edit2, Trash2, CheckCircle2, XCircle, Eye, GripVertical } from "lucide-react"
+import { Medal, Plus, Edit2, Trash2, CheckCircle2, XCircle, Eye, GripVertical, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
 import { createBadge, updateBadge, deleteBadge, updateBadgeStatus, toggleBadgeActive } from "@/lib/actions/admin"
@@ -50,6 +51,7 @@ type PendingBadgeType = {
   id: string
   status: string
   evidence: string | null
+  proof_url?: string | null // proof_url 추가
   created_at: string
   profiles: {
     id: string
@@ -342,7 +344,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deletingBadgeId, setDeletingBadgeId] = useState<string | null>(null)
   const [editingBadge, setEditingBadge] = useState<BadgeType | null>(null)
-  const [viewingEvidence, setViewingEvidence] = useState<string>("")
+  const [viewingEvidence, setViewingEvidence] = useState<{text: string, url?: string | null}>({text: "", url: null})
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingAction, setProcessingAction] = useState<'create' | 'update' | 'delete' | 'approve' | 'reject' | null>(null)
   
@@ -677,8 +679,9 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                   const user = badgeRequest.profiles
                   const badge = badgeRequest.badges
                   const evidence = badgeRequest.evidence || "증빙 자료 없음"
-                  const evidencePreview = evidence.length > 50 ? evidence.substring(0, 50) + "..." : evidence
-
+                  const proofUrl = badgeRequest.proof_url
+                  const hasEvidence = !!badgeRequest.evidence || !!proofUrl
+                  
                   return (
                     <TableRow key={badgeRequest.id}>
                       <TableCell>
@@ -709,20 +712,25 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                       </TableCell>
                       <TableCell>
                         <div className="max-w-md">
-                          <p className="text-sm text-slate-700 line-clamp-2">{evidencePreview}</p>
-                          {evidence.length > 50 && (
+                          {hasEvidence ? (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() => {
-                                setViewingEvidence(evidence)
+                                setViewingEvidence({
+                                  text: badgeRequest.evidence || "",
+                                  url: proofUrl
+                                })
                                 setShowEvidenceDialog(true)
                               }}
-                              className="mt-1 h-7 text-xs"
+                              className="h-8 text-xs gap-1.5"
                             >
-                              <Eye className="h-3 w-3 mr-1" />
-                              보기
+                              <Eye className="h-3 w-3" />
+                              증빙 자료 확인
+                              {proofUrl && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">파일</span>}
                             </Button>
+                          ) : (
+                            <span className="text-sm text-slate-400">없음</span>
                           )}
                         </div>
                       </TableCell>
@@ -1049,17 +1057,56 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
       <Dialog open={showEvidenceDialog} onOpenChange={setShowEvidenceDialog}>
         <DialogContent className="sm:max-w-lg bg-white rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">증빙 자료</DialogTitle>
+            <DialogTitle className="text-lg font-bold">증빙 자료 확인</DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
               사용자가 제출한 증빙 자료입니다
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4">
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
-                {viewingEvidence}
-              </p>
-            </div>
+          <div className="mt-4 space-y-4">
+            {viewingEvidence.text && (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900 mb-2">설명</h4>
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                    {viewingEvidence.text}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {viewingEvidence.url && (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900 mb-2">첨부 파일</h4>
+                {viewingEvidence.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <div className="relative w-full h-64 rounded-lg overflow-hidden border border-slate-200">
+                    <Image 
+                      src={viewingEvidence.url} 
+                      alt="증빙 이미지"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                ) : (
+                  <Button asChild variant="outline" className="w-full justify-start">
+                    <a href={viewingEvidence.url} target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      파일 다운로드 / 보기
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {!viewingEvidence.text && !viewingEvidence.url && (
+              <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                제출된 증빙 자료가 없습니다.
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setShowEvidenceDialog(false)}>
+              닫기
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

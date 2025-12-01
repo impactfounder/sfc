@@ -57,7 +57,78 @@ export async function createPost(data: {
 
   revalidatePath("/community")
   revalidatePath("/community/posts")
+  // 게시판 경로도 재검증
+  revalidatePath("/community/board/[slug]", "page")
+  revalidatePath(`/community/board`, "layout")
   return newPost?.id || null
+}
+
+export async function updatePost(
+  postId: string, 
+  data: {
+    title?: string
+    content?: string
+    visibility?: "public" | "group"
+    boardCategoryId?: string
+  }
+) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Get user profile to check role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  // Verify post ownership
+  const { data: post } = await supabase.from("posts").select("author_id").eq("id", postId).single()
+
+  if (!post) {
+    throw new Error("Post not found")
+  }
+
+  // Check if user is author or admin/master
+  const isAuthor = post.author_id === user.id
+  const isMaster = profile ? isMasterAdmin(profile.role, profile.email) : false
+  
+  if (!isAuthor && !isMaster) {
+    throw new Error("Unauthorized")
+  }
+
+  const updateData: any = {
+    updated_at: new Date().toISOString(),
+  }
+  
+  if (data.title !== undefined) updateData.title = data.title.trim()
+  if (data.content !== undefined) updateData.content = data.content.trim()
+  if (data.visibility !== undefined) updateData.visibility = data.visibility
+  if (data.boardCategoryId !== undefined) updateData.board_category_id = data.boardCategoryId
+
+  const { error } = await supabase
+    .from("posts")
+    .update(updateData)
+    .eq("id", postId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath(`/community/posts/${postId}`)
+  revalidatePath("/community")
+  revalidatePath("/community/posts")
+  // 게시판 경로도 재검증
+  revalidatePath("/community/board/[slug]", "page")
+  revalidatePath(`/community/board`, "layout")
+  return { success: true }
 }
 
 export async function deletePost(postId: string) {
@@ -103,6 +174,9 @@ export async function deletePost(postId: string) {
 
   revalidatePath("/community/posts")
   revalidatePath(`/community/board`)
+  // 게시판 경로도 재검증
+  revalidatePath("/community/board/[slug]", "page")
+  revalidatePath(`/community/board`, "layout")
   return { success: true }
 }
 

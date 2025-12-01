@@ -8,6 +8,12 @@ const nextConfig = {
     unoptimized: true,
     // quality 100을 허용합니다.
     qualities: [75, 100],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+    ],
   },
   serverExternalPackages: ['@supabase/supabase-js'],
   transpilePackages: ['lucide-react'],

@@ -6,8 +6,19 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Pencil } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { toast } from "@/hooks/use-toast"
 
 interface CommunityRightSidebarProps {
   slug: string
@@ -15,6 +26,7 @@ interface CommunityRightSidebarProps {
 
 interface CommunityData {
   id: string
+  community_id?: string
   name: string
   description?: string | null
   created_by?: string | null
@@ -39,12 +51,21 @@ interface CommunityData {
 export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
   const [communityData, setCommunityData] = useState<CommunityData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editDescription, setEditDescription] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+  
   const supabase = createClient()
 
   useEffect(() => {
     async function fetchCommunityData() {
       try {
         setIsLoading(true)
+
+        // 현재 사용자 정보 가져오기
+        const { data: { user } } = await supabase.auth.getUser()
+        setCurrentUser(user)
 
         // board_categories에서 커뮤니티 정보 가져오기
         const { data: category, error: categoryError } = await supabase
@@ -117,20 +138,27 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
               .from("community_members")
               .select("*", { count: "exact", head: true })
               .eq("community_id", community.id)
-
+            
             memberCount = count || 0
           }
         }
 
+        const description = community ? (community.description || "") : (category.description || null)
+
         setCommunityData({
           id: category.id,
+          community_id: community?.id,
           name: category.name,
-          description: category.description || community?.description || null,
+          description: description,
           created_by: community?.created_by || null,
           creator_profile: community?.profiles || null,
           member_count: memberCount,
           members: members,
         })
+        
+        if (description) {
+          setEditDescription(description)
+        }
       } catch (error) {
         console.error("커뮤니티 데이터 로드 오류:", error)
       } finally {
@@ -140,6 +168,43 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
 
     fetchCommunityData()
   }, [slug, supabase])
+
+  const handleUpdateDescription = async () => {
+    if (!communityData?.community_id) return
+    
+    setIsSaving(true)
+    try {
+      const { data, error } = await supabase
+        .from("communities")
+        .update({ description: editDescription })
+        .eq("id", communityData.community_id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setCommunityData(prev => prev ? ({ ...prev, description: data?.description || editDescription }) : null)
+      setIsDialogOpen(false)
+      toast({ 
+        title: "성공", 
+        description: "가이드라인이 수정되었습니다." 
+      })
+    } catch (error: any) {
+      console.error("커뮤니티 수정 오류:", error)
+      // Supabase 에러 상세 정보 로깅
+      if (error?.message) console.error("Error Message:", error.message)
+      if (error?.details) console.error("Error Details:", error.details)
+      if (error?.hint) console.error("Error Hint:", error.hint)
+      
+      toast({ 
+        title: "오류", 
+        description: `수정에 실패했습니다: ${error?.message || "알 수 없는 오류"}`, 
+        variant: "destructive" 
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -161,14 +226,50 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
     return null
   }
 
+  const isLeader = currentUser?.id && communityData.created_by === currentUser.id
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Card 1: 클럽 가이드라인 */}
+      {/* Card 1: 커뮤니티 가이드라인 */}
       <Card className="bg-indigo-50 border-indigo-100 rounded-xl shadow-sm">
         <CardContent className="p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">📌</span>
-            <h3 className="text-base font-bold text-slate-900">클럽 가이드라인</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📌</span>
+              <h3 className="text-base font-bold text-slate-900">커뮤니티 가이드라인</h3>
+            </div>
+            {isLeader && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>커뮤니티 가이드라인 수정</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="guideline">가이드라인 내용</Label>
+                      <Textarea 
+                        id="guideline" 
+                        value={editDescription} 
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        placeholder="커뮤니티 멤버들이 지켜야 할 가이드라인을 입력해주세요."
+                        className="min-h-[150px]"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>취소</Button>
+                    <Button onClick={handleUpdateDescription} disabled={isSaving}>
+                      {isSaving ? "저장 중..." : "저장하기"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
           {communityData.description ? (
             <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
@@ -184,13 +285,13 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
         </CardContent>
       </Card>
 
-      {/* Card 2: 클럽 모더레이터 */}
+      {/* Card 2: 커뮤니티 리더 */}
       {communityData.creator_profile && (
         <Card className="bg-white border border-slate-200 rounded-xl shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-lg">👑</span>
-              <h3 className="text-base font-bold text-slate-900">클럽 모더레이터</h3>
+              <h3 className="text-base font-bold text-slate-900">커뮤니티 리더</h3>
             </div>
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12 border-2 border-amber-200">
@@ -200,21 +301,14 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2">
                   <p className="font-semibold text-slate-900 text-sm truncate">
-                    {communityData.creator_profile.full_name || "모더레이터"}
+                    {communityData.creator_profile.full_name || "리더"}
                   </p>
                   <Badge className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 font-bold">
                     리드
                   </Badge>
                 </div>
-                {(communityData.creator_profile.company || communityData.creator_profile.position) && (
-                  <p className="text-xs text-slate-500 truncate">
-                    {[communityData.creator_profile.company, communityData.creator_profile.position]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                )}
               </div>
             </div>
           </CardContent>
@@ -245,11 +339,6 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
                       <p className="font-medium text-slate-900 text-sm truncate">
                         {member.full_name || "멤버"}
                       </p>
-                      {(member.company || member.position) && (
-                        <p className="text-xs text-slate-500 truncate">
-                          {[member.company, member.position].filter(Boolean).join(" · ")}
-                        </p>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -272,4 +361,3 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
     </div>
   )
 }
-

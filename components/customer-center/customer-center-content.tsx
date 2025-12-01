@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/select"
 import { createInquiry } from "@/lib/actions/inquiries"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
-import { PageHeader } from "@/components/page-header"
+import { Loader2, MessageCircleQuestion, Send } from "lucide-react"
+import { ContentLayout } from "@/components/layouts/ContentLayout"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 // FAQ 더미 데이터
 const faqData = {
@@ -102,108 +104,156 @@ export function CustomerCenterContent() {
     }
   }
 
-  return (
-    <div className="w-full flex flex-col gap-10">
-      <PageHeader
-        title="고객센터"
-        description="궁금한 점이 있으시면 언제든지 문의해주세요."
-      />
+  const mainContent = (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2 mb-2">
+        <h1 className="text-2xl font-bold text-slate-900">고객센터</h1>
+        <p className="text-slate-600">궁금한 점이 있으시면 언제든지 문의해주세요.</p>
+      </div>
 
       <Tabs defaultValue="faq" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="faq">자주 묻는 질문</TabsTrigger>
-          <TabsTrigger value="inquiry">1:1 문의 및 의견 보내기</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100 p-1 rounded-xl">
+          <TabsTrigger 
+            value="faq" 
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500"
+          >
+            자주 묻는 질문
+          </TabsTrigger>
+          <TabsTrigger 
+            value="inquiry"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500"
+          >
+            1:1 문의 및 의견 보내기
+          </TabsTrigger>
         </TabsList>
 
         {/* 탭 1: 자주 묻는 질문 */}
-        <TabsContent value="faq" className="mt-6">
-          <div className="space-y-6">
-            {Object.entries(faqData).map(([category, items]) => (
-              <div key={category}>
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">{category}</h3>
-                <Accordion type="single" collapsible className="w-full">
-                  {items.map((item, index) => (
-                    <AccordionItem key={index} value={`${category}-${index}`}>
-                      <AccordionTrigger className="text-left">
-                        {item.question}
-                      </AccordionTrigger>
-                      <AccordionContent className="text-slate-600">
-                        {item.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+        <TabsContent value="faq">
+          <Card className="border-slate-200 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MessageCircleQuestion className="h-5 w-5 text-indigo-600" />
+                자주 묻는 질문
+              </CardTitle>
+              <CardDescription>
+                회원님들이 자주 궁금해하시는 질문들을 모았습니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-8">
+                {Object.entries(faqData).map(([category, items]) => (
+                  <div key={category}>
+                    <h3 className="text-base font-bold text-slate-900 mb-3 px-1 flex items-center gap-2">
+                      <span className="w-1 h-4 bg-indigo-500 rounded-full inline-block"></span>
+                      {category}
+                    </h3>
+                    <Accordion type="single" collapsible className="w-full">
+                      {items.map((item, index) => (
+                        <AccordionItem key={index} value={`${category}-${index}`} className="border-b-slate-100 last:border-0">
+                          <AccordionTrigger className="text-left hover:no-underline hover:text-indigo-600 transition-colors py-4 px-1 text-sm font-medium text-slate-800">
+                            {item.question}
+                          </AccordionTrigger>
+                          <AccordionContent className="text-slate-600 bg-slate-50 rounded-md p-4 mb-2 text-sm leading-relaxed">
+                            {item.answer}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* 탭 2: 1:1 문의 및 의견 보내기 */}
-        <TabsContent value="inquiry" className="mt-6">
-          <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
-            <div className="space-y-2">
-              <Label htmlFor="type" className="text-sm font-medium text-slate-900">
-                문의 유형 <span className="text-red-500">*</span>
-              </Label>
-              <Select value={inquiryType} onValueChange={setInquiryType} required>
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="문의 유형을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="service_inquiry">서비스 이용문의</SelectItem>
-                  <SelectItem value="bug_report">오류 제보</SelectItem>
-                  <SelectItem value="feature_request">기능 제안</SelectItem>
-                  <SelectItem value="other">기타</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <TabsContent value="inquiry">
+          <Card className="border-slate-200 shadow-sm bg-white">
+            <CardHeader>
+               <CardTitle className="flex items-center gap-2 text-lg">
+                <Send className="h-5 w-5 text-indigo-600" />
+                문의하기
+              </CardTitle>
+              <CardDescription>
+                서비스 이용 중 불편한 점이나 제안하고 싶은 내용이 있다면 언제든 말씀해주세요.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="type" className="text-sm font-medium text-slate-900">
+                    문의 유형 <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={inquiryType} onValueChange={setInquiryType} required>
+                    <SelectTrigger id="type" className="bg-white">
+                      <SelectValue placeholder="문의 유형을 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="service_inquiry">서비스 이용문의</SelectItem>
+                      <SelectItem value="bug_report">오류 제보</SelectItem>
+                      <SelectItem value="feature_request">기능 제안</SelectItem>
+                      <SelectItem value="other">기타</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm font-medium text-slate-900">
-                제목 <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="title"
-                placeholder="문의 제목을 입력하세요"
-                value={inquiryTitle}
-                onChange={(e) => setInquiryTitle(e.target.value)}
-                required
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm font-medium text-slate-900">
+                    제목 <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="문의 제목을 입력하세요"
+                    value={inquiryTitle}
+                    onChange={(e) => setInquiryTitle(e.target.value)}
+                    required
+                    className="bg-white"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="content" className="text-sm font-medium text-slate-900">
-                내용 <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="content"
-                placeholder="문의 내용을 자세히 입력하세요"
-                value={inquiryContent}
-                onChange={(e) => setInquiryContent(e.target.value)}
-                required
-                rows={10}
-                className="resize-none"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="content" className="text-sm font-medium text-slate-900">
+                    내용 <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="content"
+                    placeholder="문의 내용을 자세히 입력하세요"
+                    value={inquiryContent}
+                    onChange={(e) => setInquiryContent(e.target.value)}
+                    required
+                    rows={10}
+                    className="resize-none bg-white"
+                  />
+                </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full sm:w-auto"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  등록 중...
-                </>
-              ) : (
-                "문의 등록하기"
-              )}
-            </Button>
-          </form>
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto min-w-[120px]"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        등록 중...
+                      </>
+                    ) : (
+                      "문의 등록하기"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
   )
-}
 
+  return (
+    <ContentLayout
+      mainContent={mainContent}
+      rightSidebar={<StandardRightSidebar />}
+    />
+  )
+}

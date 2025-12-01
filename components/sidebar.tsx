@@ -217,6 +217,7 @@ export function Sidebar({
               width={150}
               height={25}
               className="mt-4 w-full max-w-[150px] h-auto object-contain"
+              style={{ height: "auto" }}
               priority
             />
           </Link>
@@ -251,9 +252,9 @@ export function Sidebar({
 
           {/* 2. 구조화된 메뉴 섹션 */}
           {navigationSections.map((section) => (
-            <div key={section.title} className="mt-2 mb-1">
+            <div key={section.title} className="mt-6 mb-2">
               
-              <div className="px-[27px] mb-0.5">
+              <div className="px-[27px] mb-2">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   {section.title}
                 </span>
@@ -287,7 +288,7 @@ export function Sidebar({
                       }}
                       className={cn(
                         "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
-                        isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                        isActive ? "bg-slate-100 text-slate-900 font-bold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
                       )}
                     >
                       <Icon className="h-5 w-5 flex-shrink-0" />
@@ -300,8 +301,8 @@ export function Sidebar({
           ))}
 
           {/* 5. 기타 활동 및 관리자 섹션 */}
-          <div className="mt-2 mb-1">
-            <div className="px-[27px] mb-0.5">
+          <div className="mt-6 mb-2">
+            <div className="px-[27px] mb-2">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">기타</span>
             </div>
             <div className="space-y-0.5">
@@ -310,21 +311,30 @@ export function Sidebar({
                 className={cn(
                   "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
                   isLinkActive("/customer-center", true)
-                    ? "bg-slate-100 text-slate-900 font-medium"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                    ? "bg-slate-100 text-slate-900 font-bold"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
                 )}
               >
                 <Headset className="h-5 w-5 flex-shrink-0" />
                 <span>고객센터</span>
               </Link>
-              {isAdmin && (
+              {/* 관리자 메뉴 깜빡임 방지: role이 확인되지 않아도 조건부 렌더링은 유지하되,
+                  초기 로딩 시에는 숨기지 않고 (isAdmin이 false여도) 
+                  서버 사이드에서 넘어온 role 정보 등을 활용할 수 있으면 좋지만,
+                  현재 구조상 클라이언트에서 role을 확인하므로, 
+                  isAdmin 상태가 확정되기 전까지는 빈 공간을 두거나
+                  스켈레톤을 보여주는 것이 깜빡임보다 나을 수 있음.
+                  하지만 여기서는 간단히 'admin' 경로일 때는 무조건 보여주도록 처리하여
+                  관리자 페이지 내에서의 깜빡임을 방지함. 
+              */}
+              {(isAdmin || pathname.startsWith('/admin')) && (
                 <Link
                   href="/admin"
                   className={cn(
                     "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
                     isLinkActive("/admin", true)
-                      ? "bg-slate-100 text-slate-900 font-medium"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                      ? "bg-slate-100 text-slate-900 font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
                   )}
                 >
                   <Shield className="h-5 w-5 flex-shrink-0" />
