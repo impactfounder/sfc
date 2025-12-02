@@ -62,10 +62,6 @@ export async function updateProfileInfo(data: {
   position_2?: string
   introduction?: string
   is_profile_public?: boolean
-  linkedin_url?: string
-  instagram_url?: string
-  threads_url?: string
-  website_url?: string
 }) {
   try {
     const supabase = await createClient()
@@ -76,31 +72,6 @@ export async function updateProfileInfo(data: {
 
     if (!user) {
       throw new Error("Unauthorized")
-    }
-
-    // URL 유효성 검사 함수
-    const isValidUrl = (url: string | undefined): boolean => {
-      if (!url || !url.trim()) return true // 빈 값은 허용
-      try {
-        new URL(url)
-        return true
-      } catch {
-        return false
-      }
-    }
-
-    // 각 소셜 링크 유효성 검사
-    if (data.linkedin_url && !isValidUrl(data.linkedin_url)) {
-      throw new Error("LinkedIn URL 형식이 올바르지 않습니다.")
-    }
-    if (data.instagram_url && !isValidUrl(data.instagram_url)) {
-      throw new Error("Instagram URL 형식이 올바르지 않습니다.")
-    }
-    if (data.threads_url && !isValidUrl(data.threads_url)) {
-      throw new Error("Threads URL 형식이 올바르지 않습니다.")
-    }
-    if (data.website_url && !isValidUrl(data.website_url)) {
-      throw new Error("웹사이트 URL 형식이 올바르지 않습니다.")
     }
 
     // Update profile info
@@ -116,18 +87,10 @@ export async function updateProfileInfo(data: {
       updated_at: new Date().toISOString(),
     }
 
-    // 소셜 링크도 일단 포함 시도
-    const socialUpdates = {
-      linkedin_url: data.linkedin_url?.trim() || null,
-      instagram_url: data.instagram_url?.trim() || null,
-      threads_url: data.threads_url?.trim() || null,
-      website_url: data.website_url?.trim() || null,
-    }
-
     // 1. 전체 업데이트 시도
     const { error } = await supabase
       .from("profiles")
-      .update({ ...updates, ...socialUpdates })
+      .update(updates)
       .eq("id", user.id)
 
     if (error) {

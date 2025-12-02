@@ -1,23 +1,13 @@
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Linkedin, Instagram, Link as LinkIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
-
-type SocialLinks = {
-  linkedin?: string
-  instagram?: string
-  threads?: string
-  website?: string
-}
 
 type MemberCardProps = {
   name: string
   role?: string
   bio?: string
   imageUrl?: string
-  socialLinks?: SocialLinks
   className?: string
 }
 
@@ -26,7 +16,6 @@ export function MemberCard({
   role,
   bio,
   imageUrl,
-  socialLinks,
   className,
 }: MemberCardProps) {
   const initials = name
@@ -64,60 +53,6 @@ export function MemberCard({
           </p>
         )}
       </div>
-
-      {/* 하단 소셜 아이콘 */}
-      {(socialLinks?.linkedin || socialLinks?.instagram || socialLinks?.threads || socialLinks?.website) && (
-        <>
-          <div className="w-full border-t border-slate-100 mt-auto pt-4">
-            <div className="flex items-center justify-center gap-4">
-              {socialLinks.linkedin && (
-                <Link
-                  href={socialLinks.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-400 hover:text-blue-600 transition-colors duration-200"
-                  aria-label={`${name}의 LinkedIn`}
-                >
-                  <Linkedin className="h-5 w-5" />
-                </Link>
-              )}
-              {socialLinks.instagram && (
-                <Link
-                  href={socialLinks.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-400 hover:text-pink-600 transition-colors duration-200"
-                  aria-label={`${name}의 Instagram`}
-                >
-                  <Instagram className="h-5 w-5" />
-                </Link>
-              )}
-              {socialLinks.threads && (
-                <Link
-                  href={socialLinks.threads}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-400 hover:text-slate-900 transition-colors duration-200"
-                  aria-label={`${name}의 Threads`}
-                >
-                  <LinkIcon className="h-5 w-5" />
-                </Link>
-              )}
-              {socialLinks.website && (
-                <Link
-                  href={socialLinks.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-400 hover:text-slate-900 transition-colors duration-200"
-                  aria-label={`${name}의 웹사이트`}
-                >
-                  <LinkIcon className="h-5 w-5" />
-                </Link>
-              )}
-            </div>
-          </div>
-        </>
-      )}
     </div>
   )
 }

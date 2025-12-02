@@ -4,8 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Linkedin, Instagram, Link as LinkIcon, Building2, MapPin, User, Globe } from "lucide-react"
-import Link from "next/link"
+import { Building2, MapPin, User } from "lucide-react"
 
 export type MemberProfile = {
   id: string
@@ -18,10 +17,6 @@ export type MemberProfile = {
   introduction: string | null
   roles: string[]
   role: string | null
-  linkedin_url?: string | null
-  instagram_url?: string | null
-  threads_url?: string | null
-  website_url?: string | null
   badges: Array<{
     icon: string
     name: string
@@ -36,8 +31,6 @@ interface MemberDetailModalProps {
 
 export function MemberDetailModal({ member, isOpen, onClose }: MemberDetailModalProps) {
   if (!member) return null
-
-  const hasSocialLinks = member.linkedin_url || member.instagram_url || member.threads_url || member.website_url
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -120,42 +113,6 @@ export function MemberDetailModal({ member, isOpen, onClose }: MemberDetailModal
               </p>
             </div>
           )}
-
-          {/* Social Links Section */}
-          {hasSocialLinks && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
-                소셜 링크
-              </h4>
-              <div className="flex flex-wrap gap-3">
-                {member.linkedin_url && (
-                  <Link href={member.linkedin_url} target="_blank" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0077b5]/10 text-[#0077b5] hover:bg-[#0077b5]/20 transition-colors text-sm font-medium">
-                    <Linkedin className="h-4 w-4" />
-                    LinkedIn
-                  </Link>
-                )}
-                {member.instagram_url && (
-                  <Link href={member.instagram_url} target="_blank" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#E1306C]/10 text-[#E1306C] hover:bg-[#E1306C]/20 transition-colors text-sm font-medium">
-                    <Instagram className="h-4 w-4" />
-                    Instagram
-                  </Link>
-                )}
-                {member.threads_url && (
-                  <Link href={member.threads_url} target="_blank" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors text-sm font-medium">
-                    <LinkIcon className="h-4 w-4" />
-                    Threads
-                  </Link>
-                )}
-                {member.website_url && (
-                  <Link href={member.website_url} target="_blank" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-sm font-medium">
-                    <Globe className="h-4 w-4" />
-                    웹사이트
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
         </div>
         
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
@@ -165,4 +122,3 @@ export function MemberDetailModal({ member, isOpen, onClose }: MemberDetailModal
     </Dialog>
   )
 }
-

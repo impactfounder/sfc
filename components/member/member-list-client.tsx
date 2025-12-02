@@ -16,7 +16,8 @@ export function MemberListClient({ members }: MemberListClientProps) {
   return (
     <>
       {members.length > 0 ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        // 3 columns layout update: grid-cols-1 xl:grid-cols-2 -> lg:grid-cols-3
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {members.map((member) => (
             <div 
               key={member.id} 
@@ -24,20 +25,22 @@ export function MemberListClient({ members }: MemberListClientProps) {
               className="cursor-pointer h-full"
             >
               <Card className="border-slate-200 bg-white hover:shadow-md transition-all duration-200 hover:-translate-y-1 h-full group overflow-hidden">
-                <CardContent className="py-5 pr-5 pl-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center h-full">
+                {/* Compact padding and gap */}
+                <CardContent className="py-3 px-5 flex flex-col sm:flex-row gap-5 items-start sm:items-center h-full">
                   {/* [Left] 프로필 이미지 & 이름 */}
-                  <div className="flex flex-col items-center gap-2 shrink-0 mx-auto sm:mx-0 w-full sm:w-24">
-                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 rounded-full group-hover:ring-4 group-hover:ring-indigo-50 transition-all bg-slate-50">
+                  <div className="flex flex-col items-center gap-2 shrink-0 mx-auto sm:mx-0 w-full sm:w-20">
+                    {/* Reduced avatar size */}
+                    <Avatar className="h-16 w-16 sm:h-20 sm:w-20 rounded-full group-hover:ring-4 group-hover:ring-indigo-50 transition-all bg-slate-50">
                       <AvatarImage 
                         src={member.avatar_url || `https://api.dicebear.com/9.x/notionists/svg?seed=${member.full_name}`} 
                         className="object-cover"
                       />
-                      <AvatarFallback className="bg-slate-100 text-slate-500 text-2xl font-medium rounded-full">
+                      <AvatarFallback className="bg-slate-100 text-slate-500 text-xl font-medium rounded-full">
                         {member.full_name?.[0] || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-center w-full">
-                      <h3 className="font-bold text-slate-900 text-lg truncate px-1">
+                      <h3 className="font-bold text-slate-900 text-base truncate px-1">
                         {member.full_name || "익명"}
                       </h3>
                     </div>
@@ -69,37 +72,37 @@ export function MemberListClient({ members }: MemberListClientProps) {
                       {/* 역할 (Badge) */}
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex flex-wrap gap-1 justify-center sm:justify-start">
-                          {member.roles.slice(0, 3).map((role) => (
-                            <Badge key={role} variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-slate-100 text-slate-600 font-normal">
+                          {member.roles.slice(0, 2).map((role) => (
+                            <Badge key={role} variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-slate-100 text-slate-600 font-normal">
                               {role}
                             </Badge>
                           ))}
-                          {member.roles.length > 3 && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-slate-100 text-slate-600 font-normal">
-                              +{member.roles.length - 3}
+                          {member.roles.length > 2 && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-slate-100 text-slate-600 font-normal">
+                              +{member.roles.length - 2}
                             </Badge>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* 소개글 */}
+                    {/* 소개글 - 3줄까지 표시 */}
                     {member.introduction ? (
-                      <p className="text-sm text-slate-600 line-clamp-3 leading-snug w-full break-keep whitespace-pre-line">
+                      <p className="text-xs text-slate-600 line-clamp-3 leading-snug w-full break-keep whitespace-pre-line">
                         {member.introduction}
                       </p>
                     ) : (
-                      <div className="w-full h-6" />
+                      <div className="w-full h-4" />
                     )}
 
                     {/* 하단: 뱃지 */}
-                    <div className="mt-auto pt-0.5 flex items-center justify-center sm:justify-start">
+                    <div className="mt-auto pt-1.5 flex items-center justify-center sm:justify-start">
                       {member.badges.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {member.badges.slice(0, 4).map((badge, idx) => (
+                        <div className="flex flex-wrap gap-1">
+                          {member.badges.slice(0, 3).map((badge, idx) => (
                             <div 
                               key={idx} 
-                              className="flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100"
+                              className="flex items-center gap-1 px-2 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-100"
                               title={badge.name}
                             >
                               <span className="text-sm">{badge.icon}</span>
@@ -108,14 +111,14 @@ export function MemberListClient({ members }: MemberListClientProps) {
                               </span>
                             </div>
                           ))}
-                          {member.badges.length > 4 && (
-                            <div className="flex items-center justify-center px-2 py-0.5 rounded bg-slate-50 text-slate-500 border border-slate-100 text-xs font-medium">
-                              +{member.badges.length - 4}
+                          {member.badges.length > 3 && (
+                            <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-50 text-slate-500 border border-slate-100 text-xs font-medium">
+                              +{member.badges.length - 3}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="h-6 text-sm text-slate-300">보유 뱃지 없음</div>
+                        <div className="h-6 text-xs text-slate-300">보유 뱃지 없음</div>
                       )}
                     </div>
                   </div>

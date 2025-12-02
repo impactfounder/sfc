@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent } from "@/components/ui/card"
-import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, Linkedin, Instagram, Link as LinkIcon, FileText, X, Loader2, Paperclip } from "lucide-react"
+import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -20,7 +20,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import type { User, Profile } from "@/lib/types/profile"
 import type { EventListItem } from "@/lib/types/events"
 import type { PostListItem } from "@/lib/types/posts"
@@ -58,6 +57,7 @@ type BadgeQueryResult = {
   badges: {
     icon: string
     name: string
+    is_active?: boolean
   } | null
 }
 
@@ -179,10 +179,6 @@ export default function ProfilePage() {
     position_2: "",
     introduction: "",
     is_profile_public: false,
-    linkedin_url: "",
-    instagram_url: "",
-    threads_url: "",
-    website_url: "",
   })
 
   useEffect(() => {
@@ -217,10 +213,6 @@ export default function ProfilePage() {
             position_2: profileData.position_2 || "",
             introduction: profileData.introduction || "",
             is_profile_public: profileData.is_profile_public || false,
-            linkedin_url: profileData.linkedin_url || "",
-            instagram_url: profileData.instagram_url || "",
-            threads_url: profileData.threads_url || "",
-            website_url: profileData.website_url || "",
           })
         }
 
@@ -260,7 +252,7 @@ export default function ProfilePage() {
                   id: post.id,
                   title: post.title,
                   created_at: post.created_at,
-                  board_categories: post.board_categories,
+                  board_categories: Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories,
                   likes_count: 0,
                   comments_count: 0,
                 }))
@@ -303,14 +295,16 @@ export default function ProfilePage() {
                 .select(`
                   badges:badge_id (
                     icon,
-                    name
+                    name,
+                    is_active
                   )
                 `)
                 .eq("user_id", userProfile.user.id)
                 .eq("is_visible", true)
                 .limit(10)
               if (!result.error && result.data) {
-                badgesData = result.data
+                // 활성화된 뱃지만 필터링
+                badgesData = result.data.filter((item: any) => item.badges && item.badges.is_active !== false) as any
               }
             } catch (error) {
               console.error('뱃지 로드 오류:', error)
@@ -332,7 +326,7 @@ export default function ProfilePage() {
               event_date: reg.events.event_date,
               location: reg.events.location,
               created_at: reg.events.event_date, 
-              registration_date: reg.registered_at,
+              registration_date: reg.registered_at || "",
             }
           })
           .filter((reg): reg is EventListItem => reg !== null)
@@ -341,7 +335,7 @@ export default function ProfilePage() {
         const mappedBadges: VisibleBadge[] = badgesData
           .map((ub) => ub.badges)
           .filter((badge): badge is { icon: string; name: string } => badge !== null)
-          .map((badge) => ({ icon: badge.icon, name: badge.name }))
+          .map((badge) => ({ icon: (badge as any).icon, name: (badge as any).name }))
         setVisibleBadges(mappedBadges)
 
       } catch (error) {
@@ -411,16 +405,16 @@ export default function ProfilePage() {
   )
 
   const renderBadges = () => (
-    <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+    <div className="flex flex-col gap-2 w-full">
       {visibleBadges.length > 0 ? (
-        visibleBadges.map((badge, index) => (
-          <div key={index} className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium border border-slate-200">
-            <span className="text-base">{badge.icon}</span>
+        visibleBadges.slice(0, 3).map((badge, index) => (
+          <div key={index} className="flex items-center justify-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-medium border border-slate-200 w-full text-slate-700">
+            <span className="text-lg">{badge.icon}</span>
             <span>{badge.name}</span>
           </div>
         ))
       ) : (
-        <p className="text-sm text-slate-500">노출 중인 인증 뱃지가 없습니다.</p>
+        <p className="text-sm text-slate-500 text-center w-full py-2">노출 중인 인증 뱃지가 없습니다.</p>
       )}
     </div>
   )
@@ -431,35 +425,6 @@ export default function ProfilePage() {
       return
     }
     
-    const formatSocialLink = (input: string, baseUrl: string) => {
-      if (!input || !input.trim()) return ""
-      let value = input.trim()
-      
-      // 이미 프로토콜이 있는 경우
-      if (value.startsWith("http://") || value.startsWith("https://")) {
-        return value
-      }
-      
-      // 도메인이 포함된 경우 (프로토콜만 추가)
-      // 간단하게 체크: baseUrl의 도메인 부분(예: instagram.com)이 포함되어 있으면 https:// 만 붙임
-      const domain = baseUrl.replace("https://", "").split("/")[0]
-      if (value.includes(domain)) {
-        return `https://${value}`
-      }
-      
-      // ID만 입력된 경우 (@ 제거 후 URL 생성)
-      return `${baseUrl}${value.replace(/^@/, "")}`
-    }
-
-    const formatWebsiteUrl = (input: string) => {
-      if (!input || !input.trim()) return ""
-      let value = input.trim()
-      if (!value.startsWith("http://") && !value.startsWith("https://")) {
-        return `https://${value}`
-      }
-      return value
-    }
-
     setIsSaving(true)
     try {
       const result = await updateProfileInfo({
@@ -470,10 +435,6 @@ export default function ProfilePage() {
         position_2: editForm.position_2,
         introduction: editForm.introduction,
         is_profile_public: editForm.is_profile_public,
-        linkedin_url: formatSocialLink(editForm.linkedin_url, "https://linkedin.com/in/"),
-        instagram_url: formatSocialLink(editForm.instagram_url, "https://instagram.com/"),
-        threads_url: formatSocialLink(editForm.threads_url, "https://threads.net/"),
-        website_url: formatWebsiteUrl(editForm.website_url),
       })
       
       if (!result.success) {
@@ -492,10 +453,6 @@ export default function ProfilePage() {
           position_2: editForm.position_2,
           introduction: editForm.introduction,
           is_profile_public: editForm.is_profile_public,
-          linkedin_url: editForm.linkedin_url,
-          instagram_url: editForm.instagram_url,
-          threads_url: editForm.threads_url,
-          website_url: editForm.website_url,
         }
       })
       
@@ -581,7 +538,7 @@ export default function ProfilePage() {
         .order("created_at", { ascending: false })
 
       if (data) {
-        setUserBadges(data as UserBadgeWithBadge[])
+        setUserBadges(data as unknown as UserBadgeWithBadge[])
         const visible: VisibleBadge[] = data
           .filter((ub) => ub.is_visible && ub.badges && ub.status === 'approved')
           .map((ub) => ({
@@ -634,7 +591,7 @@ export default function ProfilePage() {
           .order("created_at", { ascending: false })
 
         if (data) {
-          setUserBadges(data as UserBadgeWithBadge[])
+          setUserBadges(data as unknown as UserBadgeWithBadge[])
           const visible: VisibleBadge[] = data
             .filter((ub) => ub.is_visible && ub.badges)
             .map((ub) => ({
@@ -669,7 +626,8 @@ export default function ProfilePage() {
               name,
               icon,
               category,
-              description
+              description,
+              is_active
             )
           `)
           .eq("user_id", user.id)
@@ -677,15 +635,20 @@ export default function ProfilePage() {
         supabase
           .from("badges")
           .select("id, name, icon, category, description")
+          .or("is_active.eq.true,is_active.is.null") // 활성화된 뱃지만 조회 (true 또는 null)
           .order("category", { ascending: true })
           .order("name", { ascending: true })
       ])
 
       if (userBadgesResult.data) {
-        setUserBadges(userBadgesResult.data as UserBadgeWithBadge[])
+        // Filter out inactive badges from user's badges in edit mode
+        const activeUserBadges = userBadgesResult.data.filter((ub: any) => 
+          !ub.badges || ub.badges.is_active !== false
+        )
+        setUserBadges(activeUserBadges as unknown as UserBadgeWithBadge[])
       }
       if (allBadgesResult.data) {
-        setAllBadges(allBadgesResult.data as BadgeType[])
+        setAllBadges(allBadgesResult.data as unknown as BadgeType[])
       }
     }
   }
@@ -1186,75 +1149,6 @@ export default function ProfilePage() {
               />
             </div>
 
-            <Collapsible open={editForm.is_profile_public}>
-              <CollapsibleContent className="space-y-4 data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
-                <Label className="mb-2 block text-slate-700">소셜 링크</Label>
-                <p className="text-xs text-slate-500 mb-3">
-                  멤버 카드에 표시될 소셜 링크를 입력해주세요.
-                </p>
-                
-                <div>
-                  <Label htmlFor="linkedin_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
-                    <Linkedin className="h-4 w-4 text-blue-600" />
-                    LinkedIn
-                  </Label>
-                  <Input
-                    id="linkedin_url"
-                    type="text"
-                    value={editForm.linkedin_url}
-                    onChange={(e) => setEditForm({ ...editForm, linkedin_url: e.target.value })}
-                    placeholder="LinkedIn ID 또는 URL"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="instagram_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
-                    <Instagram className="h-4 w-4 text-pink-600" />
-                    Instagram
-                  </Label>
-                  <Input
-                    id="instagram_url"
-                    type="text"
-                    value={editForm.instagram_url}
-                    onChange={(e) => setEditForm({ ...editForm, instagram_url: e.target.value })}
-                    placeholder="Instagram ID 또는 URL (@username)"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="threads_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
-                    <LinkIcon className="h-4 w-4 text-slate-600" />
-                    Threads
-                  </Label>
-                  <Input
-                    id="threads_url"
-                    type="text"
-                    value={editForm.threads_url}
-                    onChange={(e) => setEditForm({ ...editForm, threads_url: e.target.value })}
-                    placeholder="Threads ID 또는 URL (@username)"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="website_url" className="mb-2 block text-sm text-slate-600 flex items-center gap-2">
-                    <LinkIcon className="h-4 w-4 text-slate-600" />
-                    웹사이트
-                  </Label>
-                  <Input
-                    id="website_url"
-                    type="url"
-                    value={editForm.website_url}
-                    onChange={(e) => setEditForm({ ...editForm, website_url: e.target.value })}
-                    placeholder="https://example.com"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
             <div>
               <Label className="mb-2 block text-slate-700">
                 뱃지 발급 신청
@@ -1430,7 +1324,6 @@ export default function ProfilePage() {
 
       <ContentLayout
         mainContent={mainContent}
-        rightSidebar={<StandardRightSidebar />}
       />
     </>
   )

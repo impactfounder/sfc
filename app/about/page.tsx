@@ -1,5 +1,3 @@
-import { DashboardLayout } from "@/components/dashboard-layout"
-import SidebarProfile from "@/components/sidebar-profile"
 import AboutContent from "./about-content"
 import { createClient } from "@/lib/supabase/server"
 
@@ -25,8 +23,6 @@ export default async function AboutPage() {
     .order("created_at", { ascending: true })
 
   return (
-    <DashboardLayout sidebarProfile={<SidebarProfile />}>
-      <AboutContent badges={badges || []} badgeCategories={badgeCategories || []} />
-    </DashboardLayout>
+    <AboutContent badges={badges || []} badgeCategories={badgeCategories || []} />
   )
 }

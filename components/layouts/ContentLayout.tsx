@@ -17,8 +17,8 @@ export function ContentLayout({ mainContent, rightSidebar, className }: ContentL
   return (
     <div className={["w-full", className].filter(Boolean).join(" ")}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* 메인 콘텐츠 영역 (왼쪽 9칸) */}
-        <main className="lg:col-span-9 flex flex-col gap-6">
+        {/* 메인 콘텐츠 영역 */}
+        <main className={`${rightSidebar ? "lg:col-span-9" : "lg:col-span-12"} flex flex-col gap-6`}>
           {mainContent}
         </main>
 
@@ -32,6 +32,8 @@ export function ContentLayout({ mainContent, rightSidebar, className }: ContentL
     </div>
   )
 }
+
+
 
 
 

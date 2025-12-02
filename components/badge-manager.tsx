@@ -16,6 +16,7 @@ type Badge = {
   icon: string
   category: string
   description: string | null
+  is_active?: boolean
 }
 
 type UserBadge = {
@@ -51,14 +52,19 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
             name,
             icon,
             category,
-            description
+            description,
+            is_active
           )
         `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
 
       if (userBadgesData) {
-        setUserBadges(userBadgesData as any)
+        // Filter active badges
+        const activeBadges = userBadgesData.filter((ub: any) => 
+          ub.badges.is_active !== false
+        )
+        setUserBadges(activeBadges as any)
       }
 
       // Load all available badges (활성화된 뱃지만)
@@ -124,14 +130,16 @@ export function BadgeManager({ userId }: BadgeManagerProps) {
             name,
             icon,
             category,
-            description
+            description,
+            is_active
           )
         `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
 
       if (data) {
-        setUserBadges(data as any)
+        const activeData = data.filter((ub: any) => ub.badges.is_active !== false)
+        setUserBadges(activeData as any)
       }
       
       setSelectedBadgeId("")

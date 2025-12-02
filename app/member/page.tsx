@@ -23,7 +23,7 @@ export default async function MemberPage() {
     currentUserProfile = data
   }
 
-  // 1. 소셜 링크 포함해서 조회 시도
+  // 1. 멤버 조회 시도
   let { data: publicMembers, error } = await supabase
     .from("profiles")
     .select(`
@@ -38,28 +38,24 @@ export default async function MemberPage() {
       introduction,
       role,
       created_at,
-      linkedin_url,
-      instagram_url,
-      threads_url,
-      website_url,
       user_badges (
         status,
         is_visible,
         badges:badge_id (
           icon,
-          name
+          name,
+          is_active
         )
       )
     `)
     .eq("is_profile_public", true)
     .order("created_at", { ascending: false })
 
-  // 2. 컬럼 없음 에러 발생 시, 소셜 링크 제외하고 재시도
-  // 에러 코드에 상관없이 에러가 발생하면 안전한 쿼리로 재시도
+  // 2. 에러 발생 시 안전한 쿼리로 재시도
   if (error) {
     console.warn("First attempt failed, retrying with safe columns. Error:", error)
     
-    // [1차 재시도] 소셜 링크 제외, 뱃지 상태 포함
+    // [1차 재시도] 뱃지 상태 포함
     let { data: retryData, error: retryError } = await supabase
       .from("profiles")
       .select(`
@@ -79,7 +75,8 @@ export default async function MemberPage() {
           is_visible,
           badges:badge_id (
             icon,
-            name
+            name,
+            is_active
           )
         )
       `)
@@ -106,7 +103,8 @@ export default async function MemberPage() {
           user_badges (
             badges:badge_id (
               icon,
-              name
+              name,
+              is_active
             )
           )
         `)
@@ -114,7 +112,7 @@ export default async function MemberPage() {
         .order("created_at", { ascending: false })
 
       if (!finalError) {
-        publicMembers = finalData
+        publicMembers = finalData as any
       } else {
         console.error("All fetch attempts failed:", finalError)
       }
@@ -122,11 +120,12 @@ export default async function MemberPage() {
   }
 
   const members: MemberProfile[] = (publicMembers || []).map((member: any) => {
-    // 뱃지 필터링: 승인됨(approved) AND 공개(is_visible) 상태인 것만
+    // 뱃지 필터링: 승인됨(approved) AND 공개(is_visible) AND 뱃지 활성(is_active != false)
     const validBadges = member.user_badges?.filter((ub: any) => 
       ub.badges && 
       (ub.status === 'approved' || !ub.status) && 
-      ub.is_visible
+      ub.is_visible &&
+      ub.badges.is_active !== false
     ).map((ub: any) => ub.badges) || []
 
     return {
@@ -140,10 +139,6 @@ export default async function MemberPage() {
       introduction: member.introduction,
       role: member.role,
       roles: member.roles || [],
-      linkedin_url: member.linkedin_url, // 없으면 undefined
-      instagram_url: member.instagram_url,
-      threads_url: member.threads_url,
-      website_url: member.website_url,
       badges: validBadges
     }
   })

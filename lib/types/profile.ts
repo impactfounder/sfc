@@ -31,10 +31,6 @@ export type Profile = {
   is_profile_public: boolean
   membership_tier: string | null
   last_login_date: string | null
-  linkedin_url: string | null
-  instagram_url: string | null
-  threads_url: string | null
-  website_url: string | null
   created_at: string
   updated_at: string
 }

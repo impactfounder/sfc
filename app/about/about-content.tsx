@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Users, Zap, Handshake, TrendingUp, ArrowRight, Target, ChevronDown, ChevronUp, Shield, Award, Star, TrendingUp as TrendingUpIcon } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 
@@ -119,12 +120,20 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
         <div className="relative w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md mb-10">
           {/* 배경 이미지 */}
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop')] bg-cover bg-center opacity-20" />
+            <div className="relative w-full h-full">
+              <Image
+                src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop"
+                alt="Background"
+                fill
+                className="object-cover opacity-20"
+                priority
+              />
+            </div>
             <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-slate-900/95" />
           </div>
 
           {/* 콘텐츠 (중앙 정렬 + 컴팩트한 패딩) */}
-          <div className="relative z-10 px-4 py-8 md:py-10 flex flex-col items-center text-center max-w-5xl mx-auto">
+          <div className="relative z-10 px-4 py-8 md:py-10 flex flex-col items-center text-center max-w-6xl mx-auto">
             
             {/* 뱃지 */}
             <div className="inline-block px-3 py-0.5 mb-3 rounded-full border border-slate-600 bg-slate-800/50 text-slate-300 text-[10px] font-medium tracking-wider backdrop-blur-sm">
@@ -162,7 +171,7 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
         </div>
           {/* 2. WHO WE ARE: 대상 명확화 */}
           <div className="py-16 px-6 bg-white rounded-xl shadow-sm">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-slate-900 mb-4">우리는 서로의 성장 동력입니다</h2>
             <p className="text-slate-500 text-lg">각자의 영역에서 성과를 증명한 리더들이 모입니다.</p>
@@ -226,7 +235,7 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
 
           <div className="grid md:grid-cols-3 gap-6">
             {/* 카드 1 */}
-            <Card className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+            <Card className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden h-full">
               <CardContent className="p-8 h-full flex flex-col">
                 <div className="h-12 w-12 bg-slate-900 rounded-lg flex items-center justify-center text-white mb-6">
                   <Users className="h-6 w-6" />
@@ -249,7 +258,7 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
             </Card>
 
             {/* 카드 2 */}
-            <Card className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+            <Card className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden h-full">
               <CardContent className="p-8 h-full flex flex-col">
                 <div className="h-12 w-12 bg-slate-900 rounded-lg flex items-center justify-center text-white mb-6">
                   <Zap className="h-6 w-6" />
@@ -272,7 +281,7 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
             </Card>
 
             {/* 카드 3 */}
-            <Card className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+            <Card className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden h-full">
               <CardContent className="p-8 h-full flex flex-col">
                 <div className="h-12 w-12 bg-slate-900 rounded-lg flex items-center justify-center text-white mb-6">
                   <Handshake className="h-6 w-6" />

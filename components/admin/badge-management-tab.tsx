@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Medal, Plus, Edit2, Trash2, CheckCircle2, XCircle, Eye, GripVertical, FileText } from "lucide-react"
+import { Medal, Plus, Edit2, Trash2, CheckCircle2, XCircle, Eye, GripVertical, FileText, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,7 @@ import Image from "next/image"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
 import { createBadge, updateBadge, deleteBadge, updateBadgeStatus, toggleBadgeActive } from "@/lib/actions/admin"
-import { updateBadgeCategoryOrder } from "@/lib/actions/badge-categories"
+import { updateBadgeCategoryOrder, createBadgeCategory, updateBadgeCategory, deleteBadgeCategory } from "@/lib/actions/badge-categories"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -248,6 +248,8 @@ function CategorySection({
   onToggleActive,
   onEdit,
   onDelete,
+  onEditCategory,
+  onDeleteCategory,
 }: {
   categoryValue: string
   categoryLabel: string
@@ -258,6 +260,8 @@ function CategorySection({
   onToggleActive: (badgeId: string, currentActive: boolean) => Promise<void>
   onEdit: (badge: BadgeType) => void
   onDelete: (badgeId: string) => void
+  onEditCategory: (category: BadgeCategoryType) => void
+  onDeleteCategory: (categoryValue: string) => void
 }) {
   const {
     attributes,
@@ -277,20 +281,41 @@ function CategorySection({
   return (
     <div ref={setNodeRef} style={style} className="mb-6">
       {/* 카테고리 헤더 */}
-      <div className="bg-gray-100 p-3 rounded-lg mb-3 flex items-center gap-3 cursor-move">
-        <div
-          {...attributes}
-          {...listeners}
-          className="flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <GripVertical className="h-5 w-5" />
+      <div className="bg-gray-100 p-3 rounded-lg mb-3 flex items-center justify-between group">
+        <div className="flex items-center gap-3 cursor-move">
+          <div
+            {...attributes}
+            {...listeners}
+            className="flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <GripVertical className="h-5 w-5" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900">
+            {categoryLabel}
+          </h3>
+          <Badge variant="outline" className="text-xs">
+            {badges.length}개
+          </Badge>
         </div>
-        <h3 className="text-lg font-semibold text-slate-900">
-          {categoryLabel}
-        </h3>
-        <Badge variant="outline" className="text-xs">
-          {badges.length}개
-        </Badge>
+        
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-500 hover:text-slate-700"
+            onClick={() => onEditCategory({ category_value: categoryValue, category_label: categoryLabel, sort_order: 0 })}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-500 hover:text-red-600"
+            onClick={() => onDeleteCategory(categoryValue)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* 뱃지 리스트 (들여쓰기) */}
@@ -348,6 +373,14 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingAction, setProcessingAction] = useState<'create' | 'update' | 'delete' | 'approve' | 'reject' | null>(null)
   
+  // 카테고리 관련 state
+  const [showCategoryCreateDialog, setShowCategoryCreateDialog] = useState(false)
+  const [showCategoryEditDialog, setShowCategoryEditDialog] = useState(false)
+  const [showCategoryDeleteDialog, setShowCategoryDeleteDialog] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<BadgeCategoryType | null>(null)
+  const [deletingCategoryValue, setDeletingCategoryValue] = useState<string | null>(null)
+  const [categoryFormData, setCategoryFormData] = useState({ label: "", value: "" })
+
   const [formData, setFormData] = useState({
     name: "",
     icon: "",
@@ -401,6 +434,14 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     
     // 뱃지를 카테고리별로 분류
     localBadges.forEach((badge) => {
+      // 카테고리가 없을 경우 '미분류' 등으로 처리하거나 skip
+      if (!grouped[badge.category] && !localBadgeCategories.find(c => c.category_value === badge.category)) {
+         // 만약 카테고리 목록에 없는 카테고리를 가진 뱃지가 있다면, 임시로 추가하지 않음
+         // 혹은 '기타' 카테고리를 만들어서 넣을 수도 있음
+         // 여기서는 일단 skip
+         return
+      }
+      
       if (!grouped[badge.category]) {
         grouped[badge.category] = []
       }
@@ -655,6 +696,97 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     }
   }
 
+  // 카테고리 관련 핸들러
+  const handleCreateCategory = async () => {
+    if (!categoryFormData.label) {
+      alert("카테고리 이름은 필수입니다.")
+      return
+    }
+    
+    // value가 없으면 label을 기반으로 자동 생성 (영문/숫자만 남기고 소문자 변환 등)
+    // 여기서는 간단하게 랜덤 UUID의 일부를 사용하거나, 한글이면 그냥 label을 그대로 쓰되 prefix 추가 등
+    // 하지만 category_value는 DB에서 unique여야 함.
+    // 사용자가 value를 입력하지 않았다면 label을 사용하되, 한글 등 특수문자 처리가 필요할 수 있음.
+    // DB에서 category_value는 text 타입이므로 한글도 가능할 수 있으나, 보통은 영문 code를 선호함.
+    // 일단 value가 있으면 쓰고, 없으면 label을 사용 (사용자가 입력하게 유도하는게 좋음)
+    if (!categoryFormData.value) {
+        alert("카테고리 코드를 입력해주세요 (예: personal_asset)")
+        return
+    }
+
+    setIsProcessing(true)
+    try {
+      await createBadgeCategory(categoryFormData.label, categoryFormData.value)
+      setShowCategoryCreateDialog(false)
+      setCategoryFormData({ label: "", value: "" })
+      router.refresh()
+      toast({
+        title: "카테고리 생성 완료",
+        description: "새로운 카테고리가 생성되었습니다.",
+      })
+    } catch (error) {
+      console.error("Failed to create category:", error)
+      toast({
+        variant: "destructive",
+        title: "카테고리 생성 실패",
+        description: error instanceof Error ? error.message : "실패했습니다.",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory || !categoryFormData.label) return
+
+    setIsProcessing(true)
+    try {
+      await updateBadgeCategory(editingCategory.category_value, categoryFormData.label)
+      setShowCategoryEditDialog(false)
+      setEditingCategory(null)
+      setCategoryFormData({ label: "", value: "" })
+      router.refresh()
+      toast({
+        title: "카테고리 수정 완료",
+        description: "카테고리 이름이 수정되었습니다.",
+      })
+    } catch (error) {
+      console.error("Failed to update category:", error)
+      toast({
+        variant: "destructive",
+        title: "카테고리 수정 실패",
+        description: error instanceof Error ? error.message : "실패했습니다.",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategoryValue) return
+
+    setIsProcessing(true)
+    try {
+      await deleteBadgeCategory(deletingCategoryValue)
+      setShowCategoryDeleteDialog(false)
+      setDeletingCategoryValue(null)
+      router.refresh()
+      toast({
+        title: "카테고리 삭제 완료",
+        description: "카테고리가 삭제되었습니다.",
+      })
+    } catch (error) {
+      console.error("Failed to delete category:", error)
+      toast({
+        variant: "destructive",
+        title: "카테고리 삭제 실패",
+        description: error instanceof Error ? error.message : "실패했습니다.",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* 상단: 뱃지 신청 현황 */}
@@ -805,16 +937,29 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
       <div className="border-t border-slate-200 pt-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-900">뱃지 종류 관리</h2>
-          <Button
-            onClick={() => {
-              setFormData({ name: "", icon: "", category: "", description: "" })
-              setShowCreateDialog(true)
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            뱃지 생성
-          </Button>
+          <div className="flex gap-2">
+            <Button
+                onClick={() => {
+                setCategoryFormData({ label: "", value: "" })
+                setShowCategoryCreateDialog(true)
+                }}
+                variant="outline"
+                className="gap-2"
+            >
+                <Plus className="h-4 w-4" />
+                카테고리 추가
+            </Button>
+            <Button
+                onClick={() => {
+                setFormData({ name: "", icon: "", category: "", description: "" })
+                setShowCreateDialog(true)
+                }}
+                className="gap-2"
+            >
+                <Plus className="h-4 w-4" />
+                뱃지 생성
+            </Button>
+          </div>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900 mb-4">전체 뱃지 목록 ({localBadges.length}개)</h3>
@@ -832,7 +977,10 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                 <div className="space-y-0">
                   {sortedCategories.map((category) => {
                     const categoryBadges = badgesByCategory[category.category_value] || []
-                    if (categoryBadges.length === 0) return null
+                    // 카테고리가 비어있어도 보여주는게 관리상 좋을 수 있음 (카테고리 삭제를 위해)
+                    // 하지만 기존 로직은 뱃지 없으면 안보였음.
+                    // 사용자가 카테고리 관리를 원하므로 빈 카테고리도 보여주는게 맞음.
+                    // 단, DB에서 가져온 카테고리만.
                     
                     return (
                       <CategorySection
@@ -840,12 +988,21 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                         categoryValue={category.category_value}
                         categoryLabel={category.category_label}
                         badges={categoryBadges}
-                        badgeCategories={badgeCategories}
+                        badgeCategories={localBadgeCategories}
                         isProcessing={isProcessing}
                         processingAction={processingAction}
                         onToggleActive={handleToggleActive}
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
+                        onEditCategory={(cat) => {
+                            setEditingCategory(cat)
+                            setCategoryFormData({ label: cat.category_label, value: cat.category_value })
+                            setShowCategoryEditDialog(true)
+                        }}
+                        onDeleteCategory={(val) => {
+                            setDeletingCategoryValue(val)
+                            setShowCategoryDeleteDialog(true)
+                        }}
                       />
                     )
                   })}
@@ -903,9 +1060,9 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                   <SelectValue placeholder="카테고리 선택" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999]">
-                  {badgeCategories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                  {localBadgeCategories.map((cat) => (
+                    <SelectItem key={cat.category_value} value={cat.category_value}>
+                      {cat.category_label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -998,9 +1155,9 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                   <SelectValue placeholder="카테고리 선택" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999]">
-                  {badgeCategories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                  {localBadgeCategories.map((cat) => (
+                    <SelectItem key={cat.category_value} value={cat.category_value}>
+                      {cat.category_label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1052,6 +1209,148 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 카테고리 생성 Dialog */}
+      <Dialog open={showCategoryCreateDialog} onOpenChange={setShowCategoryCreateDialog}>
+        <DialogContent className="sm:max-w-md bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">카테고리 추가</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              새로운 뱃지 카테고리를 생성합니다
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label htmlFor="category_label" className="mb-2 block text-slate-700">
+                카테고리 이름 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="category_label"
+                value={categoryFormData.label}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, label: e.target.value })}
+                placeholder="예: 커뮤니티 활동"
+                className="bg-white border-slate-200"
+              />
+            </div>
+            <div>
+              <Label htmlFor="category_value" className="mb-2 block text-slate-700">
+                카테고리 코드 (ID) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="category_value"
+                value={categoryFormData.value}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, value: e.target.value })}
+                placeholder="예: community_activity (영문 소문자)"
+                className="bg-white border-slate-200"
+              />
+              <p className="text-xs text-slate-500 mt-1">영문 소문자와 언더바(_)만 사용 가능합니다.</p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCategoryCreateDialog(false)}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleCreateCategory}
+                disabled={isProcessing || !categoryFormData.label || !categoryFormData.value}
+                className="bg-slate-900 text-white"
+              >
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "생성"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 카테고리 수정 Dialog */}
+      <Dialog open={showCategoryEditDialog} onOpenChange={setShowCategoryEditDialog}>
+        <DialogContent className="sm:max-w-md bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">카테고리 수정</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              카테고리 이름을 수정합니다 (코드는 수정 불가)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label htmlFor="edit_category_label" className="mb-2 block text-slate-700">
+                카테고리 이름 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit_category_label"
+                value={categoryFormData.label}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, label: e.target.value })}
+                placeholder="예: 커뮤니티 활동"
+                className="bg-white border-slate-200"
+              />
+            </div>
+            <div>
+              <Label className="mb-2 block text-slate-700">
+                카테고리 코드 (ID)
+              </Label>
+              <Input
+                value={editingCategory?.category_value || ""}
+                disabled
+                className="bg-slate-100 border-slate-200 text-slate-500"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCategoryEditDialog(false)}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleUpdateCategory}
+                disabled={isProcessing || !categoryFormData.label}
+                className="bg-slate-900 text-white"
+              >
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "수정"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 카테고리 삭제 확인 Dialog */}
+      <AlertDialog open={showCategoryDeleteDialog} onOpenChange={setShowCategoryDeleteDialog}>
+        <AlertDialogContent className="bg-white z-[100]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>카테고리 삭제 확인</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말 이 카테고리를 삭제하시겠습니까? 카테고리에 속한 뱃지가 없어야 삭제할 수 있습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowCategoryDeleteDialog(false)
+                setDeletingCategoryValue(null)
+              }}
+              disabled={isProcessing}
+            >
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCategory}
+              disabled={isProcessing}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  삭제 중...
+                </>
+              ) : (
+                "삭제"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* 증빙 자료 보기 Dialog */}
       <Dialog open={showEvidenceDialog} onOpenChange={setShowEvidenceDialog}>
@@ -1150,4 +1449,3 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     </div>
   )
 }
-

@@ -80,3 +80,137 @@ export async function updateBadgeCategoryOrder(items: { category_value: string; 
   return { success: true }
 }
 
+export async function createBadgeCategory(label: string, value: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile || !isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can create badge categories")
+  }
+
+  const supabaseAdmin = createAdminClient()
+
+  // 마지막 순서 조회
+  const { data: lastCategory } = await supabaseAdmin
+    .from("badge_categories")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .single()
+
+  const nextOrder = (lastCategory?.sort_order ?? 0) + 1
+
+  const { error } = await supabaseAdmin
+    .from("badge_categories")
+    .insert({
+      category_label: label,
+      category_value: value,
+      sort_order: nextOrder,
+    })
+
+  if (error) {
+    console.error("Failed to create badge category:", error)
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true }
+}
+
+export async function updateBadgeCategory(oldValue: string, label: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile || !isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can update badge categories")
+  }
+
+  const supabaseAdmin = createAdminClient()
+
+  const { error } = await supabaseAdmin
+    .from("badge_categories")
+    .update({
+      category_label: label,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("category_value", oldValue)
+
+  if (error) {
+    console.error("Failed to update badge category:", error)
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true }
+}
+
+export async function deleteBadgeCategory(value: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, email")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile || !isAdmin(profile.role, profile.email)) {
+    throw new Error("Unauthorized: Only admins can delete badge categories")
+  }
+
+  const supabaseAdmin = createAdminClient()
+
+  // 1. 해당 카테고리에 속한 뱃지가 있는지 확인
+  const { count, error: countError } = await supabaseAdmin
+    .from("badges")
+    .select("*", { count: 'exact', head: true })
+    .eq("category", value)
+
+  if (countError) {
+    throw new Error(countError.message)
+  }
+
+  if (count && count > 0) {
+    throw new Error("이 카테고리에 속한 뱃지가 있어 삭제할 수 없습니다. 뱃지를 먼저 삭제하거나 다른 카테고리로 이동해주세요.")
+  }
+
+  const { error } = await supabaseAdmin
+    .from("badge_categories")
+    .delete()
+    .eq("category_value", value)
+
+  if (error) {
+    console.error("Failed to delete badge category:", error)
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/about")
+  return { success: true }
+}

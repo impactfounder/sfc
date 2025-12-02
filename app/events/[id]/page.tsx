@@ -123,23 +123,22 @@ export default async function EventDetailPage({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="w-full">
         
-        {/* 상단 네비게이션 */}
-        <div className="mb-6 flex items-center justify-between">
-          <Link href="/events" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
-            <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-              <ChevronLeft className="h-4 w-4" />
-            </div>
-            이벤트 목록
-          </Link>
-        </div>
+      {/* 상단 네비게이션 */}
+      <div className="mb-6 flex items-center justify-between">
+        <Link href="/events" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
+            <ChevronLeft className="h-4 w-4" />
+          </div>
+          이벤트 목록
+        </Link>
+      </div>
 
-        <div className="flex flex-col gap-8">
-          
-          {/* [ROW 1] */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="flex flex-col gap-8">
+        
+        {/* [ROW 1] */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Row 1 - Left (8) */}
             <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
               <div className="relative aspect-video w-full bg-slate-100">
@@ -388,7 +387,6 @@ export default async function EventDetailPage({
           </div>
 
         </div>
-      </div>
 
       {/* [Mobile Only] 하단 고정 액션 바 (Sticky Bottom Bar) */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden animate-in slide-in-from-bottom-full duration-500">
