@@ -27,9 +27,10 @@ interface MemberDetailModalProps {
   member: MemberProfile | null
   isOpen: boolean
   onClose: () => void
+  currentUserRole?: string | null
 }
 
-export function MemberDetailModal({ member, isOpen, onClose }: MemberDetailModalProps) {
+export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: MemberDetailModalProps) {
   if (!member) return null
 
   return (

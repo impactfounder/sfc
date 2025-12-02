@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
+import NotificationsDropdown from "@/components/notifications-dropdown"
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -33,9 +34,11 @@ export function DashboardLayout({ children, sidebarProfile }: DashboardLayoutPro
               - 여백: 여기서 상하 여백(py)을 '유일하게' 정의함
               - pt-8 (32px): 우측 사이드바의 sticky top-8과 높이를 맞춰 레이아웃 정렬
           */}
-          <main className="flex-1 min-w-0 bg-slate-50 pt-20 pb-24 lg:pt-8 lg:pb-20">
-            {children}
-          </main>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <main className="flex-1 bg-slate-50 pt-20 pb-24 lg:pt-8 lg:pb-20">
+              {children}
+            </main>
+          </div>
         </div>
       </div>
     </div>

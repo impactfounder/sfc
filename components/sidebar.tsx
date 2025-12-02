@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, Shield, Bell, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
+import { Calendar, LogOut, Shield, Bell, Megaphone, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo, useRef } from "react"
 import Image from "next/image"
@@ -32,7 +32,7 @@ const navigationSections = [
   { 
     title: "게시판", // 운영/정보성
     links: [
-      { name: "공지사항", href: "/community/board/announcements", icon: Bell },
+      { name: "공지사항", href: "/community/board/announcements", icon: Megaphone },
       { name: "자유게시판", href: "/community/board/free", icon: MessageSquare }
     ],
     groupStyle: "board"
@@ -192,14 +192,9 @@ export function Sidebar({
   return (
     <>
       <div 
-        ref={sidebarRef}
-        className="flex h-full w-72 flex-col bg-white border-r border-slate-100 overflow-y-auto overflow-x-hidden no-scrollbar shadow-sm"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
+        className="flex h-full w-72 flex-col bg-white border-r border-slate-100 shadow-sm overflow-hidden"
       >
-        <div className="border-b border-slate-100">
+        <div className="border-b border-slate-100 shrink-0">
           
           {/* 로고 & 타이틀 */}
           <Link href="/" className="w-full px-6 py-6 flex flex-col items-center justify-center hover:opacity-80 transition-opacity">
@@ -229,7 +224,8 @@ export function Sidebar({
         </div>
 
         <nav 
-          className="px-2 pt-2 pb-1 overflow-y-auto no-scrollbar"
+          ref={sidebarRef}
+          className="flex-1 px-2 pt-2 pb-1 overflow-y-auto overflow-x-hidden no-scrollbar"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
@@ -345,8 +341,8 @@ export function Sidebar({
           </div>
         </nav>
 
-        {/* 프로필 영역 (메뉴 바로 아래 배치) */}
-        <div className="mt-2 border-t border-slate-100 bg-white">
+        {/* 프로필 영역 (메뉴 바로 아래 배치 -> 최하단 고정) */}
+        <div className="mt-auto border-t border-slate-100 bg-white shrink-0">
           {children}
         </div>
       </div>

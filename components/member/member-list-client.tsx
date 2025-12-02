@@ -8,9 +8,10 @@ import { MemberDetailModal, MemberProfile } from "./member-detail-modal"
 
 interface MemberListClientProps {
   members: MemberProfile[]
+  currentUserRole: string | null
 }
 
-export function MemberListClient({ members }: MemberListClientProps) {
+export function MemberListClient({ members, currentUserRole }: MemberListClientProps) {
   const [selectedMember, setSelectedMember] = useState<MemberProfile | null>(null)
 
   return (
@@ -137,6 +138,7 @@ export function MemberListClient({ members }: MemberListClientProps) {
         member={selectedMember} 
         isOpen={!!selectedMember} 
         onClose={() => setSelectedMember(null)} 
+        currentUserRole={currentUserRole}
       />
     </>
   )

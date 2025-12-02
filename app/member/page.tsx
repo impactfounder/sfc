@@ -17,7 +17,7 @@ export default async function MemberPage() {
   if (currentUser) {
     const { data } = await supabase
       .from("profiles")
-      .select("id, is_profile_public")
+      .select("id, is_profile_public, role")
       .eq("id", currentUser.id)
       .single()
     currentUserProfile = data
@@ -172,7 +172,10 @@ export default async function MemberPage() {
               <div className="text-sm text-slate-500">총 {members.length}명</div>
             </div>
             
-            <MemberListClient members={members} />
+            <MemberListClient 
+              members={members} 
+              currentUserRole={currentUserProfile?.role || null} 
+            />
           </div>
         </div>
 

@@ -54,7 +54,57 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(error.message)}`, origin));
     }
 
-    // 5. 쿠키가 심어진 그 response를 그대로 반환합니다.
+    // 5. [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // 프로필 정보 조회 (last_login_date 확인)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("last_login_date, full_name, email")
+          .eq("id", user.id)
+          .single();
+
+        // last_login_date가 없으면 '최초 로그인'으로 간주하여 알림 발송
+        if (profile && !profile.last_login_date) {
+          // 마스터 계정 조회
+          const { data: masters } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("role", "master");
+
+          if (masters && masters.length > 0) {
+            const userName = profile.full_name || profile.email?.split('@')[0] || "알 수 없음";
+            
+            // 알림 데이터 생성
+            const notifications = masters.map(master => ({
+              user_id: master.id,
+              type: "new_member",
+              title: "새로운 멤버 가입",
+              message: `새로운 멤버 '${userName}'님이 가입했습니다. 환영해주세요!`,
+              related_post_id: null,
+              related_event_id: null,
+              actor_id: user.id,
+              is_read: false
+            }));
+
+            // 알림 일괄 전송
+            await supabase.from("notifications").insert(notifications);
+          }
+        }
+
+        // 로그인 시간 업데이트
+        await supabase
+          .from("profiles")
+          .update({ last_login_date: new Date().toISOString() })
+          .eq("id", user.id);
+      }
+    } catch (err) {
+      console.error("[auth/callback] Notification error:", err);
+      // 알림 실패가 로그인 흐름을 방해하지 않도록 예외 무시
+    }
+
+    // 6. 쿠키가 심어진 그 response를 그대로 반환합니다.
     return response;
   }
 

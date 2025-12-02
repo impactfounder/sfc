@@ -12,7 +12,7 @@ import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { CommunityRightSidebar } from "@/components/community-right-sidebar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { NewPostForm } from "@/components/new-post-form"
-import { PageHeader } from "@/components/page-header"
+import { CommunityBanner } from "@/components/community-banner"
 import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
 import { useToast } from "@/hooks/use-toast"
 
@@ -28,6 +28,7 @@ interface BoardPageClientProps {
   user: any
   communityId: string | null
   isMember: boolean
+  canEditDescription: boolean
 }
 
 export function BoardPageClient({
@@ -37,7 +38,8 @@ export function BoardPageClient({
   isUserAdmin,
   user,
   communityId,
-  isMember: initialIsMember
+  isMember: initialIsMember,
+  canEditDescription
 }: BoardPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -175,13 +177,13 @@ export function BoardPageClient({
   // 배너 타이틀 및 설명 결정
   const getBannerConfig = () => {
     if (slug === "insights") {
-      return { title: "인사이트", description: "비즈니스 인사이트를 공유합니다." }
+      return { title: "인사이트", description: "비즈니스 인사이트를 공유합니다.", canEdit: false }
     } else if (isAnnouncement) {
-      return { title: "공지사항", description: "SFC의 새로운 소식을 알려드립니다." }
+      return { title: "공지사항", description: "SFC의 새로운 소식을 알려드립니다.", canEdit: false }
     } else if (slug === "free" || dbSlug === "free-board") {
-      return { title: "자유게시판", description: "자유롭게 이야기를 나누세요." }
+      return { title: "자유게시판", description: "자유롭게 이야기를 나누세요.", canEdit: false }
     } else {
-      return { title: category.name, description: category.description || undefined }
+      return { title: category.name, description: category.description || undefined, canEdit: true }
     }
   }
 
@@ -205,10 +207,12 @@ export function BoardPageClient({
       {/* [LEFT] 메인 콘텐츠 영역 (배너 + 헤더 + 리스트) */}
       <div className="lg:col-span-9 flex flex-col gap-6">
         {/* 배너: 메인 영역의 첫 번째 요소 */}
-        <PageHeader
+        <CommunityBanner
           title={bannerConfig.title}
           description={bannerConfig.description}
-          className="w-full"
+          communityId={communityId}
+          canEdit={bannerConfig.canEdit && canEditDescription}
+          slug={dbSlug}
         />
 
         {/* 배너 아래 헤더 영역 (타이틀 + 버튼들) */}
@@ -222,7 +226,7 @@ export function BoardPageClient({
                   <Button
                     onClick={handleJoin}
                     disabled={isJoining || !user}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 h-10 inline-flex items-center gap-2"
+                    className="rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm px-4 py-2 h-10 inline-flex items-center gap-2"
                   >
                     <UserPlus className="w-4 h-4" />
                     {isJoining ? "처리 중..." : "참여하기"}
@@ -231,8 +235,7 @@ export function BoardPageClient({
                   <Button
                     onClick={handleLeave}
                     disabled={isJoining}
-                    variant="outline"
-                    className="border-gray-200 text-gray-700 rounded-full px-4 h-10 inline-flex items-center gap-2"
+                    className="rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-700 text-sm font-semibold shadow-sm px-4 py-2 h-10 inline-flex items-center gap-2"
                   >
                     <UserCheck className="w-4 h-4" />
                     참여 중
@@ -271,7 +274,6 @@ export function BoardPageClient({
                 slug={slug}
                 boardCategoryId={category.id}
                 onSuccess={() => setIsWriteModalOpen(false)}
-                onCancel={() => setIsWriteModalOpen(false)}
               />
             </div>
           </DialogContent>

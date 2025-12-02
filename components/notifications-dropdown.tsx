@@ -23,7 +23,17 @@ interface Notification {
   } | null
 }
 
-export default function NotificationsDropdown() {
+interface NotificationsDropdownProps {
+  triggerClassName?: string
+  align?: "center" | "start" | "end"
+  side?: "top" | "right" | "bottom" | "left"
+}
+
+export default function NotificationsDropdown({ 
+  triggerClassName, 
+  align = "end", 
+  side = "bottom" 
+}: NotificationsDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
@@ -107,7 +117,20 @@ export default function NotificationsDropdown() {
     }
   }
 
-  if (!user) return null
+  if (!user) return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn(
+        "relative h-10 w-10 rounded-lg border-0 hover:bg-slate-100 transition-all",
+        triggerClassName
+      )}
+      aria-label="알림"
+      onClick={() => router.push("/auth/login")}
+    >
+      <Bell className="h-5 w-5 text-slate-400" />
+    </Button>
+  )
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -117,7 +140,8 @@ export default function NotificationsDropdown() {
           size="icon"
           className={cn(
             "relative h-10 w-10 rounded-lg border-0 hover:bg-slate-100 transition-all",
-            isOpen && "bg-slate-100"
+            isOpen && "bg-slate-100",
+            triggerClassName
           )}
           aria-label="알림"
         >
@@ -128,14 +152,13 @@ export default function NotificationsDropdown() {
         </Button>
       </PopoverTrigger>
       
-      {/* Full Height & Solid Background Panel */}
+      {/* Floating Card Panel */}
       <PopoverContent 
-        className="w-full sm:w-[400px] max-w-[100vw] p-0 h-screen bg-white border-r border-slate-200 shadow-2xl rounded-none flex flex-col ml-0" 
-        side="right" 
-        align="start"
-        sideOffset={0}
-        alignOffset={-140}
-        collisionPadding={0}
+        className="w-[360px] max-w-[calc(100vw-2rem)] p-0 max-h-[70vh] bg-white border border-slate-200 shadow-xl rounded-xl flex flex-col overflow-hidden" 
+        side={side}
+        align={align}
+        sideOffset={8}
+        collisionPadding={10}
       >
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white shrink-0">

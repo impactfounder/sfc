@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronRight, Pencil } from "lucide-react"
+import { ChevronRight, Pencil, Crown } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
@@ -19,6 +19,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
+import { setCommunityLeader } from "@/lib/actions/community"
+import { useRouter } from "next/navigation"
 
 interface CommunityRightSidebarProps {
   slug: string
@@ -52,11 +54,15 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
   const [communityData, setCommunityData] = useState<CommunityData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editDescription, setEditDescription] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [selectedMemberForLeader, setSelectedMemberForLeader] = useState<string | null>(null)
+  const [isSettingLeader, setIsSettingLeader] = useState(false)
   
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchCommunityData() {
@@ -66,6 +72,16 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
         // 현재 사용자 정보 가져오기
         const { data: { user } } = await supabase.auth.getUser()
         setCurrentUser(user)
+
+        // 현재 사용자 프로필 가져오기 (권한 확인용)
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single()
+          setCurrentUserProfile(profile)
+        }
 
         // board_categories에서 커뮤니티 정보 가져오기
         const { data: category, error: categoryError } = await supabase
@@ -151,7 +167,7 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
           name: category.name,
           description: description,
           created_by: community?.created_by || null,
-          creator_profile: community?.profiles || null,
+          creator_profile: (community?.profiles as any) || null,
           member_count: memberCount,
           members: members,
         })
@@ -206,6 +222,53 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
     }
   }
 
+  const handleSetLeader = async (memberId: string) => {
+    if (!communityData?.community_id) return
+    
+    setIsSettingLeader(true)
+    try {
+      await setCommunityLeader(communityData.community_id, memberId)
+      
+      toast({ 
+        title: "성공", 
+        description: "커뮤니티 리더가 변경되었습니다." 
+      })
+      
+      // 데이터 갱신
+      router.refresh()
+      
+      // 로컬 상태도 즉시 업데이트
+      setCommunityData(prev => {
+        if (!prev) return null
+        const targetMember = prev.members?.find(m => m.id === memberId)
+        if (!targetMember) return prev
+        
+        return {
+          ...prev,
+          created_by: memberId,
+          creator_profile: {
+            id: targetMember.id,
+            full_name: targetMember.full_name,
+            avatar_url: targetMember.avatar_url,
+            company: targetMember.company,
+            position: targetMember.position
+          }
+        }
+      })
+      
+      setSelectedMemberForLeader(null)
+    } catch (error: any) {
+      console.error("리더 지정 오류:", error)
+      toast({ 
+        title: "오류", 
+        description: error?.message || "리더 지정에 실패했습니다.", 
+        variant: "destructive" 
+      })
+    } finally {
+      setIsSettingLeader(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
@@ -227,6 +290,7 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
   }
 
   const isLeader = currentUser?.id && communityData.created_by === currentUser.id
+  const isMaster = currentUserProfile?.role === 'master'
 
   return (
     <div className="flex flex-col gap-6">
@@ -301,15 +365,13 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-slate-900 text-sm truncate">
-                    {communityData.creator_profile.full_name || "리더"}
-                  </p>
-                  <Badge className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 font-bold">
-                    리드
-                  </Badge>
-                </div>
+                <p className="font-semibold text-slate-900 text-sm truncate">
+                  {communityData.creator_profile.full_name || "리더"}
+                </p>
               </div>
+              <Badge className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 font-bold">
+                리더
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -327,21 +389,40 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
           {communityData.members && communityData.members.length > 0 ? (
             <>
               <div className="space-y-3 mb-4">
-                {communityData.members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-slate-200">
-                      <AvatarImage src={member.avatar_url || undefined} />
-                      <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-semibold">
-                        {member.full_name?.charAt(0) || "M"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 text-sm truncate">
-                        {member.full_name || "멤버"}
-                      </p>
+                {communityData.members.map((member) => {
+                  const isCurrentLeader = member.id === communityData.created_by
+                  return (
+                    <div key={member.id} className="flex items-center gap-3 group">
+                      <Avatar className="h-10 w-10 border border-slate-200">
+                        <AvatarImage src={member.avatar_url || undefined} />
+                        <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-semibold">
+                          {member.full_name?.charAt(0) || "M"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 text-sm truncate">
+                          {member.full_name || "멤버"}
+                        </p>
+                      </div>
+                      {isMaster && !isCurrentLeader && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setSelectedMemberForLeader(member.id)}
+                          title="리더로 지정"
+                        >
+                          <Crown className="h-4 w-4 text-amber-500" />
+                        </Button>
+                      )}
+                      {isCurrentLeader && (
+                        <Badge className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 font-bold">
+                          리더
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               {communityData.member_count && communityData.member_count > communityData.members.length && (
                 <Button
@@ -358,6 +439,41 @@ export function CommunityRightSidebar({ slug }: CommunityRightSidebarProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* 리더 지정 확인 다이얼로그 */}
+      <Dialog open={!!selectedMemberForLeader} onOpenChange={(open) => !open && setSelectedMemberForLeader(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>커뮤니티 리더 지정</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-600">
+              <span className="font-bold text-slate-900">
+                {communityData.members?.find(m => m.id === selectedMemberForLeader)?.full_name}
+              </span>
+              님을 이 커뮤니티의 리더로 지정하시겠습니까?
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              리더는 커뮤니티 가이드라인을 수정하고 커뮤니티를 관리할 수 있습니다.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setSelectedMemberForLeader(null)}
+              disabled={isSettingLeader}
+            >
+              취소
+            </Button>
+            <Button 
+              onClick={() => selectedMemberForLeader && handleSetLeader(selectedMemberForLeader)}
+              disabled={isSettingLeader}
+            >
+              {isSettingLeader ? "처리 중..." : "지정하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

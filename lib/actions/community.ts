@@ -3,123 +3,202 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
-/**
- * 커뮤니티 가입
- */
+export async function updateCommunityIntro(intro: string) {
+  const supabase = await createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // 권한 체크: master 또는 community_leader
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, roles")
+    .eq("id", user.id)
+    .single()
+
+  const isMaster = profile?.role === 'master'
+  const isLeader = profile?.roles?.includes('community_leader')
+
+  if (!isMaster && !isLeader) {
+    throw new Error("Forbidden")
+  }
+
+  // community_settings 테이블에 저장 (upsert)
+  const { error } = await supabase
+    .from("community_settings")
+    .upsert({ 
+      key: 'community_intro', 
+      value: intro,
+      updated_by: user.id,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community")
+  return { success: true }
+}
+
+export async function setCommunityLeader(communityId: string, targetUserId: string) {
+  const supabase = await createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // 권한 체크: master만 리더 지정 가능
+  const { data: requesterProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (requesterProfile?.role !== 'master') {
+    throw new Error("Forbidden: Only masters can designate community leaders")
+  }
+
+  // 대상 유저가 해당 커뮤니티의 멤버인지 확인
+  const { data: membership } = await supabase
+    .from("community_members")
+    .select("id")
+    .eq("community_id", communityId)
+    .eq("user_id", targetUserId)
+    .single()
+
+  if (!membership) {
+    throw new Error("User is not a member of this community")
+  }
+
+  // communities 테이블의 created_by를 업데이트 (리더 변경)
+  const { error } = await supabase
+    .from("communities")
+    .update({ created_by: targetUserId })
+    .eq("id", communityId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community")
+  revalidatePath(`/community/board/*`)
+  return { success: true }
+}
+
 export async function joinCommunity(communityId: string) {
-    const supabase = await createClient()
+  const supabase = await createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
 
-    if (!user) {
-        throw new Error("로그인이 필요합니다.")
+  // communities 테이블에 멤버십 추가
+  const { error } = await supabase
+    .from("community_members")
+    .insert({
+      community_id: communityId,
+      user_id: user.id,
+      joined_at: new Date().toISOString()
+    })
+
+  if (error) {
+    if (error.code === '23505') { // unique constraint violation
+      throw new Error("이미 참여한 커뮤니티입니다.")
     }
+    throw new Error(error.message)
+  }
 
-    // 이미 가입되어 있는지 확인
-    const { data: existing } = await supabase
-        .from("community_members")
-        .select("id")
-        .eq("community_id", communityId)
-        .eq("user_id", user.id)
-        .single()
-
-    if (existing) {
-        throw new Error("이미 참여 중인 커뮤니티입니다.")
-    }
-
-    // 커뮤니티 멤버로 추가
-    const { error } = await supabase
-        .from("community_members")
-        .insert({
-            community_id: communityId,
-            user_id: user.id,
-        })
-
-    if (error) {
-        console.error("커뮤니티 가입 오류:", error)
-        throw new Error("커뮤니티 가입에 실패했습니다.")
-    }
-
-    revalidatePath("/community")
-    return { success: true }
+  revalidatePath("/community")
+  return { success: true }
 }
 
-/**
- * 커뮤니티 탈퇴
- */
 export async function leaveCommunity(communityId: string) {
-    const supabase = await createClient()
+  const supabase = await createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
 
-    if (!user) {
-        throw new Error("로그인이 필요합니다.")
-    }
+  // communities 테이블에서 멤버십 제거
+  const { error } = await supabase
+    .from("community_members")
+    .delete()
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
 
-    // 커뮤니티 멤버에서 제거
-    const { error } = await supabase
-        .from("community_members")
-        .delete()
-        .eq("community_id", communityId)
-        .eq("user_id", user.id)
+  if (error) {
+    throw new Error(error.message)
+  }
 
-    if (error) {
-        console.error("커뮤니티 탈퇴 오류:", error)
-        throw new Error("커뮤니티 탈퇴에 실패했습니다.")
-    }
-
-    revalidatePath("/community")
-    return { success: true }
+  revalidatePath("/community")
+  return { success: true }
 }
 
-/**
- * 멤버십 확인
- */
-export async function checkMembership(communityId: string, userId: string) {
-    const supabase = await createClient()
+export async function updateCommunityDescription(communityId: string, description: string) {
+  const supabase = await createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    const { data, error } = await supabase
-        .from("community_members")
-        .select("id")
-        .eq("community_id", communityId)
-        .eq("user_id", userId)
-        .single()
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
 
-    if (error && error.code !== "PGRST116") {
-        console.error("멤버십 확인 오류:", error)
-        return false
-    }
+  // 해당 커뮤니티의 리더인지 확인
+  const { data: community } = await supabase
+    .from("communities")
+    .select("created_by")
+    .eq("id", communityId)
+    .single()
 
-    return !!data
-}
+  if (!community) {
+    throw new Error("Community not found")
+  }
 
-/**
- * 커뮤니티 ID 조회 (board_categories slug로부터)
- */
-export async function getCommunityIdBySlug(slug: string) {
-    const supabase = await createClient()
+  // 권한 체크: 리더 또는 master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
 
-    // board_categories에서 커뮤니티 이름 가져오기
-    const { data: category } = await supabase
-        .from("board_categories")
-        .select("name")
-        .eq("slug", slug)
-        .single()
+  const isLeader = community.created_by === user.id
+  const isMaster = profile?.role === 'master'
 
-    if (!category) {
-        return null
-    }
+  if (!isLeader && !isMaster) {
+    throw new Error("Forbidden: Only community leader or master can update description")
+  }
 
-    // communities 테이블에서 ID 가져오기
-    const { data: community } = await supabase
-        .from("communities")
-        .select("id")
-        .eq("name", category.name)
-        .single()
+  // description 업데이트
+  const { error } = await supabase
+    .from("communities")
+    .update({ description })
+    .eq("id", communityId)
 
-    return community?.id || null
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath("/community")
+  revalidatePath("/community/board/*")
+  return { success: true }
 }

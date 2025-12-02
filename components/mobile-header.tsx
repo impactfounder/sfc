@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, BookOpen, Users, Calendar, Bell, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase } from "lucide-react"
+import { Menu, BookOpen, Users, Calendar, Bell, Megaphone, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase } from "lucide-react"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,7 @@ const navigationSections = [
   { 
     title: "게시판",
     links: [
-      { name: "공지사항", href: "/community/board/announcements", icon: Bell },
+      { name: "공지사항", href: "/community/board/announcements", icon: Megaphone },
       { name: "자유게시판", href: "/community/board/free", icon: MessageSquare }
     ]
   },
@@ -77,7 +77,7 @@ export function MobileHeader() {
         
         {/* 알림 아이콘 */}
         <div className="relative">
-          <NotificationsDropdown />
+          <NotificationsDropdown align="end" side="bottom" />
         </div>
 
         {/* 햄버거 메뉴 */}

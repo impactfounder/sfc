@@ -78,7 +78,7 @@ export function HeroSection({ user, profile, onLogin }: HeroSectionProps) {
         </div>
         
         {/* 메인 카피 */}
-        <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight tracking-tight md:whitespace-nowrap">
+        <h1 className="text-lg md:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight tracking-tight whitespace-nowrap">
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">새로운 가치</span>를 만드는 사람들의 베이스캠프
         </h1>
         

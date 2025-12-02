@@ -63,12 +63,14 @@ export default async function BoardPage({
 
   // 관리자 여부 확인
   let isUserAdmin = false;
+  let userProfile: any = null;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, email")
       .eq("id", user.id)
       .single();
+    userProfile = profile;
     isUserAdmin = isAdmin(profile?.role, profile?.email);
   }
 
@@ -78,16 +80,22 @@ export default async function BoardPage({
 
   let communityId: string | null = null;
   let isMember = false;
+  let canEditDescription = false;
 
   if (!isSystemBoard) {
-    // communities 테이블에서 커뮤니티 ID 가져오기
+    // communities 테이블에서 커뮤니티 ID 및 description 가져오기
     const { data: community } = await supabase
       .from("communities")
-      .select("id")
+      .select("id, created_by, description")
       .eq("name", category.name)
       .single();
 
     communityId = community?.id || null;
+
+    // communities 테이블의 description이 있으면 그것을 사용
+    if (community?.description) {
+      category.description = community.description;
+    }
 
     // 멤버십 확인
     if (communityId && user) {
@@ -99,6 +107,11 @@ export default async function BoardPage({
         .single();
 
       isMember = !!membership;
+
+      // 소개글 수정 권한 확인: 리더 또는 master
+      const isLeader = community?.created_by === user.id;
+      const isMaster = userProfile?.role === 'master';
+      canEditDescription = isLeader || isMaster;
     }
   }
 
@@ -111,6 +124,7 @@ export default async function BoardPage({
       user={user}
       communityId={communityId}
       isMember={isMember}
+      canEditDescription={canEditDescription}
     />
   );
 }

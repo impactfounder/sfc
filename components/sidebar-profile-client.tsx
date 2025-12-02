@@ -2,17 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { LogIn, User, MoreHorizontal } from "lucide-react"
+import { LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { SidebarLogoutItem } from "@/components/sidebar-logout-item"
+import NotificationsDropdown from "@/components/notifications-dropdown"
 
 interface SidebarProfileClientProps {
   user: {
@@ -62,30 +55,26 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
     return (
       <div className="px-4 py-3">
         <div className="flex items-center gap-2 w-full">
-          <Link
-            href="/community/profile"
-            className="flex items-center gap-2 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
-              <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
-                {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="text-xs font-bold text-slate-900 truncate">
-                {displayName}
+          <div className="flex items-center gap-2 w-full">
+            <Link
+              href="/community/profile"
+              className="flex items-center gap-2 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
+                <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
+                  {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="text-xs font-bold text-slate-900 truncate">
+                  {displayName}
+                </div>
               </div>
-            </div>
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 flex-shrink-0 rounded-lg hover:bg-slate-100"
-            disabled
-          >
-            <MoreHorizontal className="h-4 w-4 text-slate-400" />
-          </Button>
+            </Link>
+            {/* 비로그인 시 보여줄 더미 버튼 (레이아웃 유지용) */}
+            <div className="w-8 h-8" />
+          </div>
         </div>
       </div>
     )
@@ -113,29 +102,14 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
           </div>
         </Link>
 
-        {/* 우측: 드롭다운 메뉴 트리거 */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 flex-shrink-0 rounded-lg hover:bg-slate-100"
-              aria-label="메뉴 열기"
-            >
-              <MoreHorizontal className="h-4 w-4 text-slate-400" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-white">
-            <DropdownMenuItem asChild>
-              <Link href="/community/profile" className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                내 프로필
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <SidebarLogoutItem />
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* 우측: 알림 아이콘 */}
+        <div className="flex items-center">
+          <NotificationsDropdown 
+            triggerClassName="h-8 w-8" 
+            side="right"
+            align="end"
+          />
+        </div>
       </div>
     </div>
   )

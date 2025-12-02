@@ -136,22 +136,93 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
       ) : (
         /* 3. 데이터 있을 때: 실제 카드 표시 */
         <>
-          {/* 모바일 Swiper */}
-          <div className="md:hidden -mx-4 px-4">
-            <Swiper
-              modules={[Navigation]}
-              onSwiper={(swiper) => (swiperRef.current = swiper)}
-              spaceBetween={16}
-              slidesPerView={1.2}
-              centeredSlides={false}
-              className="!pb-4"
-            >
-              {filteredEvents.map((event) => (
-                <SwiperSlide key={event.id}>
-                  <EventCard event={event} href={`/events/${event.id}`} />
-                </SwiperSlide>
-              ))}
-            </Swiper>
+          {/* 모바일 레이아웃 */}
+          <div className="md:hidden">
+            {/* 처음 5개: 큰 카드형 Swiper */}
+            {filteredEvents.length > 0 && (
+              <div className="-mx-4 px-4">
+                <Swiper
+                  modules={[Navigation]}
+                  onSwiper={(swiper) => (swiperRef.current = swiper)}
+                  spaceBetween={16}
+                  slidesPerView={1.2}
+                  centeredSlides={false}
+                  className="!pb-4"
+                >
+                  {filteredEvents.slice(0, 5).map((event) => (
+                    <SwiperSlide key={event.id}>
+                      <EventCard event={event} href={`/events/${event.id}`} />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </div>
+            )}
+
+            {/* 6개부터: 컴팩트한 리스트 레이아웃 */}
+            {filteredEvents.length > 5 && (
+              <div className="mt-6 space-y-3">
+                {filteredEvents.slice(5).map((event) => {
+                  const dateObj = new Date(event.event_date)
+                  const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`
+                  const timeStr = dateObj.toLocaleTimeString('ko-KR', { 
+                    hour: 'numeric', 
+                    minute: '2-digit', 
+                    hour12: true 
+                  })
+                  const current = event.current_participants || 0
+                  const max = event.max_participants || 0
+
+                  return (
+                    <Link 
+                      key={event.id} 
+                      href={`/events/${event.id}`}
+                      className="flex gap-3 bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md transition-all active:scale-[0.98]"
+                    >
+                      {/* 왼쪽: 썸네일 */}
+                      <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-slate-900">
+                        {event.thumbnail_url ? (
+                          <img
+                            src={event.thumbnail_url}
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900" />
+                        )}
+                        {/* 카테고리 뱃지 */}
+                        {event.event_type && (
+                          <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-white bg-black/60 backdrop-blur-sm">
+                            {event.event_type === 'networking' && '네트워킹'}
+                            {event.event_type === 'class' && '클래스'}
+                            {event.event_type === 'activity' && '액티비티'}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 오른쪽: 정보 */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-bold text-sm text-slate-900 line-clamp-2 leading-snug mb-1">
+                            {event.title}
+                          </h3>
+                          <p className="text-xs text-slate-500">
+                            {dateStr} {timeStr}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-slate-600 truncate">
+                            📍 {event.location}
+                          </p>
+                          <span className="text-xs font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                            {current} / {max}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* 데스크탑 Grid */}

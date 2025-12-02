@@ -6,18 +6,39 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { PageHeader } from "@/components/page-header"
+import { CommunityIntro } from "@/components/community-intro"
 import type { PostForDisplay } from "@/lib/types/posts"
 
 export default async function CommunityDashboardPage() {
   const supabase = await createClient()
 
-  // 현재 사용자 정보 가져오기 (멤버십 체크용)
+  // 현재 사용자 정보 가져오기 (권한 체크용)
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Fetch data using query helpers (피드에만 집중)
+  let canEdit = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, roles")
+      .eq("id", user.id)
+      .single()
+    
+    // master 또는 community_leader 권한 확인
+    if (profile?.role === 'master' || profile?.roles?.includes('community_leader')) {
+      canEdit = true
+    }
+  }
+
+  // 커뮤니티 소개글 가져오기
+  const { data: setting } = await supabase
+    .from("community_settings")
+    .select("value")
+    .eq("key", "community_intro")
+    .single()
+  
+  const communityIntro = setting?.value || "다양한 주제로 소통하고 함께 성장하는 공간입니다."
   // getLatestPosts에 'all'을 전달하면 소모임 글만 가져옴 (공지사항/자유게시판 제외)
   const [transformedPosts, boardCategories] = await Promise.all([
     getLatestPosts(supabase, 50, 'all'),
@@ -50,15 +71,38 @@ export default async function CommunityDashboardPage() {
     return { ...post, isMember: true }
   })
 
-  // 클럽 설명 매핑
-  const getClubDescription = (slug: string) => {
-    switch (slug) {
-      case 'vangol':
-        return '반골 모임 커뮤니티'
-      case 'hightalk':
-        return '하이토크 모임 커뮤니티'
-      default:
-        return '커뮤니티'
+  // 각 커뮤니티의 description과 멤버 수 가져오기
+  const communityDescriptions = new Map<string, string>()
+  const communityMemberCounts = new Map<string, number>()
+  
+  for (const community of featuredCommunities) {
+    // communities 테이블에서 id와 description 가져오기
+    const { data: communityData } = await supabase
+      .from("communities")
+      .select("id, description")
+      .eq("name", community.name)
+      .maybeSingle()
+    
+    if (communityData?.description) {
+      communityDescriptions.set(community.slug, communityData.description)
+    } else {
+      // 기본값 설정
+      communityDescriptions.set(
+        community.slug, 
+        `${community.name} 커뮤니티`
+      )
+    }
+
+    // 멤버 수 가져오기
+    if (communityData?.id) {
+      const { count } = await supabase
+        .from("community_members")
+        .select("*", { count: "exact", head: true })
+        .eq("community_id", communityData.id)
+      
+      communityMemberCounts.set(community.slug, count || 0)
+    } else {
+      communityMemberCounts.set(community.slug, 0)
     }
   }
 
@@ -71,11 +115,10 @@ export default async function CommunityDashboardPage() {
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* [LEFT] 메인 콘텐츠 영역 */}
       <main className="lg:col-span-9 flex flex-col gap-6">
-        {/* 배너: 메인 영역의 첫 번째 요소 */}
-        <PageHeader
-          title="커뮤니티"
-          description="다양한 주제로 소통하고 함께 성장하는 공간입니다."
-          className="w-full"
+        {/* 배너: 커뮤니티 소개 (편집 가능) */}
+        <CommunityIntro 
+          initialIntro={communityIntro} 
+          canEdit={canEdit} 
         />
 
         {/* 커뮤니티 섹션 */}
@@ -87,7 +130,7 @@ export default async function CommunityDashboardPage() {
                 <Link
                   key={community.id}
                   href={`/community/board/${community.slug}`}
-                  className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-md transition-all flex gap-4 group min-h-[120px]"
+                  className="bg-white border border-slate-200 rounded-xl p-8 hover:shadow-md transition-all flex gap-4 group min-h-[240px]"
                 >
                   <div className="flex-shrink-0">
                     <Avatar className="h-16 w-16">
@@ -99,11 +142,16 @@ export default async function CommunityDashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-1">
-                        {community.name}
-                      </h3>
-                      <p className="text-sm text-slate-500">
-                        {getClubDescription(community.slug)}
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold text-slate-900">
+                          {community.name}
+                        </h3>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {communityMemberCounts.get(community.slug) || 0}명
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-500 whitespace-pre-wrap">
+                        {communityDescriptions.get(community.slug) || `${community.name} 커뮤니티`}
                       </p>
                     </div>
                     <div className="flex items-center justify-end mt-2">
