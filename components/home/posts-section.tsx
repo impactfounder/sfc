@@ -47,6 +47,8 @@ interface PostsSectionProps {
   hideTabs?: boolean // 카테고리 필터 탭 숨기기 (개별 게시판용)
   viewMode?: "feed" | "list" | "blog" // blog 모드 추가
   isInsight?: boolean // 인사이트 게시판 여부 (viewMode="blog"와 동일 효과)
+  onViewModeChange?: (mode: "feed" | "list") => void // 뷰 모드 변경 콜백
+  hideViewToggle?: boolean // 뷰 모드 토글 숨기기 (외부에서 제어할 때)
 }
 
 export function PostsSection({ 
@@ -57,7 +59,9 @@ export function PostsSection({
   isLoading = false,
   hideTabs = false,
   viewMode: propViewMode,
-  isInsight = false
+  isInsight = false,
+  onViewModeChange,
+  hideViewToggle = false
 }: PostsSectionProps) {
   
   const [internalSelectedBoard, setInternalSelectedBoard] = useState("all")
@@ -68,6 +72,17 @@ export function PostsSection({
   // propViewMode가 있으면 그것을 사용, 없으면 내부 상태 사용
   // isInsight가 true면 자동으로 blog 모드
   const viewMode = isInsight ? "blog" : (propViewMode || internalViewMode)
+  
+  // 뷰 모드 변경 핸들러
+  const handleViewModeChange = (mode: "feed" | "list") => {
+    if (propViewMode && onViewModeChange) {
+      // 외부에서 제어하는 경우
+      onViewModeChange(mode)
+    } else {
+      // 내부에서 제어하는 경우
+      setInternalViewMode(mode)
+    }
+  }
   const isBlogMode = viewMode === "blog"
   const currentBoard = onBoardChange ? selectedBoard : internalSelectedBoard
   const handleBoardChange = onBoardChange 
@@ -119,14 +134,14 @@ export function PostsSection({
           <h2 className="text-2xl md:text-3xl font-bold text-slate-900">최신 글</h2>
         )}
         
-        {/* 뷰 모드 토글 (블로그 모드일 때는 숨김, hideTabs와 관계없이 항상 표시) */}
-        {!isBlogMode && (
+        {/* 뷰 모드 토글 (블로그 모드일 때는 숨김, hideViewToggle이 true일 때도 숨김) */}
+        {!isBlogMode && !hideViewToggle && (
           <div className={cn(
             "inline-flex items-center p-1 bg-slate-100/80 rounded-xl",
             hideTabs && "ml-auto" // hideTabs일 때는 우측 정렬
           )}>
             <button
-              onClick={() => setInternalViewMode("feed")}
+              onClick={() => handleViewModeChange("feed")}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
                 viewMode === "feed"
@@ -138,7 +153,7 @@ export function PostsSection({
               <span className="hidden sm:inline">피드형</span>
             </button>
             <button
-              onClick={() => setInternalViewMode("list")}
+              onClick={() => handleViewModeChange("list")}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
                 viewMode === "list"

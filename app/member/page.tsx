@@ -149,6 +149,7 @@ export default async function MemberPage() {
         <PageHeader 
           title="멤버"
           description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
+          compact={true}
         />
 
           {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (

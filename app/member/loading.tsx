@@ -12,6 +12,7 @@ export default function MemberLoading() {
         <PageHeader 
           title="멤버"
           description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
+          compact={true}
         />
 
         {/* 멤버 리스트 스켈레톤 */}

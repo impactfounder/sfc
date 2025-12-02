@@ -96,7 +96,11 @@ export function PostListItem({
   }
 
   const contentPreview = getPlainText(post.content)
-  const categoryName = post.board_categories?.name || post.communities?.name || "게시판"
+  // 카테고리 이름 표시 (자유게시판, 반골, 하이토크 제외)
+  const boardSlug = post.board_categories?.slug
+  const categoryName = (boardSlug === "free-board" || boardSlug === "free" || boardSlug === "vangol" || boardSlug === "hightalk") 
+    ? null 
+    : (post.board_categories?.name || post.communities?.name || "게시판")
   const isGroupOnly = post.visibility === "group" && !isMember
 
   // 대표 뱃지 (첫 번째 뱃지만)
@@ -109,10 +113,12 @@ export function PostListItem({
         {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
         <div className="flex items-center gap-3 py-2 px-2 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
 
-          {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) */}
-          <span className="bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 text-[11px] font-medium flex-shrink-0 w-16 text-center">
-            {categoryName}
-          </span>
+          {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) - 자유게시판 제외 */}
+          {categoryName && (
+            <span className="bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 text-[11px] font-medium flex-shrink-0 w-16 text-center">
+              {categoryName}
+            </span>
+          )}
 
           {/* 제목 및 내용 */}
           <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -195,10 +201,14 @@ export function PostListItem({
                     <span>{primaryBadge.name}</span>
                   </span>
                 )}
-                <span className="bg-blue-50 text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {categoryName}
-                </span>
-                <span className="text-xs text-slate-400">·</span>
+                {categoryName && (
+                  <>
+                    <span className="bg-blue-50 text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                      {categoryName}
+                    </span>
+                    <span className="text-xs text-slate-400">·</span>
+                  </>
+                )}
                 <span className="text-xs text-slate-400">{formatRelativeTime(post.created_at)}</span>
               </div>
             </div>

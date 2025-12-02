@@ -89,10 +89,10 @@ export default async function BoardPostDetailPage({
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 본문 Flex Layout */}
-      <div className="w-full flex flex-col lg:flex-row gap-10">
+      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* [LEFT] 메인 콘텐츠 */}
-        <div className="flex-1 min-w-0 flex flex-col gap-6">
+        <div className="lg:col-span-9 flex flex-col gap-6">
 
           {/* 헤더 (카드 바로 위로 이동) */}
           <div className="flex items-center justify-between">
@@ -115,12 +115,14 @@ export default async function BoardPostDetailPage({
           </div>
           <Card className="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden">
             <CardContent className="p-6 md:p-8">
-              {/* 게시판 태그 */}
-              <div className="mb-4">
-                <span className="bg-slate-100 text-slate-600 rounded-md px-2.5 py-1 text-xs font-bold">
-                  {boardName}
-                </span>
-              </div>
+              {/* 게시판 태그 (자유게시판, 반골, 하이토크 제외) */}
+              {dbSlug !== 'free-board' && dbSlug !== 'vangol' && dbSlug !== 'hightalk' && (
+                <div className="mb-4">
+                  <span className="bg-slate-100 text-slate-600 rounded-md px-2.5 py-1 text-xs font-bold">
+                    {boardName}
+                  </span>
+                </div>
+              )}
 
               {/* 작성자 정보 */}
               <div className="mb-6 flex items-center gap-3">
@@ -195,26 +197,10 @@ export default async function BoardPostDetailPage({
           </Card>
         </div>
 
-        {/* [RIGHT] 사이드바 */}
-        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
-          <div className="sticky top-24 flex flex-col gap-6 h-fit">
-            {/* 공지사항일 때는 건의사항 등 표시, 일반 게시판일 때는 우측 사이드바 표시 */}
-            {dbSlug === 'announcement' ? (
-              <Card className="border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-slate-500" />
-                    공지사항 안내
-                  </h3>
-                  <p className="text-xs text-slate-600 mb-4 leading-relaxed">
-                    중요한 소식을 전달해 드립니다.<br/>
-                    궁금한 점은 댓글로 남겨주세요.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <StandardRightSidebar />
-            )}
+        {/* [RIGHT] 우측 사이드바 영역 */}
+        <div className="hidden lg:block lg:col-span-3">
+          <div className="sticky top-8 flex flex-col gap-6 h-fit">
+            <StandardRightSidebar />
           </div>
         </div>
 

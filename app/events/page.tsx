@@ -67,13 +67,14 @@ export default async function EventsPage() {
   const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10">
-      {/* [LEFT] 중앙 콘텐츠 영역 */}
-      <div className="flex-1 min-w-0 flex flex-col gap-10">
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* [LEFT] 메인 콘텐츠 영역 */}
+      <div className="lg:col-span-9 flex flex-col gap-6">
         {/* PageHeader 적용 */}
         <PageHeader 
           title="이벤트"
           description="함께 성장하는 네트워킹 파티와 인사이트 세미나를 놓치지 마세요."
+          compact={true}
         />
 
         {/* Upcoming Events (EventsSection으로 교체) */}
@@ -120,12 +121,12 @@ export default async function EventsPage() {
           )}
         </div>
 
-        {/* [RIGHT] 우측 사이드바 영역 */}
-        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
-          <div className="sticky top-8 flex flex-col gap-6 h-fit">
-            <StandardRightSidebar />
-          </div>
+      {/* [RIGHT] 우측 사이드바 영역 */}
+      <div className="hidden lg:block lg:col-span-3">
+        <div className="sticky top-8 flex flex-col gap-6 h-fit">
+          <StandardRightSidebar />
         </div>
+      </div>
     </div>
   )
 }

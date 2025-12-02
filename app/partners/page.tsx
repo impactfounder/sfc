@@ -122,6 +122,7 @@ export default async function PartnersPage() {
             title="파트너스"
             description="멤버들을 위한 특별한 혜택을 만나보세요."
             className="w-full"
+            compact={true}
           />
 
           {/* 헤더 (타이틀 + 버튼) */}

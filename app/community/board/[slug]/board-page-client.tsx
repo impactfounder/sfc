@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PostsSection } from "@/components/home/posts-section"
 import Link from "next/link"
-import { Plus, Pencil, UserPlus, UserCheck } from 'lucide-react'
+import { Plus, Pencil, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
@@ -15,6 +15,7 @@ import { NewPostForm } from "@/components/new-post-form"
 import { CommunityBanner } from "@/components/community-banner"
 import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface BoardPageClientProps {
   slug: string
@@ -48,6 +49,10 @@ export function BoardPageClient({
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false)
   const [isMember, setIsMember] = useState(initialIsMember)
   const [isJoining, setIsJoining] = useState(false)
+  
+  // 뷰 모드 상태 (기본값: 공지사항은 list, 자유게시판과 나머지는 feed)
+  const defaultViewMode = (slug === "announcement" || slug === "announcements") ? "list" : "feed"
+  const [viewMode, setViewMode] = useState<"feed" | "list">(defaultViewMode)
 
   // ★ 수정: 커스텀 훅 사용
   const { data, isLoading, isError } = usePosts(dbSlug, currentPage)
@@ -205,7 +210,7 @@ export function BoardPageClient({
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* [LEFT] 메인 콘텐츠 영역 (배너 + 헤더 + 리스트) */}
-      <div className="lg:col-span-9 flex flex-col gap-6">
+      <div className="lg:col-span-9 flex flex-col gap-3">
         {/* 배너: 메인 영역의 첫 번째 요소 */}
         <CommunityBanner
           title={bannerConfig.title}
@@ -215,9 +220,41 @@ export function BoardPageClient({
           slug={dbSlug}
         />
 
-        {/* 배너 아래 헤더 영역 (타이틀 + 버튼들) */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-slate-900">{getSectionTitle()}</h2>
+        {/* 배너 아래 헤더 영역 (뷰 토글 + 버튼들) */}
+        <div className="flex items-center justify-between w-full">
+          {/* 왼쪽: 피드형/리스트형 토글 (인사이트 제외) */}
+          {slug !== "insights" ? (
+            <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
+              <button
+                onClick={() => setViewMode("feed")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                  viewMode === "feed"
+                    ? "bg-white text-slate-900 shadow-sm font-bold"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">피드형</span>
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                  viewMode === "list"
+                    ? "bg-white text-slate-900 shadow-sm font-bold"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <List className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">리스트형</span>
+              </button>
+            </div>
+          ) : (
+            <div></div>
+          )}
+          
+          {/* 오른쪽: 커뮤니티 참여 버튼 + 새 글 작성 버튼 */}
           <div className="flex items-center gap-2">
             {/* 커뮤니티 참여 버튼 (시스템 게시판 제외) */}
             {!isSystemBoard && communityId && (
@@ -300,10 +337,10 @@ export function BoardPageClient({
             viewMode={
               slug === "insights"
                 ? "blog"
-                : (slug === "free" || dbSlug === "free-board")
-                  ? "feed"
-                  : undefined
+                : viewMode
             }
+            onViewModeChange={setViewMode}
+            hideViewToggle={true}
           />
         )}
       </div>
