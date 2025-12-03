@@ -61,6 +61,7 @@ export function Sidebar({
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isRoleLoaded, setIsRoleLoaded] = useState(false)
   const prefetch = usePrefetchPosts()
 
   useEffect(() => {
@@ -80,6 +81,9 @@ export function Sidebar({
         if (profileData) {
           setUserRole(profileData.role || "member")
         }
+        setIsRoleLoaded(true)
+      } else {
+        setIsRoleLoaded(true)
       }
     }
 
@@ -95,19 +99,26 @@ export function Sidebar({
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setUserRole("member")
+        setIsRoleLoaded(true)
       } else if (session?.user) {
-        // 로그인 상태가 유지되면 사용자 정보만 업데이트
-        setUser(session.user)
-        // 프로필 정보가 없을 때만 다시 로드
-        supabase
-          .from("profiles")
-          .select("id, role")
-          .eq("id", session.user.id)
-          .single()
-          .then(({ data: profileData }) => {
-          if (profileData) {
-            setUserRole(profileData.role || "member")
+        // 사용자가 변경되었을 때만 프로필 다시 로드 (현재 user와 비교)
+        setUser((prevUser: any) => {
+          if (!prevUser || prevUser.id !== session.user.id) {
+            // 사용자가 변경되었을 때만 프로필 다시 로드
+            supabase
+              .from("profiles")
+              .select("id, role")
+              .eq("id", session.user.id)
+              .single()
+              .then(({ data: profileData }) => {
+                if (profileData) {
+                  setUserRole(profileData.role || "member")
+                }
+                setIsRoleLoaded(true)
+              })
+            return session.user
           }
+          return prevUser
         })
       }
     })
@@ -149,6 +160,8 @@ export function Sidebar({
 
 
   const isAdmin = userRole === "admin" || userRole === "master"
+  // 관리자 메뉴 깜빡임 방지: role이 로드되었거나 관리자 페이지에 있을 때만 표시
+  const shouldShowAdminMenu = isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
 
   const isLinkActive = (href: string, startsWith = false) => {
     // /community 경로에 대한 예외 처리: 완전 일치일 때만 활성화
@@ -314,16 +327,8 @@ export function Sidebar({
                 <Headset className="h-5 w-5 flex-shrink-0" />
                 <span>고객센터</span>
               </Link>
-              {/* 관리자 메뉴 깜빡임 방지: role이 확인되지 않아도 조건부 렌더링은 유지하되,
-                  초기 로딩 시에는 숨기지 않고 (isAdmin이 false여도) 
-                  서버 사이드에서 넘어온 role 정보 등을 활용할 수 있으면 좋지만,
-                  현재 구조상 클라이언트에서 role을 확인하므로, 
-                  isAdmin 상태가 확정되기 전까지는 빈 공간을 두거나
-                  스켈레톤을 보여주는 것이 깜빡임보다 나을 수 있음.
-                  하지만 여기서는 간단히 'admin' 경로일 때는 무조건 보여주도록 처리하여
-                  관리자 페이지 내에서의 깜빡임을 방지함. 
-              */}
-              {(isAdmin || pathname.startsWith('/admin')) && (
+              {/* 관리자 메뉴 깜빡임 방지: role이 로드된 후에만 표시 */}
+              {shouldShowAdminMenu && (
                 <Link
                   href="/admin"
                   className={cn(

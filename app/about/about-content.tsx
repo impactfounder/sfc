@@ -25,6 +25,7 @@ type BadgeCategory = {
 type AboutContentProps = {
   badges: Badge[]
   badgeCategories?: BadgeCategory[]
+  isLoggedIn?: boolean
 }
 
 const categoryConfig = {
@@ -72,7 +73,7 @@ const categoryConfig = {
   }
 } as const
 
-export default function AboutContent({ badges, badgeCategories = [] }: AboutContentProps) {
+export default function AboutContent({ badges, badgeCategories = [], isLoggedIn = false }: AboutContentProps) {
   const [isBadgeExpanded, setIsBadgeExpanded] = useState(false)
 
   // 카테고리별로 뱃지 그룹화 (관리자 설정 순서 적용)
@@ -312,7 +313,7 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
             <h2 className="mb-8 text-center text-3xl font-bold text-slate-900">
               신뢰를 증명하는 뱃지 시스템
             </h2>
-            <p className="text-center text-slate-600 mb-10 max-w-2xl mx-auto text-lg">
+            <p className="text-center text-slate-600 mb-10 max-w-4xl mx-auto text-lg whitespace-nowrap">
               Seoul Founders Club의 검증된 자격과 성과를 인증받아 멤버들의 신뢰를 얻는 뱃지입니다.
             </p>
 
@@ -376,6 +377,18 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
                       const categoryInfo = badgeCategories.find(cat => cat.category_value === category)
                       const categoryLabel = categoryInfo?.category_label || config.label
 
+                      // 투자 규모 카테고리의 경우 숫자 순으로 정렬
+                      const sortedBadges = category === 'investment' 
+                        ? [...categoryBadges].sort((a, b) => {
+                            // 뱃지 이름에서 숫자 추출 (예: "투자 1억+" -> 1)
+                            const extractNumber = (name: string): number => {
+                              const match = name.match(/(\d+)/)
+                              return match ? parseInt(match[1], 10) : 0
+                            }
+                            return extractNumber(a.name) - extractNumber(b.name)
+                          })
+                        : categoryBadges
+
                       return (
                         <div key={category}>
                           <h3 className="mb-6 text-xl font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
@@ -383,7 +396,7 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
                             {categoryLabel}
                           </h3>
                           <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-                            {categoryBadges.map((badge) => (
+                            {sortedBadges.map((badge) => (
                               <Card
                                 key={badge.id}
                                 className={`p-3 rounded-xl shadow-sm border-none transition-shadow hover:shadow-md ${config.bgColor} ${config.textColor}`}
@@ -430,15 +443,10 @@ export default function AboutContent({ badges, badgeCategories = [] }: AboutCont
               당신의 성장을 가속화할 파트너들이 기다리고 있습니다.<br />
               지금 Seoul Founders Club에 합류하세요.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/events">
-                <Button size="lg" variant="outline" className="h-14 px-8 rounded-full text-base border-slate-300 text-slate-700 hover:bg-slate-50">
-                  이벤트 둘러보기
-                </Button>
-              </Link>
-              <Link href="/auth/login">
+            <div className="flex justify-center">
+              <Link href={isLoggedIn ? "/" : "/auth/login"}>
                 <Button size="lg" className="h-14 px-8 rounded-full text-base bg-slate-900 hover:bg-slate-800 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
-                  멤버십 가입하기 <ArrowRight className="ml-2 h-4 w-4" />
+                  가입하기 <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>

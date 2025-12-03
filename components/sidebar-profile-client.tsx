@@ -54,26 +54,26 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
   if (!isMounted) {
     return (
       <div className="px-4 py-3">
-        <div className="flex items-center gap-2 w-full">
-          <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center gap-3 w-full">
+          <div className="flex items-center gap-3 w-full">
             <Link
               href="/community/profile"
-              className="flex items-center gap-2 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-3 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
+              <Avatar className="h-10 w-10 flex-shrink-0 border border-slate-100">
                 <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-sm font-bold">
                   {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0 text-left">
-                <div className="text-xs font-bold text-slate-900 truncate">
+                <div className="text-sm font-bold text-slate-900 truncate">
                   {displayName}
                 </div>
               </div>
             </Link>
             {/* 비로그인 시 보여줄 더미 버튼 (레이아웃 유지용) */}
-            <div className="w-8 h-8" />
+            <div className="w-10 h-10" />
           </div>
         </div>
       </div>
@@ -87,16 +87,16 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
         {/* 좌측: 프로필 링크 영역 */}
         <Link
           href="/community/profile"
-          className="flex items-center gap-2 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          className="flex items-center gap-3 flex-1 min-w-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
         >
-          <Avatar className="h-8 w-8 flex-shrink-0 border border-slate-100">
+          <Avatar className="h-10 w-10 flex-shrink-0 border border-slate-100">
             <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
-            <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
+            <AvatarFallback className="bg-blue-100 text-blue-600 text-sm font-bold">
               {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 text-left">
-            <div className="text-xs font-bold text-slate-900 truncate">
+            <div className="text-sm font-bold text-slate-900 truncate">
               {displayName}
             </div>
           </div>
@@ -105,7 +105,7 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
         {/* 우측: 알림 아이콘 */}
         <div className="flex items-center">
           <NotificationsDropdown 
-            triggerClassName="h-8 w-8" 
+            triggerClassName="h-10 w-10" 
             side="right"
             align="end"
           />

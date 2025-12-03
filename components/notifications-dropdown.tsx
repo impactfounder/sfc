@@ -128,7 +128,7 @@ export default function NotificationsDropdown({
       aria-label="알림"
       onClick={() => router.push("/auth/login")}
     >
-      <Bell className="h-5 w-5 text-slate-400" />
+      <Bell className="h-6 w-6 text-slate-400" />
     </Button>
   )
 
@@ -145,7 +145,7 @@ export default function NotificationsDropdown({
           )}
           aria-label="알림"
         >
-          <Bell className={cn("h-5 w-5 transition-colors", isOpen ? "text-slate-900" : "text-slate-600")} />
+          <Bell className={cn("h-6 w-6 transition-colors", isOpen ? "text-slate-900" : "text-slate-600")} />
           {unreadCount > 0 && (
             <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white shadow-sm" />
           )}

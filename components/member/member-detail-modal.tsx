@@ -87,7 +87,29 @@ export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: 
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Badges Section */}
+          {/* Tagline Section (한마디) */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+              <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
+              나를 표현하는 한마디
+            </h4>
+            <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[60px]">
+              {member.tagline || <span className="text-slate-400">한마디가 없습니다</span>}
+            </p>
+          </div>
+
+          {/* Introduction Section (소개) */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+              <span className="w-1 h-4 bg-slate-500 rounded-full"></span>
+              소개
+            </h4>
+            <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[60px]">
+              {member.introduction || <span className="text-slate-400">소개가 없습니다</span>}
+            </p>
+          </div>
+
+          {/* Badges Section (보유 뱃지) */}
           {member.badges.length > 0 && (
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
@@ -116,19 +138,6 @@ export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: 
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Introduction Section */}
-          {member.introduction && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <span className="w-1 h-4 bg-slate-500 rounded-full"></span>
-                소개
-              </h4>
-              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100">
-                {member.introduction}
-              </p>
             </div>
           )}
         </div>

@@ -6,6 +6,9 @@ export default async function AboutPage() {
   
   const supabase = await createClient()
   
+  // 사용자 로그인 상태 확인
+  const { data: { user } } = await supabase.auth.getUser()
+  
   // badge_categories 테이블에서 카테고리 순서 정보 가져오기
   const { data: badgeCategories } = await supabase
     .from("badge_categories")
@@ -23,6 +26,6 @@ export default async function AboutPage() {
     .order("created_at", { ascending: true })
 
   return (
-    <AboutContent badges={badges || []} badgeCategories={badgeCategories || []} />
+    <AboutContent badges={badges || []} badgeCategories={badgeCategories || []} isLoggedIn={!!user} />
   )
 }

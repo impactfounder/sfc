@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent } from "@/components/ui/card"
-import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip } from "lucide-react"
+import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip, Info } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -494,6 +494,47 @@ export default function ProfilePage() {
     }
   }
 
+  // 뱃지별 필요한 증빙서류 안내 함수
+  const getRequiredDocuments = (badgeId: string | null): string[] => {
+    if (!badgeId) return []
+    
+    const badge = allBadges.find(b => b.id === badgeId)
+    if (!badge) return []
+    
+    const { name, category } = badge
+    
+    // 카테고리별 기본 안내
+    const categoryDocs: Record<string, string[]> = {
+      corporate_revenue: ['손익계산서', '법인세 신고서', '재무제표', '사업자등록증'],
+      investment: ['출자증서', '투자계약서', '주식인수증명서', '투자집행증명서'],
+      valuation: ['투자유치계약서', '기업가치평가서', '주식인수계약서', '투자공고문', '언론보도', '주주명부'],
+      influence: ['SNS 계정 스크린샷', '팔로워 수 확인 가능한 화면'],
+      professional: ['자격증 사본', '면허증 사본', '자격 인증서'],
+      community: [] // 커뮤니티 뱃지는 자동 부여
+    }
+    
+    // 특정 뱃지에 대한 추가 안내
+    const specificDocs: Record<string, string[]> = {
+      '변호사': ['변호사 자격증', '변호사 등록증'],
+      '공인회계사': ['공인회계사 자격증', '회계사 등록증'],
+      '세무사': ['세무사 자격증', '세무사 등록증'],
+      '변리사': ['변리사 자격증', '변리사 등록증'],
+      '노무사': ['공인노무사 자격증', '노무사 등록증'],
+      '의사': ['의사 면허증'],
+      '한의사': ['한의사 면허증'],
+      '수의사': ['수의사 면허증'],
+      '약사': ['약사 면허증'],
+    }
+    
+    // 특정 뱃지에 대한 안내가 있으면 우선 사용
+    if (specificDocs[name]) {
+      return specificDocs[name]
+    }
+    
+    // 카테고리별 기본 안내 사용
+    return categoryDocs[category] || []
+  }
+
   const handleRequestBadge = async () => {
     if (!selectedBadgeId || !user || (!badgeEvidence.trim() && !badgeProofFile)) {
       alert("증빙 자료를 입력하거나 파일을 첨부해주세요.")
@@ -977,27 +1018,161 @@ export default function ProfilePage() {
       </Dialog>
 
       <Dialog open={showBadgeRequestDialog} onOpenChange={setShowBadgeRequestDialog}>
-        <DialogContent className="sm:max-w-lg bg-white rounded-xl">
+        <DialogContent className="sm:max-w-lg bg-white rounded-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">
-              {selectedBadgeId && allBadges.find(b => b.id === selectedBadgeId) 
-                ? `${allBadges.find(b => b.id === selectedBadgeId)!.name} 발급 신청`
-                : "뱃지 발급 신청"}
+              뱃지 발급 신청
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
-              해당 뱃지를 증명할 수 있는 링크나 설명을 입력해주세요.
+              신청할 뱃지를 선택하고 증빙 자료를 제출해주세요.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 space-y-6">
+            {/* 뱃지 선택 */}
+            <div>
+              <Label className="mb-3 block text-slate-700">
+                신청할 뱃지 선택 <span className="text-red-500">*</span>
+              </Label>
+              <div className="max-h-[400px] overflow-y-auto border border-slate-200 rounded-lg p-4 bg-slate-50">
+                {(() => {
+                  const availableBadges = allBadges.filter(
+                    (badge) => !userBadges.some((ub) => ub.badge_id === badge.id)
+                  )
+                  
+                  // 뱃지 이름에서 숫자 추출 함수
+                  const extractNumber = (badgeName: string): number => {
+                    // 유니콘은 가장 큰 숫자로 처리 (정렬 시 마지막에 오도록)
+                    if (badgeName.includes('유니콘')) return Infinity
+                    
+                    // 숫자와 단위(억, 만, 조 등) 추출
+                    const match = badgeName.match(/(\d+(?:\.\d+)?)\s*(억|만|조|만\+|억\+|조\+)/)
+                    if (!match) return 0
+                    
+                    const num = parseFloat(match[1])
+                    const unit = match[2]
+                    
+                    // 단위를 숫자로 변환
+                    if (unit.includes('조')) return num * 1000000000000
+                    if (unit.includes('억')) return num * 100000000
+                    if (unit.includes('만')) return num * 10000
+                    return num
+                  }
+                  
+                  // 카테고리별로 그룹화하고 정렬
+                  const groupedBadges = availableBadges.reduce((acc, badge) => {
+                    const category = badge.category || '기타'
+                    if (!acc[category]) {
+                      acc[category] = []
+                    }
+                    acc[category].push(badge)
+                    return acc
+                  }, {} as Record<string, typeof availableBadges>)
+                  
+                  // 각 카테고리 내에서 숫자 순서로 정렬 (유니콘은 마지막)
+                  Object.keys(groupedBadges).forEach(category => {
+                    groupedBadges[category].sort((a, b) => {
+                      const numA = extractNumber(a.name)
+                      const numB = extractNumber(b.name)
+                      // Infinity는 항상 마지막에 오도록
+                      if (numA === Infinity && numB === Infinity) return 0
+                      if (numA === Infinity) return 1
+                      if (numB === Infinity) return -1
+                      return numA - numB
+                    })
+                  })
+                  
+                  const categoryLabels: Record<string, string> = {
+                    corporate_revenue: '기업 매출',
+                    investment: '투자 규모',
+                    valuation: '기업가치',
+                    influence: '인플루언서',
+                    professional: '전문직',
+                    community: '커뮤니티',
+                  }
+                  
+                  if (availableBadges.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-slate-500 text-sm">
+                        신청 가능한 뱃지가 없습니다.
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div className="space-y-4">
+                      {Object.entries(groupedBadges).map(([category, badges]) => (
+                        <div key={category}>
+                          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                            {categoryLabels[category] || category}
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {badges.map((badge) => (
+                              <button
+                                key={badge.id}
+                                type="button"
+                                onClick={() => setSelectedBadgeId(badge.id)}
+                                className={cn(
+                                  "flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left",
+                                  selectedBadgeId === badge.id
+                                    ? "border-slate-900 bg-slate-900 text-white"
+                                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                                )}
+                              >
+                                <span className="text-lg">{badge.icon}</span>
+                                <span className="text-sm font-medium flex-1">{badge.name}</span>
+                                {selectedBadgeId === badge.id && (
+                                  <span className="text-white">✓</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {/* 필요한 증빙서류 안내 */}
+            {selectedBadgeId && getRequiredDocuments(selectedBadgeId).length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                      필요한 증빙서류
+                    </h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      {getRequiredDocuments(selectedBadgeId).map((doc, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <span className="text-blue-500">•</span>
+                          <span>{doc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-blue-700 mt-2">
+                      위 증빙서류 중 하나 이상을 첨부하거나 링크로 제공해주세요.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* 증빙 자료 입력 */}
             <div>
               <Label htmlFor="badge_evidence" className="mb-2 block text-slate-700">
-                증빙 자료
+                증빙 자료 <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="badge_evidence"
                 value={badgeEvidence}
                 onChange={(e) => setBadgeEvidence(e.target.value)}
-                placeholder="예: 링크, 설명, 참고 자료 등을 입력해주세요"
+                placeholder={
+                  selectedBadgeId && getRequiredDocuments(selectedBadgeId).length > 0
+                    ? `예: ${getRequiredDocuments(selectedBadgeId)[0]} 링크 또는 설명을 입력해주세요`
+                    : "예: 링크, 설명, 참고 자료 등을 입력해주세요"
+                }
                 rows={5}
                 className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none mb-3"
               />
@@ -1069,7 +1244,7 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
+      <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit} modal={false}>
         <DialogContent className="sm:max-w-lg bg-white rounded-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">프로필 편집</DialogTitle>
@@ -1077,71 +1252,75 @@ export default function ProfilePage() {
               다른 멤버들에게 보여질 프로필 정보를 수정합니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-6 space-y-6 px-1">
-            <div>
-              <Label htmlFor="full_name" className="mb-2 block text-slate-700">이름 <span className="text-red-500">*</span></Label>
-              <Input
-                id="full_name"
-                value={editForm.full_name}
-                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                placeholder="이름을 입력하세요"
-                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-              />
-            </div>
+          <div className="mt-6 space-y-6">
+            {/* 기본 정보 섹션 */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="full_name" className="mb-2 block text-sm font-semibold text-slate-900">이름 <span className="text-red-500">*</span></Label>
+                <Input
+                  id="full_name"
+                  value={editForm.full_name}
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                  placeholder="이름을 입력하세요"
+                  className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                />
+              </div>
 
-            <div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="company" className="mb-2 block text-slate-700">소속 1</Label>
-                  <Input
-                    id="company"
-                    value={editForm.company}
-                    onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                    placeholder="회사 또는 조직명"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
+              <div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="company" className="mb-2 block text-sm font-semibold text-slate-900">소속 1</Label>
+                    <Input
+                      id="company"
+                      value={editForm.company}
+                      onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                      placeholder="회사 또는 조직명"
+                      className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="position" className="mb-2 block text-sm font-semibold text-slate-900">직책 1</Label>
+                    <Input
+                      id="position"
+                      value={editForm.position}
+                      onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                      placeholder="예: CEO"
+                      className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                    />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <Label htmlFor="position" className="mb-2 block text-slate-700">직책 1</Label>
-                  <Input
-                    id="position"
-                    value={editForm.position}
-                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                    placeholder="예: CEO"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
+              </div>
+
+              <div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="company_2" className="mb-2 block text-sm font-semibold text-slate-900">소속 2 <span className="text-xs font-normal text-slate-500">(선택)</span></Label>
+                    <Input
+                      id="company_2"
+                      value={editForm.company_2 || ""}
+                      onChange={(e) => setEditForm({ ...editForm, company_2: e.target.value })}
+                      placeholder="추가 소속"
+                      className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="position_2" className="mb-2 block text-sm font-semibold text-slate-900">직책 2 <span className="text-xs font-normal text-slate-500">(선택)</span></Label>
+                    <Input
+                      id="position_2"
+                      value={editForm.position_2 || ""}
+                      onChange={(e) => setEditForm({ ...editForm, position_2: e.target.value })}
+                      placeholder="추가 직책"
+                      className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="company_2" className="mb-2 block text-slate-700">소속 2 (선택)</Label>
-                  <Input
-                    id="company_2"
-                    value={editForm.company_2 || ""}
-                    onChange={(e) => setEditForm({ ...editForm, company_2: e.target.value })}
-                    placeholder="추가 소속"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label htmlFor="position_2" className="mb-2 block text-slate-700">직책 2 (선택)</Label>
-                  <Input
-                    id="position_2"
-                    value={editForm.position_2 || ""}
-                    onChange={(e) => setEditForm({ ...editForm, position_2: e.target.value })}
-                    placeholder="추가 직책"
-                    className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label className="mb-2 block text-slate-700">역할 (최대 2개 선택 가능)</Label>
-              <div className="flex gap-2 mb-4">
+            {/* 역할 섹션 */}
+            <div className="pt-2 border-t border-slate-100">
+              <Label className="mb-3 block text-sm font-semibold text-slate-900">역할 <span className="text-xs font-normal text-slate-500">(최대 2개 선택 가능)</span></Label>
+              <div className="flex gap-2">
                 {(["사업가", "투자자", "크리에이터"] as const).map((type) => {
                   const isSelected = editForm.member_type.includes(type)
                   const canSelect = !isSelected && editForm.member_type.length < 2
@@ -1182,99 +1361,81 @@ export default function ProfilePage() {
                 })}
               </div>
 
-              <Label htmlFor="tagline" className="mb-2 block text-slate-700">나를 표현하는 한마디</Label>
+              <Label htmlFor="tagline" className="mb-2 block text-sm font-semibold text-slate-900">나를 표현하는 한마디</Label>
               <Input
                 id="tagline"
                 value={editForm.tagline || ""}
                 onChange={(e) => setEditForm({ ...editForm, tagline: e.target.value })}
                 placeholder="예) 좋은 사람들과 함께 성장하는 창업가입니다."
-                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11 mb-4"
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11"
               />
+            </div>
 
-              <Label htmlFor="introduction" className="mb-2 block text-slate-700">자기소개</Label>
+            {/* 자기소개 섹션 */}
+            <div className="pt-2 border-t border-slate-100">
+              <Label htmlFor="introduction" className="mb-2 block text-sm font-semibold text-slate-900">자기소개</Label>
               <Textarea
                 id="introduction"
                 value={editForm.introduction}
                 onChange={(e) => setEditForm({ ...editForm, introduction: e.target.value })}
                 placeholder="나의 경험, 관심사, 커뮤니티에서 하고 싶은 활동 등을 자유롭게 적어주세요."
-                rows={3}
-                className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none min-h-[80px]"
+                rows={4}
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none"
               />
             </div>
 
-            <div 
-              className="flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => {
-                const newValue = !editForm.is_profile_public
-                setEditForm(prev => ({ ...prev, is_profile_public: newValue }))
-                handleToggleProfileVisibility(newValue)
-              }}
-            >
-              <div className="flex-1">
-                <Label className="font-medium cursor-pointer pointer-events-none">
-                  멤버 리스트에 내 프로필을 공개합니다
-                </Label>
-                <p className="text-xs text-slate-500 mt-1 pointer-events-none">
-                  공개 시 멤버 페이지에서 프로필을 확인할 수 있습니다
-                </p>
-              </div>
-              <Switch
-                checked={editForm.is_profile_public}
-                onCheckedChange={(checked) => {
-                  setEditForm(prev => ({ ...prev, is_profile_public: checked }))
-                  handleToggleProfileVisibility(checked)
+            {/* 프로필 공개 설정 */}
+            <div className="pt-2 border-t border-slate-100">
+              <div 
+                className="flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white"
+                onClick={() => {
+                  const newValue = !editForm.is_profile_public
+                  setEditForm(prev => ({ ...prev, is_profile_public: newValue }))
+                  handleToggleProfileVisibility(newValue)
                 }}
-                className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-400 border border-slate-300 data-[state=checked]:border-blue-600"
-              />
+              >
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold text-slate-900 cursor-pointer pointer-events-none">
+                    멤버 리스트에 내 프로필을 공개합니다
+                  </Label>
+                  <p className="text-xs text-slate-500 mt-1 pointer-events-none">
+                    공개 시 멤버 페이지에서 프로필을 확인할 수 있습니다
+                  </p>
+                </div>
+                <Switch
+                  checked={editForm.is_profile_public}
+                  onCheckedChange={(checked) => {
+                    setEditForm(prev => ({ ...prev, is_profile_public: checked }))
+                    handleToggleProfileVisibility(checked)
+                  }}
+                  className="data-[state=checked]:bg-slate-900 data-[state=unchecked]:bg-slate-300"
+                />
+              </div>
             </div>
 
-            <div>
-              <Label className="mb-2 block text-slate-700">
+            {/* 뱃지 섹션 */}
+            <div className="pt-2 border-t border-slate-100">
+              <Label className="mb-2 block text-sm font-semibold text-slate-900">
                 뱃지 발급 신청
               </Label>
-              <p className="text-xs text-slate-500 mb-3">
+              <p className="text-xs text-slate-500 mb-4">
                 나의 성과를 증명할 뱃지를 신청하세요. 증빙 자료 검토 후 승인되면 프로필에 노출됩니다.
               </p>
               
-              <div className="flex gap-2 mb-4">
-                <Select value={selectedBadgeId} onValueChange={setSelectedBadgeId}>
-                  <SelectTrigger className="flex-1 h-11 bg-white border-slate-200 focus-visible:ring-slate-900">
-                    <SelectValue placeholder="신청할 뱃지 선택" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[9999] max-h-[320px] overflow-y-auto">
-                    {allBadges
-                      .filter((badge) => !userBadges.some((ub) => ub.badge_id === badge.id))
-                      .map((badge) => (
-                        <SelectItem key={badge.id} value={badge.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{badge.icon}</span>
-                            <span>{badge.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={() => {
-                    if (!selectedBadgeId) return
-                    setShowBadgeRequestDialog(true)
-                  }}
-                  disabled={!selectedBadgeId || addingBadge || userBadges.length >= 5}
-                  className="h-11 px-6 shrink-0"
-                >
-                  {addingBadge ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      신청 중...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      신청하기
-                    </>
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={() => {
+                  setSelectedBadgeId("")
+                  setBadgeEvidence("")
+                  setBadgeProofFile(null)
+                  setShowBadgeRequestDialog(true)
+                }}
+                disabled={addingBadge || userBadges.length >= 5}
+                className="h-11 px-6 w-full border-2 border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-900 font-medium"
+                variant="outline"
+              >
+                <Medal className="h-4 w-4 mr-2" />
+                뱃지 발급 신청하기
+              </Button>
 
               <div className="space-y-3">
                 {userBadges.filter(ub => ub.status === 'approved' || !ub.status).length > 0 && (

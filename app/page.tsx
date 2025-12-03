@@ -84,7 +84,8 @@ export default async function HomePage() {
             author_id,
             profiles:author_id(
               id,
-              full_name
+              full_name,
+              avatar_url
             ), 
             board_categories!inner(name, slug)
           `)
@@ -93,10 +94,36 @@ export default async function HomePage() {
           .order("created_at", { ascending: false })
           .limit(15)
         
-        if (data) {
+        if (data && data.length > 0) {
           // 뱃지 가져오기 (재사용 함수 사용)
           const authorIds = [...new Set(data.map((post) => post.author_id).filter(Boolean) as string[])]
           const badgesMap = await getBadgesForUsers(supabase, authorIds)
+
+          // 실제 좋아요 및 댓글 수 조회 (병렬 처리)
+          const postIds = data.map((post: any) => post.id)
+          
+          const [likesResult, commentsResult] = await Promise.all([
+            supabase
+              .from("post_likes")
+              .select("post_id")
+              .in("post_id", postIds),
+            supabase
+              .from("comments")
+              .select("post_id")
+              .in("post_id", postIds)
+          ])
+
+          // 카운트 맵 생성
+          const likesCountMap = new Map<string, number>()
+          const commentsCountMap = new Map<string, number>()
+
+          ;(likesResult.data || []).forEach((like: { post_id: string }) => {
+            likesCountMap.set(like.post_id, (likesCountMap.get(like.post_id) || 0) + 1)
+          })
+
+          ;(commentsResult.data || []).forEach((comment: { post_id: string }) => {
+            commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1)
+          })
 
           return data.map((post) => {
             let slug = post.board_categories?.slug
@@ -108,11 +135,12 @@ export default async function HomePage() {
               content: null, // 리스트에서는 본문 전체가 필요 없으므로 null로 설정
               created_at: post.created_at,
               visibility: 'public' as const,
-              likes_count: 0,
-              comments_count: 0,
+              likes_count: likesCountMap.get(post.id) || 0,
+              comments_count: commentsCountMap.get(post.id) || 0,
               profiles: post.profiles ? {
                 id: post.profiles.id,
                 full_name: post.profiles.full_name,
+                avatar_url: post.profiles.avatar_url,
               } : null,
               board_categories: post.board_categories ? {
                 name: post.board_categories.name,

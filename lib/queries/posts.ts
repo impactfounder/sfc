@@ -116,15 +116,45 @@ export async function getLatestPosts(
       return [];
     }
 
-    // 4. 데이터 변환 (Type Mapping)
+    if (!posts || posts.length === 0) {
+      return [];
+    }
+
+    // 4. 실제 좋아요 및 댓글 수 조회 (병렬 처리)
+    const postIds = posts.map((p: PostFromDB) => p.id);
+    
+    const [likesResult, commentsResult] = await Promise.all([
+      supabase
+        .from("post_likes")
+        .select("post_id")
+        .in("post_id", postIds),
+      supabase
+        .from("comments")
+        .select("post_id")
+        .in("post_id", postIds)
+    ]);
+
+    // 카운트 맵 생성
+    const likesCountMap = new Map<string, number>();
+    const commentsCountMap = new Map<string, number>();
+
+    (likesResult.data || []).forEach((like: { post_id: string }) => {
+      likesCountMap.set(like.post_id, (likesCountMap.get(like.post_id) || 0) + 1);
+    });
+
+    (commentsResult.data || []).forEach((comment: { post_id: string }) => {
+      commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1);
+    });
+
+    // 5. 데이터 변환 (Type Mapping) - 실제 카운트 사용
     return (posts || []).map((post: PostFromDB): PostForDisplay => ({
       id: post.id,
       title: post.title,
       content: null, // 리스트에서는 본문 전체가 필요 없으므로 null로 설정
       created_at: post.created_at,
       visibility: (post.visibility as "public" | "group") || 'public',
-      likes_count: post.likes_count || 0,
-      comments_count: post.comments_count || 0,
+      likes_count: likesCountMap.get(post.id) || 0,
+      comments_count: commentsCountMap.get(post.id) || 0,
       thumbnail_url: post.thumbnail_url,
       profiles: post.profiles ? { 
         id: post.profiles.id,
