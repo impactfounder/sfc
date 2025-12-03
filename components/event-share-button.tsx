@@ -25,9 +25,26 @@ export function EventShareButton({
   const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
-    // 짧은 URL 생성 (/events/xxx -> /e/xxx)
+    // 현재 URL이 이미 짧은 코드(/e/xxx)인 경우 그대로 사용
     const currentUrl = window.location.href
-    const shortUrl = currentUrl.replace('/events/', '/e/')
+    let shortUrl: string
+    
+    // /e/ 경로인 경우 그대로 사용
+    if (currentUrl.includes('/e/')) {
+      shortUrl = currentUrl
+    } else {
+      // /events/ 경로인 경우 짧은 코드로 변환
+      const urlMatch = currentUrl.match(/\/events\/([^\/]+)/)
+      if (urlMatch) {
+        const fullId = urlMatch[1]
+        // UUID의 앞 8자만 사용 (임시, 실제로는 날짜 기반 코드 사용)
+        const shortId = fullId.substring(0, 8)
+        shortUrl = currentUrl.replace(`/events/${fullId}`, `/e/${shortId}`)
+      } else {
+        // URL 파싱 실패 시 기존 방식 사용
+        shortUrl = currentUrl.replace('/events/', '/e/')
+      }
+    }
 
     // 1. 모바일 네이티브 공유 (Web Share API) - 모바일에서만 실행
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)

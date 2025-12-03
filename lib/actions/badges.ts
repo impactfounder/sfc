@@ -117,25 +117,39 @@ export async function requestBadge(
   }
 
   // Check if badge already exists for user
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("user_badges")
     .select("id, status")
     .eq("user_id", userId)
     .eq("badge_id", badgeId)
-    .single()
+    .maybeSingle()
+
+  // 에러가 발생했지만 "not found"가 아닌 경우에만 에러 처리
+  if (existingError && existingError.code !== 'PGRST116') {
+    console.error("Error checking existing badge:", existingError)
+    throw new Error(`뱃지 확인 중 오류가 발생했습니다: ${existingError.message}`)
+  }
 
   if (existing) {
-    if (existing.status === 'pending') {
+    // status 컬럼이 없는 경우를 대비 (기존 데이터 호환성)
+    const status = existing.status || 'approved'
+    
+    if (status === 'pending') {
       throw new Error("이미 신청 대기 중인 뱃지입니다.")
     }
-    if (existing.status === 'approved') {
+    if (status === 'approved') {
       throw new Error("이미 승인된 뱃지입니다.")
     }
     // rejected인 경우 재신청 가능하도록 기존 레코드 삭제
-    await supabase
+    const { error: deleteError } = await supabase
       .from("user_badges")
       .delete()
       .eq("id", existing.id)
+    
+    if (deleteError) {
+      console.error("Error deleting existing badge:", deleteError)
+      throw new Error(`기존 뱃지 삭제 중 오류가 발생했습니다: ${deleteError.message}`)
+    }
   }
 
   // Insert new user_badge with pending status

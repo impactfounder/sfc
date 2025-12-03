@@ -1,14 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, Plus } from "lucide-react"
-import Link from "next/link"
-import EventCard from "@/components/ui/event-card"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { PageHeader } from "@/components/page-header"
-import { EventsSection } from "@/components/home/events-section"
+import { redirect } from 'next/navigation'
 
 export default async function EventsPage() {
+  // /events를 /e로 리다이렉트
+  redirect('/e')
   const supabase = await createClient()
 
   const [userResult, upcomingEventsResult, pastEventsResult] = await Promise.all([
@@ -48,21 +42,27 @@ export default async function EventsPage() {
   const upcomingEvents = upcomingEventsResult.data
   const pastEvents = pastEventsResult.data
 
-  // 데이터 포맷팅
-  const formattedUpcomingEvents = upcomingEvents?.map(event => ({
-    id: event.id,
-    title: event.title,
-    thumbnail_url: event.thumbnail_url,
-    event_date: event.event_date,
-    event_time: null,
-    location: event.location,
-    max_participants: event.max_participants,
-    current_participants: event.event_registrations?.[0]?.count || 0,
-    host_name: event.profiles?.full_name,
-    host_avatar_url: event.profiles?.avatar_url,
-    host_bio: event.profiles?.bio,
-    event_type: event.event_type || 'networking',
-  })) || []
+  // 데이터 포맷팅 및 짧은 코드 계산
+  const formattedUpcomingEvents = await Promise.all(
+    (upcomingEvents || []).map(async (event) => {
+      const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
+      return {
+        id: event.id,
+        title: event.title,
+        thumbnail_url: event.thumbnail_url,
+        event_date: event.event_date,
+        event_time: null,
+        location: event.location,
+        max_participants: event.max_participants,
+        current_participants: event.event_registrations?.[0]?.count || 0,
+        host_name: event.profiles?.full_name,
+        host_avatar_url: event.profiles?.avatar_url,
+        host_bio: event.profiles?.bio,
+        event_type: event.event_type || 'networking',
+        shortUrl: shortCode,
+      }
+    })
+  )
 
   const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
 
@@ -91,7 +91,8 @@ export default async function EventsPage() {
             <div>
               <h2 className="mb-4 text-xl font-semibold text-slate-900">지난 이벤트</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                {pastEvents.map((event) => {
+                {await Promise.all(pastEvents.map(async (event) => {
+                   const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
                    const eventData = {
                     id: event.id,
                     title: event.title,
@@ -110,12 +111,12 @@ export default async function EventsPage() {
                     <div key={event.id} className="w-full opacity-60 hover:opacity-100 transition-opacity">
                       <EventCard 
                         event={eventData}
-                        href={`/events/${event.id}`}
+                        href={shortCode}
                         className="w-full h-full"
                       />
                     </div>
                   )
-                })}
+                }))}
               </div>
             </div>
           )}

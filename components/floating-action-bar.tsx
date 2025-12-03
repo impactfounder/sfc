@@ -81,7 +81,7 @@ export function FloatingActionBar({
               종료됨
             </Button>
           ) : isCreator ? (
-            <Link href={`/events/${eventId}/manage`} className="block w-full">
+            <Link href={`/e/${eventId}/manage`} className="block w-full">
               <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-10 text-sm font-semibold">
                 관리하기
               </Button>

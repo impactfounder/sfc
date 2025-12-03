@@ -673,10 +673,22 @@ export default function ProfilePage() {
       })
 
       if (!uploadResponse.ok) {
-        throw new Error("이미지 업로드 실패")
+        let errorMessage = "이미지 업로드 실패"
+        try {
+          const errorData = await uploadResponse.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          const errorText = await uploadResponse.text()
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       const uploadData = await uploadResponse.json()
+      
+      if (!uploadData.url) {
+        throw new Error("업로드된 이미지 URL을 받지 못했습니다.")
+      }
 
       await updateProfileAvatar(uploadData.url)
 
@@ -687,9 +699,13 @@ export default function ProfilePage() {
           avatar_url: uploadData.url,
         }
       })
+      
+      // 프로필 사진 업데이트 후 페이지 새로고침
+      router.refresh()
     } catch (error) {
       console.error("Avatar upload error:", error)
-      alert("프로필 이미지 업로드에 실패했습니다.")
+      const errorMessage = error instanceof Error ? error.message : "프로필 이미지 업로드에 실패했습니다."
+      alert(`프로필 이미지 업로드 실패\n\n${errorMessage}`)
     } finally {
       setIsUploading(false)
     }

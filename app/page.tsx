@@ -46,20 +46,25 @@ export default async function HomePage() {
           .limit(6)
         
         if (data) {
-          return data.map((event) => ({
-            id: event.id,
-            title: event.title,
-            thumbnail_url: event.thumbnail_url,
-            event_date: event.event_date,
-            event_time: null,
-            location: event.location,
-            max_participants: event.max_participants,
-            current_participants: event.event_registrations?.[0]?.count || 0,
-            host_name: event.profiles?.full_name || "알 수 없음",
-            host_avatar_url: event.profiles?.avatar_url || null,
-            host_bio: event.profiles?.bio || null,
-            event_type: event.event_type || 'networking',
-          })) as EventCardEvent[]
+          const { getEventShortUrl } = await import("@/lib/utils/event-url");
+          return await Promise.all(data.map(async (event) => {
+            const shortUrl = await getEventShortUrl(event.id, event.event_date, supabase);
+            return {
+              id: event.id,
+              title: event.title,
+              thumbnail_url: event.thumbnail_url,
+              event_date: event.event_date,
+              event_time: null,
+              location: event.location,
+              max_participants: event.max_participants,
+              current_participants: event.event_registrations?.[0]?.count || 0,
+              host_name: event.profiles?.full_name || "알 수 없음",
+              host_avatar_url: event.profiles?.avatar_url || null,
+              host_bio: event.profiles?.bio || null,
+              event_type: event.event_type || 'networking',
+              shortUrl,
+            } as EventCardEvent
+          }))
         }
         return [] as EventCardEvent[]
       } catch (error) {

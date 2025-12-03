@@ -33,7 +33,7 @@ export function DeleteEventButton({ eventId, className, variant = "outline", siz
     setIsDeleting(true)
     try {
       await deleteEvent(eventId)
-      router.push("/events")
+      router.push("/e")
       router.refresh()
     } catch (error) {
       console.error("Failed to delete event:", error)

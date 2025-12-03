@@ -35,9 +35,10 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
     setIsDeleting(true)
     try {
       await deletePost(postId)
-      router.refresh()
       // redirectUrl이 있으면 그것을 사용, 없으면 기본값
-      router.push(redirectUrl || (slug ? `/community/board/${slug}` : "/community/posts"))
+      const redirectPath = redirectUrl || (slug ? `/community/board/${slug}` : "/community/posts")
+      router.push(redirectPath)
+      router.refresh()
     } catch (error) {
       console.error("Failed to delete post:", error)
       alert("게시글 삭제에 실패했습니다.")

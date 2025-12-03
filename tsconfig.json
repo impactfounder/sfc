@@ -17,6 +17,8 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    // 증분 컴파일 최적화
+    "tsBuildInfoFile": ".next/cache/tsconfig.tsbuildinfo",
     "plugins": [
       {
         "name": "next"

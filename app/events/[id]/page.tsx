@@ -1,16 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Settings, ChevronLeft, Info, CheckCircle2, AlertCircle, Share2, Ticket, Edit } from 'lucide-react';
-import { RegisterButton } from "@/components/register-button";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { EventShareButton } from "@/components/event-share-button";
-import { DeleteEventButton } from "@/components/delete-event-button";
-import { FloatingActionBar } from "@/components/floating-action-bar";
+import { notFound, redirect } from 'next/navigation';
+import { getEventShortUrl } from "@/lib/utils/event-url";
+import EventDetailContent from "@/components/event-detail-content";
 import type { Metadata } from 'next';
 
 export async function generateMetadata({
@@ -92,7 +83,24 @@ export default async function EventDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // UUID 형식인 경우 (길이가 36자 이상) 짧은 코드로 리다이렉트
+  if (id.length > 6) {
+    const { data: eventData } = await supabase
+      .from("events")
+      .select("event_date")
+      .eq("id", id)
+      .single();
+    
+    if (eventData) {
+      const { getEventShortUrl } = await import("@/lib/utils/event-url");
+      const shortUrl = await getEventShortUrl(id, eventData.event_date, supabase);
+      redirect(shortUrl);
+    }
+    notFound();
+  }
+
+  // 짧은 코드인 경우 /e/[id]로 리다이렉트
+  redirect(`/e/${id}`);
 
   // 이벤트 정보 조회 (에러 처리 강화)
   let event;

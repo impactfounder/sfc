@@ -18,6 +18,7 @@ export type EventCardEvent = {
   host_avatar_url?: string | null
   host_bio?: string | null
   event_type?: 'networking' | 'class' | 'activity' | null
+  shortUrl?: string
 }
 
 type Props = {

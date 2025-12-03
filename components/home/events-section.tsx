@@ -151,7 +151,7 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
                 >
                   {filteredEvents.slice(0, 5).map((event) => (
                     <SwiperSlide key={event.id}>
-                      <EventCard event={event} href={`/events/${event.id}`} />
+                      <EventCard event={event} href={event.shortUrl || `/e/${event.id.substring(0, 6)}`} />
                     </SwiperSlide>
                   ))}
                 </Swiper>
@@ -175,7 +175,7 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
                   return (
                     <Link 
                       key={event.id} 
-                      href={`/events/${event.id}`}
+                      href={event.shortUrl || `/e/${event.id.substring(0, 6)}`}
                       className="flex gap-3 bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md transition-all active:scale-[0.98]"
                     >
                       {/* 왼쪽: 썸네일 */}
@@ -231,7 +231,7 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
               <div key={event.id} className="w-full">
                 <EventCard
                   event={event}
-                  href={`/events/${event.id}`}
+                  href={event.shortUrl || `/e/${event.id.substring(0, 6)}`}
                   className="w-full h-full"
                 />
               </div>

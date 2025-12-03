@@ -58,7 +58,7 @@ export function MobileActionBar() {
   // 현재 경로에 따라 활성 탭 결정
   const getActiveTab = () => {
     if (pathname === "/") return "home"
-    if (pathname.startsWith("/events")) return "events"
+    if (pathname.startsWith("/e")) return "events"
     if (pathname.startsWith("/community/profile")) return "profile"
     if (pathname.startsWith("/communities") || pathname.startsWith("/community")) return "community"
     return null
@@ -71,7 +71,7 @@ export function MobileActionBar() {
   }
 
   const handleEvents = () => {
-    router.push("/events")
+    router.push("/e")
   }
 
   const handleCreate = async () => {
@@ -79,7 +79,7 @@ export function MobileActionBar() {
       router.push("/auth/login")
       return
     }
-    router.push("/events/new")
+    router.push("/e/new")
   }
 
   const handleCommunity = () => {

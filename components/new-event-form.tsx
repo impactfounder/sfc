@@ -541,7 +541,7 @@ export function NewEventForm({
           throw new Error("이벤트 수정에 실패했습니다.")
         }
         if (onSuccess) onSuccess()
-        else router.push(`/events/${initialData.id}`)
+        else router.push(`/e/${initialData.id}`)
       } else {
         // 생성 모드
         result = await createEvent(eventData)
@@ -549,7 +549,7 @@ export function NewEventForm({
           throw new Error("이벤트 생성에 실패했습니다.")
         }
         if (onSuccess) onSuccess()
-        else router.push("/events")
+        else router.push("/e")
       }
       router.refresh()
     } catch (error) {

@@ -22,7 +22,7 @@ const navigationSections = [
   { 
     title: "성장", 
     links: [
-      { name: "이벤트", href: "/events", icon: Calendar },
+      { name: "이벤트", href: "/e", icon: Calendar },
       { name: "인사이트", href: "/community/board/insights", icon: Zap },
       { name: "파트너스", href: "/partners", icon: Briefcase }
     ]
