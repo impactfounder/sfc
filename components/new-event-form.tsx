@@ -566,12 +566,12 @@ export function NewEventForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 lg:space-y-8">
       {/* Top Section: Image (Left) & Info (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
         
         {/* [Left] Image Upload Section (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-3 sm:space-y-4">
           <div 
             className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 transition-colors"
             onClick={() => fileInputRef.current?.click()}
@@ -722,7 +722,7 @@ export function NewEventForm({
         </div>
 
         {/* [Right] Event Info Section (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-4 sm:space-y-6">
           
           {/* Title Input (Big & Bold like Luma) - 최상단 */}
           <div>
@@ -736,7 +736,7 @@ export function NewEventForm({
             />
           </div>
 
-          <div className="space-y-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="space-y-3 sm:space-y-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
             {/* Date & Time Row */}
             <div className="flex items-start gap-4">
               <div className="mt-2 p-2 bg-slate-100 rounded-lg text-slate-500">

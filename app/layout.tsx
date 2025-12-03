@@ -41,9 +41,10 @@ export const metadata: Metadata = {
     images: [
       {
         // 카카오톡 등에서 사용할 대표 OG 이미지 (원형 로고 중앙 정렬된 이미지)
+        // 카카오톡 권장 비율: 1200x630 (1.91:1)
         url: "https://seoulfounders.club/images/logo-circle.png",
         width: 1200,
-        height: 1200,
+        height: 630,
         alt: "Seoul Founders Club",
         type: "image/png",
       },

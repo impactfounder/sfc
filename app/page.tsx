@@ -22,7 +22,7 @@ export const metadata: Metadata = {
       {
         url: "https://seoulfounders.club/images/logo-circle.png",
         width: 1200,
-        height: 1200,
+        height: 630,
         alt: "Seoul Founders Club",
       },
     ],
