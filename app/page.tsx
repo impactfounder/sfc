@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import { getLatestPosts, getLatestReviews } from "@/lib/queries/posts"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
@@ -9,6 +10,32 @@ import type { EventCardEvent } from "@/components/ui/event-card"
 import type { PostForDisplay, ReviewForDisplay, BoardCategory } from "@/lib/types/posts"
 import type { VisibleBadge } from "@/lib/types/badges"
 
+export const metadata: Metadata = {
+  title: "Seoul Founders Club",
+  description: "서울 파운더스 클럽",
+  openGraph: {
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    url: "https://seoulfounders.club",
+    siteName: "Seoul Founders Club",
+    images: [
+      {
+        url: "https://seoulfounders.club/images/logo-circle.png",
+        width: 1200,
+        height: 1200,
+        alt: "Seoul Founders Club",
+      },
+    ],
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    images: ["https://seoulfounders.club/images/logo-circle.png"],
+  },
+}
 
 export default async function HomePage() {
   const supabase = await createClient()

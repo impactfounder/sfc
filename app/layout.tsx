@@ -11,8 +11,13 @@ import Providers from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SEOUL FOUNDERS CLUB",
-  description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서의 성장과 활동을 돕는 비즈니스 커뮤니티입니다. 네트워킹, 이벤트, 협업 기회를 제공합니다.",
+  // 카카오톡/메신저 링크 미리보기용 기본 메타데이터
+  // 제목은 "Seoul Founders Club" 만 보이도록 심플하게 설정
+  title: {
+    default: "Seoul Founders Club",
+    template: "%s | Seoul Founders Club",
+  },
+  description: "서울 파운더스 클럽",
   keywords: ["서울 파운더스 클럽", "창업가 커뮤니티", "비즈니스 네트워킹", "스타트업", "투자자", "인플루언서", "Seoul Founders Club"],
   authors: [{ name: "Seoul Founders Club" }],
   creator: "Seoul Founders Club",
@@ -29,24 +34,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    url: "/",
+    url: "https://seoulfounders.club",
     siteName: "Seoul Founders Club",
-    title: "Seoul Founders Club - 사업가, 투자자, 인플루언서 커뮤니티",
-    description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서의 성장과 활동을 돕는 비즈니스 커뮤니티입니다.",
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
     images: [
       {
-        url: "/og-image.png",
+        // 카카오톡 등에서 사용할 대표 OG 이미지 (원형 로고 중앙 정렬된 이미지)
+        url: "https://seoulfounders.club/images/logo-circle.png",
         width: 1200,
-        height: 630,
+        height: 1200,
         alt: "Seoul Founders Club",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Seoul Founders Club - 사업가, 투자자, 인플루언서 커뮤니티",
-    description: "서울 파운더스 클럽은 사업가, 투자자, 인플루언서의 성장과 활동을 돕는 비즈니스 커뮤니티입니다.",
-    images: ["/og-image.png"],
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    images: ["https://seoulfounders.club/images/logo-circle.png"],
   },
   robots: {
     index: true,
