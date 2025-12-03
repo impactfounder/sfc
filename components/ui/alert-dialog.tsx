@@ -5,6 +5,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock"
 
 function AlertDialog({
   ...props
@@ -48,6 +49,17 @@ function AlertDialogContent({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  // 모달이 열릴 때와 닫힐 때 body scroll lock 관리
+  React.useEffect(() => {
+    // 모달이 열릴 때 body scroll lock
+    lockBodyScroll()
+
+    // 모달이 닫힐 때 body scroll unlock
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [])
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />

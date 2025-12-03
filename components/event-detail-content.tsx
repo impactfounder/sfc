@@ -195,43 +195,86 @@ export default async function EventDetailContent({
           <Card id="register-card" className="lg:col-span-4 border-slate-200 shadow-md bg-white h-full flex flex-col">
             <CardContent className="p-6 flex flex-col h-full">
               {/* 날짜, 시간, 장소, 금액 정보 */}
-              <div className="space-y-3 mb-6">
-                {/* 날짜 & 시간 */}
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                    <Calendar className="h-5 w-5" />
+              <div className="mb-6">
+                {/* 모바일: 하나의 박스로 통합 */}
+                <div className="lg:hidden p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
+                  {/* 날짜 & 시간 */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                      <Calendar className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-500 mb-0.5">일시</p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {dateStr} ({weekdayStr}) {timeStr}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <span className="text-sm font-bold text-slate-900 truncate">
-                        {dateStr} ({weekdayStr})
-                      </span>
-                      <span className="text-sm font-bold text-slate-900 whitespace-nowrap">
-                        {timeStr}
-                      </span>
+
+                  {/* 장소 */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-500 mb-0.5">장소</p>
+                      <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
+                    </div>
+                  </div>
+
+                  {/* 금액 */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                      <span className="text-base font-bold">₩</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-500 mb-0.5">참가비</p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* 장소 */}
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                    <MapPin className="h-5 w-5" />
+                {/* 데스크톱: 각각 별도 박스 */}
+                <div className="hidden lg:block space-y-3">
+                  {/* 날짜 & 시간 */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                      <Calendar className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <span className="text-sm font-bold text-slate-900 truncate">
+                          {dateStr} ({weekdayStr})
+                        </span>
+                        <span className="text-sm font-bold text-slate-900 whitespace-nowrap">
+                          {timeStr}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
-                  </div>
-                </div>
 
-                {/* 금액 */}
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                    <span className="text-base sm:text-lg font-bold">₩</span>
+                  {/* 장소 */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-900">
-                      {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
-                    </p>
+
+                  {/* 금액 */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                      <span className="text-base sm:text-lg font-bold">₩</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900">
+                        {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -22,6 +22,9 @@
     overflow-y: scroll;
     /* 스크롤바 점프 방지: 항상 스크롤바 공간을 확보 */
     scrollbar-gutter: stable;
+    /* 레이아웃 시프트 방지를 위한 추가 설정 */
+    width: 100%;
+    height: 100%;
   }
   * {
     @apply border-slate-200;
@@ -30,6 +33,11 @@
     @apply bg-slate-50 text-slate-900;
     /* 스크롤바 점프 방지: 항상 스크롤바 공간을 확보 */
     scrollbar-gutter: stable;
+    /* 레이아웃 시프트 방지를 위한 추가 설정 */
+    width: 100%;
+    min-height: 100vh;
+    /* 초기 렌더링 시 스크롤바 공간 확보 */
+    overflow-y: scroll;
   }
 }
 

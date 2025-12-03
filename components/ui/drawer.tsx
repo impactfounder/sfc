@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
 import { cn } from '@/lib/utils'
+import { lockBodyScroll, unlockBodyScroll } from '@/lib/utils/scroll-lock'
 
 function Drawer({
   ...props
@@ -50,6 +51,17 @@ function DrawerContent({
   children,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  // 모달이 열릴 때와 닫힐 때 body scroll lock 관리
+  React.useEffect(() => {
+    // 모달이 열릴 때 body scroll lock
+    lockBodyScroll()
+
+    // 모달이 닫힐 때 body scroll unlock
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [])
+
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />

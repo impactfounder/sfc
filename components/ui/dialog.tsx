@@ -4,6 +4,7 @@ import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock"
 
 const Dialog = DialogPrimitive.Root
 const DialogTrigger = DialogPrimitive.Trigger
@@ -29,6 +30,17 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
+  // 모달이 열릴 때와 닫힐 때 body scroll lock 관리
+  React.useEffect(() => {
+    // 모달이 열릴 때 body scroll lock
+    lockBodyScroll()
+
+    // 모달이 닫힐 때 body scroll unlock
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [])
+
   return (
     <DialogPortal>
       <DialogOverlay />

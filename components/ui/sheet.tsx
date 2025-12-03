@@ -1,10 +1,11 @@
 "use client"
 
-import type * as React from "react"
+import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -45,6 +46,17 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   hideClose?: boolean
 }) {
+  // 모달이 열릴 때와 닫힐 때 body scroll lock 관리
+  React.useEffect(() => {
+    // 모달이 열릴 때 body scroll lock
+    lockBodyScroll()
+
+    // 모달이 닫힐 때 body scroll unlock
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [])
+
   return (
     <SheetPortal>
       <SheetOverlay />

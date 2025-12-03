@@ -1,8 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from "@/lib/supabase/server"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, Plus } from "lucide-react"
 import Link from "next/link"
 import EventCard from "@/components/ui/event-card"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
@@ -72,8 +69,6 @@ export default async function EventsPage() {
     })
   )
 
-  const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
-
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* [LEFT] 메인 콘텐츠 영역 */}
@@ -83,16 +78,7 @@ export default async function EventsPage() {
           description="다양한 네트워킹, 클래스, 액티비티 이벤트에 참여하세요"
           compact={true}
           className="h-[130px]"
-        >
-          {user && (
-            <Link href="/e/new">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                이벤트 만들기
-              </Button>
-            </Link>
-          )}
-        </PageHeader>
+        />
 
         {/* 다가오는 이벤트 */}
         <EventsSection

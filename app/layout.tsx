@@ -90,6 +90,78 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* 스크롤바 레이아웃 시프트 방지 - 초기 렌더링 전에 즉시 실행 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  'use strict';
+  
+  // 즉시 실행하여 초기 렌더링 전에 스크롤바 너비를 확보
+  function fixScrollbar() {
+    try {
+      // 스크롤바 너비 계산 (가장 정확한 방법)
+      var scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // 스크롤바가 없는 경우 (모바일 등) 아무것도 하지 않음
+      if (scrollbarWidth <= 0) return;
+      
+      var body = document.body;
+      if (!body) return;
+      
+      // 이미 적용되어 있지 않은 경우에만 적용
+      if (body.style.getPropertyValue('--scrollbar-fix-applied')) return;
+      
+      // 현재 padding-right 값 가져오기
+      var computedStyle = window.getComputedStyle(body);
+      var currentPaddingRight = computedStyle.paddingRight;
+      var currentPaddingRightValue = parseInt(currentPaddingRight, 10) || 0;
+      
+      // 원본 padding-right 값 저장
+      body.style.setProperty('--body-padding-right-original', currentPaddingRight || '0px', 'important');
+      
+      // 스크롤바 너비만큼 padding-right 추가
+      var newPaddingRight = currentPaddingRightValue + scrollbarWidth;
+      body.style.setProperty('padding-right', newPaddingRight + 'px', 'important');
+      body.style.setProperty('--scrollbar-fix-applied', 'true');
+    } catch (e) {
+      // 에러 발생 시 무시 (안전하게)
+      console.warn('Scrollbar fix error:', e);
+    }
+  }
+  
+  // 즉시 실행 시도
+  if (document.body) {
+    fixScrollbar();
+  }
+  
+  // DOMContentLoaded 시에도 실행 (body가 준비되지 않았을 경우 대비)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixScrollbar, { once: true });
+  } else {
+    // 이미 로드된 경우 즉시 실행
+    setTimeout(fixScrollbar, 0);
+  }
+  
+  // body가 아직 없으면 MutationObserver로 대기
+  if (!document.body) {
+    var observer = new MutationObserver(function() {
+      if (document.body) {
+        fixScrollbar();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true });
+    
+    // 타임아웃으로 안전장치 (5초 후 중단)
+    setTimeout(function() {
+      observer.disconnect();
+    }, 5000);
+  }
+})();
+            `,
+          }}
+        />
         {/* Google Tag Manager */}
         <Script
           id="gtm-script"
@@ -103,7 +175,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
       </head>
-      <body className={cn(inter.className, "pb-16 lg:pb-0")}>
+      <body className={cn(inter.className, "pb-16 lg:pb-0")} suppressHydrationWarning>
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe

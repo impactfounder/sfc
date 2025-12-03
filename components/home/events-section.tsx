@@ -48,19 +48,19 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
     <div className="w-full">
       {/* 헤더 */}
       {!hideTitle && (
-        <div className="flex items-center justify-between w-full mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between w-full mb-6 gap-3">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 flex-1 min-w-0">{title}</h2>
           {createLink ? (
-            <Link href={createLink} className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm">
-              <Plus className="w-4 h-4" />
+            <Link href={createLink} className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-xs md:text-sm font-semibold shadow-sm whitespace-nowrap shrink-0">
+              <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
               새 이벤트
             </Link>
           ) : onCreateEvent ? (
             <button
               onClick={onCreateEvent}
-              className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm"
+              className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-xs md:text-sm font-semibold shadow-sm whitespace-nowrap shrink-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
               새 이벤트
             </button>
           ) : null}
@@ -261,18 +261,6 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
             ))}
           </div>
 
-          {/* 모바일 버튼 */}
-          {onCreateEvent && (
-            <div className="md:hidden mt-6 flex justify-center">
-              <button
-                onClick={onCreateEvent}
-                className="w-full py-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:bg-gray-50 text-gray-900 font-semibold flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                새 이벤트 만들기
-              </button>
-            </div>
-          )}
         </>
       )}
     </div>
