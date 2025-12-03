@@ -14,12 +14,15 @@ export type MemberProfile = {
   position: string | null
   company_2: string | null
   position_2: string | null
+  tagline: string | null
   introduction: string | null
+  member_type: ("사업가" | "투자자" | "크리에이터")[] | null
   roles: string[]
   role: string | null
   badges: Array<{
     icon: string
     name: string
+    description?: string | null
   }>
 }
 
@@ -91,11 +94,25 @@ export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: 
                 <span className="w-1 h-4 bg-indigo-500 rounded-full"></span>
                 보유 뱃지
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
                 {member.badges.map((badge, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium border border-indigo-100">
-                    <span>{badge.icon}</span>
-                    <span>{badge.name}</span>
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200"
+                  >
+                    <div className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs shrink-0 border border-slate-200">
+                      <span>{badge.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-900">
+                        {badge.name}
+                      </p>
+                      {badge.description && (
+                        <p className="mt-0.5 text-[11px] text-slate-600 leading-snug whitespace-pre-line">
+                          {badge.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -81,17 +81,18 @@ export default async function EventsPage() {
         <PageHeader
           title="이벤트"
           description="다양한 네트워킹, 클래스, 액티비티 이벤트에 참여하세요"
-          action={
-            user ? (
-              <Link href="/e/new">
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  이벤트 만들기
-                </Button>
-              </Link>
-            ) : null
-          }
-        />
+          compact={true}
+          className="h-[130px]"
+        >
+          {user && (
+            <Link href="/e/new">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                이벤트 만들기
+              </Button>
+            </Link>
+          )}
+        </PageHeader>
 
         {/* 다가오는 이벤트 */}
         <EventsSection

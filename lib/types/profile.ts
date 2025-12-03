@@ -27,8 +27,10 @@ export type Profile = {
   position: string | null
   company_2: string | null // 추가
   position_2: string | null // 추가
+  tagline: string | null
   introduction: string | null
   is_profile_public: boolean
+  member_type: ("사업가" | "투자자" | "크리에이터")[] | null
   membership_tier: string | null
   last_login_date: string | null
   created_at: string
@@ -48,8 +50,10 @@ export type ProfileForDisplay = {
   position: string | null
   company_2: string | null // 추가
   position_2: string | null // 추가
+  tagline: string | null
   introduction: string | null
   is_profile_public: boolean
+  member_type: ("사업가" | "투자자" | "크리에이터")[] | null
   bio: string | null
   created_at: string
 }

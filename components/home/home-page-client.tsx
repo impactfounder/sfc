@@ -314,14 +314,18 @@ export function HomePageClient({
           {SHOW_EVENT_REQUESTS && (
             <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
           )}
-          <ReviewsSection reviews={reviews} isLoading={isLoading} />
-          <PostsSection
-            posts={posts}
-            boardCategories={boardCategories}
-            selectedBoard={selectedBoard}
-            onBoardChange={setSelectedBoard}
-            isLoading={isLoading}
-          />
+          <div className="mt-12">
+            <ReviewsSection reviews={reviews} isLoading={isLoading} />
+          </div>
+          <div className="mt-12">
+            <PostsSection
+              posts={posts}
+              boardCategories={boardCategories}
+              selectedBoard={selectedBoard}
+              onBoardChange={setSelectedBoard}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
 
         {/* [RIGHT] 우측 사이드바 영역 */}

@@ -35,7 +35,9 @@ export default async function MemberPage() {
       company_2,
       position_2,
       roles,
+      tagline,
       introduction,
+      member_type,
       role,
       created_at,
       user_badges (
@@ -44,6 +46,7 @@ export default async function MemberPage() {
         badges:badge_id (
           icon,
           name,
+          description,
           is_active
         )
       )
@@ -67,6 +70,7 @@ export default async function MemberPage() {
         company_2,
         position_2,
         roles,
+        tagline,
         introduction,
         role,
         created_at,
@@ -76,6 +80,7 @@ export default async function MemberPage() {
           badges:badge_id (
             icon,
             name,
+            description,
             is_active
           )
         )
@@ -104,6 +109,7 @@ export default async function MemberPage() {
             badges:badge_id (
               icon,
               name,
+              description,
               is_active
             )
           )
@@ -136,7 +142,9 @@ export default async function MemberPage() {
       position: member.position,
       company_2: member.company_2,
       position_2: member.position_2,
+      tagline: member.tagline,
       introduction: member.introduction,
+      member_type: member.member_type || null,
       role: member.role,
       roles: member.roles || [],
       badges: validBadges

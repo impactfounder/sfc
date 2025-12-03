@@ -39,7 +39,8 @@ export default async function EventDetailContent({
           full_name,
           avatar_url,
           email,
-          bio
+          bio,
+          tagline
         )
       `)
       .eq("id", eventId)
@@ -101,6 +102,8 @@ export default async function EventDetailContent({
     year: "numeric",
     month: "long",
     day: "numeric",
+  });
+  const weekdayStr = eventDate.toLocaleDateString("ko-KR", {
     weekday: "short",
   });
   const timeStr = eventDate.toLocaleTimeString("ko-KR", {
@@ -163,40 +166,25 @@ export default async function EventDetailContent({
                 {event.title}
               </h1>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                {/* 날짜 */}
-                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-white text-slate-900 shadow-sm border border-slate-100">
-                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm sm:text-base font-bold text-slate-900 truncate">{dateStr} {timeStr}</p>
-                  </div>
-                </div>
-
-                {/* 장소 */}
-                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-white text-slate-900 shadow-sm border border-slate-100">
-                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm sm:text-base font-bold text-slate-900 truncate">{event.location}</p>
-                  </div>
-                </div>
-
-                {/* 호스트 */}
-                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
-                  <Avatar className="h-10 w-10 sm:h-11 sm:w-11 border border-slate-100 shrink-0">
-                    <AvatarImage src={event.profiles?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-slate-900 text-white font-bold text-xs sm:text-sm">
-                      {event.profiles?.full_name?.[0] || "H"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-500 font-medium mb-0.5">호스트</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-900 truncate">
+              {/* 호스트 정보 + 한마디 */}
+              <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
+                <Avatar className="h-10 w-10 sm:h-11 sm:w-11 border border-slate-100 shrink-0">
+                  <AvatarImage src={event.profiles?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-slate-900 text-white font-bold text-xs sm:text-sm">
+                    {event.profiles?.full_name?.[0] || "H"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <p className="text-xs text-slate-500 font-medium">호스트</p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 truncate max-w-[40%]">
                       {event.profiles?.full_name || "알 수 없음"}
-                    </p>
+                    </span>
+                    {event.profiles && (event.profiles as any).tagline && (
+                      <span className="text-xs sm:text-[13px] text-slate-500 truncate max-w-[55%]">
+                        {(event.profiles as any).tagline}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -206,17 +194,50 @@ export default async function EventDetailContent({
           {/* Row 1 - Right (4) */}
           <Card id="register-card" className="lg:col-span-4 border-slate-200 shadow-md bg-white h-full flex flex-col">
             <CardContent className="p-6 flex flex-col h-full">
-              <CardHeader
-                icon={Ticket}
-                title="참가 신청"
-                rightElement={
-                  <Badge variant="outline" className="font-medium text-slate-500 border-slate-200 bg-slate-50">
-                    {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : 'Free'}
-                  </Badge>
-                }
-              />
+              {/* 날짜, 시간, 장소, 금액 정보 */}
+              <div className="space-y-3 mb-6">
+                {/* 날짜 & 시간 */}
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <span className="text-sm font-bold text-slate-900 truncate">
+                        {dateStr} ({weekdayStr})
+                      </span>
+                      <span className="text-sm font-bold text-slate-900 whitespace-nowrap">
+                        {timeStr}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="mb-8">
+                {/* 장소 */}
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
+                  </div>
+                </div>
+
+                {/* 금액 */}
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
+                    <span className="text-base sm:text-lg font-bold">₩</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900">
+                      {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 현재 모집 현황 */}
+              <div className="mb-6">
                 <div className="flex justify-between items-end mb-2">
                   <span className="text-sm text-slate-500 font-medium">현재 모집 현황</span>
                   <div className="text-right">

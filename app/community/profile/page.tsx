@@ -177,7 +177,9 @@ export default function ProfilePage() {
     position: "",
     company_2: "",
     position_2: "",
+    tagline: "",
     introduction: "",
+    member_type: [] as ("사업가" | "투자자" | "크리에이터")[],
     is_profile_public: false,
   })
 
@@ -211,7 +213,13 @@ export default function ProfilePage() {
             position: profileData.position || "",
             company_2: profileData.company_2 || "",
             position_2: profileData.position_2 || "",
+            tagline: (profileData as any).tagline || "",
             introduction: profileData.introduction || "",
+            member_type: Array.isArray((profileData as any).member_type) 
+              ? (profileData as any).member_type 
+              : (profileData as any).member_type 
+                ? [(profileData as any).member_type]
+                : [],
             is_profile_public: profileData.is_profile_public || false,
           })
         }
@@ -433,7 +441,9 @@ export default function ProfilePage() {
         position: editForm.position,
         company_2: editForm.company_2,
         position_2: editForm.position_2,
+        tagline: editForm.tagline,
         introduction: editForm.introduction,
+        member_type: editForm.member_type,
         is_profile_public: editForm.is_profile_public,
       })
       
@@ -449,9 +459,11 @@ export default function ProfilePage() {
           full_name: editForm.full_name,
           company: editForm.company,
           position: editForm.position,
-          company_2: editForm.company_2,
-          position_2: editForm.position_2,
+            company_2: editForm.company_2,
+            position_2: editForm.position_2,
+            tagline: editForm.tagline,
           introduction: editForm.introduction,
+          member_type: editForm.member_type,
           is_profile_public: editForm.is_profile_public,
         }
       })
@@ -1128,12 +1140,63 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <Label htmlFor="introduction" className="mb-2 block text-slate-700">한줄 자기소개</Label>
+              <Label className="mb-2 block text-slate-700">역할 (최대 2개 선택 가능)</Label>
+              <div className="flex gap-2 mb-4">
+                {(["사업가", "투자자", "크리에이터"] as const).map((type) => {
+                  const isSelected = editForm.member_type.includes(type)
+                  const canSelect = !isSelected && editForm.member_type.length < 2
+                  
+                  return (
+                    <Button
+                      key={type}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={() => {
+                        if (isSelected) {
+                          // 선택 해제
+                          setEditForm({ 
+                            ...editForm, 
+                            member_type: editForm.member_type.filter(t => t !== type)
+                          })
+                        } else if (canSelect) {
+                          // 선택 추가
+                          setEditForm({ 
+                            ...editForm, 
+                            member_type: [...editForm.member_type, type]
+                          })
+                        }
+                      }}
+                      disabled={!isSelected && !canSelect}
+                      className={cn(
+                        "flex-1 h-11",
+                        isSelected
+                          ? "bg-slate-900 hover:bg-slate-800 text-white"
+                          : canSelect
+                            ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            : "bg-white border-slate-200 text-slate-400 cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      {type}
+                    </Button>
+                  )
+                })}
+              </div>
+
+              <Label htmlFor="tagline" className="mb-2 block text-slate-700">나를 표현하는 한마디</Label>
+              <Input
+                id="tagline"
+                value={editForm.tagline || ""}
+                onChange={(e) => setEditForm({ ...editForm, tagline: e.target.value })}
+                placeholder="예) 좋은 사람들과 함께 성장하는 창업가입니다."
+                className="bg-white border-slate-200 focus-visible:ring-slate-900 h-11 mb-4"
+              />
+
+              <Label htmlFor="introduction" className="mb-2 block text-slate-700">자기소개</Label>
               <Textarea
                 id="introduction"
                 value={editForm.introduction}
                 onChange={(e) => setEditForm({ ...editForm, introduction: e.target.value })}
-                placeholder="간단한 자기소개를 입력해주세요"
+                placeholder="나의 경험, 관심사, 커뮤니티에서 하고 싶은 활동 등을 자유롭게 적어주세요."
                 rows={3}
                 className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none min-h-[80px]"
               />
@@ -1178,10 +1241,9 @@ export default function ProfilePage() {
                   <SelectTrigger className="flex-1 h-11 bg-white border-slate-200 focus-visible:ring-slate-900">
                     <SelectValue placeholder="신청할 뱃지 선택" />
                   </SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectContent className="z-[9999] max-h-[320px] overflow-y-auto">
                     {allBadges
                       .filter((badge) => !userBadges.some((ub) => ub.badge_id === badge.id))
-                      .slice(0, 20)
                       .map((badge) => (
                         <SelectItem key={badge.id} value={badge.id}>
                           <div className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import type { Swiper as SwiperType } from "swiper"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import {
   Empty,
@@ -32,7 +33,9 @@ type EventsSectionProps = {
 
 export function EventsSection({ events, onCreateEvent, createLink, isLoading = false, title = "이벤트", hideTitle = false }: EventsSectionProps) {
   const swiperRef = useRef<SwiperType | null>(null)
+  const router = useRouter()
   const [filter, setFilter] = useState<"all" | "networking" | "class" | "activity">("all")
+  const [isSwiping, setIsSwiping] = useState(false)
   const hasEvents = events && events.length > 0
 
   // 필터링된 이벤트
@@ -148,12 +151,32 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
                   slidesPerView={1.2}
                   centeredSlides={false}
                   className="!pb-4"
+                  allowTouchMove={true}
+                  touchEventsTarget="container"
                 >
-                  {filteredEvents.slice(0, 5).map((event) => (
-                    <SwiperSlide key={event.id}>
-                      <EventCard event={event} href={event.shortUrl || `/e/${event.id.substring(0, 6)}`} />
-                    </SwiperSlide>
-                  ))}
+                  {filteredEvents.slice(0, 5).map((event) => {
+                    const eventHref = event.shortUrl || `/e/${event.id.substring(0, 6)}`
+                    return (
+                      <SwiperSlide key={event.id}>
+                        <div 
+                          className="block h-full cursor-pointer"
+                          onClick={(e) => {
+                            // 스와이프 중이 아닐 때만 링크 이동
+                            if (!isSwiping) {
+                              router.push(eventHref)
+                            }
+                          }}
+                          onTouchStart={() => setIsSwiping(false)}
+                          onTouchMove={() => setIsSwiping(true)}
+                          onTouchEnd={() => {
+                            setTimeout(() => setIsSwiping(false), 100)
+                          }}
+                        >
+                          <EventCard event={event} />
+                        </div>
+                      </SwiperSlide>
+                    )
+                  })}
                 </Swiper>
               </div>
             )}

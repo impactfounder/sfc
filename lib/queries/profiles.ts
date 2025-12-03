@@ -23,12 +23,33 @@ export async function getCurrentUserProfile(
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at")
+      .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, tagline, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at")
       .eq("id", user.id)
       .single()
 
     if (profileError) {
       console.error("프로필 조회 오류:", profileError)
+
+      // 새 컬럼(tagline) 미적용 등으로 인한 스키마 불일치일 수 있으므로
+      // 안전한 최소 컬럼으로 한 번 더 재시도하여 로그인 자체는 막지 않도록 처리
+      try {
+        const { data: fallbackProfile, error: fallbackError } = await supabase
+          .from("profiles")
+          .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at")
+          .eq("id", user.id)
+          .single()
+
+        if (!fallbackError && fallbackProfile) {
+          return {
+            user,
+            profile: fallbackProfile as Profile | null,
+          }
+        }
+      } catch (fallbackException) {
+        console.error("프로필 fallback 조회 오류:", fallbackException)
+      }
+
+      // fallback도 실패한 경우에는 프로필 없이 로그인만 유지
       return { user, profile: null }
     }
 

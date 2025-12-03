@@ -71,7 +71,7 @@ export async function setCommunityLeader(communityId: string, targetUserId: stri
   // 대상 유저가 해당 커뮤니티의 멤버인지 확인
   const { data: membership } = await supabase
     .from("community_members")
-    .select("id")
+    .select("id, role")
     .eq("community_id", communityId)
     .eq("user_id", targetUserId)
     .single()
@@ -80,14 +80,26 @@ export async function setCommunityLeader(communityId: string, targetUserId: stri
     throw new Error("User is not a member of this community")
   }
 
-  // communities 테이블의 created_by를 업데이트 (리더 변경)
-  const { error } = await supabase
+  // 1) communities 테이블의 created_by를 업데이트 (리더 변경)
+  const { error: updateCommunityError } = await supabase
     .from("communities")
     .update({ created_by: targetUserId })
     .eq("id", communityId)
 
-  if (error) {
-    throw new Error(error.message)
+  if (updateCommunityError) {
+    throw new Error(updateCommunityError.message)
+  }
+
+  // 2) community_members.role을 리더 권한으로 승격
+  //    - 기존에는 role이 항상 'member'로 남아 있어서
+  //      리더 뱃지 자동 발급 트리거가 동작하지 않았음
+  const { error: updateRoleError } = await supabase
+    .from("community_members")
+    .update({ role: "admin" })
+    .eq("id", membership.id)
+
+  if (updateRoleError) {
+    throw new Error(updateRoleError.message)
   }
 
   revalidatePath("/community")

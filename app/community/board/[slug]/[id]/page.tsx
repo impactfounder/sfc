@@ -52,13 +52,17 @@ export default async function BoardPostDetailPage({
   if (!post) notFound();
 
   // 추가 데이터 조회
-  const [userLikeResult, commentsResult, badgesResult] = await Promise.all([
+  const [userLikeResult, commentsResult, likesResult, badgesResult] = await Promise.all([
     user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     supabase
       .from("comments")
       .select(`*, profiles:author_id (id, full_name, avatar_url)`)
       .eq("post_id", id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("post_likes")
+      .select("id", { count: "exact" })
+      .eq("post_id", id),
     post.author_id ? supabase
       .from("user_badges")
       .select(`badges:badge_id (icon, name)`)
@@ -85,6 +89,10 @@ export default async function BoardPostDetailPage({
   // 뱃지 데이터 가공
   const authorVisibleBadges = badgesResult.data?.map((ub: any) => ub.badges).filter(Boolean) || [];
   const comments = commentsResult.data || [];
+  
+  // 실제 댓글과 좋아요 수 계산
+  const actualCommentsCount = comments.length;
+  const actualLikesCount = likesResult.count || 0;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -167,11 +175,11 @@ export default async function BoardPostDetailPage({
                     postId={post.id}
                     userId={user?.id}
                     initialLiked={!!userLikeResult.data}
-                    initialCount={post.likes_count || 0}
+                    initialCount={actualLikesCount}
                   />
                   <div className="flex items-center gap-1.5 text-slate-500 text-sm">
                     <MessageSquare className="h-4 w-4" />
-                    <span>{post.comments_count || 0}</span>
+                    <span>{actualCommentsCount}</span>
                   </div>
                 </div>
                 <EventShareButton
