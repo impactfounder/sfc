@@ -43,6 +43,8 @@ export async function generateMetadata({
     // HTML 태그 제거 및 텍스트 정리
     const plainDescription = event.description?.replace(/<[^>]*>/g, "").substring(0, 200) || event.title;
 
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+
     return {
       title: event.title,
       description: `${dateStr} · ${event.location}\n${plainDescription}`,
@@ -56,7 +58,14 @@ export async function generateMetadata({
             height: 630,
             alt: event.title,
           }
-        ] : [],
+        ] : [
+          {
+            url: `${baseUrl}/events/${id}/opengraph-image`,
+            width: 1200,
+            height: 630,
+            alt: event.title,
+          }
+        ],
         type: 'website',
         siteName: 'Seoul Founders Club',
       },
@@ -64,7 +73,7 @@ export async function generateMetadata({
         card: 'summary_large_image',
         title: event.title,
         description: `${dateStr} · ${event.location}`,
-        images: event.thumbnail_url ? [event.thumbnail_url] : [],
+        images: event.thumbnail_url ? [event.thumbnail_url] : [`${baseUrl}/events/${id}/opengraph-image`],
       },
     };
   } catch (error) {
