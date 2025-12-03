@@ -12,8 +12,8 @@ export function PageHeader({ title, description, children, className, compact = 
   return (
     <div
       className={cn(
-        "relative rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white mb-6 shadow-sm flex flex-col",
-        compact ? "min-h-[140px]" : "min-h-[180px]",
+        "relative rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white mb-6 shadow-sm flex flex-col justify-center",
+        compact ? "h-[140px]" : "h-[180px]",
         className
       )}
     >
@@ -22,14 +22,14 @@ export function PageHeader({ title, description, children, className, compact = 
 
       <div className={cn(
         "relative z-10 container mx-auto",
-        compact ? "px-4 py-4" : "px-6 md:px-10 py-8"
+        compact ? "px-8 py-6" : "px-6 md:px-10 py-8"
       )}>
         <div className={cn(
           "flex flex-col md:flex-row md:items-center justify-between",
           compact ? "gap-2" : "gap-6"
         )}>
           {/* 좌측: 타이틀 및 설명 */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className={cn(
               "font-bold tracking-tight text-white",
               compact ? "text-xl md:text-2xl mb-2" : "text-2xl md:text-3xl mb-2"
@@ -38,8 +38,8 @@ export function PageHeader({ title, description, children, className, compact = 
             </h1>
             {description && (
               <p className={cn(
-                "text-slate-300 max-w-3xl leading-relaxed font-light whitespace-pre-wrap",
-                compact ? "text-sm md:text-base" : "text-sm md:text-base"
+                "text-slate-300 max-w-3xl leading-relaxed font-light",
+                compact ? "text-sm md:text-base line-clamp-2" : "text-sm md:text-base line-clamp-3"
               )}>
                 {description}
               </p>

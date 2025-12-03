@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function MemberPage() {
   const supabase = await createClient()
-  
+
   const { data: { user: currentUser } } = await supabase.auth.getUser()
-  
+
   let currentUserProfile = null
   if (currentUser) {
     const { data } = await supabase
@@ -54,7 +54,7 @@ export default async function MemberPage() {
   // 2. 에러 발생 시 안전한 쿼리로 재시도
   if (error) {
     console.warn("First attempt failed, retrying with safe columns. Error:", error)
-    
+
     // [1차 재시도] 뱃지 상태 포함
     let { data: retryData, error: retryError } = await supabase
       .from("profiles")
@@ -82,7 +82,7 @@ export default async function MemberPage() {
       `)
       .eq("is_profile_public", true)
       .order("created_at", { ascending: false })
-      
+
     if (!retryError) {
       publicMembers = retryData
     } else {
@@ -121,9 +121,9 @@ export default async function MemberPage() {
 
   const members: MemberProfile[] = (publicMembers || []).map((member: any) => {
     // 뱃지 필터링: 승인됨(approved) AND 공개(is_visible) AND 뱃지 활성(is_active != false)
-    const validBadges = member.user_badges?.filter((ub: any) => 
-      ub.badges && 
-      (ub.status === 'approved' || !ub.status) && 
+    const validBadges = member.user_badges?.filter((ub: any) =>
+      ub.badges &&
+      (ub.status === 'approved' || !ub.status) &&
       ub.is_visible &&
       ub.badges.is_active !== false
     ).map((ub: any) => ub.badges) || []
@@ -144,47 +144,47 @@ export default async function MemberPage() {
   })
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10">
-      <div className="flex-1 min-w-0 flex flex-col gap-10">
-        <PageHeader 
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="lg:col-span-9 flex flex-col gap-6">
+        <PageHeader
           title="멤버"
           description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
           compact={true}
         />
 
-          {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-              <div>
-                <p className="text-lg font-bold text-blue-900">
-                  프로필을 공개하고 멤버 리스트에 올려보세요!
-                </p>
-              </div>
-              <Link href="/community/profile">
-                <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
-                  설정하기
-                </Button>
-              </Link>
+        {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold text-blue-900">
+                프로필을 공개하고 멤버 리스트에 올려보세요!
+              </p>
             </div>
-          )}
-
-          <div>
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">멤버 리스트</h2>
-              <div className="text-sm text-slate-500">총 {members.length}명</div>
-            </div>
-            
-            <MemberListClient 
-              members={members} 
-              currentUserRole={currentUserProfile?.role || null} 
-            />
+            <Link href="/community/profile">
+              <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                설정하기
+              </Button>
+            </Link>
           </div>
-        </div>
+        )}
 
-        <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
-          <div className="sticky top-8 flex flex-col gap-6 h-fit">
-            <StandardRightSidebar />
+        <div>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-900">멤버 리스트</h2>
+            <div className="text-sm text-slate-500">총 {members.length}명</div>
           </div>
+
+          <MemberListClient
+            members={members}
+            currentUserRole={currentUserProfile?.role || null}
+          />
         </div>
+      </div>
+
+      <div className="hidden lg:block lg:col-span-3">
+        <div className="sticky top-8 flex flex-col gap-6 h-fit">
+          <StandardRightSidebar />
+        </div>
+      </div>
     </div>
   )
 }

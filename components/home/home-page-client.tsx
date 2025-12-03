@@ -62,10 +62,10 @@ export function HomePageClient({
   const [user, setUser] = useState<User | null>(initialUser || null)
   const [profile, setProfile] = useState<Profile | null>(initialProfile || null)
   const userRef = useRef<User | null>(initialUser || null)
-  
+
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
@@ -104,7 +104,7 @@ export function HomePageClient({
           .in("slug", ["free", "vangol", "hightalk", "free-board"])
           .eq("is_active", true)
           .order("order_index", { ascending: true })
-        
+
         if (!error && data) {
           categoriesData = data.map((cat) => {
             if (cat.slug === "free-board") return { ...cat, slug: "free" }
@@ -133,7 +133,7 @@ export function HomePageClient({
           .gte("event_date", new Date().toISOString())
           .order("event_date", { ascending: true })
           .limit(9)
-        
+
         if (!error && data) {
           eventsData = data.map((event) => ({
             id: event.id,
@@ -177,7 +177,7 @@ export function HomePageClient({
           .neq("board_categories.slug", "announcement")
           .order("created_at", { ascending: false })
           .limit(50)
-        
+
         if (!error && data) {
           // 뱃지 가져오기 (재사용 함수 사용)
           const authorIds = [...new Set(data.map((post) => post.author_id).filter(Boolean) as string[])]
@@ -187,7 +187,7 @@ export function HomePageClient({
             // 배열이면 첫 번째 요소를, 아니면 그대로 사용
             const categoryData = Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories
             const profileData = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
-            
+
             let slug = categoryData?.slug
             if (slug === "free-board") slug = "free"
             const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
@@ -266,13 +266,13 @@ export function HomePageClient({
       const currentUser = session?.user ?? null
       userRef.current = currentUser
       setUser(currentUser)
-      
+
       if (event === 'SIGNED_OUT' || (!currentUser && previousUser)) {
         setUser(null)
         userRef.current = null
         return
       }
-      
+
       if (event === 'SIGNED_IN' && !previousUser && currentUser) {
         fetchData()
       }
@@ -294,7 +294,7 @@ export function HomePageClient({
   }
 
   return (
-    <DashboardLayout 
+    <DashboardLayout
       sidebarProfile={
         sidebarProfile ? (
           <Suspense fallback={<div className="px-4 pb-4 min-h-[140px] flex flex-col justify-center"><div className="h-10 w-full bg-slate-100 rounded-full animate-pulse" /></div>}>
@@ -303,34 +303,34 @@ export function HomePageClient({
         ) : undefined
       }
     >
-      <div className="w-full flex flex-col lg:flex-row gap-10">
-          {/* [LEFT] 메인 콘텐츠 영역 */}
-          <div className="flex-1 min-w-0 flex flex-col gap-10">
-            <HeroSection user={user} profile={profile} onLogin={handleLogin} />
-            {children && <div>{children}</div>}
-            <div id="events-section">
-              <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
-            </div>
-            {SHOW_EVENT_REQUESTS && (
-              <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
-            )}
-            <ReviewsSection reviews={reviews} isLoading={isLoading} />
-            <PostsSection
-              posts={posts}
-              boardCategories={boardCategories}
-              selectedBoard={selectedBoard}
-              onBoardChange={setSelectedBoard}
-              isLoading={isLoading}
-            />
+      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* [LEFT] 메인 콘텐츠 영역 */}
+        <div className="lg:col-span-9 flex flex-col gap-6">
+          <HeroSection user={user} profile={profile} onLogin={handleLogin} />
+          {children && <div>{children}</div>}
+          <div id="events-section">
+            <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
           </div>
+          {SHOW_EVENT_REQUESTS && (
+            <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
+          )}
+          <ReviewsSection reviews={reviews} isLoading={isLoading} />
+          <PostsSection
+            posts={posts}
+            boardCategories={boardCategories}
+            selectedBoard={selectedBoard}
+            onBoardChange={setSelectedBoard}
+            isLoading={isLoading}
+          />
+        </div>
 
-          {/* [RIGHT] 우측 사이드바 영역 */}
-          <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
-            <div className="sticky top-8 flex flex-col gap-6 h-fit">
-              <StandardRightSidebar />
-            </div>
+        {/* [RIGHT] 우측 사이드바 영역 */}
+        <div className="hidden lg:block lg:col-span-3">
+          <div className="sticky top-8 flex flex-col gap-6 h-fit">
+            <StandardRightSidebar />
           </div>
         </div>
+      </div>
 
       <Sheet open={showCreateSheet} onOpenChange={setShowCreateSheet}>
         <SheetContent side="bottom" className="h-[95vh] p-0 rounded-t-2xl overflow-hidden" hideClose>

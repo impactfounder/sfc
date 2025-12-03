@@ -5,11 +5,11 @@ import { PageHeader } from "@/components/page-header"
 
 export default function MemberLoading() {
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-10">
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* [LEFT] 콘텐츠 영역 */}
-      <div className="flex-1 min-w-0 flex flex-col gap-10">
+      <div className="lg:col-span-9 flex flex-col gap-6">
         {/* PageHeader 적용 */}
-        <PageHeader 
+        <PageHeader
           title="멤버"
           description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
           compact={true}
@@ -21,7 +21,7 @@ export default function MemberLoading() {
             <Skeleton className="h-7 w-32" />
             <Skeleton className="h-5 w-24" />
           </div>
-          
+
           {/* MemberListClient와 동일한 그리드 구조 적용 (3 columns) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
@@ -32,7 +32,7 @@ export default function MemberLoading() {
                     <Skeleton className="h-16 w-16 sm:h-20 sm:w-20 rounded-full" />
                     <Skeleton className="h-5 w-16" />
                   </div>
-                  
+
                   {/* [Right] 정보 영역 스켈레톤 */}
                   <div className="flex-1 min-w-0 flex flex-col gap-2 w-full">
                     {/* 소속 & 역할 */}
@@ -65,7 +65,7 @@ export default function MemberLoading() {
       </div>
 
       {/* [RIGHT] 사이드바 영역 */}
-      <div className="hidden lg:flex w-72 shrink-0 flex-col gap-6">
+      <div className="hidden lg:block lg:col-span-3">
         <div className="sticky top-8 flex flex-col gap-6 h-fit">
           <StandardRightSidebar />
         </div>

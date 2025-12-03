@@ -72,6 +72,7 @@ export function CommunityIntro({ initialIntro, canEdit }: CommunityIntroProps) {
         title="커뮤니티"
         description={intro}
         className="w-full"
+        compact={true}
       />
       {canEdit && (
         <Button
