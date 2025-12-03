@@ -14,9 +14,9 @@ type EventShareButtonProps = {
   children?: React.ReactNode
 }
 
-export function EventShareButton({ 
-  title, 
-  description, 
+export function EventShareButton({
+  title,
+  description,
   className,
   variant = "outline",
   size = "default",
@@ -25,30 +25,42 @@ export function EventShareButton({
   const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
-    const url = window.location.href
-    
-    // 1. 모바일 네이티브 공유 (Web Share API)
-    if (navigator.share) {
+    // 짧은 URL 생성 (/events/xxx -> /e/xxx)
+    const currentUrl = window.location.href
+    const shortUrl = currentUrl.replace('/events/', '/e/')
+
+    // 1. 모바일 네이티브 공유 (Web Share API) - 모바일에서만 실행
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+    if (isMobile && navigator.share) {
       try {
         await navigator.share({
           title: title,
           text: description || title,
-          url: url,
+          url: shortUrl,
+        })
+        toast({
+          description: "공유되었습니다!",
+          duration: 2000,
         })
         return
       } catch (error: any) {
-        // 사용자가 공유를 취소한 경우는 정상 동작이므로 에러 무시
-        if (error.name !== 'AbortError' && process.env.NODE_ENV === 'development') {
-          console.log('Error sharing', error)
+        // 사용자가 공유를 취소한 경우는 정상 동작이므로 fallback하지 않음
+        if (error.name === 'AbortError') {
+          return
+        }
+        // 다른 에러면 클립보드 복사로 fallback
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Share API error, falling back to clipboard:', error)
         }
       }
     }
 
     // 2. PC 등 미지원 브라우저: 클립보드 복사
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(shortUrl)
       setCopied(true)
-      toast({ 
+      toast({
         description: "링크가 복사되었습니다!",
         duration: 2000,
       })
@@ -64,10 +76,10 @@ export function EventShareButton({
   }
 
   return (
-    <Button 
-      variant={variant} 
+    <Button
+      variant={variant}
       size={size}
-      onClick={handleShare} 
+      onClick={handleShare}
       className={className}
     >
       {children ? (
@@ -90,4 +102,3 @@ export function EventShareButton({
     </Button>
   )
 }
-
