@@ -975,7 +975,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-0">
-                  {sortedCategories.map((category) => {
+                  {sortedCategories.map((category, index) => {
                     const categoryBadges = badgesByCategory[category.category_value] || []
                     // 카테고리가 비어있어도 보여주는게 관리상 좋을 수 있음 (카테고리 삭제를 위해)
                     // 하지만 기존 로직은 뱃지 없으면 안보였음.
@@ -984,7 +984,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                     
                     return (
                       <CategorySection
-                        key={category.category_value}
+                        key={`${category.category_value}-${index}`}
                         categoryValue={category.category_value}
                         categoryLabel={category.category_label}
                         badges={categoryBadges}

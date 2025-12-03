@@ -59,33 +59,40 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {canEdit && (
-            <DropdownMenuItem onClick={() => {
-              // slug가 있으면 게시판별 수정 페이지로, 없으면 기본 수정 페이지로
-              const editUrl = slug 
-                ? `/community/board/${slug}/${postId}/edit`
-                : `/community/posts/${postId}/edit`
-              router.push(editUrl)
-            }}>
-              <Edit className="mr-2 h-4 w-4" />
-              수정
-            </DropdownMenuItem>
-          )}
-          {canDelete && (
-            <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteDialog(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              삭제
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="h-8 w-8 shrink-0 flex items-center justify-center">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="end" 
+            className="bg-white border-slate-200 shadow-lg z-50"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
+            {canEdit && (
+              <DropdownMenuItem onClick={() => {
+                // slug가 있으면 게시판별 수정 페이지로, 없으면 기본 수정 페이지로
+                const editUrl = slug 
+                  ? `/community/board/${slug}/${postId}/edit`
+                  : `/community/posts/${postId}/edit`
+                router.push(editUrl)
+              }} className="bg-white hover:bg-slate-50">
+                <Edit className="mr-2 h-4 w-4" />
+                수정
+              </DropdownMenuItem>
+            )}
+            {canDelete && (
+              <DropdownMenuItem className="text-red-600 bg-white hover:bg-red-50" onClick={() => setShowDeleteDialog(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                삭제
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-white">

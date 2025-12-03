@@ -868,7 +868,7 @@ export function NewEventForm({
                 <RadioGroup
                   value={eventType}
                   onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
-                  className="grid grid-cols-3 gap-3 w-full"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full"
                 >
                   <label
                     htmlFor="networking"

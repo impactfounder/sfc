@@ -61,15 +61,6 @@ export default function EventCard({ event, href, className, layout = "card" }: P
         <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
       )}
 
-      {/* 카테고리 뱃지 */}
-      {event.event_type && (
-        <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-full text-xs font-medium text-white bg-black/40 backdrop-blur-md border border-white/10">
-          {event.event_type === 'networking' && '네트워킹'}
-          {event.event_type === 'class' && '클래스'}
-          {event.event_type === 'activity' && '액티비티'}
-        </div>
-      )}
-
       {/* 1. 전체적으로 살짝 어둡게 눌러주는 레이어 */}
       <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:bg-black/30" />
 
@@ -77,11 +68,19 @@ export default function EventCard({ event, href, className, layout = "card" }: P
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent via-35% to-black/90" />
 
       {/* 콘텐츠 레이어 */}
-      <div className="relative h-full flex flex-col justify-between p-5 md:p-6">
+      <div className="relative h-full flex flex-col justify-between px-5 pt-3 pb-5 md:px-6 md:pt-4 md:pb-6">
         
-        {/* 상단: 제목 (여백을 pt-5로 조정) */}
-        <div className="pt-5">
-          <h3 className="text-xl md:text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
+        {/* 상단: 제목 */}
+        <div className="pt-2">
+          {/* 카테고리 뱃지 */}
+          {event.event_type && (
+            <div className="mb-3 inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-blue-500/10 backdrop-blur-lg border border-white/50 shadow-lg">
+              {event.event_type === 'networking' && '네트워킹'}
+              {event.event_type === 'class' && '클래스'}
+              {event.event_type === 'activity' && '액티비티'}
+            </div>
+          )}
+          <h3 className="text-2xl md:text-2xl md:text-[28px] font-bold text-white leading-snug break-keep drop-shadow-lg shadow-black">
             {event.title}
           </h3>
         </div>

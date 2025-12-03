@@ -252,7 +252,7 @@ export default function AboutContent({ badges, badgeCategories = [], isLoggedIn 
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                      산업군별 소모임 (반골, 하이토크)
+                      산업군별 소모임
                     </li>
                   </ul>
                 </CardContent>
