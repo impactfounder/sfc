@@ -370,8 +370,13 @@ export default function AboutContent({ badges, badgeCategories = [], isLoggedIn 
                       const categoryBadges = badgesByCategory[category]
                       if (!categoryBadges || categoryBadges.length === 0) return null
 
-                      const config = categoryConfig[category as keyof typeof categoryConfig]
-                      if (!config) return null
+                      // categoryConfig에서 설정 가져오기, 없으면 기본 설정 사용
+                      const config = categoryConfig[category as keyof typeof categoryConfig] || {
+                        label: category,
+                        icon: "🏷️",
+                        bgColor: "bg-slate-100/50",
+                        textColor: "text-slate-700"
+                      }
 
                       // badge_categories에서 가져온 label 사용 (있으면)
                       const categoryInfo = badgeCategories.find(cat => cat.category_value === category)
