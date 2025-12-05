@@ -204,7 +204,8 @@ export function RegisterButton({
     try {
       console.log("[RegisterButton] Starting registration for user:", userId);
       
-      const { data: regData, error } = await supabase
+      // 안드로이드에서 Promise가 resolve되지 않는 문제를 방지하기 위해 Promise.race 사용
+      const upsertPromise = supabase
         .from("event_registrations")
         .upsert({
           event_id: eventId,
@@ -215,6 +216,14 @@ export function RegisterButton({
         }, { onConflict: 'event_id, user_id' })
         .select("id")
         .single();
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("네트워크 요청 시간이 초과되었습니다. 다시 시도해주세요."));
+        }, 10000); // 10초 타임아웃
+      });
+
+      const { data: regData, error } = await Promise.race([upsertPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error("[RegisterButton] Registration error:", error);
@@ -286,13 +295,18 @@ export function RegisterButton({
       isCompleted = true;
       
       console.error("[RegisterButton] Registration Error:", error);
-      const errorMessage = error?.message || error?.details || "신청에 실패했습니다. 다시 시도해주세요.";
+      const errorMessage = error?.message || error?.details || error?.toString() || "신청에 실패했습니다. 다시 시도해주세요.";
+      
+      // 안드로이드에서 에러를 명확하게 표시
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
-        description: errorMessage
+        description: errorMessage,
+        duration: 5000, // 5초간 표시
       });
       setIsLoading(false);
+      
+      // 에러 발생 시 다이얼로그는 열어두어 사용자가 재시도할 수 있도록 함
     } finally {
       // 타임아웃이 발생하지 않았고, 에러도 발생하지 않았을 때만 로딩 상태 해제
       // (성공 시에는 이미 setIsRegistered(true)로 상태가 변경됨)
@@ -349,7 +363,8 @@ export function RegisterButton({
         payNow
       });
       
-      const insertResult = await supabase
+      // 안드로이드에서 Promise가 resolve되지 않는 문제를 방지하기 위해 Promise.race 사용
+      const insertPromise = supabase
         .from("event_registrations")
         .insert({
           event_id: eventId,
@@ -360,6 +375,14 @@ export function RegisterButton({
         })
         .select("id")
         .single();
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("네트워크 요청 시간이 초과되었습니다. 다시 시도해주세요."));
+        }, 10000); // 10초 타임아웃
+      });
+
+      const insertResult = await Promise.race([insertPromise, timeoutPromise]) as any;
 
       console.log("[RegisterButton] Insert result:", insertResult);
 
@@ -442,13 +465,18 @@ export function RegisterButton({
       isCompleted = true;
       
       console.error("[RegisterButton] Guest Registration Error:", error);
-      const errorMessage = error?.message || error?.details || "참가 신청에 실패했습니다. 다시 시도해주세요.";
+      const errorMessage = error?.message || error?.details || error?.toString() || "참가 신청에 실패했습니다. 다시 시도해주세요.";
+      
+      // 안드로이드에서 에러를 명확하게 표시
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
-        description: errorMessage
+        description: errorMessage,
+        duration: 5000, // 5초간 표시
       });
       setIsLoading(false);
+      
+      // 에러 발생 시 다이얼로그는 열어두어 사용자가 재시도할 수 있도록 함
     } finally {
       // 타임아웃이 발생하지 않았고, 에러도 발생하지 않았을 때만 로딩 상태 해제
       // (성공 시에는 이미 setIsRegistered(true)로 상태가 변경됨)
