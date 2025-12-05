@@ -57,16 +57,24 @@ export function DeleteEventButton({ eventId, className, variant = "outline", siz
       </Button>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-white z-[100]">
+        <AlertDialogContent className="bg-white max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>이벤트를 삭제하시겠습니까?</AlertDialogTitle>
             <AlertDialogDescription>
               이 작업은 취소할 수 없습니다. 이벤트와 모든 참가 신청 정보가 영구적으로 삭제됩니다.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter 
+            style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', justifyContent: 'flex-end' }}
+            className="!flex !flex-row gap-2 sm:justify-end"
+          >
             <AlertDialogCancel variant="outline">취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} variant="destructive">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={isDeleting} 
+              variant="destructive" 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
               {isDeleting ? "삭제 중..." : "삭제"}
             </AlertDialogAction>
           </AlertDialogFooter>

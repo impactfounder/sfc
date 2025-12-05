@@ -50,11 +50,9 @@ function AlertDialogContent({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   // 모달이 열릴 때와 닫힐 때 body scroll lock 관리
+  // Radix UI는 모달이 열릴 때만 컴포넌트를 마운트하므로, 마운트 시 lock, 언마운트 시 unlock
   React.useEffect(() => {
-    // 모달이 열릴 때 body scroll lock
     lockBodyScroll()
-
-    // 모달이 닫힐 때 body scroll unlock
     return () => {
       unlockBodyScroll()
     }
@@ -99,6 +97,7 @@ function AlertDialogFooter({
         "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
         className
       )}
+      style={props.style || {}}
       {...props}
     />
   )

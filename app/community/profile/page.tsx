@@ -1177,36 +1177,58 @@ export default function ProfilePage() {
                 className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none mb-3"
               />
               
-              <div className="flex items-center gap-3">
-                <input
-                  type="file"
-                  id="badge-proof-file"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      setBadgeProofFile(e.target.files[0])
-                    }
-                  }}
-                />
-                <Label 
-                  htmlFor="badge-proof-file"
-                  className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-600"
-                >
-                  <Paperclip className="h-4 w-4" />
-                  파일 첨부
-                </Label>
-                {badgeProofFile && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    <span className="truncate max-w-[200px]">{badgeProofFile.name}</span>
-                    <button 
-                      onClick={() => setBadgeProofFile(null)}
-                      className="ml-1 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
-                    >
-                      <X className="h-3 w-3 text-slate-400 hover:text-red-500" />
-                    </button>
-                  </div>
-                )}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    id="badge-proof-file"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        // 파일 확장자 검증
+                        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf']
+                        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
+                        if (!allowedExtensions.includes(fileExtension)) {
+                          alert('JPG, JPEG, PNG, PDF 파일만 업로드 가능합니다.')
+                          e.target.value = ''
+                          return
+                        }
+                        // 파일 크기 검증 (10MB)
+                        const maxSize = 10 * 1024 * 1024
+                        if (file.size > maxSize) {
+                          alert('파일 크기는 10MB를 초과할 수 없습니다.')
+                          e.target.value = ''
+                          return
+                        }
+                        setBadgeProofFile(file)
+                      }
+                    }}
+                  />
+                  <Label 
+                    htmlFor="badge-proof-file"
+                    className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-600"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    파일 첨부
+                  </Label>
+                  {badgeProofFile && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      <span className="truncate max-w-[200px]">{badgeProofFile.name}</span>
+                      <button 
+                        onClick={() => setBadgeProofFile(null)}
+                        className="ml-1 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
+                      >
+                        <X className="h-3 w-3 text-slate-400 hover:text-red-500" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">
+                  업로드 가능: JPG, JPEG, PNG, PDF (최대 10MB)
+                </p>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">

@@ -203,3 +203,52 @@ export async function likePostAnonymously(postId: string) {
 
   return { success: true }
 }
+
+/**
+ * 댓글 삭제
+ * 작성자만 자신의 댓글을 삭제할 수 있습니다.
+ */
+export async function deleteComment(commentId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Verify comment ownership
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("author_id, post_id")
+    .eq("id", commentId)
+    .single()
+
+  if (!comment) {
+    throw new Error("Comment not found")
+  }
+
+  // Check if user is author
+  if (comment.author_id !== user.id) {
+    throw new Error("Unauthorized")
+  }
+
+  // Delete comment
+  const { error } = await supabase.from("comments").delete().eq("id", commentId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  // 관련 경로 재검증
+  revalidatePath("/community/posts")
+  revalidatePath("/community/board")
+  if (comment.post_id) {
+    revalidatePath(`/community/posts/${comment.post_id}`)
+    revalidatePath(`/community/board/[slug]/[id]`, "page")
+  }
+
+  return { success: true }
+}

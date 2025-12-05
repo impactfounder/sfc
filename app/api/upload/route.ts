@@ -19,9 +19,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "파일이 제공되지 않았습니다." }, { status: 400 })
     }
 
-    // 파일 타입 검증
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "이미지 파일만 업로드 가능합니다." }, { status: 400 })
+    // 파일 타입 검증 (이미지 또는 PDF)
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg", 
+      "image/png",
+      "application/pdf"
+    ]
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".pdf"]
+    
+    const fileExtension = "." + file.name.split(".").pop()?.toLowerCase()
+    const isValidType = allowedTypes.includes(file.type) || allowedExtensions.includes(fileExtension)
+    
+    if (!isValidType) {
+      return NextResponse.json({ 
+        error: "JPG, JPEG, PNG, PDF 파일만 업로드 가능합니다." 
+      }, { status: 400 })
     }
 
     // 파일 크기 제한 (10MB)
