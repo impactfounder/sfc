@@ -35,16 +35,29 @@ export function UserManagementRow({
   const [showBadgeManager, setShowBadgeManager] = useState(false)
 
   const handleRoleChange = async (newRole: string) => {
+    // 같은 역할로 변경하려는 경우 무시
+    if (newRole === role) {
+      return
+    }
+    
     setIsUpdating(true)
     try {
       const result = await updateUserRole(user.id, newRole)
       console.log("Role update result:", result)
-      setRole(newRole)
-      // 페이지 새로고침하여 변경사항 반영
-      window.location.reload()
+      
+      if (result?.success) {
+        setRole(newRole)
+        // 성공 메시지 표시 (선택사항)
+        // alert(`역할이 "${newRole}"로 변경되었습니다.`)
+        // 페이지 새로고침하여 변경사항 반영
+        window.location.reload()
+      } else {
+        throw new Error("업데이트 결과를 받지 못했습니다.")
+      }
     } catch (error) {
       console.error("Failed to update role:", error)
-      alert(`권한 업데이트 실패: ${error instanceof Error ? error.message : "알 수 없는 오류"}`)
+      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류"
+      alert(`권한 업데이트 실패: ${errorMessage}`)
       // 실패 시 원래 값으로 되돌리기
       setRole(user.role || "member")
     } finally {

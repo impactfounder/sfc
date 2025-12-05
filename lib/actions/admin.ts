@@ -36,16 +36,57 @@ export async function updateUserRole(userId: string, role: string) {
     throw new Error("Cannot change your own master role")
   }
 
-  // Update role
-  const { error } = await supabase.from("profiles").update({ role }).eq("id", userId)
+  // Update role with select to verify update
+  console.log(`[updateUserRole] 시작: userId=${userId}, newRole=${role}, currentUserId=${user.id}`)
+  
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ role })
+    .eq("id", userId)
+    .select("id, role, email") // 업데이트된 데이터를 반환받기 위해 .select() 추가
 
   if (error) {
-    throw new Error(error.message)
+    console.error("[updateUserRole] Supabase 에러:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      userId,
+      role,
+      currentUserId: user.id,
+    })
+    
+    // RLS 정책 문제 (42501: insufficient_privilege)
+    if (error.code === '42501') {
+      throw new Error(`권한 부족: 역할 업데이트 권한이 없습니다. RLS 정책을 확인해주세요. (에러 코드: ${error.code})`)
+    }
+    
+    // 기타 에러
+    throw new Error(`역할 업데이트 실패: ${error.message} (에러 코드: ${error.code})`)
   }
+  
+  // 실제로 업데이트된 행이 있는지 확인
+  if (!data || data.length === 0) {
+    console.error("[updateUserRole] DB 업데이트 실패: 수정된 행이 없습니다.", {
+      userId,
+      role,
+      currentUserId: user.id,
+      returnedData: data,
+      possibleCauses: [
+        "RLS 정책이 UPDATE를 막고 있을 수 있습니다",
+        "userId가 존재하지 않을 수 있습니다",
+        "조건에 맞는 행이 없을 수 있습니다",
+      ],
+    })
+    throw new Error("DB 업데이트 실패: 수정된 행이 없습니다. RLS 정책 또는 userId를 확인해주세요.")
+  }
+  
+  console.log(`[updateUserRole] 성공: userId=${userId}, updatedData=`, data)
+  console.log(`[updateUserRole] 업데이트된 행 수: ${data.length}`)
 
   revalidatePath("/admin/users")
   revalidatePath("/admin/roles")
-  return { success: true }
+  return { success: true, updatedData: data[0] }
 }
 
 export async function updateUserMembershipTier(userId: string, membershipTier: string) {

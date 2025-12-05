@@ -111,7 +111,7 @@ export function PostListItem({
     return (
       <Link href={href} className={cn("block w-full group", className)}>
         {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
-        <div className="flex items-center gap-3 py-2 px-2 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
+        <div className="flex items-center gap-3 py-2 pl-4 pr-4 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
 
           {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) - 자유게시판 제외 */}
           {categoryName && (
@@ -128,35 +128,70 @@ export function PostListItem({
             </h3>
           </div>
 
-          {/* 데스크탑 정보 (우측 정렬) */}
+          {/* 데스크탑 정보 (우측 정렬, 고정 너비) */}
           <div className="hidden sm:flex items-center gap-4 text-xs text-slate-400 flex-shrink-0">
-            <span className="text-slate-500 w-16 text-right truncate">{post.profiles?.full_name || "익명"}</span>
-            <span className="w-16 text-right">{formatRelativeTime(post.created_at)}</span>
+            <span className="text-slate-500 w-24 text-left truncate">{post.profiles?.full_name || "익명"}</span>
+            <span className="w-20 text-right whitespace-nowrap">{formatRelativeTime(post.created_at)}</span>
 
-            <div className="flex items-center gap-2.5 ml-1 w-16 justify-end">
-              {(post.likes_count || 0) > 0 && (
-                <div className="flex items-center gap-0.5 text-red-500">
-                  <Heart className="h-3 w-3 fill-current" />
-                  <span>{post.likes_count}</span>
-                </div>
-              )}
-              {(post.comments_count || 0) > 0 && (
+            {/* 좋아요 아이콘 영역 (고정 너비) */}
+            <div className="flex items-center justify-center w-12 flex-shrink-0">
+              <div className={cn(
+                "flex items-center gap-0.5",
+                isLiked ? "text-red-500" : (post.likes_count || 0) > 0 ? "text-red-500" : "text-slate-300"
+              )}>
+                <Heart className={cn(
+                  "h-3 w-3",
+                  isLiked ? "fill-current" : (post.likes_count || 0) > 0 ? "fill-current" : ""
+                )} />
+                <span>{likeCount || post.likes_count || 0}</span>
+              </div>
+            </div>
+
+            {/* 댓글 아이콘 영역 (고정 너비) */}
+            <div className="flex items-center justify-center w-12 flex-shrink-0">
+              {(post.comments_count || 0) > 0 ? (
                 <div className="flex items-center gap-0.5 text-blue-500">
                   <MessageSquare className="h-3 w-3 fill-current" />
                   <span>{post.comments_count}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-0.5 text-slate-300">
+                  <MessageSquare className="h-3 w-3" />
+                  <span className="text-slate-300">0</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 모바일 정보 (아이콘만 간략히) */}
+          {/* 모바일 정보 (아이콘만 간략히, 고정 위치) */}
           <div className="flex sm:hidden items-center gap-2 text-xs text-slate-400 flex-shrink-0">
-            {(post.comments_count || 0) > 0 && (
-              <div className="flex items-center gap-0.5">
-                <MessageSquare className="h-3 w-3" />
-                <span>{post.comments_count}</span>
+            {/* 좋아요 아이콘 영역 (고정 너비) */}
+            <div className="flex items-center justify-center w-10 flex-shrink-0">
+              <div className={cn(
+                "flex items-center gap-0.5",
+                isLiked ? "text-red-500" : (post.likes_count || 0) > 0 ? "text-red-500" : "text-slate-300"
+              )}>
+                <Heart className={cn(
+                  "h-3 w-3",
+                  isLiked ? "fill-current" : (post.likes_count || 0) > 0 ? "fill-current" : ""
+                )} />
+                {(likeCount || post.likes_count || 0) > 0 && <span>{likeCount || post.likes_count || 0}</span>}
               </div>
-            )}
+            </div>
+
+            {/* 댓글 아이콘 영역 (고정 너비) */}
+            <div className="flex items-center justify-center w-10 flex-shrink-0">
+              {(post.comments_count || 0) > 0 ? (
+                <div className="flex items-center gap-0.5 text-blue-500">
+                  <MessageSquare className="h-3 w-3 fill-current" />
+                  <span>{post.comments_count}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-0.5 text-slate-300">
+                  <MessageSquare className="h-3 w-3" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Link>
