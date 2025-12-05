@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { TossPaymentWidget } from "@/components/payment/toss-payment-widget";
+import { registerGuestForEvent, registerUserForEvent } from "@/lib/actions/event-registrations";
 
 type CustomField = {
   id: string;
@@ -182,137 +183,42 @@ export function RegisterButton({
       }
     }
 
-    const supabase = createClient();
     setIsLoading(true);
-    
-    let timeoutId: NodeJS.Timeout | null = null;
-    let isCompleted = false;
-
-    // 타임아웃 설정 (15초로 단축)
-    timeoutId = setTimeout(() => {
-      if (!isCompleted) {
-        isCompleted = true;
-        setIsLoading(false);
-        toast({ 
-          variant: "destructive", 
-          title: "요청 시간 초과", 
-          description: "네트워크 연결을 확인하고 다시 시도해주세요." 
-        });
-      }
-    }, 15000);
 
     try {
-      console.log("[RegisterButton] Starting registration for user:", userId);
-      
-      // 안드로이드에서 Promise가 resolve되지 않는 문제를 방지하기 위해 Promise.race 사용
-      const upsertPromise = supabase
-        .from("event_registrations")
-        .upsert({
-          event_id: eventId,
-          user_id: userId,
-          guest_name: guestName.trim() || null,
-          guest_contact: guestContact.trim() || null,
-          payment_status: (price ?? 0) > 0 ? 'pending' : null,
-        }, { onConflict: 'event_id, user_id' })
-        .select("id")
-        .single();
+      // 서버 액션 사용 (안드로이드 네트워크 문제 해결)
+      await registerUserForEvent(
+        eventId,
+        userId,
+        guestName.trim() || null,
+        guestContact.trim() || null,
+        (price ?? 0) > 0 ? 'pending' : null,
+        fieldResponses
+      );
 
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("네트워크 요청 시간이 초과되었습니다. 다시 시도해주세요."));
-        }, 10000); // 10초 타임아웃
-      });
-
-      const { data: regData, error } = await Promise.race([upsertPromise, timeoutPromise]) as any;
-
-      if (error) {
-        console.error("[RegisterButton] Registration error:", error);
-        throw error;
-      }
-      
-      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
-      
-      const registrationId = regData?.id;
-      console.log("[RegisterButton] Registration ID:", registrationId);
-
-      if (registrationId && Object.keys(fieldResponses).length > 0) {
-        const responsesToInsert = Object.entries(fieldResponses)
-          .filter(([_, value]) => value && value.trim() !== '')
-          .map(([fieldId, value]) => ({
-            registration_id: registrationId,
-            field_id: fieldId,
-            response_value: value.trim(),
-          }));
-
-        if (responsesToInsert.length > 0) {
-          console.log("[RegisterButton] Saving custom field responses:", responsesToInsert.length);
-          const { error: responseError } = await supabase
-            .from("event_registration_responses")
-            .upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
-          
-          if (responseError) {
-            console.warn("[RegisterButton] Failed to save custom field responses:", responseError);
-            // 커스텀 필드 저장 실패해도 신청은 완료된 것으로 처리
-          }
-        }
-      }
-
-      if (isCompleted) {
-        console.log("[RegisterButton] Already timed out, aborting");
-        return; // 타임아웃이 이미 발생했으면 중단
-      }
-
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      isCompleted = true;
-      
-      console.log("[RegisterButton] Guest registration successful, closing dialog");
       setIsRegistered(true);
       setIsDialogOpen(false);
-      
-      // router.refresh()는 비동기이므로 await하지 않음
       router.refresh();
 
       // [결제하기]를 선택했고 유료인 경우 결제창 오픈
       if (payNow && price && price > 0) {
-        const newOrderId = generateOrderId(); // [수정] 짧은 ID 사용
+        const newOrderId = generateOrderId();
         setPaymentOrderId(newOrderId);
         setShowPayment(true);
       }
 
     } catch (error: any) {
-      if (isCompleted) {
-        console.log("[RegisterButton] Error occurred but already timed out");
-        return; // 타임아웃이 이미 발생했으면 중단
-      }
-      
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      isCompleted = true;
-      
       console.error("[RegisterButton] Registration Error:", error);
-      const errorMessage = error?.message || error?.details || error?.toString() || "신청에 실패했습니다. 다시 시도해주세요.";
+      const errorMessage = error?.message || error?.toString() || "신청에 실패했습니다. 다시 시도해주세요.";
       
-      // 안드로이드에서 에러를 명확하게 표시
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
         description: errorMessage,
-        duration: 5000, // 5초간 표시
+        duration: 5000,
       });
-      setIsLoading(false);
-      
-      // 에러 발생 시 다이얼로그는 열어두어 사용자가 재시도할 수 있도록 함
     } finally {
-      // 타임아웃이 발생하지 않았고, 에러도 발생하지 않았을 때만 로딩 상태 해제
-      // (성공 시에는 이미 setIsRegistered(true)로 상태가 변경됨)
-      if (!isCompleted && timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      setIsLoading(false);
     }
   };
 
@@ -335,154 +241,41 @@ export function RegisterButton({
       }
     }
 
-    const supabase = createClient();
     setIsLoading(true);
-    
-    let timeoutId: NodeJS.Timeout | null = null;
-    let isCompleted = false;
-
-    // 타임아웃 설정 (15초로 단축)
-    timeoutId = setTimeout(() => {
-      if (!isCompleted) {
-        isCompleted = true;
-        setIsLoading(false);
-        toast({ 
-          variant: "destructive", 
-          title: "요청 시간 초과", 
-          description: "네트워크 연결을 확인하고 다시 시도해주세요." 
-        });
-      }
-    }, 15000);
 
     try {
-      console.log("[RegisterButton] Starting guest registration", {
+      // 서버 액션 사용 (안드로이드 네트워크 문제 해결)
+      await registerGuestForEvent(
         eventId,
-        guestName: guestName.trim(),
-        guestContact: guestContact.trim(),
-        price,
-        payNow
-      });
-      
-      // 안드로이드에서 Promise가 resolve되지 않는 문제를 방지하기 위해 Promise.race 사용
-      const insertPromise = supabase
-        .from("event_registrations")
-        .insert({
-          event_id: eventId,
-          user_id: null,
-          guest_name: guestName.trim(),
-          guest_contact: guestContact.trim(),
-          payment_status: (price ?? 0) > 0 ? 'pending' : null,
-        })
-        .select("id")
-        .single();
+        guestName.trim(),
+        guestContact.trim(),
+        (price ?? 0) > 0 ? 'pending' : null,
+        fieldResponses
+      );
 
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("네트워크 요청 시간이 초과되었습니다. 다시 시도해주세요."));
-        }, 10000); // 10초 타임아웃
-      });
-
-      const insertResult = await Promise.race([insertPromise, timeoutPromise]) as any;
-
-      console.log("[RegisterButton] Insert result:", insertResult);
-
-      if (insertResult.error) {
-        console.error("[RegisterButton] Guest registration error:", insertResult.error);
-        throw insertResult.error;
-      }
-      
-      if (isCompleted) {
-        console.log("[RegisterButton] Already timed out, aborting");
-        return; // 타임아웃이 이미 발생했으면 중단
-      }
-      
-      if (!insertResult.data) {
-        console.error("[RegisterButton] No data returned from insert");
-        throw new Error("등록 데이터를 받지 못했습니다.");
-      }
-      
-      const registrationId = insertResult.data.id;
-      console.log("[RegisterButton] Guest registration ID:", registrationId);
-
-      if (registrationId && Object.keys(fieldResponses).length > 0) {
-        const responsesToInsert = Object.entries(fieldResponses)
-          .filter(([_, value]) => value && value.trim() !== '')
-          .map(([fieldId, value]) => ({
-            registration_id: registrationId,
-            field_id: fieldId,
-            response_value: value.trim(),
-          }));
-
-        if (responsesToInsert.length > 0) {
-          console.log("[RegisterButton] Saving custom field responses:", responsesToInsert.length);
-          const { error: responseError } = await supabase
-            .from("event_registration_responses")
-            .upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
-          
-          if (responseError) {
-            console.warn("[RegisterButton] Failed to save custom field responses:", responseError);
-            // 커스텀 필드 저장 실패해도 신청은 완료된 것으로 처리
-          }
-        }
-      }
-
-      if (isCompleted) {
-        console.log("[RegisterButton] Already timed out, aborting");
-        return; // 타임아웃이 이미 발생했으면 중단
-      }
-
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      isCompleted = true;
-      
-      console.log("[RegisterButton] Guest registration successful, closing dialog");
-      setIsLoading(false); // 로딩 상태 먼저 해제
       setIsRegistered(true);
       setIsDialogOpen(false);
-      
-      // router.refresh()는 비동기이므로 await하지 않음
       router.refresh();
 
       // [결제하기]를 선택했고 유료인 경우 결제창 오픈
       if (payNow && price && price > 0) {
-        const newOrderId = generateOrderId(); // [수정] 짧은 ID 사용
+        const newOrderId = generateOrderId();
         setPaymentOrderId(newOrderId);
         setShowPayment(true);
       }
 
     } catch (error: any) {
-      if (isCompleted) {
-        console.log("[RegisterButton] Error occurred but already timed out");
-        return; // 타임아웃이 이미 발생했으면 중단
-      }
-      
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      isCompleted = true;
-      
       console.error("[RegisterButton] Guest Registration Error:", error);
-      const errorMessage = error?.message || error?.details || error?.toString() || "참가 신청에 실패했습니다. 다시 시도해주세요.";
+      const errorMessage = error?.message || error?.toString() || "참가 신청에 실패했습니다. 다시 시도해주세요.";
       
-      // 안드로이드에서 에러를 명확하게 표시
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
         description: errorMessage,
-        duration: 5000, // 5초간 표시
+        duration: 5000,
       });
-      setIsLoading(false);
-      
-      // 에러 발생 시 다이얼로그는 열어두어 사용자가 재시도할 수 있도록 함
     } finally {
-      // 타임아웃이 발생하지 않았고, 에러도 발생하지 않았을 때만 로딩 상태 해제
-      // (성공 시에는 이미 setIsRegistered(true)로 상태가 변경됨)
-      if (!isCompleted && timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      setIsLoading(false);
     }
   };
 
