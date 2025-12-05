@@ -115,10 +115,19 @@ export function RegisterButton({
 
   // 버튼 클릭 핸들러 (항상 모달 열기)
   const handleOpenDialog = async () => {
+    // 먼저 모달을 열고 기본값 설정
     setIsDialogOpen(true);
+    setCustomFields([]);
+    setFieldResponses({});
+    
     // 사용자 정보 로드 (비동기로 실행, 블로킹하지 않음)
     if (userId) {
       const supabase = createClient();
+      // 타임아웃 설정 (5초)
+      const timeoutId = setTimeout(() => {
+        console.warn("[RegisterButton] User profile loading timeout");
+      }, 5000);
+      
       try {
         const { data: profile } = await supabase
           .from("profiles")
@@ -126,27 +135,30 @@ export function RegisterButton({
           .eq("id", userId)
           .single();
         
+        clearTimeout(timeoutId);
+        
         if (profile) {
           setUserProfile(profile);
           setGuestName(profile.full_name || "");
           setGuestContact(profile.email || "");
         }
       } catch (error) {
+        clearTimeout(timeoutId);
         console.error("[RegisterButton] Failed to load user profile:", error);
+        // 에러 발생해도 계속 진행
       }
     }
     
-    // 커스텀 필드 로드
-    try {
-      const fields = await loadCustomFields();
+    // 커스텀 필드 로드 (비동기로 실행)
+    loadCustomFields().then((fields) => {
       setCustomFields(fields);
       setFieldResponses({});
-    } catch (error) {
+    }).catch((error) => {
       console.error("[RegisterButton] Failed to load custom fields in handleOpenDialog:", error);
       // 에러 발생 시에도 빈 배열로 설정하여 폼이 계속 작동하도록 함
       setCustomFields([]);
       setFieldResponses({});
-    }
+    });
   };
 
   // 로그인 사용자 신청
@@ -172,6 +184,16 @@ export function RegisterButton({
 
     const supabase = createClient();
     setIsLoading(true);
+
+    // 타임아웃 설정 (30초)
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+      toast({ 
+        variant: "destructive", 
+        title: "요청 시간 초과", 
+        description: "네트워크 연결을 확인하고 다시 시도해주세요." 
+      });
+    }, 30000);
 
     try {
       const { data: regData, error } = await supabase
@@ -199,10 +221,18 @@ export function RegisterButton({
           }));
 
         if (responsesToInsert.length > 0) {
-          await supabase.from("event_registration_responses").upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
+          const { error: responseError } = await supabase
+            .from("event_registration_responses")
+            .upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
+          
+          if (responseError) {
+            console.warn("Failed to save custom field responses:", responseError);
+            // 커스텀 필드 저장 실패해도 신청은 완료된 것으로 처리
+          }
         }
       }
 
+      clearTimeout(timeoutId);
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
@@ -215,9 +245,15 @@ export function RegisterButton({
       }
 
     } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("Registration Error:", error);
-      toast({ variant: "destructive", title: "신청 실패", description: error.message || "신청에 실패했습니다. 다시 시도해주세요." });
+      toast({ 
+        variant: "destructive", 
+        title: "신청 실패", 
+        description: error.message || "신청에 실패했습니다. 다시 시도해주세요." 
+      });
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -243,6 +279,16 @@ export function RegisterButton({
 
     const supabase = createClient();
     setIsLoading(true);
+
+    // 타임아웃 설정 (30초)
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+      toast({ 
+        variant: "destructive", 
+        title: "요청 시간 초과", 
+        description: "네트워크 연결을 확인하고 다시 시도해주세요." 
+      });
+    }, 30000);
 
     try {
       const { data: regData, error } = await supabase
@@ -270,10 +316,18 @@ export function RegisterButton({
           }));
 
         if (responsesToInsert.length > 0) {
-          await supabase.from("event_registration_responses").upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
+          const { error: responseError } = await supabase
+            .from("event_registration_responses")
+            .upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
+          
+          if (responseError) {
+            console.warn("Failed to save custom field responses:", responseError);
+            // 커스텀 필드 저장 실패해도 신청은 완료된 것으로 처리
+          }
         }
       }
 
+      clearTimeout(timeoutId);
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
@@ -286,9 +340,15 @@ export function RegisterButton({
       }
 
     } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("Guest Registration Error:", error);
-      toast({ variant: "destructive", title: "신청 실패", description: error.message || "참가 신청에 실패했습니다. 다시 시도해주세요." });
+      toast({ 
+        variant: "destructive", 
+        title: "신청 실패", 
+        description: error.message || "참가 신청에 실패했습니다. 다시 시도해주세요." 
+      });
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
