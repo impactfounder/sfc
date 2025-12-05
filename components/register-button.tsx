@@ -248,14 +248,22 @@ export function RegisterButton({
         }
       }
 
-      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      if (isCompleted) {
+        console.log("[RegisterButton] Already timed out, aborting");
+        return; // 타임아웃이 이미 발생했으면 중단
+      }
 
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       isCompleted = true;
       
-      console.log("[RegisterButton] Registration successful");
+      console.log("[RegisterButton] Guest registration successful, closing dialog");
       setIsRegistered(true);
       setIsDialogOpen(false);
+      
+      // router.refresh()는 비동기이므로 await하지 않음
       router.refresh();
 
       // [결제하기]를 선택했고 유료인 경우 결제창 오픈
@@ -266,23 +274,30 @@ export function RegisterButton({
       }
 
     } catch (error: any) {
-      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      if (isCompleted) {
+        console.log("[RegisterButton] Error occurred but already timed out");
+        return; // 타임아웃이 이미 발생했으면 중단
+      }
       
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       isCompleted = true;
       
       console.error("[RegisterButton] Registration Error:", error);
+      const errorMessage = error?.message || error?.details || "신청에 실패했습니다. 다시 시도해주세요.";
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
-        description: error.message || "신청에 실패했습니다. 다시 시도해주세요." 
+        description: errorMessage
       });
+      setIsLoading(false);
     } finally {
-      if (timeoutId && !isCompleted) {
+      // 타임아웃이 발생하지 않았고, 에러도 발생하지 않았을 때만 로딩 상태 해제
+      // (성공 시에는 이미 setIsRegistered(true)로 상태가 변경됨)
+      if (!isCompleted && timeoutId) {
         clearTimeout(timeoutId);
-      }
-      if (!isCompleted) {
-        setIsLoading(false);
       }
     }
   };
@@ -326,9 +341,15 @@ export function RegisterButton({
     }, 15000);
 
     try {
-      console.log("[RegisterButton] Starting guest registration");
+      console.log("[RegisterButton] Starting guest registration", {
+        eventId,
+        guestName: guestName.trim(),
+        guestContact: guestContact.trim(),
+        price,
+        payNow
+      });
       
-      const { data: regData, error } = await supabase
+      const insertResult = await supabase
         .from("event_registrations")
         .insert({
           event_id: eventId,
@@ -340,14 +361,24 @@ export function RegisterButton({
         .select("id")
         .single();
 
-      if (error) {
-        console.error("[RegisterButton] Guest registration error:", error);
-        throw error;
+      console.log("[RegisterButton] Insert result:", insertResult);
+
+      if (insertResult.error) {
+        console.error("[RegisterButton] Guest registration error:", insertResult.error);
+        throw insertResult.error;
       }
       
-      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      if (isCompleted) {
+        console.log("[RegisterButton] Already timed out, aborting");
+        return; // 타임아웃이 이미 발생했으면 중단
+      }
       
-      const registrationId = regData?.id;
+      if (!insertResult.data) {
+        console.error("[RegisterButton] No data returned from insert");
+        throw new Error("등록 데이터를 받지 못했습니다.");
+      }
+      
+      const registrationId = insertResult.data.id;
       console.log("[RegisterButton] Guest registration ID:", registrationId);
 
       if (registrationId && Object.keys(fieldResponses).length > 0) {
@@ -372,14 +403,23 @@ export function RegisterButton({
         }
       }
 
-      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      if (isCompleted) {
+        console.log("[RegisterButton] Already timed out, aborting");
+        return; // 타임아웃이 이미 발생했으면 중단
+      }
 
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       isCompleted = true;
       
-      console.log("[RegisterButton] Guest registration successful");
+      console.log("[RegisterButton] Guest registration successful, closing dialog");
+      setIsLoading(false); // 로딩 상태 먼저 해제
       setIsRegistered(true);
       setIsDialogOpen(false);
+      
+      // router.refresh()는 비동기이므로 await하지 않음
       router.refresh();
 
       // [결제하기]를 선택했고 유료인 경우 결제창 오픈
@@ -390,23 +430,30 @@ export function RegisterButton({
       }
 
     } catch (error: any) {
-      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      if (isCompleted) {
+        console.log("[RegisterButton] Error occurred but already timed out");
+        return; // 타임아웃이 이미 발생했으면 중단
+      }
       
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       isCompleted = true;
       
       console.error("[RegisterButton] Guest Registration Error:", error);
+      const errorMessage = error?.message || error?.details || "참가 신청에 실패했습니다. 다시 시도해주세요.";
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
-        description: error.message || "참가 신청에 실패했습니다. 다시 시도해주세요." 
+        description: errorMessage
       });
+      setIsLoading(false);
     } finally {
-      if (timeoutId && !isCompleted) {
+      // 타임아웃이 발생하지 않았고, 에러도 발생하지 않았을 때만 로딩 상태 해제
+      // (성공 시에는 이미 setIsRegistered(true)로 상태가 변경됨)
+      if (!isCompleted && timeoutId) {
         clearTimeout(timeoutId);
-      }
-      if (!isCompleted) {
-        setIsLoading(false);
       }
     }
   };
