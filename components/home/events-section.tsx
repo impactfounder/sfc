@@ -106,7 +106,7 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
             </div>
           </div>
           {/* 데스크탑 스켈레톤 */}
-        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
+        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-5 lg:gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="w-full aspect-[4/5] rounded-[20px] overflow-hidden">
               <Skeleton className="w-full h-full" />
@@ -249,7 +249,7 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
           </div>
 
           {/* 데스크탑 Grid */}
-          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
+          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-5 lg:gap-6">
             {filteredEvents.map((event) => (
               <div key={event.id} className="w-full">
                 <EventCard

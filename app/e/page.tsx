@@ -92,7 +92,7 @@ export default async function EventsPage() {
         {pastEvents && pastEvents.length > 0 && (
           <div className="mt-8">
             <h2 className="text-xl font-bold text-slate-900 mb-4">지난 이벤트</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
               {pastEvents.map(async (event) => {
                 const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
                 return (

@@ -79,6 +79,13 @@ export function RegisterButton({
   const loadCustomFields = async () => {
     const supabase = createClient();
     setIsLoadingFields(true);
+    
+    // 타임아웃 설정 (10초)
+    const timeoutId = setTimeout(() => {
+      console.warn("[RegisterButton] Custom fields loading timeout");
+      setIsLoadingFields(false);
+    }, 10000);
+    
     try {
       const { data, error } = await supabase
         .from("event_registration_fields")
@@ -86,13 +93,22 @@ export function RegisterButton({
         .eq("event_id", eventId)
         .order("order_index", { ascending: true });
 
+      clearTimeout(timeoutId);
+
       if (error) {
         console.error("[RegisterButton] Failed to load custom fields - Error:", error);
         return [];
       }
 
       return (data as any) || [];
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error("[RegisterButton] Error loading custom fields:", error);
+      // 에러 발생 시에도 빈 배열 반환하여 폼이 계속 작동하도록 함
+      return [];
     } finally {
+      // 항상 로딩 상태 해제
+      clearTimeout(timeoutId);
       setIsLoadingFields(false);
     }
   };
@@ -100,9 +116,37 @@ export function RegisterButton({
   // 버튼 클릭 핸들러 (항상 모달 열기)
   const handleOpenDialog = async () => {
     setIsDialogOpen(true);
-    const fields = await loadCustomFields();
-    setCustomFields(fields);
-    setFieldResponses({});
+    // 사용자 정보 로드 (비동기로 실행, 블로킹하지 않음)
+    if (userId) {
+      const supabase = createClient();
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", userId)
+          .single();
+        
+        if (profile) {
+          setUserProfile(profile);
+          setGuestName(profile.full_name || "");
+          setGuestContact(profile.email || "");
+        }
+      } catch (error) {
+        console.error("[RegisterButton] Failed to load user profile:", error);
+      }
+    }
+    
+    // 커스텀 필드 로드
+    try {
+      const fields = await loadCustomFields();
+      setCustomFields(fields);
+      setFieldResponses({});
+    } catch (error) {
+      console.error("[RegisterButton] Failed to load custom fields in handleOpenDialog:", error);
+      // 에러 발생 시에도 빈 배열로 설정하여 폼이 계속 작동하도록 함
+      setCustomFields([]);
+      setFieldResponses({});
+    }
   };
 
   // 로그인 사용자 신청
@@ -336,8 +380,9 @@ export function RegisterButton({
           </DialogHeader>
           
           {isLoadingFields ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400 mb-2" />
+              <p className="text-sm text-slate-500">정보를 불러오는 중...</p>
             </div>
           ) : (
             <div className="space-y-6 mt-4">
