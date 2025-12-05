@@ -56,6 +56,11 @@ export default async function HomePage() {
     // 이벤트
     (async () => {
       try {
+        // 오늘 날짜의 시작 시간을 계산 (시간대 문제 방지)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStart = today.toISOString();
+        
         const { data } = await supabase
           .from("events")
           .select(`
@@ -68,7 +73,7 @@ export default async function HomePage() {
             ),
             event_registrations(count)
           `)
-          .gte("event_date", new Date().toISOString())
+          .gte("event_date", todayStart)
           .order("event_date", { ascending: true })
           .limit(6)
         

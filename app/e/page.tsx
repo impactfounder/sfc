@@ -10,6 +10,11 @@ import { getEventShortUrl } from "@/lib/utils/event-url"
 export default async function EventsPage() {
   const supabase = await createClient()
 
+  // 오늘 날짜의 시작 시간을 계산 (시간대 문제 방지)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStart = today.toISOString();
+  
   const [userResult, upcomingEventsResult, pastEventsResult] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -24,7 +29,7 @@ export default async function EventsPage() {
         ),
         event_registrations(count)
       `)
-      .gte("event_date", new Date().toISOString())
+      .gte("event_date", todayStart)
       .order("event_date", { ascending: true }),
     supabase
       .from("events")
@@ -38,7 +43,7 @@ export default async function EventsPage() {
         ),
         event_registrations(count)
       `)
-      .lt("event_date", new Date().toISOString())
+      .lt("event_date", todayStart)
       .order("event_date", { ascending: false })
       .limit(5),
   ])

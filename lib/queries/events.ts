@@ -19,6 +19,11 @@ export async function getUpcomingEvents(
   supabase: SupabaseClient,
   limit: number = 9
 ): Promise<EventForDisplay[]> {
+  // 오늘 날짜의 시작 시간을 계산 (시간대 문제 방지)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStart = today.toISOString();
+  
   const { data, error } = await supabase
     .from("events")
     .select(`
@@ -32,7 +37,7 @@ export async function getUpcomingEvents(
       event_type,
       event_registrations (count)
     `)
-    .gte("event_date", new Date().toISOString())
+    .gte("event_date", todayStart)
     .order("event_date", { ascending: true })
     .limit(limit)
 
