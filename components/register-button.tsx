@@ -184,18 +184,26 @@ export function RegisterButton({
 
     const supabase = createClient();
     setIsLoading(true);
+    
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isCompleted = false;
 
-    // 타임아웃 설정 (30초)
-    const timeoutId = setTimeout(() => {
-      setIsLoading(false);
-      toast({ 
-        variant: "destructive", 
-        title: "요청 시간 초과", 
-        description: "네트워크 연결을 확인하고 다시 시도해주세요." 
-      });
-    }, 30000);
+    // 타임아웃 설정 (15초로 단축)
+    timeoutId = setTimeout(() => {
+      if (!isCompleted) {
+        isCompleted = true;
+        setIsLoading(false);
+        toast({ 
+          variant: "destructive", 
+          title: "요청 시간 초과", 
+          description: "네트워크 연결을 확인하고 다시 시도해주세요." 
+        });
+      }
+    }, 15000);
 
     try {
+      console.log("[RegisterButton] Starting registration for user:", userId);
+      
       const { data: regData, error } = await supabase
         .from("event_registrations")
         .upsert({
@@ -208,8 +216,15 @@ export function RegisterButton({
         .select("id")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[RegisterButton] Registration error:", error);
+        throw error;
+      }
+      
+      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      
       const registrationId = regData?.id;
+      console.log("[RegisterButton] Registration ID:", registrationId);
 
       if (registrationId && Object.keys(fieldResponses).length > 0) {
         const responsesToInsert = Object.entries(fieldResponses)
@@ -221,18 +236,24 @@ export function RegisterButton({
           }));
 
         if (responsesToInsert.length > 0) {
+          console.log("[RegisterButton] Saving custom field responses:", responsesToInsert.length);
           const { error: responseError } = await supabase
             .from("event_registration_responses")
             .upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
           
           if (responseError) {
-            console.warn("Failed to save custom field responses:", responseError);
+            console.warn("[RegisterButton] Failed to save custom field responses:", responseError);
             // 커스텀 필드 저장 실패해도 신청은 완료된 것으로 처리
           }
         }
       }
 
-      clearTimeout(timeoutId);
+      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+
+      if (timeoutId) clearTimeout(timeoutId);
+      isCompleted = true;
+      
+      console.log("[RegisterButton] Registration successful");
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
@@ -245,16 +266,24 @@ export function RegisterButton({
       }
 
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      console.error("Registration Error:", error);
+      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      
+      if (timeoutId) clearTimeout(timeoutId);
+      isCompleted = true;
+      
+      console.error("[RegisterButton] Registration Error:", error);
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
         description: error.message || "신청에 실패했습니다. 다시 시도해주세요." 
       });
     } finally {
-      clearTimeout(timeoutId);
-      setIsLoading(false);
+      if (timeoutId && !isCompleted) {
+        clearTimeout(timeoutId);
+      }
+      if (!isCompleted) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -279,18 +308,26 @@ export function RegisterButton({
 
     const supabase = createClient();
     setIsLoading(true);
+    
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isCompleted = false;
 
-    // 타임아웃 설정 (30초)
-    const timeoutId = setTimeout(() => {
-      setIsLoading(false);
-      toast({ 
-        variant: "destructive", 
-        title: "요청 시간 초과", 
-        description: "네트워크 연결을 확인하고 다시 시도해주세요." 
-      });
-    }, 30000);
+    // 타임아웃 설정 (15초로 단축)
+    timeoutId = setTimeout(() => {
+      if (!isCompleted) {
+        isCompleted = true;
+        setIsLoading(false);
+        toast({ 
+          variant: "destructive", 
+          title: "요청 시간 초과", 
+          description: "네트워크 연결을 확인하고 다시 시도해주세요." 
+        });
+      }
+    }, 15000);
 
     try {
+      console.log("[RegisterButton] Starting guest registration");
+      
       const { data: regData, error } = await supabase
         .from("event_registrations")
         .insert({
@@ -303,8 +340,15 @@ export function RegisterButton({
         .select("id")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[RegisterButton] Guest registration error:", error);
+        throw error;
+      }
+      
+      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      
       const registrationId = regData?.id;
+      console.log("[RegisterButton] Guest registration ID:", registrationId);
 
       if (registrationId && Object.keys(fieldResponses).length > 0) {
         const responsesToInsert = Object.entries(fieldResponses)
@@ -316,18 +360,24 @@ export function RegisterButton({
           }));
 
         if (responsesToInsert.length > 0) {
+          console.log("[RegisterButton] Saving custom field responses:", responsesToInsert.length);
           const { error: responseError } = await supabase
             .from("event_registration_responses")
             .upsert(responsesToInsert, { onConflict: 'registration_id, field_id' });
           
           if (responseError) {
-            console.warn("Failed to save custom field responses:", responseError);
+            console.warn("[RegisterButton] Failed to save custom field responses:", responseError);
             // 커스텀 필드 저장 실패해도 신청은 완료된 것으로 처리
           }
         }
       }
 
-      clearTimeout(timeoutId);
+      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+
+      if (timeoutId) clearTimeout(timeoutId);
+      isCompleted = true;
+      
+      console.log("[RegisterButton] Guest registration successful");
       setIsRegistered(true);
       setIsDialogOpen(false);
       router.refresh();
@@ -340,16 +390,24 @@ export function RegisterButton({
       }
 
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      console.error("Guest Registration Error:", error);
+      if (isCompleted) return; // 타임아웃이 이미 발생했으면 중단
+      
+      if (timeoutId) clearTimeout(timeoutId);
+      isCompleted = true;
+      
+      console.error("[RegisterButton] Guest Registration Error:", error);
       toast({ 
         variant: "destructive", 
         title: "신청 실패", 
         description: error.message || "참가 신청에 실패했습니다. 다시 시도해주세요." 
       });
     } finally {
-      clearTimeout(timeoutId);
-      setIsLoading(false);
+      if (timeoutId && !isCompleted) {
+        clearTimeout(timeoutId);
+      }
+      if (!isCompleted) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -433,7 +491,7 @@ export function RegisterButton({
 
       {/* 1. 신청 정보 입력 모달 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] md:max-h-[85vh] overflow-y-auto overscroll-contain">
           <DialogHeader>
             <DialogTitle>참가 신청서</DialogTitle>
             <DialogDescription>이벤트 참가 신청을 위해 아래 정보를 입력해주세요.</DialogDescription>
@@ -445,7 +503,7 @@ export function RegisterButton({
               <p className="text-sm text-slate-500">정보를 불러오는 중...</p>
             </div>
           ) : (
-            <div className="space-y-6 mt-4">
+            <div className="space-y-6 mt-4 pb-4">
               {/* 비로그인 사용자 로그인 유도 */}
               {!userId && (
                 <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4">
@@ -471,6 +529,12 @@ export function RegisterButton({
                     id="guestName"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
+                    onFocus={(e) => {
+                      // 모바일에서 입력 필드에 포커스가 갈 때 스크롤
+                      setTimeout(() => {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 300);
+                    }}
                     placeholder="성함을 입력해주세요"
                     className="mt-1.5 h-11 bg-slate-50"
                   />
@@ -481,6 +545,12 @@ export function RegisterButton({
                     id="guestContact"
                     value={guestContact}
                     onChange={(e) => setGuestContact(e.target.value)}
+                    onFocus={(e) => {
+                      // 모바일에서 입력 필드에 포커스가 갈 때 스크롤
+                      setTimeout(() => {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 300);
+                    }}
                     placeholder="010-0000-0000"
                     className="mt-1.5 h-11 bg-slate-50"
                   />
@@ -507,6 +577,12 @@ export function RegisterButton({
                               ...fieldResponses,
                               [field.id]: e.target.value,
                             });
+                          }}
+                          onFocus={(e) => {
+                            // 모바일에서 입력 필드에 포커스가 갈 때 스크롤
+                            setTimeout(() => {
+                              e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 300);
                           }}
                           className="bg-slate-50 focus:bg-white"
                           required={field.is_required}
@@ -562,7 +638,7 @@ export function RegisterButton({
               )}
 
               {/* 하단 액션 버튼 (분기 처리) */}
-              <div className="flex flex-col gap-3 pt-6 border-t mt-6">
+              <div className="flex flex-col gap-3 pt-6 border-t mt-6 pb-2">
                 {(price ?? 0) > 0 ? (
                   <>
                     <Button
