@@ -382,16 +382,33 @@ export default function AboutContent({ badges, badgeCategories = [], isLoggedIn 
                       const categoryInfo = badgeCategories.find(cat => cat.category_value === category)
                       const categoryLabel = categoryInfo?.category_label || config.label
 
-                      // 투자 규모 카테고리의 경우 숫자 순으로 정렬
-                      const sortedBadges = category === 'investment' 
+                      // 숫자가 포함된 뱃지는 숫자 순으로 정렬 (낮은 숫자부터)
+                      const shouldSortByNumber = ['corporate_revenue', 'investment', 'valuation', 'influence'].includes(category)
+
+                      const sortedBadges = shouldSortByNumber
                         ? [...categoryBadges].sort((a, b) => {
-                            // 뱃지 이름에서 숫자 추출 (예: "투자 1억+" -> 1)
-                            const extractNumber = (name: string): number => {
-                              const match = name.match(/(\d+)/)
-                              return match ? parseInt(match[1], 10) : 0
-                            }
-                            return extractNumber(a.name) - extractNumber(b.name)
-                          })
+                          // 유니콘은 항상 마지막에 배치
+                          if (a.name.includes('유니콘')) return 1
+                          if (b.name.includes('유니콘')) return -1
+
+                          // 뱃지 이름에서 숫자 추출하여 정렬
+                          const extractNumber = (name: string): number => {
+                            // 숫자와 단위 추출 (예: "10억", "100만")
+                            const match = name.match(/(\d+(?:\.\d+)?)\s*(억|만|조)?/)
+                            if (!match) return 0
+
+                            const num = parseFloat(match[1])
+                            const unit = match[2]
+
+                            // 단위를 고려한 실제 값 계산
+                            if (unit === '조') return num * 1000000000000
+                            if (unit === '억') return num * 100000000
+                            if (unit === '만') return num * 10000
+                            return num
+                          }
+
+                          return extractNumber(a.name) - extractNumber(b.name)
+                        })
                         : categoryBadges
 
                       return (

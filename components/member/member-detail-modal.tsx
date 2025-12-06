@@ -41,21 +41,21 @@ export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: 
       <DialogContent className="sm:max-w-md bg-white rounded-xl overflow-hidden p-0 gap-0">
         <div className="bg-slate-50 px-6 py-8 flex flex-col items-center text-center border-b border-slate-100">
           <Avatar className="h-24 w-24 mb-4 ring-4 ring-white shadow-sm bg-white">
-            <AvatarImage 
-              src={member.avatar_url || `https://api.dicebear.com/9.x/notionists/svg?seed=${member.full_name}`} 
+            <AvatarImage
+              src={member.avatar_url || `https://api.dicebear.com/9.x/notionists/svg?seed=${member.full_name}`}
               className="object-cover"
             />
             <AvatarFallback className="bg-blue-600 text-white text-2xl">
               {member.full_name?.[0] || "U"}
             </AvatarFallback>
           </Avatar>
-          
+
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-slate-900 text-center">
               {member.full_name}
             </DialogTitle>
           </DialogHeader>
-          
+
           {(member.company || member.position || member.company_2 || member.position_2) && (
             <div className="flex flex-col gap-1 mt-2 items-center w-full">
               {(member.company || member.position) && (
@@ -122,7 +122,7 @@ export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: 
                     key={idx}
                     className="flex items-start gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200"
                   >
-                    <div className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs shrink-0 border border-slate-200">
+                    <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xl shrink-0 border border-slate-200">
                       <span>{badge.icon}</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -140,10 +140,6 @@ export function MemberDetailModal({ member, isOpen, onClose, currentUserRole }: 
               </div>
             </div>
           )}
-        </div>
-        
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
-          <Button onClick={onClose} variant="outline">닫기</Button>
         </div>
       </DialogContent>
     </Dialog>

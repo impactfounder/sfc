@@ -109,21 +109,21 @@ function BadgeRow({
   // 각 뱃지 행의 로컬 state (낙관적 업데이트용)
   const initialActive = badge.is_active !== false // null이나 undefined도 true로 처리
   const [isActive, setIsActive] = useState(initialActive)
-  
+
   // props의 badge가 변경되면 로컬 state 동기화
   useEffect(() => {
     const newActive = badge.is_active !== false
     setIsActive(newActive)
   }, [badge.is_active])
-  
+
   const handleToggle = async (checked: boolean) => {
     const previousState = isActive
-    
+
     console.log(`[BadgeRow] 토글 시도: badgeId=${badge.id}, previousState=${previousState}, newState=${checked}`)
-    
+
     // 낙관적 업데이트: UI를 먼저 업데이트
     setIsActive(checked)
-    
+
     try {
       // 서버 API 호출
       console.log(`[BadgeRow] API 호출 시작: badgeId=${badge.id}, previousState=${previousState}, newState=${checked}`)
@@ -150,11 +150,11 @@ function BadgeRow({
       throw error // 상위 컴포넌트에서 에러 처리하도록
     }
   }
-  
+
   const isThisBadgeProcessing = isProcessing && processingAction === 'update'
-  
+
   return (
-    <TableRow 
+    <TableRow
       className={cn(
         "transition-all duration-200",
         !isActive && "opacity-50 grayscale"
@@ -187,8 +187,8 @@ function BadgeRow({
               disabled={isThisBadgeProcessing}
               className={cn(
                 "w-11 h-6 transition-all duration-200",
-                isActive 
-                  ? "data-[state=checked]:bg-green-600" 
+                isActive
+                  ? "data-[state=checked]:bg-green-600"
                   : "data-[state=unchecked]:bg-gray-300"
               )}
             />
@@ -297,7 +297,7 @@ function CategorySection({
             {badges.length}개
           </Badge>
         </div>
-        
+
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             variant="ghost"
@@ -369,10 +369,10 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deletingBadgeId, setDeletingBadgeId] = useState<string | null>(null)
   const [editingBadge, setEditingBadge] = useState<BadgeType | null>(null)
-  const [viewingEvidence, setViewingEvidence] = useState<{text: string, url?: string | null}>({text: "", url: null})
+  const [viewingEvidence, setViewingEvidence] = useState<{ text: string, url?: string | null }>({ text: "", url: null })
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingAction, setProcessingAction] = useState<'create' | 'update' | 'delete' | 'approve' | 'reject' | null>(null)
-  
+
   // 카테고리 관련 state
   const [showCategoryCreateDialog, setShowCategoryCreateDialog] = useState(false)
   const [showCategoryEditDialog, setShowCategoryEditDialog] = useState(false)
@@ -426,28 +426,28 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
   // 카테고리별로 뱃지 그룹화
   const badgesByCategory = useMemo(() => {
     const grouped: Record<string, BadgeType[]> = {}
-    
+
     // 먼저 모든 카테고리에 대해 빈 배열 초기화
     localBadgeCategories.forEach((cat) => {
       grouped[cat.category_value] = []
     })
-    
+
     // 뱃지를 카테고리별로 분류
     localBadges.forEach((badge) => {
       // 카테고리가 없을 경우 '미분류' 등으로 처리하거나 skip
       if (!grouped[badge.category] && !localBadgeCategories.find(c => c.category_value === badge.category)) {
-         // 만약 카테고리 목록에 없는 카테고리를 가진 뱃지가 있다면, 임시로 추가하지 않음
-         // 혹은 '기타' 카테고리를 만들어서 넣을 수도 있음
-         // 여기서는 일단 skip
-         return
+        // 만약 카테고리 목록에 없는 카테고리를 가진 뱃지가 있다면, 임시로 추가하지 않음
+        // 혹은 '기타' 카테고리를 만들어서 넣을 수도 있음
+        // 여기서는 일단 skip
+        return
       }
-      
+
       if (!grouped[badge.category]) {
         grouped[badge.category] = []
       }
       grouped[badge.category].push(badge)
     })
-    
+
     return grouped
   }, [localBadges, localBadgeCategories])
 
@@ -519,12 +519,35 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
         formData.category,
         formData.description || null
       )
+
+      // 낙관적 업데이트: 로컬 state에 즉시 추가하여 화면에 바로 표시
+      const newBadge: BadgeType = {
+        id: crypto.randomUUID(), // 임시 ID (서버에서 실제 ID가 오면 교체됨)
+        name: formData.name,
+        icon: formData.icon,
+        category: formData.category,
+        description: formData.description || null,
+        is_active: true, // 새로 생성된 뱃지는 기본적으로 활성화
+      }
+
+      setLocalBadges((prev) => [...prev, newBadge])
+
+      // 성공 토스트 메시지
+      toast({
+        title: "뱃지 생성 완료",
+        description: `${formData.name} 뱃지가 생성되었습니다.`,
+      })
+
       setShowCreateDialog(false)
       setFormData({ name: "", icon: "", category: "", description: "" })
       router.refresh()
     } catch (error) {
       console.error("Failed to create badge:", error)
-      alert("뱃지 생성에 실패했습니다.")
+      toast({
+        variant: "destructive",
+        title: "뱃지 생성 실패",
+        description: error instanceof Error ? error.message : "뱃지 생성에 실패했습니다.",
+      })
     } finally {
       setIsProcessing(false)
       setProcessingAction(null)
@@ -583,16 +606,16 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     setProcessingAction('delete')
     try {
       await deleteBadge(deletingBadgeId)
-      
+
       // 로컬 state에서 즉시 제거
       setLocalBadges((prev) => prev.filter((badge) => badge.id !== deletingBadgeId))
-      
+
       // 성공 토스트 메시지
       toast({
         title: "삭제 완료",
         description: "뱃지가 성공적으로 삭제되었습니다.",
       })
-      
+
       setShowDeleteDialog(false)
       setDeletingBadgeId(null)
       router.refresh()
@@ -611,30 +634,30 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
 
   const handleToggleActive = async (badgeId: string, currentActive: boolean) => {
     const newActiveState = !currentActive
-    
+
     console.log(`[handleToggleActive] 시작: badgeId=${badgeId}, currentActive=${currentActive}, newActiveState=${newActiveState}`)
-    
+
     setIsProcessing(true)
     setProcessingAction('update')
-    
+
     try {
       // 서버 API 호출
       console.log(`[handleToggleActive] toggleBadgeActive 호출: badgeId=${badgeId}, newActiveState=${newActiveState}`)
       await toggleBadgeActive(badgeId, newActiveState)
       console.log(`[handleToggleActive] toggleBadgeActive 성공: badgeId=${badgeId}`)
-      
+
       // 성공 시 로컬 state 업데이트 (BadgeRow의 로컬 state와 동기화)
       setLocalBadges((prev) =>
         prev.map((badge) =>
           badge.id === badgeId ? { ...badge, is_active: newActiveState } : badge
         )
       )
-      
+
       // 성공 시 토스트 메시지
       toast({
         title: newActiveState ? "뱃지 공개 처리" : "뱃지 비공개 처리",
-        description: newActiveState 
-          ? "뱃지가 공개로 설정되었습니다." 
+        description: newActiveState
+          ? "뱃지가 공개로 설정되었습니다."
           : "뱃지가 비공개로 설정되었습니다.",
       })
     } catch (error) {
@@ -648,7 +671,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
         errorDetails: (error as any)?.details,
         errorStack: error instanceof Error ? error.stack : undefined,
       })
-      
+
       toast({
         variant: "destructive",
         title: "상태 변경 실패",
@@ -702,7 +725,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
       alert("카테고리 이름은 필수입니다.")
       return
     }
-    
+
     // value가 없으면 label을 기반으로 자동 생성 (영문/숫자만 남기고 소문자 변환 등)
     // 여기서는 간단하게 랜덤 UUID의 일부를 사용하거나, 한글이면 그냥 label을 그대로 쓰되 prefix 추가 등
     // 하지만 category_value는 DB에서 unique여야 함.
@@ -710,8 +733,8 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     // DB에서 category_value는 text 타입이므로 한글도 가능할 수 있으나, 보통은 영문 code를 선호함.
     // 일단 value가 있으면 쓰고, 없으면 label을 사용 (사용자가 입력하게 유도하는게 좋음)
     if (!categoryFormData.value) {
-        alert("카테고리 코드를 입력해주세요 (예: personal_asset)")
-        return
+      alert("카테고리 코드를 입력해주세요 (예: personal_asset)")
+      return
     }
 
     setIsProcessing(true)
@@ -795,136 +818,136 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
         {pendingBadges.length > 0 ? (
           <div>
             <h3 className="text-lg font-semibold text-slate-900 mb-4">대기 중인 뱃지 신청 ({pendingBadges.length}건)</h3>
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>신청자</TableHead>
-                  <TableHead>신청 뱃지</TableHead>
-                  <TableHead>증빙 자료</TableHead>
-                  <TableHead>신청일</TableHead>
-                  <TableHead className="text-right">관리</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingBadges.map((badgeRequest) => {
-                  const user = badgeRequest.profiles
-                  const badge = badgeRequest.badges
-                  const evidence = badgeRequest.evidence || "증빙 자료 없음"
-                  const proofUrl = badgeRequest.proof_url
-                  const hasEvidence = !!badgeRequest.evidence || !!proofUrl
-                  
-                  return (
-                    <TableRow key={badgeRequest.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={user?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-blue-600 text-white">
-                              {user?.full_name?.[0] || user?.email?.[0] || "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium text-slate-900">
-                              {user?.full_name || "이름 없음"}
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>신청자</TableHead>
+                    <TableHead>신청 뱃지</TableHead>
+                    <TableHead>증빙 자료</TableHead>
+                    <TableHead>신청일</TableHead>
+                    <TableHead className="text-right">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingBadges.map((badgeRequest) => {
+                    const user = badgeRequest.profiles
+                    const badge = badgeRequest.badges
+                    const evidence = badgeRequest.evidence || "증빙 자료 없음"
+                    const proofUrl = badgeRequest.proof_url
+                    const hasEvidence = !!badgeRequest.evidence || !!proofUrl
+
+                    return (
+                      <TableRow key={badgeRequest.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={user?.avatar_url || undefined} />
+                              <AvatarFallback className="bg-blue-600 text-white">
+                                {user?.full_name?.[0] || user?.email?.[0] || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium text-slate-900">
+                                {user?.full_name || "이름 없음"}
+                              </div>
+                              <div className="text-sm text-slate-500">{user?.email}</div>
                             </div>
-                            <div className="text-sm text-slate-500">{user?.email}</div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {badge ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{badge.icon}</span>
-                            <span className="font-medium text-slate-900">{badge.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">뱃지 정보 없음</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-md">
-                          {hasEvidence ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setViewingEvidence({
-                                  text: badgeRequest.evidence || "",
-                                  url: proofUrl
-                                })
-                                setShowEvidenceDialog(true)
-                              }}
-                              className="h-8 text-xs gap-1.5"
-                            >
-                              <Eye className="h-3 w-3" />
-                              증빙 자료 확인
-                              {proofUrl && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">파일</span>}
-                            </Button>
+                        </TableCell>
+                        <TableCell>
+                          {badge ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{badge.icon}</span>
+                              <span className="font-medium text-slate-900">{badge.name}</span>
+                            </div>
                           ) : (
-                            <span className="text-sm text-slate-400">없음</span>
+                            <span className="text-slate-400">뱃지 정보 없음</span>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-slate-600">
-                          {new Date(badgeRequest.created_at).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            onClick={async () => {
-                              await handleApprove(badgeRequest.id)
-                            }}
-                            disabled={isProcessing}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            {isProcessing && processingAction === 'approve' ? (
-                              <>
-                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                처리 중...
-                              </>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-md">
+                            {hasEvidence ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setViewingEvidence({
+                                    text: badgeRequest.evidence || "",
+                                    url: proofUrl
+                                  })
+                                  setShowEvidenceDialog(true)
+                                }}
+                                className="h-8 text-xs gap-1.5"
+                              >
+                                <Eye className="h-3 w-3" />
+                                증빙 자료 확인
+                                {proofUrl && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">파일</span>}
+                              </Button>
                             ) : (
-                              <>
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                승인
-                              </>
+                              <span className="text-sm text-slate-400">없음</span>
                             )}
-                          </Button>
-                          <Button
-                            onClick={async () => {
-                              await handleReject(badgeRequest.id)
-                            }}
-                            disabled={isProcessing}
-                            size="sm"
-                            variant="destructive"
-                          >
-                            {isProcessing && processingAction === 'reject' ? (
-                              <>
-                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                처리 중...
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-3 w-3 mr-1" />
-                                거절
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-slate-600">
+                            {new Date(badgeRequest.created_at).toLocaleDateString('ko-KR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              onClick={async () => {
+                                await handleApprove(badgeRequest.id)
+                              }}
+                              disabled={isProcessing}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              {isProcessing && processingAction === 'approve' ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  처리 중...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  승인
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              onClick={async () => {
+                                await handleReject(badgeRequest.id)
+                              }}
+                              disabled={isProcessing}
+                              size="sm"
+                              variant="destructive"
+                            >
+                              {isProcessing && processingAction === 'reject' ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  처리 중...
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  거절
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         ) : (
           <div className="border border-slate-200 rounded-lg p-12 text-center">
@@ -939,31 +962,31 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
           <h2 className="text-xl font-bold text-slate-900">뱃지 종류 관리</h2>
           <div className="flex gap-2">
             <Button
-                onClick={() => {
+              onClick={() => {
                 setCategoryFormData({ label: "", value: "" })
                 setShowCategoryCreateDialog(true)
-                }}
-                variant="outline"
-                className="gap-2"
+              }}
+              variant="outline"
+              className="gap-2"
             >
-                <Plus className="h-4 w-4" />
-                카테고리 추가
+              <Plus className="h-4 w-4" />
+              카테고리 추가
             </Button>
             <Button
-                onClick={() => {
+              onClick={() => {
                 setFormData({ name: "", icon: "", category: "", description: "" })
                 setShowCreateDialog(true)
-                }}
-                className="gap-2"
+              }}
+              className="gap-2"
             >
-                <Plus className="h-4 w-4" />
-                뱃지 생성
+              <Plus className="h-4 w-4" />
+              뱃지 생성
             </Button>
           </div>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900 mb-4">전체 뱃지 목록 ({localBadges.length}개)</h3>
-          
+
           {localBadges.length > 0 ? (
             <DndContext
               sensors={sensors}
@@ -981,7 +1004,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                     // 하지만 기존 로직은 뱃지 없으면 안보였음.
                     // 사용자가 카테고리 관리를 원하므로 빈 카테고리도 보여주는게 맞음.
                     // 단, DB에서 가져온 카테고리만.
-                    
+
                     return (
                       <CategorySection
                         key={`${category.category_value}-${index}`}
@@ -995,13 +1018,13 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
                         onEditCategory={(cat) => {
-                            setEditingCategory(cat)
-                            setCategoryFormData({ label: cat.category_label, value: cat.category_value })
-                            setShowCategoryEditDialog(true)
+                          setEditingCategory(cat)
+                          setCategoryFormData({ label: cat.category_label, value: cat.category_value })
+                          setShowCategoryEditDialog(true)
                         }}
                         onDeleteCategory={(val) => {
-                            setDeletingCategoryValue(val)
-                            setShowCategoryDeleteDialog(true)
+                          setDeletingCategoryValue(val)
+                          setShowCategoryDeleteDialog(true)
                         }}
                       />
                     )
@@ -1325,7 +1348,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setShowCategoryDeleteDialog(false)
                 setDeletingCategoryValue(null)
@@ -1372,14 +1395,14 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                 </div>
               </div>
             )}
-            
+
             {viewingEvidence.url && (
               <div>
                 <h4 className="text-sm font-semibold text-slate-900 mb-2">첨부 파일</h4>
                 {viewingEvidence.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                   <div className="relative w-full h-64 rounded-lg overflow-hidden border border-slate-200">
-                    <Image 
-                      src={viewingEvidence.url} 
+                    <Image
+                      src={viewingEvidence.url}
                       alt="증빙 이미지"
                       fill
                       className="object-contain"
@@ -1420,7 +1443,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setShowDeleteDialog(false)
                 setDeletingBadgeId(null)

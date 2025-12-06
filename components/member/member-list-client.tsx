@@ -14,6 +14,11 @@ interface MemberListClientProps {
 }
 
 function getShortBadgeLabel(name: string): string {
+  // "커뮤니티 리더" -> "리더"로 단축
+  if (name === "커뮤니티 리더") {
+    return "리더"
+  }
+
   // 예: "매출 10억+" -> "10억+" 만 표시
   if (/\+$/.test(name) && name.includes(" ")) {
     const parts = name.split(" ")
@@ -30,7 +35,7 @@ export function MemberListClient({ members, currentUserRole }: MemberListClientP
     if (selectedFilter === "전체") {
       return members
     }
-    return members.filter((member) => 
+    return members.filter((member) =>
       member.member_type && Array.isArray(member.member_type) && member.member_type.includes(selectedFilter)
     )
   }, [members, selectedFilter])
@@ -60,8 +65,8 @@ export function MemberListClient({ members, currentUserRole }: MemberListClientP
         // 한 줄에 최대 3개 카드 (데스크탑 기준)
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredMembers.map((member) => (
-            <div 
-              key={member.id} 
+            <div
+              key={member.id}
               onClick={() => setSelectedMember(member)}
               className="cursor-pointer h-full"
             >
@@ -71,8 +76,8 @@ export function MemberListClient({ members, currentUserRole }: MemberListClientP
                   <div className="pt-3 px-4 pb-2 flex flex-col gap-2 flex-1">
                     <div className="flex items-center gap-3 ml-2">
                       <Avatar className="h-12 w-12 rounded-full group-hover:ring-4 group-hover:ring-indigo-50 transition-all bg-slate-50 flex-shrink-0 border border-slate-100 shadow-sm">
-                        <AvatarImage 
-                          src={member.avatar_url || `https://api.dicebear.com/9.x/notionists/svg?seed=${member.full_name}`} 
+                        <AvatarImage
+                          src={member.avatar_url || `https://api.dicebear.com/9.x/notionists/svg?seed=${member.full_name}`}
                           className="object-cover"
                         />
                         <AvatarFallback className="bg-slate-100 text-slate-500 text-lg font-medium rounded-full">
@@ -141,8 +146,8 @@ export function MemberListClient({ members, currentUserRole }: MemberListClientP
                               className="flex-1 basis-1/3 min-w-0 flex flex-col items-center justify-center gap-1"
                             >
                               {/* 원형 아이콘 */}
-                              <div className="h-9 w-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-700 shrink-0">
-                                <span className="text-xs">{badge.icon}</span>
+                              <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-700 shrink-0">
+                                <span className="text-xl">{badge.icon}</span>
                               </div>
                               {/* 하단 텍스트 */}
                               <span className="text-xs text-slate-600 font-medium text-center leading-tight break-keep line-clamp-1">
@@ -168,10 +173,10 @@ export function MemberListClient({ members, currentUserRole }: MemberListClientP
         </div>
       )}
 
-      <MemberDetailModal 
-        member={selectedMember} 
-        isOpen={!!selectedMember} 
-        onClose={() => setSelectedMember(null)} 
+      <MemberDetailModal
+        member={selectedMember}
+        isOpen={!!selectedMember}
+        onClose={() => setSelectedMember(null)}
         currentUserRole={currentUserRole}
       />
     </>
