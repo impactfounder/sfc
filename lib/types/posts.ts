@@ -62,27 +62,17 @@ export type PostForDisplay = {
   } | null
 }
 
+import { ReviewForDisplay as OriginalReviewForDisplay } from "./reviews"
+
 /**
  * 후기 표시용 타입
- * lib/queries/posts.ts의 ReviewForDisplay와 호환
+ * lib/types/reviews.ts의 타입을 확장하여 기존 코드와의 호환성 유지
  */
-export type ReviewForDisplay = {
-  id: string
-  title: string
-  content?: string | null
-  created_at: string
+export type ReviewForDisplay = OriginalReviewForDisplay & {
   likes_count?: number
   comments_count?: number
-  profiles?: {
-    id?: string
-    full_name?: string | null
-    avatar_url?: string | null
-  } | null
-  events?: {
-    id?: string
-    title?: string | null
-    thumbnail_url?: string | null
-  } | null
+  title?: string // 호환성
+  content?: string | null // 호환성
 }
 
 /**

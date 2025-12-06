@@ -1,8 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
 import { getEventShortUrl } from "@/lib/utils/event-url";
+import { getReviewsByEvent } from "@/lib/queries/posts";
 import EventDetailContent from "@/components/event-detail-content";
 import type { Metadata } from 'next';
+import Link from "next/link";
+import { ChevronLeft, Calendar, MapPin, Ticket, AlertCircle, Users, Edit } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import RegisterButton from "@/components/register-button";
+import EventShareButton from "@/components/event-share-button";
+import DeleteEventButton from "@/components/delete-event-button";
+import FloatingActionBar from "@/components/floating-action-bar";
+import { ReviewModal } from "@/components/reviews/review-modal";
+import { ReviewCard } from "@/components/reviews/review-card";
 
 export async function generateMetadata({
   params,
@@ -84,6 +98,10 @@ export async function generateMetadata({
   }
 }
 
+// 캐싱 방지
+export const dynamic = 'force-dynamic';
+
+
 export default async function EventDetailPage({
   params,
 }: {
@@ -99,7 +117,7 @@ export default async function EventDetailPage({
       .select("event_date")
       .eq("id", id)
       .single();
-    
+
     if (eventData) {
       const { getEventShortUrl } = await import("@/lib/utils/event-url");
       const shortUrl = await getEventShortUrl(id, eventData.event_date, supabase);
@@ -144,6 +162,10 @@ export default async function EventDetailPage({
     notFound();
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   // 사용자 등록 여부 조회
   let userRegistration = null;
   if (user) {
@@ -179,6 +201,10 @@ export default async function EventDetailPage({
     .eq("event_id", id);
 
   const attendees = attendeesData || [];
+
+  // 후기 목록 조회
+  const reviews = await getReviewsByEvent(supabase, id);
+
 
   const isRegistered = !!userRegistration;
   const isPastEvent = new Date(event.event_date) < new Date();
@@ -226,6 +252,49 @@ export default async function EventDetailPage({
       </div>
 
       <div className="flex flex-col gap-8">
+
+        {/* [ROW 3] 후기 섹션 (위치 이동 테스트: 상단 배치) */}
+        <Card className="border-blue-500 border-4 shadow-lg bg-white mb-10">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    참가자 후기 (상단 테스트)
+                    <span className="text-lg text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
+                      {reviews ? reviews.length : 0}
+                    </span>
+                  </h2>
+                  <p className="text-slate-500 mt-1">
+                    이 모임에 참여한 분들의 생생한 이야기를 확인해보세요.
+                  </p>
+                </div>
+
+                <ReviewModal userId={user?.id} eventId={id} />
+              </div>
+
+              {reviews && reviews.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {reviews.map((review: any) => (
+                    <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                    <span className="text-3xl">📝</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto mb-6">
+                    이 모임의 첫 번째 후기 작성자가 되어주세요!
+                    참여자들에게 큰 도움이 됩니다.
+                  </p>
+                  <ReviewModal userId={user?.id} eventId={id} />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* [ROW 1] */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -459,6 +528,7 @@ export default async function EventDetailPage({
                   <p className="text-slate-500 text-xs">아직 참석자가 없습니다.</p>
                 </div>
               )}
+
             </CardContent>
           </Card>
         </div>
@@ -483,4 +553,3 @@ export default async function EventDetailPage({
     </div>
   );
 }
-

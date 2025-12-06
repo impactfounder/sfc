@@ -122,7 +122,7 @@ export async function getLatestPosts(
 
     // 4. 실제 좋아요 및 댓글 수 조회 (병렬 처리)
     const postIds = posts.map((p: PostFromDB) => p.id);
-    
+
     const [likesResult, commentsResult] = await Promise.all([
       supabase
         .from("post_likes")
@@ -156,7 +156,7 @@ export async function getLatestPosts(
       likes_count: likesCountMap.get(post.id) || 0,
       comments_count: commentsCountMap.get(post.id) || 0,
       thumbnail_url: post.thumbnail_url,
-      profiles: post.profiles ? { 
+      profiles: post.profiles ? {
         id: post.profiles.id,
         full_name: post.profiles.full_name,
         avatar_url: post.profiles.avatar_url
@@ -187,33 +187,15 @@ export async function getLatestReviews(
 ): Promise<ReviewForDisplay[]> {
   try {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[getLatestReviews] Fetching latest reviews (limit: ${limit})`);
+      console.log(`[getLatestReviews] Fetching latest reviews (no-join)`);
     }
 
-    // 후기 전용 쿼리: board_categories.slug가 'reviews'인 게시글만
-    // related_event_id를 통해 events 테이블 조인
+    // 1. Reviews 조회 (관계 조인 없이 순수 데이터만)
     const { data: reviews, error } = await supabase
-      .from("posts")
-      .select(`
-        id,
-        title,
-        content,
-        created_at,
-        likes_count,
-        comments_count,
-        profiles:author_id(
-          id,
-          full_name,
-          avatar_url
-        ),
-        events:related_event_id(
-          id,
-          title,
-          thumbnail_url
-        ),
-        board_categories!inner(name, slug)
-      `)
-      .eq('board_categories.slug', 'reviews')
+      .from("reviews")
+      .select("*")
+      .eq("is_public", true)
+      .order("is_best", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -222,25 +204,83 @@ export async function getLatestReviews(
       return [];
     }
 
-    // 데이터 변환 (Type Mapping)
-    return (reviews || []).map((review: ReviewFromDB): ReviewForDisplay => ({
-      id: review.id,
-      title: review.title,
-      content: review.content,
-      created_at: review.created_at,
-      likes_count: review.likes_count || 0,
-      comments_count: review.comments_count || 0,
-      profiles: review.profiles ? {
-        id: review.profiles.id,
-        full_name: review.profiles.full_name,
-        avatar_url: review.profiles.avatar_url
-      } : null,
-      events: review.events ? {
-        id: review.events.id,
-        title: review.events.title,
-        thumbnail_url: review.events.thumbnail_url
-      } : null
-    }));
+    if (!reviews || reviews.length === 0) {
+      return [];
+    }
+
+    // 2. User IDs 및 Event IDs 수집
+    const userIds = Array.from(new Set(reviews.map((r: any) => r.user_id).filter(Boolean)));
+    const eventIds = Array.from(new Set(reviews.map((r: any) => r.event_id).filter(Boolean)));
+
+    // 3. Profiles 조회
+    let profileMap = new Map();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, company, position")
+        .in("id", userIds);
+
+      if (profiles) {
+        profiles.forEach((p: any) => profileMap.set(p.id, p));
+      }
+    }
+
+    // 4. Events 조회
+    let eventMap = new Map();
+    if (eventIds.length > 0) {
+      const { data: events } = await supabase
+        .from("events")
+        .select("id, title, event_date, thumbnail_url")
+        .in("id", eventIds);
+
+      if (events) {
+        events.forEach((e: any) => eventMap.set(e.id, e));
+      }
+    }
+
+    // 5. 데이터 병합 (Mapping)
+    const result = reviews.map((review: any): ReviewForDisplay | null => {
+      const event = eventMap.get(review.event_id);
+
+      // 이벤트 정보가 없으면 제외 (필수 필드)
+      if (!event) return null;
+
+      const profile = profileMap.get(review.user_id);
+
+      return {
+        id: review.id,
+        user_id: review.user_id,
+        event_id: review.event_id,
+        rating: review.rating,
+        keywords: review.keywords || [],
+        one_liner: review.one_liner,
+        detail_content: review.detail_content,
+        images: review.images || [],
+        is_best: review.is_best,
+        is_public: review.is_public,
+        created_at: review.created_at,
+        updated_at: review.updated_at,
+        title: review.one_liner,
+        likes_count: 0,
+        comments_count: 0,
+        profiles: profile ? {
+          id: profile.id,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+          role: profile.role,
+          company: profile.company,
+          position: profile.position
+        } : null,
+        events: {
+          id: event.id,
+          title: event.title,
+          event_date: event.event_date,
+          thumbnail_url: event.thumbnail_url
+        }
+      };
+    }).filter((item): item is ReviewForDisplay => item !== null);
+
+    return result;
 
   } catch (error) {
     console.error("🚨 [getLatestReviews] Unexpected Error:", error);
@@ -248,3 +288,101 @@ export async function getLatestReviews(
   }
 }
 
+/**
+ * 특정 이벤트의 후기 목록 가져오기
+ * @param supabase Supabase 클라이언트
+ * @param eventId 이벤트 ID
+ */
+export async function getReviewsByEvent(
+  supabase: SupabaseClient,
+  eventId: string
+): Promise<ReviewForDisplay[]> {
+  try {
+    // 1. Reviews 조회 (조인 없음)
+    const { data: reviews, error } = await supabase
+      .from("reviews")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("is_public", true)
+      .order("is_best", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("🚨 [getReviewsByEvent] Query Error:", error);
+      return [];
+    }
+
+    if (!reviews || reviews.length === 0) {
+      return [];
+    }
+
+    // 2. User IDs 수집 및 Profiles 조회
+    const userIds = Array.from(new Set(reviews.map((r: any) => r.user_id).filter(Boolean)));
+
+    let profileMap = new Map();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, company, position")
+        .in("id", userIds);
+
+      if (profiles) {
+        profiles.forEach((p: any) => profileMap.set(p.id, p));
+      }
+    }
+
+    // 3. Event 정보 조회 (단일 이벤트이므로 한 번만 조회)
+    const { data: event } = await supabase
+      .from("events")
+      .select("id, title, event_date, thumbnail_url")
+      .eq("id", eventId)
+      .single();
+
+    if (!event) {
+      console.error("🚨 [getReviewsByEvent] Event not found:", eventId);
+      return [];
+    }
+
+    // 4. 데이터 병합
+    return reviews.map((review: any): ReviewForDisplay | null => {
+      const profile = profileMap.get(review.user_id);
+
+      return {
+        id: review.id,
+        user_id: review.user_id,
+        event_id: review.event_id,
+        rating: review.rating,
+        keywords: review.keywords || [],
+        one_liner: review.one_liner,
+        detail_content: review.detail_content,
+        images: review.images || [],
+        is_best: review.is_best,
+        is_public: review.is_public,
+        created_at: review.created_at,
+        updated_at: review.updated_at,
+        // PostForDisplay 인터페이스 호환용
+        title: review.one_liner,
+        likes_count: 0,
+        comments_count: 0,
+        profiles: profile ? {
+          id: profile.id,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+          role: profile.role,
+          company: profile.company,
+          position: profile.position
+        } : null,
+        events: {
+          id: event.id,
+          title: event.title,
+          event_date: event.event_date,
+          thumbnail_url: event.thumbnail_url
+        }
+      };
+    }).filter((item): item is ReviewForDisplay => item !== null);
+
+  } catch (error) {
+    console.error("🚨 [getReviewsByEvent] Unexpected Error:", error);
+    return [];
+  }
+}

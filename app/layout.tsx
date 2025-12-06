@@ -6,6 +6,7 @@ import "./globals.css"
 import { DailyLoginChecker } from "@/components/daily-login-checker"
 import { MobileActionBar } from "@/components/mobile-action-bar"
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import Providers from "./providers"
 
@@ -191,6 +192,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           {children}
           <MobileActionBar />
           <Toaster />
+          <SonnerToaster />
         </Providers>
       </body>
     </html>

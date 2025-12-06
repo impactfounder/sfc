@@ -17,11 +17,15 @@ import { EventShareButton } from "@/components/event-share-button";
 import { DeleteEventButton } from "@/components/delete-event-button";
 import { FloatingActionBar } from "@/components/floating-action-bar";
 
-export default async function EventDetailContent({ 
-  eventId, 
-  basePath = '/events' 
-}: { 
-  eventId: string; 
+import { getReviewsByEvent } from "@/lib/queries/posts";
+import { ReviewWriteButton } from "@/components/reviews/review-modal";
+import { ReviewCard } from "@/components/reviews/review-card";
+
+export default async function EventDetailContent({
+  eventId,
+  basePath = '/events'
+}: {
+  eventId: string;
   basePath?: string;
 }) {
   const supabase = await createClient();
@@ -88,6 +92,9 @@ export default async function EventDetailContent({
       )
     `)
     .eq("event_id", eventId);
+
+  // 후기 목록 조회
+  const reviews = await getReviewsByEvent(supabase, eventId);
 
   const attendees = attendeesData || [];
   const isRegistered = !!userRegistration;
@@ -426,6 +433,52 @@ export default async function EventDetailContent({
             </CardContent>
           </Card>
         </div>
+
+
+        {/* [ROW 3] 후기 섹션 */}
+        <Card className="border-slate-200 shadow-sm bg-white mt-4">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    참가자 후기
+                    <span className="text-base sm:text-lg text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
+                      {reviews ? reviews.length : 0}
+                    </span>
+                  </h2>
+                  <p className="text-sm sm:text-base text-slate-500 mt-1">
+                    이 모임에 참여한 분들의 생생한 이야기를 확인해보세요.
+                  </p>
+                </div>
+              </div>
+
+              {reviews && reviews.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {reviews.map((review: any) => (
+                    <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 sm:py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 sm:mb-4">
+                    <span className="text-2xl sm:text-3xl">📝</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
+                  <p className="text-sm sm:text-base text-slate-500 max-w-sm mx-auto mb-6 px-4">
+                    이 모임의 첫 번째 후기 작성자가 되어주세요!
+                    참여자들에게 큰 도움이 됩니다.
+                  </p>
+                  <ReviewWriteButton
+                    userId={user?.id || ""}
+                    eventId={eventId}
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
 
       {/* [Mobile Only] 하단 고정 액션 바 */}
