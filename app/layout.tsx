@@ -71,7 +71,7 @@ export const metadata: Metadata = {
   },
   verification: {
     // Google Search Console 등에서 제공하는 verification 코드를 여기에 추가
-    // google: "verification-code",
+    google: "GOOGLE_SITE_VERIFICATION_CODE_HERE",
   },
 }
 

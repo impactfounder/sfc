@@ -1,11 +1,30 @@
 import { MetadataRoute } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-  const supabase = await createClient();
+
+  // Sitemap 생성을 위한 직접 클라이언트 생성 (쿠키 의존성 제거)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Supabase environment variables are missing for sitemap generation");
+    // 환경 변수가 없어도 기본 페이지들은 반환하도록 함
+    return [
+      {
+        url: siteUrl,
+        lastModified: new Date(),
+        changeFrequency: 'daily',
+        priority: 1,
+      },
+      // ... 다른 정적 페이지들은 아래 로직에서 추가됨
+    ];
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // 기본 페이지들
   const routes: MetadataRoute.Sitemap = [
@@ -58,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       let dbSlug = slug;
       if (slug === 'free') dbSlug = 'free-board';
       if (slug === 'announcements') dbSlug = 'announcement';
-      
+
       const { data: posts } = await supabase
         .from("posts")
         .select(`
@@ -75,7 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         posts.forEach((post: any) => {
           // 인사이트 게시글은 priority를 0.8로 설정
           const priority = slug === "insights" ? 0.8 : 0.6;
-          
+
           routes.push({
             url: `${siteUrl}/community/board/${slug}/${post.id}`,
             lastModified: new Date(post.updated_at || post.created_at),

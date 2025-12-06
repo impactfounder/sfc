@@ -36,3 +36,4 @@ CREATE POLICY "Only community owners can manage moderators"
 -- 코멘트 추가
 COMMENT ON TABLE public.community_moderators IS '커뮤니티 관리자(모더레이터) 테이블';
 COMMENT ON COLUMN public.community_moderators.role IS '관리자 역할: owner(소유자), moderator(관리자)';
+ㅇ
