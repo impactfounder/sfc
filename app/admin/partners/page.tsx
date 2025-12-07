@@ -85,6 +85,16 @@ export default async function AdminPartnersPage() {
       .order("created_at", { ascending: true }),
   ])
 
+  const servicesNormalized = (servicesResult.data || []).map((item: any) => {
+    const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+    return { ...item, profiles: profile }
+  })
+
+  const applicationsNormalized = (applicationsResult.data || []).map((item: any) => {
+    const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+    return { ...item, profiles: profile }
+  })
+
   return (
     <div className="w-full">
       <div className="mb-8">
@@ -102,14 +112,14 @@ export default async function AdminPartnersPage() {
 
           <TabsContent value="list" className="mt-0">
             <PartnerListTab
-              initialServices={servicesResult.data || []}
+              initialServices={servicesNormalized}
               initialCategories={categoriesResult.data || []}
             />
           </TabsContent>
 
           <TabsContent value="applications" className="mt-0">
             <PartnerApplicationsTab
-              applications={applicationsResult.data || []}
+              applications={applicationsNormalized}
             />
           </TabsContent>
 

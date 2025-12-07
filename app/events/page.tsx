@@ -1,4 +1,10 @@
 import { redirect } from 'next/navigation'
+import { createClient } from "@/lib/supabase/server"
+import { getEventShortUrl } from "@/lib/utils/event-url"
+import { PageHeader } from "@/components/page-header"
+import { EventsSection } from "@/components/home/events-section"
+import EventCard from "@/components/ui/event-card"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 
 export default async function EventsPage() {
   // /events를 /e로 리다이렉트
@@ -40,7 +46,7 @@ export default async function EventsPage() {
 
   const user = userResult.data.user
   const upcomingEvents = upcomingEventsResult.data
-  const pastEvents = pastEventsResult.data
+  const pastEvents = pastEventsResult.data || []
 
   // 데이터 포맷팅 및 짧은 코드 계산
   const formattedUpcomingEvents = await Promise.all(
@@ -87,7 +93,7 @@ export default async function EventsPage() {
         </div>
 
           {/* Past Events */}
-          {pastEvents && pastEvents.length > 0 && (
+          {pastEvents.length > 0 && (
             <div>
               <h2 className="mb-4 text-xl font-semibold text-slate-900">지난 이벤트</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4 lg:gap-6">

@@ -56,6 +56,7 @@ type Category = {
   id: string
   name: string
   type: "insight" | "partner"
+  created_at?: string | null
 }
 
 type PostManagementTabProps = {
@@ -164,7 +165,12 @@ export function PostManagementTab({
 
     const { data } = await query
     if (data) {
-      setPosts(data)
+      const normalized = data.map((post: any) => {
+        const category = Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories
+        const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+        return { ...post, board_categories: category, profiles: profile }
+      })
+      setPosts(normalized)
     }
   }
 
@@ -241,9 +247,9 @@ export function PostManagementTab({
           <div>
             <h3 className="text-lg font-semibold text-slate-900 mb-4">카테고리 관리</h3>
             <PartnerCategoryTab
-              initialCategories={categories.filter(cat =>
-                cat.type === (boardType === "insights" ? "insight" : "partner")
-              )}
+              initialCategories={categories
+                .filter(cat => cat.type === (boardType === "insights" ? "insight" : "partner"))
+                .map(cat => ({ ...cat, created_at: cat.created_at || "" }))}
               categoryType={boardType === "insights" ? "insight" : "partner"}
             />
           </div>

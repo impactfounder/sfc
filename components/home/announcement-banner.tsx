@@ -27,13 +27,14 @@ export default async function AnnouncementBanner() {
     return `${year}.${month}.${day}`
   }
 
+  const category = Array.isArray(announcement.board_categories) ? announcement.board_categories[0] : announcement.board_categories
   const formattedDate = announcement.created_at ? formatDate(announcement.created_at) : ''
 
   return (
     <div className="bg-slate-50 border-b border-slate-200">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <Link 
-          href={`/community/board/${announcement.board_categories?.slug || "announcement"}/${announcement.id}`}
+          href={`/community/board/${category?.slug || "announcement"}/${announcement.id}`}
           className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-slate-100 transition-colors group"
         >
           {/* 왼쪽: 아이콘 + 공지 배지 */}

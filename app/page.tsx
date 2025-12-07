@@ -158,7 +158,8 @@ export default async function HomePage() {
           })
 
           return data.map((post) => {
-            let slug = post.board_categories?.slug
+            const category = Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories
+            let slug = category?.slug
             if (slug === "free-board") slug = "free"
             const visibleBadges = post.author_id ? (badgesMap.get(post.author_id) || []) : []
             return {
@@ -169,14 +170,17 @@ export default async function HomePage() {
               visibility: 'public' as const,
               likes_count: likesCountMap.get(post.id) || 0,
               comments_count: commentsCountMap.get(post.id) || 0,
-              profiles: post.profiles ? {
-                id: post.profiles.id,
-                full_name: post.profiles.full_name,
-                avatar_url: post.profiles.avatar_url,
-              } : null,
-              board_categories: post.board_categories ? {
-                name: post.board_categories.name,
-                slug: slug || post.board_categories.slug,
+              profiles: post.profiles ? (() => {
+                const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+                return profile ? {
+                  id: profile.id,
+                  full_name: profile.full_name,
+                  avatar_url: profile.avatar_url,
+                } : null
+              })() : null,
+              board_categories: category ? {
+                name: category.name,
+                slug: slug || category.slug,
               } : null,
               communities: null,
               // visible_badges는 PostForDisplay 타입에 없으므로 타입 단언 사용

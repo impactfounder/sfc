@@ -111,6 +111,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     day: 'numeric',
     weekday: 'short',
   })
+  const hostProfile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles
 
   // 썸네일이 있으면 썸네일을 사용, 없으면 텍스트 기반 이미지 생성
   if (event.thumbnail_url) {
@@ -261,7 +262,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* 호스트 정보 */}
-          {event.profiles?.full_name && (
+          {hostProfile?.full_name && (
             <div
               style={{
                 fontSize: 24,
@@ -271,7 +272,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
                 borderTop: '2px solid rgba(255, 255, 255, 0.3)',
               }}
             >
-              Hosted by {event.profiles.full_name}
+              Hosted by {hostProfile.full_name}
             </div>
           )}
         </div>

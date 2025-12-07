@@ -40,7 +40,7 @@ function getScrollbarWidth(): number {
   const outer = document.createElement('div')
   outer.style.visibility = 'hidden'
   outer.style.overflow = 'scroll'
-  outer.style.msOverflowStyle = 'scrollbar' // IE, Edge 대응
+  ;(outer.style as any).msOverflowStyle = 'scrollbar' // IE, Edge 대응
   outer.style.position = 'absolute'
   outer.style.top = '-9999px'
   outer.style.width = '100px'

@@ -55,24 +55,20 @@ export function CommentSection({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
-    
+
     const supabase = createClient();
+    const trimmed = newComment.trim();
+    if (!trimmed) return;
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.from("comments").insert({
-        post_id: postId,
-        author_id: userId,
-        content: newComment,
-      });
-
-      if (error) throw error;
-
-      setNewComment("");
-      
-      // 댓글 목록 새로고침
-      const { data: newComments } = await supabase
+      const { data: inserted, error } = await supabase
         .from("comments")
+        .insert({
+          post_id: postId,
+          author_id: userId,
+          content: trimmed,
+        })
         .select(`
           *,
           profiles:author_id (
@@ -81,16 +77,19 @@ export function CommentSection({
             avatar_url
           )
         `)
-        .eq("post_id", postId)
-        .order("created_at", { ascending: true });
-      
-      if (newComments) {
-        setComments(newComments);
+        .single();
+
+      if (error) throw error;
+
+      setNewComment("");
+
+      if (inserted) {
+        setComments((prev) => [...prev, inserted]);
       }
-      
+
       // 콜백 호출 (부모 컴포넌트에서 댓글 수 업데이트 등)
       onCommentAdded?.();
-      
+
       // 서버 컴포넌트인 경우에만 refresh
       if (typeof window === 'undefined' || !onCommentAdded) {
         router.refresh();

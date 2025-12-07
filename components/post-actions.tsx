@@ -69,7 +69,6 @@ export function PostActions({ postId, isAuthor, isMaster = false, isAdmin = fals
           <DropdownMenuContent 
             align="end" 
             className="bg-white border-slate-200 shadow-lg z-50"
-            onOpenAutoFocus={(e) => e.preventDefault()}
             onCloseAutoFocus={(e) => e.preventDefault()}
           >
             {canEdit && (

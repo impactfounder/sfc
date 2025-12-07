@@ -91,7 +91,7 @@ export default async function AnnouncementDetailPage({
 
             {user && (
               <div className="flex items-center gap-4 border-t border-slate-200 pt-6">
-                <LikeButton postId={announcement.id} initialLikes={likesCount} />
+                <LikeButton postId={announcement.id} initialLiked={false} initialCount={likesCount} />
               </div>
             )}
             {!user && (

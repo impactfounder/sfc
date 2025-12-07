@@ -44,10 +44,11 @@ export async function getBadgesForUsers(
     if (allBadgesData) {
       allBadgesData.forEach((ub) => {
         if (ub.badges && ub.user_id) {
+          const badge = Array.isArray(ub.badges) ? ub.badges[0] : ub.badges
           const existing = badgesMap.get(ub.user_id) || []
           badgesMap.set(ub.user_id, [
             ...existing,
-            { icon: ub.badges.icon, name: ub.badges.name },
+            { icon: badge?.icon, name: badge?.name },
           ])
         }
       })

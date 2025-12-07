@@ -192,6 +192,9 @@ export default async function AdminDashboard() {
   // Fetch registration counts for events
   const eventsWithCounts = await Promise.all(
     (eventsResult.data || []).map(async (event) => {
+      const profile: any = (event as any).profiles
+      const ownerProfile = Array.isArray(profile) ? profile[0] : profile
+
       const { count } = await supabase
         .from("event_registrations")
         .select("*", { count: "exact", head: true })
@@ -199,10 +202,39 @@ export default async function AdminDashboard() {
 
       return {
         ...event,
+        profiles: ownerProfile,
         participantCount: count || 0,
       }
     })
   )
+
+  // Normalize posts relations (Supabase 타입이 배열로 반환될 때 대비)
+  const postsNormalized = (postsResult.data || []).map((post: any) => {
+    const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+    const category = Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories
+    return {
+      ...post,
+      profiles: profile,
+      board_categories: category,
+    }
+  })
+
+  // Normalize pending badges relations
+  const pendingBadgesNormalized = (pendingBadgesResult.data || []).map((item: any) => {
+    const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+    const badge = Array.isArray(item.badges) ? item.badges[0] : item.badges
+    return {
+      ...item,
+      profiles: profile,
+      badges: badge,
+    }
+  })
+
+  // Normalize partner applications relations
+  const partnerApplicationsNormalized = (partnerApplicationsResult.data || []).map((item: any) => {
+    const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+    return { ...item, profiles: profile }
+  })
 
   // badgesResult 처리 (에러 발생 시 빈 배열 반환)
   let badgesData: any[] = []
@@ -216,11 +248,11 @@ export default async function AdminDashboard() {
     <AdminView
       users={usersResult.data || []}
       events={eventsWithCounts}
-      posts={postsResult.data || []}
+      posts={postsNormalized}
       badges={badgesData}
-      pendingBadges={pendingBadgesResult.data || []}
+      pendingBadges={pendingBadgesNormalized}
       categories={categoriesResult.data || []}
-      partnerApplications={partnerApplicationsResult.data || []}
+      partnerApplications={partnerApplicationsNormalized}
       badgeCategories={badgeCategoriesResult.data || []}
       currentUserId={user.id}
       isMaster={isMaster}

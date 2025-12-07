@@ -324,7 +324,7 @@ export default function ProfilePage() {
         setCreatedEvents(myEvents)
         setUserPosts(myPosts)
         
-        const flattenedRegistrations: EventListItem[] = myRegistrations
+        const flattenedRegistrations = myRegistrations
           .map((reg) => {
             if (!reg.events) return null
             return {
@@ -334,10 +334,10 @@ export default function ProfilePage() {
               event_date: reg.events.event_date,
               location: reg.events.location,
               created_at: reg.events.event_date, 
-              registration_date: reg.registered_at || "",
+              registration_date: reg.registered_at ?? null,
             }
           })
-          .filter((reg): reg is EventListItem => reg !== null)
+          .filter(Boolean) as EventListItem[]
         setRegisteredEvents(flattenedRegistrations)
         
         const mappedBadges: VisibleBadge[] = badgesData
@@ -594,10 +594,13 @@ export default function ProfilePage() {
         setUserBadges(data as unknown as UserBadgeWithBadge[])
         const visible: VisibleBadge[] = data
           .filter((ub) => ub.is_visible && ub.badges && ub.status === 'approved')
-          .map((ub) => ({
-            icon: ub.badges!.icon,
-            name: ub.badges!.name,
-          }))
+          .map((ub) => {
+            const badge = Array.isArray(ub.badges) ? ub.badges[0] : ub.badges
+            return {
+              icon: badge?.icon || "",
+              name: badge?.name || "",
+            }
+          })
         setVisibleBadges(visible)
       }
       
@@ -647,10 +650,13 @@ export default function ProfilePage() {
           setUserBadges(data as unknown as UserBadgeWithBadge[])
           const visible: VisibleBadge[] = data
             .filter((ub) => ub.is_visible && ub.badges)
-            .map((ub) => ({
-              icon: ub.badges!.icon,
-              name: ub.badges!.name,
-            }))
+            .map((ub) => {
+              const badge = Array.isArray(ub.badges) ? ub.badges[0] : ub.badges
+              return {
+                icon: badge?.icon || "",
+                name: badge?.name || "",
+              }
+            })
           setVisibleBadges(visible)
         }
       }

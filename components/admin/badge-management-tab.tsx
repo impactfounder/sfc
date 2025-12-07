@@ -78,7 +78,7 @@ type BadgeManagementTabProps = {
   badgeCategories?: BadgeCategoryType[]
 }
 
-const badgeCategories = [
+const DEFAULT_BADGE_CATEGORIES = [
   { value: "personal_asset", label: "개인 자산" },
   { value: "corporate_revenue", label: "기업 매출" },
   { value: "investment", label: "투자 규모" },
@@ -99,7 +99,7 @@ function BadgeRow({
   onDelete,
 }: {
   badge: BadgeType
-  badgeCategories: typeof badgeCategories
+  badgeCategories: BadgeCategoryType[]
   isProcessing: boolean
   processingAction: 'create' | 'update' | 'delete' | 'approve' | 'reject' | null
   onToggleActive: (badgeId: string, currentActive: boolean) => Promise<void>
@@ -167,7 +167,7 @@ function BadgeRow({
       </TableCell>
       <TableCell>
         <Badge variant="outline" className="text-xs font-medium">
-          {badgeCategories.find(c => c.value === badge.category)?.label || badge.category}
+          {badgeCategories.find(c => c.category_value === badge.category)?.category_label || badge.category}
         </Badge>
       </TableCell>
       <TableCell>
@@ -254,7 +254,7 @@ function CategorySection({
   categoryValue: string
   categoryLabel: string
   badges: BadgeType[]
-  badgeCategories: typeof badgeCategories // 하드코딩된 배열 타입
+  badgeCategories: BadgeCategoryType[] // 기본 카테고리 타입
   isProcessing: boolean
   processingAction: 'create' | 'update' | 'delete' | 'approve' | 'reject' | null
   onToggleActive: (badgeId: string, currentActive: boolean) => Promise<void>
@@ -362,7 +362,13 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
   // badges가 비어있으면 더미 데이터 사용 (개발 환경)
   const initialBadges = badges && badges.length > 0 ? badges : (process.env.NODE_ENV === 'development' ? DUMMY_BADGES : [])
   const [localBadges, setLocalBadges] = useState<BadgeType[]>(initialBadges)
-  const [localBadgeCategories, setLocalBadgeCategories] = useState<BadgeCategoryType[]>(badgeCategories)
+  const defaultBadgeCategories: BadgeCategoryType[] = DEFAULT_BADGE_CATEGORIES.map((cat, index) => ({
+    category_value: cat.value,
+    category_label: cat.label,
+    sort_order: index,
+  }))
+  const initialBadgeCategories = badgeCategoriesProp.length > 0 ? badgeCategoriesProp : defaultBadgeCategories
+  const [localBadgeCategories, setLocalBadgeCategories] = useState<BadgeCategoryType[]>(initialBadgeCategories)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showEvidenceDialog, setShowEvidenceDialog] = useState(false)
@@ -414,7 +420,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
       setLocalBadgeCategories(badgeCategoriesProp)
     } else {
       // DB에 데이터가 없으면 기본 카테고리 목록 사용
-      const defaultCategories: BadgeCategoryType[] = badgeCategories.map((cat, index) => ({
+      const defaultCategories: BadgeCategoryType[] = DEFAULT_BADGE_CATEGORIES.map((cat, index) => ({
         category_value: cat.value,
         category_label: cat.label,
         sort_order: index,

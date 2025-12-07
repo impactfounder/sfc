@@ -41,7 +41,7 @@ export async function generateShortCode(
   
   // 날짜 부분만 비교하여 필터링 (시간대 무시)
   if (allEventsForDate && allEventsForDate.length > 0) {
-    allEventsForDate.forEach((event) => {
+    allEventsForDate.forEach((event: any) => {
       const eventDate = new Date(event.event_date)
       const eventMonth = eventDate.getMonth() + 1
       const eventDay = eventDate.getDate()

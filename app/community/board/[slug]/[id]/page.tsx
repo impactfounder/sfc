@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageSquare, ArrowLeft, Info, Users, Crown, ChevronRight, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { LikeButton } from "@/components/like-button";
-import { CommentSection } from "@/components/comment-section";
+import { ThreadedComments } from "@/components/threaded-comments";
 import { PostActions } from "@/components/post-actions";
 import { EventShareButton } from "@/components/event-share-button";
 import Link from 'next/link';
@@ -12,6 +12,7 @@ import { UserBadges } from "@/components/user-badges";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StandardRightSidebar } from "@/components/standard-right-sidebar";
 import { isMasterAdmin, isAdmin } from "@/lib/utils";
+import { getComments } from "@/lib/actions/comments";
 
 // 전체 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights", "reviews"];
@@ -54,11 +55,7 @@ export default async function BoardPostDetailPage({
   // 추가 데이터 조회
   const [userLikeResult, commentsResult, likesResult, badgesResult] = await Promise.all([
     user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
-    supabase
-      .from("comments")
-      .select(`*, profiles:author_id (id, full_name, avatar_url)`)
-      .eq("post_id", id)
-      .order("created_at", { ascending: true }),
+    getComments(id),
     supabase
       .from("post_likes")
       .select("id", { count: "exact" })
@@ -88,10 +85,8 @@ export default async function BoardPostDetailPage({
   
   // 뱃지 데이터 가공
   const authorVisibleBadges = badgesResult.data?.map((ub: any) => ub.badges).filter(Boolean) || [];
-  const comments = commentsResult.data || [];
-  
-  // 실제 댓글과 좋아요 수 계산
-  const actualCommentsCount = comments.length;
+  const comments = commentsResult || [];
+  const actualCommentsCount = countTree(comments);
   const actualLikesCount = likesResult.count || 0;
 
   return (
@@ -195,11 +190,7 @@ export default async function BoardPostDetailPage({
               {/* 댓글 섹션 */}
               <div className="mt-8 pt-8 border-t border-slate-100">
                 <h3 className="text-lg font-bold text-slate-900 mb-6">댓글</h3>
-                <CommentSection
-                  postId={post.id}
-                  userId={user?.id}
-                  comments={comments}
-                />
+                <ThreadedComments postId={post.id} userId={user?.id} comments={comments} />
               </div>
             </CardContent>
           </Card>
@@ -215,4 +206,8 @@ export default async function BoardPostDetailPage({
       </div>
     </div>
   );
+}
+
+function countTree(nodes: any[]): number {
+  return nodes.reduce((acc, n) => acc + 1 + (n.children ? countTree(n.children) : 0), 0)
 }

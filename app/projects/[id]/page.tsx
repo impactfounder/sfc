@@ -50,7 +50,10 @@ export default async function ProjectDetailPage({
     .eq("project_id", id);
 
   const isCreator = user && project.created_by === user.id;
-  const isMember = user && members?.some(m => m.profiles?.id === user.id);
+  const isMember = user && members?.some((m) => {
+    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+    return profile?.id === user.id
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -173,7 +176,8 @@ export default async function ProjectDetailPage({
             <CardContent className="p-4 md:p-6">
               <div className="grid gap-3 sm:grid-cols-2">
                 {members.map((member) => {
-                  const name = member.profiles?.full_name || "익명";
+                  const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles
+                  const name = profile?.full_name || "익명";
                   return (
                     <div
                       key={member.id}

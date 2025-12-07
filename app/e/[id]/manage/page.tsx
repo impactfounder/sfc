@@ -117,6 +117,10 @@ export default async function ManageEventPage({
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
 
+  // 커스텀 필드/응답이 없는 경우를 대비해 기본값을 준비합니다.
+  const customFields: any[] = [];
+  const responseMap: Record<string, Record<string, string>> = {};
+
   const shortUrl = await getEventShortUrl(event.id, event.event_date, supabase);
 
   return (
@@ -146,7 +150,12 @@ export default async function ManageEventPage({
                 {registrations && registrations.length > 0 ? (
                   <div className="space-y-4">
                     <div className="flex justify-end">
-                      <ExportCSVButton eventId={eventId} />
+                      <ExportCSVButton
+                        registrations={registrations || []}
+                        customFields={customFields}
+                        responseMap={responseMap}
+                        eventTitle={event.title}
+                      />
                     </div>
                     <Table>
                       <TableHeader>

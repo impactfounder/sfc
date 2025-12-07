@@ -121,7 +121,7 @@ export async function getLatestPosts(
     }
 
     // 4. 실제 좋아요 및 댓글 수 조회 (병렬 처리)
-    const postIds = posts.map((p: PostFromDB) => p.id);
+    const postIds = posts.map((p) => p.id as string);
 
     const [likesResult, commentsResult] = await Promise.all([
       supabase
@@ -147,7 +147,7 @@ export async function getLatestPosts(
     });
 
     // 5. 데이터 변환 (Type Mapping) - 실제 카운트 사용
-    return (posts || []).map((post: PostFromDB): PostForDisplay => ({
+    return (posts || []).map((post: any): PostForDisplay => ({
       id: post.id,
       title: post.title,
       content: null, // 리스트에서는 본문 전체가 필요 없으므로 null로 설정

@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import RegisterButton from "@/components/register-button";
-import EventShareButton from "@/components/event-share-button";
-import DeleteEventButton from "@/components/delete-event-button";
-import FloatingActionBar from "@/components/floating-action-bar";
+import { RegisterButton } from "@/components/register-button";
+import { EventShareButton } from "@/components/event-share-button";
+import { DeleteEventButton } from "@/components/delete-event-button";
+import { FloatingActionBar } from "@/components/floating-action-bar";
 import { ReviewModal } from "@/components/reviews/review-modal";
 import { ReviewCard } from "@/components/reviews/review-card";
 
@@ -130,7 +130,7 @@ export default async function EventDetailPage({
   redirect(`/e/${id}`);
 
   // 이벤트 정보 조회 (에러 처리 강화)
-  let event;
+  let event: any;
   try {
     const { data, error } = await supabase
       .from("events")
@@ -167,13 +167,14 @@ export default async function EventDetailPage({
   } = await supabase.auth.getUser()
 
   // 사용자 등록 여부 조회
-  let userRegistration = null;
-  if (user) {
+  let userRegistration: any = null;
+  const userId: string | null = user?.id ?? null
+  if (userId) {
     const { data: registrationData } = await supabase
       .from("event_registrations")
       .select("id, payment_status")
       .eq("event_id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     userRegistration = registrationData;
@@ -208,8 +209,10 @@ export default async function EventDetailPage({
 
   const isRegistered = !!userRegistration;
   const isPastEvent = new Date(event.event_date) < new Date();
-  const isFull = event.max_participants && attendeesCount && attendeesCount >= event.max_participants;
-  const isCreator = user && event.created_by === user.id;
+  const attendeeCountValue = attendeesCount ?? 0;
+  const maxParticipants = event.max_participants ?? null;
+  const isFull = maxParticipants ? attendeeCountValue >= maxParticipants : false;
+  const isCreator = userId ? event.created_by === userId : false;
   const isCompleted = event.status === 'completed';
 
   // 날짜/시간 포맷팅
@@ -270,7 +273,7 @@ export default async function EventDetailPage({
                   </p>
                 </div>
 
-                <ReviewModal userId={user?.id} eventId={id} />
+                {userId ? <ReviewModal userId={userId as string} eventId={id} /> : null} 
               </div>
 
               {reviews && reviews.length > 0 ? (
@@ -289,7 +292,7 @@ export default async function EventDetailPage({
                     이 모임의 첫 번째 후기 작성자가 되어주세요!
                     참여자들에게 큰 도움이 됩니다.
                   </p>
-                  <ReviewModal userId={user?.id} eventId={id} />
+                  {userId ? <ReviewModal userId={userId as string} eventId={id} /> : null}
                 </div>
               )}
             </div>

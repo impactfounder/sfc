@@ -1,21 +1,23 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === 'development'
+
 const nextConfig = {
-  reactStrictMode: false, // Strict Mode 비활성화 (위젯 중복 렌더링 방지)
+  // 개발에서는 중복 렌더 경고를 피하고, 프로덕션에서는 안전하게 Strict Mode 활성화
+  reactStrictMode: !isDev,
   typescript: {
-    ignoreBuildErrors: true,
-    // 개발 환경에서 TypeScript 체크를 더 빠르게
+    // 프로덕션 오류를 삼키지 않도록 빌드 에러를 무시하지 않습니다.
+    ignoreBuildErrors: false,
     tsconfigPath: './tsconfig.json',
   },
   images: {
-    unoptimized: true,
-    // quality 100을 허용합니다.
-    qualities: [75, 100],
+    // Next 이미지 최적화를 사용합니다.
+    unoptimized: false,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'api.dicebear.com',
-      },
+      { protocol: 'https', hostname: 'api.dicebear.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'c6a6mkohft8ir4os.public.blob.vercel-storage.com' },
     ],
+    qualities: [75, 100],
   },
   serverExternalPackages: ['@supabase/supabase-js'],
   transpilePackages: ['lucide-react'],
@@ -27,7 +29,7 @@ const nextConfig = {
   // Turbopack 설정 (Next.js 16에서 기본 활성화)
   turbopack: {},
   // 개발 환경 최적화 (webpack 사용 시)
-  ...(process.env.NODE_ENV === 'development' && {
+  ...(isDev && {
     // 개발 환경에서만 적용되는 설정
     webpack: (config, { dev, isServer }) => {
       if (dev && !isServer) {

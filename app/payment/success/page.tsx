@@ -35,7 +35,7 @@ function PaymentSuccessContent() {
           body: JSON.stringify({
             paymentKey,
             orderId,
-            amount: parseInt(amount, 10),
+            amount: parseInt(amount ?? "0", 10),
           }),
         });
 

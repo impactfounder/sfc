@@ -72,6 +72,7 @@ export default async function MemberPage() {
         roles,
         tagline,
         introduction,
+        member_type,
         role,
         created_at,
         user_badges (
@@ -101,6 +102,7 @@ export default async function MemberPage() {
           avatar_url,
           company,
           position,
+          member_type,
           roles,
           introduction,
           role,

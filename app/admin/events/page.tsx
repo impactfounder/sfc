@@ -77,6 +77,12 @@ export default async function AdminEventsPage() {
                     minute: "2-digit",
                   })
 
+                  const ownerName = (() => {
+                    const profile: any = (event as any).profiles
+                    const first = Array.isArray(profile) ? profile[0] : profile
+                    return first?.full_name || "알 수 없음"
+                  })()
+
                   return (
                     <div
                       key={event.id}
@@ -119,7 +125,7 @@ export default async function AdminEventsPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <User className="h-4 w-4" />
-                            <span>{event.profiles?.full_name || "알 수 없음"}</span>
+                            <span>{ownerName}</span>
                           </div>
                         </div>
                       </div>

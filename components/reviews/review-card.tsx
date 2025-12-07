@@ -90,7 +90,7 @@ export function ReviewCard({ review, className }: ReviewCardProps) {
                         <Avatar className="h-14 w-14 ring-4 ring-white dark:ring-slate-900 shadow-sm">
                             <AvatarImage src={review.profiles?.avatar_url || undefined} />
                             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
-                                {getInitials(review.profiles?.full_name)}
+                                {getInitials(review.profiles?.full_name ?? "")}
                             </AvatarFallback>
                         </Avatar>
 

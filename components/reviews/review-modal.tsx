@@ -32,8 +32,8 @@ const REVIEW_KEYWORDS = [
 interface ReviewModalProps {
     userId: string
     eventId: string
-    open: boolean
-    onOpenChange: (open: boolean) => void
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
 }
 
 export function ReviewModal({ userId, eventId, open, onOpenChange }: ReviewModalProps) {
@@ -44,6 +44,11 @@ export function ReviewModal({ userId, eventId, open, onOpenChange }: ReviewModal
     const [detailContent, setDetailContent] = useState("")
     const [isOptionalOpen, setIsOptionalOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [internalOpen, setInternalOpen] = useState(false)
+
+    const isControlled = typeof open === "boolean" && typeof onOpenChange === "function"
+    const isOpen = isControlled ? open : internalOpen
+    const handleOpenChange = isControlled ? onOpenChange! : setInternalOpen
 
     const isValid = rating >= 0.5 && oneLiner.length >= 20 && oneLiner.length <= 100 && selectedKeywords.length > 0
 
@@ -67,33 +72,33 @@ export function ReviewModal({ userId, eventId, open, onOpenChange }: ReviewModal
 
         if (!isValid) return
 
-        setIsSubmitting(true)
-        try {
-            await createReview({
-                user_id: userId,
-                event_id: eventId,
-                rating,
-                keywords: selectedKeywords,
-                one_liner: oneLiner,
-                detail_content: detailContent || null,
-                is_public: true,
-            })
+            setIsSubmitting(true)
+            try {
+                await createReview({
+                    user_id: userId,
+                    event_id: eventId,
+                    rating,
+                    keywords: selectedKeywords,
+                    one_liner: oneLiner,
+                    detail_content: detailContent || null,
+                    is_public: true,
+                })
 
-            toast.success("후기가 등록되었습니다! 🎉")
+                toast.success("후기가 등록되었습니다! 🎉")
 
-            // 폼 초기화
-            setRating(0)
-            setSelectedKeywords([])
-            setOneLiner("")
-            setDetailContent("")
-            setIsOptionalOpen(false)
-            onOpenChange(false) // 닫기
-        } catch (error: any) {
-            console.error(error)
-            toast.error(error.message || "후기 등록에 실패했습니다. 다시 시도해주세요.")
-        } finally {
-            setIsSubmitting(false)
-        }
+                // 폼 초기화
+                setRating(0)
+                setSelectedKeywords([])
+                setOneLiner("")
+                setDetailContent("")
+                setIsOptionalOpen(false)
+                handleOpenChange(false) // 닫기
+            } catch (error: any) {
+                console.error(error)
+                toast.error(error.message || "후기 등록에 실패했습니다. 다시 시도해주세요.")
+            } finally {
+                setIsSubmitting(false)
+            }
     }
 
     const renderStars = () => {
@@ -152,7 +157,7 @@ export function ReviewModal({ userId, eventId, open, onOpenChange }: ReviewModal
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0 flex flex-col gap-0 select-none">
                 <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -279,7 +284,7 @@ export function ReviewModal({ userId, eventId, open, onOpenChange }: ReviewModal
                         <Button
                             variant="outline"
                             className="flex-1 h-12 text-base font-medium border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                            onClick={() => onOpenChange(false)}
+                            onClick={() => handleOpenChange(false)}
                         >
                             닫기
                         </Button>

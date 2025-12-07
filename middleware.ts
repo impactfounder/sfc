@@ -2,8 +2,17 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
-  // /auth/callback은 middleware를 통과하지 않도록 처리
-  if (request.nextUrl.pathname.startsWith("/auth/callback")) {
+  const pathname = request.nextUrl.pathname;
+
+  // auth 콜백은 그대로 통과
+  if (pathname.startsWith("/auth/callback")) {
+    return NextResponse.next();
+  }
+
+  // 보호 경로가 아니면 Supabase 호출 없이 통과
+  const protectedPrefixes = ["/admin"];
+  const isProtected = protectedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (!isProtected) {
     return NextResponse.next();
   }
 
