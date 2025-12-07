@@ -83,7 +83,7 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
                 href: `/community/board/${post.board_categories?.slug ?? "community"}`,
                 iconUrl: post.thumbnail_url ?? undefined,
               }}
-              author={{ name: post.profiles?.full_name ?? "익명" }}
+              author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
               createdAt={post.created_at}
               title={post.title}
               content={post.content ?? undefined}

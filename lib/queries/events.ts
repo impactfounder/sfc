@@ -31,7 +31,6 @@ export async function getUpcomingEvents(
       title,
       thumbnail_url,
       event_date,
-      event_time,
       location,
       max_participants,
       event_type,
@@ -53,7 +52,8 @@ export async function getUpcomingEvents(
     title: event.title,
     thumbnail_url: event.thumbnail_url,
     event_date: event.event_date,
-    event_time: event.event_time,
+    // event_time 컬럼이 없는 스키마 대응 (null로 채워서 타입 충족)
+    event_time: null,
     location: event.location,
     max_participants: event.max_participants,
     current_participants: event.event_registrations?.[0]?.count || 0,

@@ -1,16 +1,16 @@
 "use client"
 
-import Link from "next/link"
 import { Heart, MessageSquare, Share2, Tag } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import { useMemo } from "react"
 
 type PostCardProps = {
   postId: string
   href: string
   community: { name: string; href?: string; iconUrl?: string | null }
-  author: { name: string; href?: string }
+  author: { name: string; href?: string; avatarUrl?: string | null }
   createdAt: string
   title: string
   content?: string | null
@@ -42,6 +42,10 @@ export function PostCard({
   const router = useRouter()
   const timeLabel = formatRelativeTime(createdAt)
   const derivedThumb = thumbnailUrl || extractFirstImage(contentRaw || content)
+  const previewHtml = useMemo(
+    () => sanitizePreview(contentRaw || content || "", Boolean(derivedThumb)),
+    [content, contentRaw, derivedThumb]
+  )
 
   return (
     <div
@@ -61,13 +65,13 @@ export function PostCard({
     >
       {/* Header */}
       <div className="p-3 pb-1 flex items-center gap-2 text-xs text-slate-500">
-        <Avatar className="h-5 w-5">
-          <AvatarImage src={community.iconUrl || undefined} />
+        <Avatar className="h-6 w-6">
+          <AvatarImage src={author.avatarUrl || undefined} />
           <AvatarFallback className="text-[10px]">
-            {community.name?.charAt(0)?.toUpperCase() || "·"}
+            {author.name?.charAt(0) || "·"}
           </AvatarFallback>
         </Avatar>
-        <span className="font-bold text-slate-900">{author.name}</span>
+        <span className="font-bold text-slate-900 text-sm">{author.name}</span>
         <span className="text-slate-400">•</span>
         <span className="text-slate-400">{timeLabel}</span>
         <span className="text-slate-400">•</span>
@@ -86,10 +90,11 @@ export function PostCard({
 
       {/* Content Preview + Image */}
       <div className="px-3 pb-2">
-        {content && (
-          <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
-            {content}
-          </p>
+        {(contentRaw || content) && (
+          <div
+            className="prose prose-slate max-w-none text-sm leading-relaxed line-clamp-4"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
         )}
         {derivedThumb && (
           <div className="mt-3 w-full h-[300px] rounded-md bg-slate-100 overflow-hidden">
@@ -169,5 +174,22 @@ function extractFirstImage(content?: string | null): string | null {
   if (!content) return null
   const match = content.match(/<img[^>]+src=["']([^"']+)["']/i)
   return match ? match[1] : null
+}
+
+// 매우 제한적으로 스크립트/인라인 핸들러를 제거한 뒤 미리보기로 사용
+function sanitizePreview(html: string, stripImages = false): string {
+  if (!html) return ""
+  let safe = html
+  // 스크립트 태그 제거
+  safe = safe.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+  // 이벤트 핸들러(on...) 속성 제거
+  safe = safe.replace(/\son\w+="[^"]*"/gi, "")
+  safe = safe.replace(/\son\w+='[^']*'/gi, "")
+  // 스타일 태그 제거(원치 않는 CSS 주입 방지)
+  safe = safe.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+  if (stripImages) {
+    safe = safe.replace(/<img[^>]*>/gi, "")
+  }
+  return safe
 }
 

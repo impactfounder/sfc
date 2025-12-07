@@ -8,6 +8,7 @@ import { EventsSection } from "@/components/home/events-section"
 import { getEventShortUrl } from "@/lib/utils/event-url"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
+import { SiteHeader } from "@/components/site-header"
 
 export default async function EventsPage() {
   const supabase = await createClient()
@@ -78,6 +79,7 @@ export default async function EventsPage() {
 
   return (
     <DashboardLayout
+      header={<SiteHeader />}
       sidebarProfile={<SidebarProfile />}
       rightSidebar={<StandardRightSidebar />}
     >

@@ -11,6 +11,7 @@ import { UserBadges } from "@/components/user-badges"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import SidebarProfile from "@/components/sidebar-profile"
+import { SiteHeader } from "@/components/site-header"
 import { isMasterAdmin, isAdmin } from "@/lib/utils"
 import { getComments } from "@/lib/actions/comments"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -21,9 +22,9 @@ const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights", "reviews"]
 export default async function BoardPostDetailPage({
   params,
 }: {
-  params: { slug: string; id: string }
+  params: Promise<{ slug: string; id: string }>
 }) {
-  const { slug, id } = params
+  const { slug, id } = await params
   const supabase = await createClient()
 
   let dbSlug = slug
@@ -94,7 +95,7 @@ export default async function BoardPostDetailPage({
   const actualLikesCount = likesResult.count || 0
 
   return (
-    <DashboardLayout sidebarProfile={<SidebarProfile />} rightSidebar={<StandardRightSidebar />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} rightSidebar={<StandardRightSidebar />}>
       <div className="w-full flex flex-col gap-6">
         {/* 헤더 (카드 바로 위로 이동) */}
         <div className="flex items-center justify-between">

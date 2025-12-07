@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
+import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -69,7 +70,7 @@ export default async function PartnerServiceDetailPage({
   }
 
   return (
-    <DashboardLayout sidebarProfile={<SidebarProfile />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />}>
       <div className="w-full flex flex-col gap-8">
         {/* 썸네일 이미지 */}
         <div className="relative aspect-video w-full rounded-xl overflow-hidden">

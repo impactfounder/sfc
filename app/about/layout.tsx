@@ -1,6 +1,7 @@
 import type React from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
+import { SiteHeader } from "@/components/site-header"
 
 export default function AboutLayout({
   children,
@@ -8,7 +9,7 @@ export default function AboutLayout({
   children: React.ReactNode
 }) {
   return (
-    <DashboardLayout sidebarProfile={<SidebarProfile />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />}>
       {children}
     </DashboardLayout>
   )

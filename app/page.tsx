@@ -40,6 +40,10 @@ export const metadata: Metadata = {
   },
 }
 
+// 홈은 실시간 이벤트/피드 노출이 필요하므로 정적 캐시를 사용하지 않는다.
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function HomePage() {
   const supabase = await createClient()
 

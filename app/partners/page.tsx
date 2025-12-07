@@ -12,6 +12,7 @@ import { PartnerProposalButtonClient } from "@/components/partner-proposal-butto
 import { PageHeader } from "@/components/page-header"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
+import { SiteHeader } from "@/components/site-header"
 
 // 카테고리 색상 매핑 (기본 색상, 카테고리 이름에 따라 동적으로 할당)
 const getCategoryColor = (categoryName: string, index: number): string => {
@@ -117,6 +118,7 @@ export default async function PartnersPage() {
 
   return (
     <DashboardLayout
+      header={<SiteHeader />}
       sidebarProfile={<SidebarProfile />}
       rightSidebar={<StandardRightSidebar />}
     >

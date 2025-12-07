@@ -1,10 +1,11 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
+import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function TermsPage() {
   return (
-    <DashboardLayout sidebarProfile={<SidebarProfile />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />}>
       <div className="max-w-4xl mx-auto p-6 w-full">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
