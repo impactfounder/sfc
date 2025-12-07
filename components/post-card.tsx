@@ -124,3 +124,4 @@ export function PostCard({ post, href = `/community/board/${post.board_categorie
   )
 }
 
+

@@ -92,3 +92,4 @@ export function EventPostCard({ event, href = `/events/${event.id}`, className }
   )
 }
 
+

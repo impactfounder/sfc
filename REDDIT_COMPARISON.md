@@ -320,3 +320,4 @@ CREATE TABLE reports (
 - PostgreSQL Full-Text Search: https://www.postgresql.org/docs/current/textsearch.html
 - Supabase Realtime: https://supabase.com/docs/guides/realtime
 
+

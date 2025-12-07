@@ -18,3 +18,4 @@ ADD COLUMN IF NOT EXISTS is_event boolean DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS idx_posts_related_event ON public.posts(related_event_id);
 
+
