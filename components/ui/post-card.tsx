@@ -64,7 +64,9 @@ export function PostCard({
       <div className="px-4 pt-3 pb-2 flex items-center text-xs text-gray-500 gap-2">
         <Avatar className="h-5 w-5">
           <AvatarImage src={community.iconUrl || undefined} />
-          <AvatarFallback className="text-[10px]">r/</AvatarFallback>
+          <AvatarFallback className="text-[10px]">
+            {community.name?.charAt(0)?.toUpperCase() || "·"}
+          </AvatarFallback>
         </Avatar>
         {community.href ? (
           <Link
@@ -79,9 +81,8 @@ export function PostCard({
         )}
         <span className="mx-1">•</span>
         <span className="text-gray-500">
-          Posted by{" "}
           <Link href={author.href || "#"} onClick={(e) => e.stopPropagation()} className="hover:underline">
-            u/{author.name}
+            {author.name}
           </Link>
         </span>
         <span className="mx-1">•</span>
@@ -173,17 +174,17 @@ function formatRelativeTime(dateStr: string) {
   const date = new Date(dateStr)
   const diff = Date.now() - date.getTime()
   const sec = Math.floor(diff / 1000)
-  if (sec < 60) return `${sec}s ago`
+  if (sec < 60) return `${sec}초 전`
   const min = Math.floor(sec / 60)
-  if (min < 60) return `${min}m ago`
+  if (min < 60) return `${min}분 전`
   const hr = Math.floor(min / 60)
-  if (hr < 24) return `${hr}h ago`
+  if (hr < 24) return `${hr}시간 전`
   const day = Math.floor(hr / 24)
-  if (day < 30) return `${day}d ago`
+  if (day < 30) return `${day}일 전`
   const mo = Math.floor(day / 30)
-  if (mo < 12) return `${mo}mo ago`
+  if (mo < 12) return `${mo}개월 전`
   const yr = Math.floor(mo / 12)
-  return `${yr}y ago`
+  return `${yr}년 전`
 }
 
 function extractFirstImage(content?: string | null): string | null {
