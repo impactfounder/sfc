@@ -7,6 +7,7 @@ type FeedItem =
       created_at: string
       likes_count: number
       comments_count: number
+      content_preview?: string | null
       thumbnail_url?: string | null
       board_categories?: { name: string | null; slug: string | null } | null
       related_event_id?: string | null
