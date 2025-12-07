@@ -10,9 +10,10 @@ interface HeroSectionProps {
   user: any
   profile?: any
   loginHref?: string
+  onLogin?: () => void
 }
 
-export function HeroSection({ user, profile, loginHref = "/auth/login" }: HeroSectionProps) {
+export function HeroSection({ user, profile, loginHref = "/auth/login", onLogin }: HeroSectionProps) {
   // 1. 로그인한 유저
   if (user) {
     // displayName 변수 생성: profile.full_name 우선, 없으면 user.user_metadata.full_name, 없으면 "멤버"
@@ -97,14 +98,24 @@ export function HeroSection({ user, profile, loginHref = "/auth/login" }: HeroSe
         
         {/* CTA Button */}
         <div className="flex flex-col sm:flex-row items-center justify-center w-full">
-          <Link href={loginHref}>
-            <Button 
-              size="sm" 
+          {onLogin ? (
+            <Button
+              size="sm"
               className="h-10 px-6 text-sm bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-lg"
+              onClick={onLogin}
             >
               3초만에 가입하기
             </Button>
-          </Link>
+          ) : (
+            <Link href={loginHref}>
+              <Button
+                size="sm"
+                className="h-10 px-6 text-sm bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] transition-all duration-300 rounded-full font-bold shadow-lg"
+              >
+                3초만에 가입하기
+              </Button>
+            </Link>
+          )}
         </div>
 
       </div>
