@@ -6,6 +6,8 @@ import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { PageHeader } from "@/components/page-header"
 import { EventsSection } from "@/components/home/events-section"
 import { getEventShortUrl } from "@/lib/utils/event-url"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import SidebarProfile from "@/components/sidebar-profile"
 
 export default async function EventsPage() {
   const supabase = await createClient()
@@ -75,9 +77,11 @@ export default async function EventsPage() {
   )
 
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* [LEFT] 메인 콘텐츠 영역 */}
-      <div className="lg:col-span-9 flex flex-col gap-6">
+    <DashboardLayout
+      sidebarProfile={<SidebarProfile />}
+      rightSidebar={<StandardRightSidebar />}
+    >
+      <div className="w-full flex flex-col gap-10">
         <PageHeader
           title="이벤트"
           description="다양한 네트워킹, 클래스, 액티비티 이벤트에 참여하세요"
@@ -85,15 +89,14 @@ export default async function EventsPage() {
           className="h-[130px]"
         />
 
-        {/* 다가오는 이벤트 */}
         <EventsSection
           events={formattedUpcomingEvents}
           createLink="/e/new"
           isLoading={false}
           title="다가오는 이벤트"
+          showFilters={true}
         />
 
-        {/* 지난 이벤트 */}
         {pastEvents && pastEvents.length > 0 && (
           <div className="mt-8">
             <h2 className="text-xl font-bold text-slate-900 mb-4">지난 이벤트</h2>
@@ -126,14 +129,7 @@ export default async function EventsPage() {
           </div>
         )}
       </div>
-
-      {/* [RIGHT] 사이드바 */}
-      <div className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-8 flex flex-col gap-6 h-fit">
-          <StandardRightSidebar />
-        </div>
-      </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

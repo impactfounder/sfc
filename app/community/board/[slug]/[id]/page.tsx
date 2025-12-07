@@ -11,8 +11,10 @@ import { Button } from '@/components/ui/button';
 import { UserBadges } from "@/components/user-badges";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StandardRightSidebar } from "@/components/standard-right-sidebar";
+import SidebarProfile from "@/components/sidebar-profile";
 import { isMasterAdmin, isAdmin } from "@/lib/utils";
 import { getComments } from "@/lib/actions/comments";
+import { DashboardLayout } from "@/components/dashboard-layout";
 
 // 전체 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights", "reviews"];
@@ -90,13 +92,11 @@ export default async function BoardPostDetailPage({
   const actualLikesCount = likesResult.count || 0;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 본문 Flex Layout */}
-      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* [LEFT] 메인 콘텐츠 */}
-        <div className="lg:col-span-9 flex flex-col gap-6">
-
+    <DashboardLayout
+      sidebarProfile={<SidebarProfile />}
+      rightSidebar={<StandardRightSidebar />}
+    >
+      <div className="w-full flex flex-col gap-6">
           {/* 헤더 (카드 바로 위로 이동) */}
           <div className="flex items-center justify-between">
             <Link href={`/community/board/${slug}`} className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
@@ -195,16 +195,8 @@ export default async function BoardPostDetailPage({
             </CardContent>
           </Card>
         </div>
-
-        {/* [RIGHT] 우측 사이드바 영역 */}
-        <div className="hidden lg:block lg:col-span-3">
-          <div className="sticky top-8 flex flex-col gap-6 h-fit">
-            <StandardRightSidebar />
-          </div>
-        </div>
-
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

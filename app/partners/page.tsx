@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { PartnerProposalButtonClient } from "@/components/partner-proposal-button-client"
 import { PageHeader } from "@/components/page-header"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import SidebarProfile from "@/components/sidebar-profile"
 
 // 카테고리 색상 매핑 (기본 색상, 카테고리 이름에 따라 동적으로 할당)
 const getCategoryColor = (categoryName: string, index: number): string => {
@@ -114,47 +116,41 @@ export default async function PartnersPage() {
   const displayServices = allServices.length > 0 ? allServices : dummyPartners
 
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* 메인 콘텐츠 영역 (왼쪽 9칸) */}
-      <main className="lg:col-span-9 flex flex-col gap-6">
-          {/* 배너: 메인 영역의 첫 번째 요소 */}
-          <PageHeader
-            title="파트너스"
-            description="멤버들을 위한 특별한 혜택을 만나보세요."
-            className="w-full"
-            compact={true}
-          />
+    <DashboardLayout
+      sidebarProfile={<SidebarProfile />}
+      rightSidebar={<StandardRightSidebar />}
+    >
+      <div className="w-full flex flex-col gap-10">
+        <PageHeader
+          title="파트너스"
+          description="멤버들을 위한 특별한 혜택을 만나보세요."
+          className="w-full"
+          compact={true}
+        />
 
-          {/* 헤더 (타이틀 + 버튼) */}
-          <div className="flex justify-between items-center mt-4">
-            <h2 className="text-xl font-bold text-slate-900">제휴 업체 목록</h2>
-            <PartnerProposalButtonClient />
-          </div>
+        <div className="flex justify-between items-center mt-4">
+          <h2 className="text-xl font-bold text-slate-900">제휴 업체 목록</h2>
+          <PartnerProposalButtonClient />
+        </div>
 
-          {/* 카테고리 필터 */}
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="rounded-full" asChild>
+            <Link href="/partners">전체</Link>
+          </Button>
+          {partnerCategories && partnerCategories.map((cat) => (
             <Button
+              key={cat.id}
               variant="outline"
               className="rounded-full"
               asChild
             >
-              <Link href="/partners">전체</Link>
+              <Link href={`/partners?category=${cat.name}`}>{cat.name}</Link>
             </Button>
-            {partnerCategories && partnerCategories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant="outline"
-                className="rounded-full"
-                asChild
-              >
-                <Link href={`/partners?category=${cat.name}`}>{cat.name}</Link>
-              </Button>
-            ))}
-          </div>
+          ))}
+        </div>
 
-          {/* 카드 리스트 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {displayServices.map((service) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {displayServices.map((service) => {
             const isDummy = service.id?.startsWith("dummy-")
             const serviceCategory = service.category || "기타"
             const categoryIndex = partnerCategories?.findIndex(cat => cat.name === serviceCategory) ?? 0
@@ -252,16 +248,9 @@ export default async function PartnersPage() {
               </Link>
             )
           })}
-          </div>
-      </main>
-
-      {/* 우측 사이드바 영역 (오른쪽 3칸) */}
-      <aside className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-8 flex flex-col gap-6 h-fit">
-          <StandardRightSidebar />
         </div>
-      </aside>
-    </div>
+      </div>
+    </DashboardLayout>
   )
 }
 

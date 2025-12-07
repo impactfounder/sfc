@@ -5,6 +5,9 @@ import { PageHeader } from "@/components/page-header"
 import { EventsSection } from "@/components/home/events-section"
 import EventCard from "@/components/ui/event-card"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import SidebarProfile from "@/components/sidebar-profile"
+import { ContentLayout } from "@/components/layouts/ContentLayout"
 
 export default async function EventsPage() {
   // /events를 /e로 리다이렉트
@@ -70,70 +73,68 @@ export default async function EventsPage() {
     })
   )
 
-  const buttonStyle = "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm h-auto"
-
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* [LEFT] 메인 콘텐츠 영역 */}
-      <div className="lg:col-span-9 flex flex-col gap-6">
-        {/* PageHeader 적용 */}
-        <PageHeader 
-          title="이벤트"
-          description="함께 성장하는 네트워킹 파티와 인사이트 세미나를 놓치지 마세요."
-          compact={true}
-        />
+    <DashboardLayout sidebarProfile={<SidebarProfile />}>
+      <ContentLayout
+        mainContent={
+          <div className="w-full flex flex-col gap-8">
+            <PageHeader 
+              title="이벤트"
+              description="함께 성장하는 네트워킹 파티와 인사이트 세미나를 놓치지 마세요."
+              compact={true}
+              className="h-[130px]"
+            />
 
-        {/* Upcoming Events (EventsSection으로 교체) */}
-        <div className="mb-10">
-          <EventsSection 
-            events={formattedUpcomingEvents} 
-            createLink={user ? "/events/new" : "/auth/login"}
-            title="다가오는 이벤트"
-          />
-        </div>
-
-          {/* Past Events */}
-          {pastEvents.length > 0 && (
-            <div>
-              <h2 className="mb-4 text-xl font-semibold text-slate-900">지난 이벤트</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4 lg:gap-6">
-                {await Promise.all(pastEvents.map(async (event) => {
-                   const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
-                   const eventData = {
-                    id: event.id,
-                    title: event.title,
-                    thumbnail_url: event.thumbnail_url,
-                    event_date: event.event_date,
-                    event_time: null,
-                    location: event.location,
-                    max_participants: event.max_participants,
-                    current_participants: event.event_registrations?.[0]?.count || 0,
-                    host_name: event.profiles?.full_name,
-                    host_avatar_url: event.profiles?.avatar_url,
-                    host_bio: event.profiles?.bio,
-                  }
-                  
-                  return (
-                    <div key={event.id} className="w-full opacity-60 hover:opacity-100 transition-opacity">
-                      <EventCard 
-                        event={eventData}
-                        href={shortCode}
-                        className="w-full h-full"
-                      />
-                    </div>
-                  )
-                }))}
-              </div>
+            <div className="mb-6">
+              <EventsSection 
+                events={formattedUpcomingEvents} 
+                createLink={user ? "/events/new" : "/auth/login"}
+                title="다가오는 이벤트"
+                showFilters={true}
+              />
             </div>
-          )}
-        </div>
 
-      {/* [RIGHT] 우측 사이드바 영역 */}
-      <div className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-8 flex flex-col gap-6 h-fit">
-          <StandardRightSidebar />
-        </div>
-      </div>
-    </div>
+            {pastEvents.length > 0 && (
+              <div>
+                <h2 className="mb-4 text-xl font-semibold text-slate-900">지난 이벤트</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4 lg:gap-6">
+                  {await Promise.all(pastEvents.map(async (event) => {
+                    const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
+                    const eventData = {
+                      id: event.id,
+                      title: event.title,
+                      thumbnail_url: event.thumbnail_url,
+                      event_date: event.event_date,
+                      event_time: null,
+                      location: event.location,
+                      max_participants: event.max_participants,
+                      current_participants: event.event_registrations?.[0]?.count || 0,
+                      host_name: event.profiles?.full_name,
+                      host_avatar_url: event.profiles?.avatar_url,
+                      host_bio: event.profiles?.bio,
+                    }
+                    
+                    return (
+                      <div key={event.id} className="w-full opacity-60 hover:opacity-100 transition-opacity">
+                        <EventCard 
+                          event={eventData}
+                          href={shortCode}
+                          className="w-full h-full"
+                        />
+                      </div>
+                    )
+                  }))}
+                </div>
+              </div>
+            )}
+          </div>
+        }
+        rightSidebar={
+          <div className="sticky top-8">
+            <StandardRightSidebar />
+          </div>
+        }
+      />
+    </DashboardLayout>
   )
 }

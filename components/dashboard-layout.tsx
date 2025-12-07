@@ -1,46 +1,52 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import NotificationsDropdown from "@/components/notifications-dropdown"
 
 interface DashboardLayoutProps {
   children: ReactNode
-  sidebarProfile?: ReactNode
+  header?: ReactNode
+  rightSidebar?: ReactNode
 }
 
-export function DashboardLayout({ children, sidebarProfile }: DashboardLayoutProps) {
+export function DashboardLayout({ children, header, rightSidebar }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <MobileHeader />
-      
-      {/* 1. 전체 화면을 가로지르는 Flex 컨테이너 */}
-      <div className="flex-1 flex justify-center w-full">
-        
-        {/* 2. 최대 너비와 좌우 여백을 담당하는 '물리적 고정' 컨테이너 */}
-        <div className="flex w-full max-w-[1800px] mx-auto px-4 lg:px-6 gap-10 box-border">
-          
-          {/* [좌측 사이드바] 너비 고정 (변동 불가) */}
-          <aside className="hidden lg:block w-72 shrink-0 sticky top-0 h-screen border-r border-slate-200 bg-white z-30">
-            <Sidebar>
-              {sidebarProfile}
-            </Sidebar>
-          </aside>
+    <div className="min-h-screen bg-slate-50">
+      {/* 1. Global Header (Passed from server component) */}
+      {header}
 
-          {/* [중앙 본문] 
-              - 너비: 남은 공간 모두 차지 (flex-1)
-              - 높이: 내용물에 따라 늘어남
-              - 여백: 여기서 상하 여백(py)을 '유일하게' 정의함
-              - pt-8 (32px): 우측 사이드바의 sticky top-8과 높이를 맞춰 레이아웃 정렬
-          */}
-          <div className="flex-1 min-w-0 flex flex-col">
-            <main className="flex-1 bg-slate-50 pt-20 pb-24 lg:pt-8 lg:pb-20">
-              {children}
-            </main>
+      {/* Mobile Header (lg 미만) - Only show if no header passed (fallback) or handle differently */}
+      {!header && (
+        <div className="lg:hidden sticky top-0 z-50">
+          <MobileHeader />
+        </div>
+      )}
+
+      {/* 2. Left Sidebar: Header 아래 배치 (top-14) */}
+      <aside className="fixed top-14 left-0 z-40 hidden h-[calc(100vh-3.5rem)] w-72 border-r border-slate-200 bg-white lg:block overflow-y-auto">
+        <Sidebar />
+      </aside>
+
+      {/* 3. Main Content Wrapper: Header 높이(pt-14) + Sidebar 너비(pl-72) */}
+      <main
+        className={cn(
+          "min-h-screen w-full transition-all duration-200 ease-in-out",
+          header ? "pt-14 lg:pl-72" : "lg:pl-72" // Header 유무에 따라 패딩 조정
+        )}
+      >
+        <div className="mx-auto max-w-7xl w-full px-4 py-8 md:px-8 lg:py-10">
+          <div className={cn("w-full", rightSidebar ? "flex flex-col lg:flex-row gap-8" : "")}>
+            <div className="flex-1 min-w-0">{children}</div>
+            {rightSidebar && (
+              <aside className="hidden lg:block w-72 shrink-0">
+                {rightSidebar}
+              </aside>
+            )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

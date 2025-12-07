@@ -1,10 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Heart, MessageSquare, Share2 } from "lucide-react"
+import { Heart, MessageSquare, Share2, Tag } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { LikeButton } from "@/components/like-button"
 import { useRouter } from "next/navigation"
 
 type PostCardProps = {
@@ -56,71 +55,48 @@ export function PostCard({
         }
       }}
       className={cn(
-        "bg-white rounded-md border border-gray-300 hover:border-gray-400 transition-colors mb-4",
-        "overflow-hidden cursor-pointer"
+        "bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors mb-4",
+        "cursor-pointer overflow-hidden shadow-sm hover:shadow-md"
       )}
     >
       {/* Header */}
-      <div className="px-4 pt-3 pb-2 flex items-center text-xs text-gray-500 gap-2">
+      <div className="p-3 pb-1 flex items-center gap-2 text-xs text-slate-500">
         <Avatar className="h-5 w-5">
           <AvatarImage src={community.iconUrl || undefined} />
           <AvatarFallback className="text-[10px]">
             {community.name?.charAt(0)?.toUpperCase() || "·"}
           </AvatarFallback>
         </Avatar>
-        {community.href ? (
-          <Link
-            href={community.href}
-            onClick={(e) => e.stopPropagation()}
-            className="font-bold text-black hover:underline"
-          >
-            {community.name}
-          </Link>
-        ) : (
-          <span className="font-bold text-black">{community.name}</span>
-        )}
-        <span className="mx-1">•</span>
-        <span className="text-gray-500">
-          <Link href={author.href || "#"} onClick={(e) => e.stopPropagation()} className="hover:underline">
-            {author.name}
-          </Link>
+        <span className="font-bold text-slate-900">{author.name}</span>
+        <span className="text-slate-400">•</span>
+        <span className="text-slate-400">{timeLabel}</span>
+        <span className="text-slate-400">•</span>
+        <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+          <Tag className="h-3 w-3" />
+          {community.name}
         </span>
-        <span className="mx-1">•</span>
-        <span>{timeLabel}</span>
       </div>
 
-      {/* Body */}
-      <div className="px-4 pb-2">
-        <h3 className="text-lg font-medium text-gray-900 leading-snug mb-2">{title}</h3>
+      {/* Title */}
+      <div className="px-3 py-1">
+        <h3 className="text-lg font-bold text-slate-900 leading-snug">
+          {title}
+        </h3>
+      </div>
+
+      {/* Content Preview + Image */}
+      <div className="px-3 pb-2">
         {content && (
-          <p className="text-sm text-gray-800 leading-relaxed line-clamp-4 mb-2 whitespace-pre-line">{content}</p>
+          <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
+            {content}
+          </p>
         )}
         {derivedThumb && (
-          <div
-            className="w-full bg-gray-100 rounded-md overflow-hidden border border-gray-200"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (typeof window !== "undefined") {
-                window.open(derivedThumb, "_blank", "noopener,noreferrer")
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault()
-                e.stopPropagation()
-                if (typeof window !== "undefined") {
-                  window.open(derivedThumb, "_blank", "noopener,noreferrer")
-                }
-              }
-            }}
-          >
+          <div className="mt-3 w-full h-[300px] rounded-md bg-slate-100 overflow-hidden">
             <img
               src={derivedThumb}
               alt={title}
-              className="w-full h-auto object-contain max-h-[420px] sm:max-h-[520px] cursor-zoom-in"
+              className="w-full h-full object-cover"
               loading="lazy"
             />
           </div>
@@ -128,30 +104,32 @@ export function PostCard({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 bg-gray-50/50 border-t border-gray-100 flex items-center gap-2 text-xs font-bold">
-        <div className="flex items-center">
-          <LikeButton
-            postId={postId}
-            userId={userId}
-            initialLiked={initialLiked}
-            initialCount={likesCount}
-            onLikeChange={() => {}}
-          />
-        </div>
+      <div className="px-3 py-2 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1 text-xs text-slate-600">
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
           type="button"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-slate-200 transition-colors"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
+          <Heart className="h-4 w-4" />
+          <span>{likesCount}</span>
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-slate-200 transition-colors"
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
           }}
         >
           <MessageSquare className="h-4 w-4" />
-          <span>{commentsCount} Comments</span>
+          <span>{commentsCount} 댓글</span>
         </button>
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
           type="button"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-slate-200 transition-colors"
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()

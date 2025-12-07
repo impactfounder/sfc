@@ -29,9 +29,18 @@ type EventsSectionProps = {
   isLoading?: boolean
   title?: string
   hideTitle?: boolean
+  showFilters?: boolean
 }
 
-export function EventsSection({ events, onCreateEvent, createLink, isLoading = false, title = "이벤트", hideTitle = false }: EventsSectionProps) {
+export function EventsSection({
+  events,
+  onCreateEvent,
+  createLink,
+  isLoading = false,
+  title = "이벤트",
+  hideTitle = false,
+  showFilters = true,
+}: EventsSectionProps) {
   const swiperRef = useRef<SwiperType | null>(null)
   const router = useRouter()
   const [filter, setFilter] = useState<"all" | "networking" | "class" | "activity">("all")
@@ -40,9 +49,10 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
 
   // 필터링된 이벤트
   const filteredEvents = useMemo(() => {
+    if (!showFilters) return events
     if (filter === "all") return events
     return events.filter(event => event.event_type === filter)
-  }, [events, filter])
+  }, [events, filter, showFilters])
 
   return (
     <div className="w-full">
@@ -68,7 +78,7 @@ export function EventsSection({ events, onCreateEvent, createLink, isLoading = f
       )}
 
       {/* 필터 UI */}
-      {hasEvents && (
+      {hasEvents && showFilters && (
         <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
           {[
             { value: "all", label: "전체" },

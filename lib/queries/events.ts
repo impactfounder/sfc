@@ -31,7 +31,6 @@ export async function getUpcomingEvents(
       title,
       thumbnail_url,
       event_date,
-      event_time,
       location,
       max_participants,
       event_type,
@@ -42,7 +41,9 @@ export async function getUpcomingEvents(
     .limit(limit)
 
   if (error) {
-    console.error("Error fetching events:", error)
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error fetching events:", (error as any)?.message || error)
+    }
     return []
   }
 

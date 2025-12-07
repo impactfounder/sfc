@@ -4,8 +4,14 @@ import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { getUpcomingEvents } from "@/lib/queries/events"
 import { getLatestPosts } from "@/lib/queries/posts"
 import { HeroSection } from "@/components/home/hero-section"
-import { FeaturedEvents } from "@/components/home/featured-events"
-import { LatestFeed } from "@/components/home/latest-feed"
+import { EventsSection } from "@/components/home/events-section"
+import { FeedSection } from "@/components/home/feed-section"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import SidebarProfile from "@/components/sidebar-profile"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { getEventShortUrl } from "@/lib/utils/event-url"
+import { fetchFeedPosts } from "@/lib/actions/feed"
+import { SiteHeader } from "@/components/site-header"
 
 export const metadata: Metadata = {
   title: "Seoul Founders Club",
@@ -42,16 +48,32 @@ export default async function HomePage() {
   const profile = userProfile?.profile || null
 
   const [events, posts] = await Promise.all([
-    getUpcomingEvents(supabase, 6),
-    getLatestPosts(supabase, 20, "all"),
+    getUpcomingEvents(supabase, 4),
+    fetchFeedPosts(1, "latest"),
   ])
 
+  const formattedEvents = await Promise.all(
+    events.map(async (event) => {
+      const shortUrl = await getEventShortUrl(event.id, event.event_date, supabase)
+      return { ...event, shortUrl }
+    })
+  )
+
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8 space-y-12">
-      <HeroSection user={user} profile={profile} onLogin={() => { window.location.href = "/auth/login" }} />
-      <FeaturedEvents events={events} />
-      <div className="border-b border-slate-100" />
-      <LatestFeed posts={posts} />
-    </main>
+    <DashboardLayout
+      header={<SiteHeader />}
+      rightSidebar={
+        <div className="sticky top-8">
+          <StandardRightSidebar />
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-10 w-full">
+        <HeroSection user={user} profile={profile} loginHref="/auth/login" />
+        <EventsSection events={formattedEvents as any} title="주요 이벤트" createLink="/e/new" showFilters={false} />
+        <div className="h-px bg-slate-200" />
+        <FeedSection initialPosts={posts as any} />
+      </div>
+    </DashboardLayout>
   )
 }

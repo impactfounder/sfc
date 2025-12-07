@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { PostsSection } from "@/components/home/posts-section"
+import { PostCard } from "@/components/ui/post-card"
 import Link from "next/link"
 import { Plus, Pencil, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
@@ -144,10 +144,16 @@ export function BoardPageClient({
     isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
   }))
 
+  const rightSidebarContent = isSystemBoard ? (
+    <StandardRightSidebar />
+  ) : (
+    <CommunityRightSidebar slug={dbSlug} />
+  )
+
   if (isError) {
     return (
-      <div className="w-full flex flex-col lg:flex-row gap-10">
-        <div className="flex-1 min-w-0">
+      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-9">
           <div className="text-center py-16">
             <h2 className="text-xl font-semibold text-slate-900 mb-2">데이터를 불러오는데 실패했습니다</h2>
             <p className="text-slate-500 mb-4">잠시 후 다시 시도해주세요.</p>
@@ -209,9 +215,7 @@ export function BoardPageClient({
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* [LEFT] 메인 콘텐츠 영역 (배너 + 헤더 + 리스트) */}
-      <div className="lg:col-span-9 flex flex-col gap-3">
-        {/* 배너: 메인 영역의 첫 번째 요소 */}
+      <div className="lg:col-span-9 flex flex-col gap-6">
         <CommunityBanner
           title={bannerConfig.title}
           description={bannerConfig.description}
@@ -220,9 +224,7 @@ export function BoardPageClient({
           slug={dbSlug}
         />
 
-        {/* 배너 아래 헤더 영역 (뷰 토글 + 버튼들) */}
-        <div className="flex items-center justify-between w-full">
-          {/* 왼쪽: 피드형/리스트형 토글 (인사이트 제외) */}
+        <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
           {slug !== "insights" ? (
             <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
               <button
@@ -254,9 +256,7 @@ export function BoardPageClient({
             <div></div>
           )}
           
-          {/* 오른쪽: 커뮤니티 참여 버튼 + 새 글 작성 버튼 */}
           <div className="flex items-center gap-2">
-            {/* 커뮤니티 참여 버튼 (시스템 게시판 제외) */}
             {!isSystemBoard && communityId && (
               <>
                 {!isMember ? (
@@ -281,7 +281,6 @@ export function BoardPageClient({
               </>
             )}
 
-            {/* 글쓰기 버튼 (멤버만 또는 시스템 게시판) */}
             {(isSystemBoard || isMember) && shouldShowButton && (
               <Button
                 onClick={buttonConfig.onClick}
@@ -294,7 +293,6 @@ export function BoardPageClient({
           </div>
         </div>
 
-        {/* 글쓰기 모달 (모든 게시판 공통) */}
         <Dialog open={isWriteModalOpen} onOpenChange={setIsWriteModalOpen}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -316,36 +314,47 @@ export function BoardPageClient({
           </DialogContent>
         </Dialog>
 
-        {/* 게시글 리스트 / 로딩 스켈레톤 */}
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+        <div className="flex flex-col gap-4">
+          {isLoading ? (
+            [1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="w-full h-24 rounded-xl border border-gray-200 p-4">
                 <Skeleton className="h-4 w-3/4 mb-2" />
                 <Skeleton className="h-3 w-1/4" />
               </div>
-            ))}
+            ))
+          ) : (
+            postsWithMembership.map((post) => (
+              <PostCard
+                key={post.id}
+                postId={post.id}
+                href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
+                community={{
+                  name: post.board_categories?.name ?? "커뮤니티",
+                  href: `/community/board/${post.board_categories?.slug ?? "community"}`,
+                  iconUrl: post.thumbnail_url ?? undefined,
+                }}
+                author={{ name: post.profiles?.full_name ?? "익명" }}
+                createdAt={post.created_at}
+                title={post.title}
+                content={post.content ?? undefined}
+                contentRaw={(post as any).content ?? undefined}
+                thumbnailUrl={post.thumbnail_url ?? undefined}
+                likesCount={post.likes_count ?? 0}
+                commentsCount={post.comments_count ?? 0}
+                userId={user?.id}
+                initialLiked={false}
+              />
+            ))
+          )}
+        </div>
+
+        {isAnnouncement && (
+          <div className="text-sm text-slate-500">
+            공지사항은 관리자가 작성한 글만 표시됩니다.
           </div>
-        ) : (
-          <PostsSection
-            posts={postsWithMembership}
-            boardCategories={[]}
-            selectedBoard={dbSlug}
-            hideTabs={true}
-            isLoading={isLoading}
-            isInsight={slug === "insights"}
-            viewMode={
-              slug === "insights"
-                ? "blog"
-                : viewMode
-            }
-            onViewModeChange={setViewMode}
-            hideViewToggle={true}
-          />
         )}
       </div>
 
-      {/* [RIGHT] 우측 사이드바 영역 */}
       <div className="hidden lg:block lg:col-span-3">
         <div className="sticky top-8 flex flex-col gap-6 h-fit">
           {isSystemBoard ? (
