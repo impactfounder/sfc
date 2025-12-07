@@ -37,6 +37,7 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
     queryFn: async ({ pageParam = 1 }) => fetchFeedPosts(pageParam as number, sort),
     getNextPageParam: (lastPage, pages) => (lastPage.length < PAGE_SIZE ? undefined : pages.length + 1),
     initialData,
+    initialPageParam: 1,
     refetchOnWindowFocus: false,
   })
 
