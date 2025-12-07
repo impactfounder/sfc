@@ -31,6 +31,7 @@ export async function getUpcomingEvents(
       title,
       thumbnail_url,
       event_date,
+      event_time,
       location,
       max_participants,
       event_type,
