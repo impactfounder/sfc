@@ -9,9 +9,10 @@ interface DashboardLayoutProps {
   children: ReactNode
   header?: ReactNode
   rightSidebar?: ReactNode
+  sidebarProfile?: ReactNode
 }
 
-export function DashboardLayout({ children, header, rightSidebar }: DashboardLayoutProps) {
+export function DashboardLayout({ children, header, rightSidebar, sidebarProfile }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 1. Global Header (Passed from server component) */}
@@ -37,11 +38,14 @@ export function DashboardLayout({ children, header, rightSidebar }: DashboardLay
         )}
       >
         <div className="mx-auto max-w-7xl w-full px-4 py-8 md:px-8 lg:py-10">
-          <div className={cn("w-full", rightSidebar ? "flex flex-col lg:flex-row gap-8" : "")}>
+          <div className={cn("w-full", rightSidebar || sidebarProfile ? "flex flex-col lg:flex-row gap-8" : "")}>
             <div className="flex-1 min-w-0">{children}</div>
-            {rightSidebar && (
+            {(rightSidebar || sidebarProfile) && (
               <aside className="hidden lg:block w-72 shrink-0">
-                {rightSidebar}
+                <div className="space-y-6">
+                  {sidebarProfile}
+                  {rightSidebar}
+                </div>
               </aside>
             )}
           </div>
