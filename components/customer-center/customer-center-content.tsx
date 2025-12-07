@@ -22,8 +22,6 @@ import {
 import { createInquiry } from "@/lib/actions/inquiries"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, MessageCircleQuestion, Send } from "lucide-react"
-import { ContentLayout } from "@/components/layouts/ContentLayout"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 // FAQ 더미 데이터
@@ -250,10 +248,5 @@ export function CustomerCenterContent() {
     </div>
   )
 
-  return (
-    <ContentLayout
-      mainContent={mainContent}
-      rightSidebar={<StandardRightSidebar />}
-    />
-  )
+  return mainContent
 }

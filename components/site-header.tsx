@@ -12,21 +12,19 @@ export async function SiteHeader() {
     const profile = userProfile?.profile || null
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white h-14">
-            <div className="flex h-14 items-center px-4">
+        <header className="fixed inset-x-0 top-0 z-50 h-14 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+            <div className="flex h-14 w-full items-center px-4 lg:px-[27px]">
                 {/* Left: Logo */}
-                <div className="mr-4 flex items-center">
-                    <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <div className="ml-1 mr-4 flex items-center">
+                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
                         <Image
-                            src="/images/logo.png"
-                            alt="SFC"
-                            width={32}
-                            height={32}
-                            className="h-8 w-8 object-contain"
+                            src="/images/logo-text.png"
+                            alt="Seoul Founders Club"
+                            width={580}
+                            height={51}
+                            className="h-8 w-auto max-w-56 object-contain"
+                            priority
                         />
-                        <span className="hidden lg:inline-block font-bold text-xl tracking-tight text-slate-900">
-                            SFC
-                        </span>
                     </Link>
                 </div>
 

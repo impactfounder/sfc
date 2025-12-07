@@ -25,8 +25,6 @@ import type { EventListItem } from "@/lib/types/events"
 import type { PostListItem } from "@/lib/types/posts"
 import type { VisibleBadge, Badge as BadgeType, UserBadgeWithBadge } from "@/lib/types/badges"
 import type { LucideIcon } from "lucide-react"
-import { ContentLayout } from "@/components/layouts/ContentLayout"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import Link from "next/link"
 import { MapPin } from "lucide-react"
 
@@ -1589,9 +1587,7 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      <ContentLayout
-        mainContent={mainContent}
-      />
+      {mainContent}
     </>
   )
 }
