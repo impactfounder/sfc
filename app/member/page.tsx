@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { PageHeader } from "@/components/page-header"
 import Link from "next/link"
 import { MemberListClient } from "@/components/member/member-list-client"
@@ -154,46 +153,38 @@ export default async function MemberPage() {
   })
 
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <div className="lg:col-span-9 flex flex-col gap-6">
-        <PageHeader
-          title="멤버"
-          description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
-          compact={true}
+    <div className="flex flex-col gap-6 w-full">
+      <PageHeader
+        title="멤버"
+        description="각자의 영역에서 성과를 증명한, 검증된 멤버들을 만나보세요."
+        compact={true}
+      />
+
+      {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+          <div>
+            <p className="text-lg font-bold text-blue-900">
+              프로필을 공개하고 멤버 리스트에 올려보세요!
+            </p>
+          </div>
+          <Link href="/community/profile">
+            <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
+              설정하기
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-900">멤버 리스트</h2>
+          <div className="text-sm text-slate-500">총 {members.length}명</div>
+        </div>
+
+        <MemberListClient
+          members={members}
+          currentUserRole={currentUserProfile?.role || null}
         />
-
-        {currentUser && currentUserProfile && !currentUserProfile.is_profile_public && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold text-blue-900">
-                프로필을 공개하고 멤버 리스트에 올려보세요!
-              </p>
-            </div>
-            <Link href="/community/profile">
-              <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
-                설정하기
-              </Button>
-            </Link>
-          </div>
-        )}
-
-        <div>
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-900">멤버 리스트</h2>
-            <div className="text-sm text-slate-500">총 {members.length}명</div>
-          </div>
-
-          <MemberListClient
-            members={members}
-            currentUserRole={currentUserProfile?.role || null}
-          />
-        </div>
-      </div>
-
-      <div className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-8 flex flex-col gap-6 h-fit">
-          <StandardRightSidebar />
-        </div>
       </div>
     </div>
   )

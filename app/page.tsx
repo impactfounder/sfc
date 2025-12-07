@@ -12,6 +12,7 @@ import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { getEventShortUrl } from "@/lib/utils/event-url"
 import { fetchFeedPosts } from "@/lib/actions/feed"
 import { SiteHeader } from "@/components/site-header"
+import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
 
 export const metadata: Metadata = {
   title: "Seoul Founders Club",
@@ -64,20 +65,15 @@ export default async function HomePage() {
   )
 
   return (
-    <DashboardLayout
-      header={<SiteHeader />}
-      rightSidebar={
-        <div className="sticky top-8">
-          <StandardRightSidebar />
+    <DashboardLayout header={<SiteHeader />}>
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
+        <div className="flex flex-col gap-10 w-full">
+          <HeroSection user={user} profile={profile} loginHref="/auth/login" />
+          <EventsSection events={formattedEvents as any} title="주요 이벤트" createLink="/e/new" showFilters={false} />
+          <div className="h-px bg-slate-200" />
+          <FeedSection initialPosts={posts as any} />
         </div>
-      }
-    >
-      <div className="flex flex-col gap-10 w-full">
-        <HeroSection user={user} profile={profile} loginHref="/auth/login" />
-        <EventsSection events={formattedEvents as any} title="주요 이벤트" createLink="/e/new" showFilters={false} />
-        <div className="h-px bg-slate-200" />
-        <FeedSection initialPosts={posts as any} />
-      </div>
+      </ThreeColumnLayout>
     </DashboardLayout>
   )
 }

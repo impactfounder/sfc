@@ -11,8 +11,8 @@ import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { PartnerProposalButtonClient } from "@/components/partner-proposal-button-client"
 import { PageHeader } from "@/components/page-header"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import SidebarProfile from "@/components/sidebar-profile"
 import { SiteHeader } from "@/components/site-header"
+import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
 
 // 카테고리 색상 매핑 (기본 색상, 카테고리 이름에 따라 동적으로 할당)
 const getCategoryColor = (categoryName: string, index: number): string => {
@@ -117,12 +117,9 @@ export default async function PartnersPage() {
   const displayServices = allServices.length > 0 ? allServices : dummyPartners
 
   return (
-    <DashboardLayout
-      header={<SiteHeader />}
-      sidebarProfile={<SidebarProfile />}
-      rightSidebar={<StandardRightSidebar />}
-    >
-      <div className="w-full flex flex-col gap-10">
+    <DashboardLayout header={<SiteHeader />}>
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
+        <div className="w-full flex flex-col gap-10">
         <PageHeader
           title="파트너스"
           description="멤버들을 위한 특별한 혜택을 만나보세요."
@@ -251,7 +248,8 @@ export default async function PartnersPage() {
             )
           })}
         </div>
-      </div>
+        </div>
+      </ThreeColumnLayout>
     </DashboardLayout>
   )
 }

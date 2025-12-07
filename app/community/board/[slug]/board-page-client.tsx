@@ -8,8 +8,6 @@ import Link from "next/link"
 import { Plus, Pencil, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { CommunityRightSidebar } from "@/components/community-right-sidebar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { NewPostForm } from "@/components/new-post-form"
 import { CommunityBanner } from "@/components/community-banner"
@@ -144,21 +142,13 @@ export function BoardPageClient({
     isMember: true, // 개별 게시판에서는 항상 true (나중에 멤버십 체크 추가 가능)
   }))
 
-  const rightSidebarContent = isSystemBoard ? (
-    <StandardRightSidebar />
-  ) : (
-    <CommunityRightSidebar slug={dbSlug} />
-  )
-
   if (isError) {
     return (
-      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-9">
-          <div className="text-center py-16">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">데이터를 불러오는데 실패했습니다</h2>
-            <p className="text-slate-500 mb-4">잠시 후 다시 시도해주세요.</p>
-            <Button onClick={() => router.refresh()}>다시 시도</Button>
-          </div>
+      <div className="w-full flex flex-col gap-6">
+        <div className="text-center py-16">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">데이터를 불러오는데 실패했습니다</h2>
+          <p className="text-slate-500 mb-4">잠시 후 다시 시도해주세요.</p>
+          <Button onClick={() => router.refresh()}>다시 시도</Button>
         </div>
       </div>
     )
@@ -214,8 +204,8 @@ export function BoardPageClient({
   const bannerConfig = getBannerConfig()
 
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <div className="lg:col-span-9 flex flex-col gap-6">
+    <div className="w-full flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         <CommunityBanner
           title={bannerConfig.title}
           description={bannerConfig.description}
@@ -353,16 +343,6 @@ export function BoardPageClient({
             공지사항은 관리자가 작성한 글만 표시됩니다.
           </div>
         )}
-      </div>
-
-      <div className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-8 flex flex-col gap-6 h-fit">
-          {isSystemBoard ? (
-            <StandardRightSidebar />
-          ) : (
-            <CommunityRightSidebar slug={dbSlug} />
-          )}
-        </div>
       </div>
     </div>
   )

@@ -46,17 +46,7 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
     }
 
     return (
-        <div className="flex flex-1 items-center justify-between gap-4">
-            {/* Center: Search (Placeholder for now) */}
-            <div className="flex-1 max-w-xl px-4 hidden md:block">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                    <Input
-                        placeholder="서울 파운더스 클럽 검색"
-                        className="w-full bg-slate-100 border-none pl-9 h-9 rounded-full focus-visible:ring-slate-400 focus-visible:bg-white transition-all"
-                    />
-                </div>
-            </div>
+        <div className="flex flex-1 items-center justify-end gap-4">
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
@@ -192,10 +182,17 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                 ) : (
                     <div className="flex items-center gap-2">
                         <Link href="/auth/login">
-                            <Button variant="ghost" className="rounded-full">로그인</Button>
+                            <Button
+                                variant="ghost"
+                                className="rounded-full hover:bg-slate-100 hover:text-slate-900"
+                            >
+                                로그인
+                            </Button>
                         </Link>
                         <Link href="/auth/login">
-                            <Button className="rounded-full">가입하기</Button>
+                            <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                                가입하기
+                            </Button>
                         </Link>
                     </div>
                 )}

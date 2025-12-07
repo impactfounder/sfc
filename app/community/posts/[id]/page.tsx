@@ -93,71 +93,67 @@ export default async function PostDetailPage({
   }
 
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-4xl">
-        {/* Post */}
-        <Card className="border-slate-200">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-medium text-slate-700">
-                  {post.profiles?.full_name?.[0] || "U"}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-slate-900">{post.profiles?.full_name || "Anonymous"}</p>
-                    {authorVisibleBadges.length > 0 && (
-                      <UserBadges badges={authorVisibleBadges} />
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">
-                    {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
+    <div className="flex flex-col gap-6">
+      {/* Post */}
+      <Card className="border-slate-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-lg font-medium text-slate-700">
+                {post.profiles?.full_name?.[0] || "U"}
               </div>
-              {(isAuthor || isMaster) && (
-                <PostActions postId={post.id} isAuthor={isAuthor} isMaster={isMaster} />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">{post.title}</h1>
-            <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{post.content}</p>
-
-            {/* Actions */}
-            <div className="mt-6 flex items-center gap-4 border-t border-slate-200 pt-4">
-              {user ? (
-                <LikeButton
-                  postId={post.id}
-                  userId={user.id}
-                  initialLiked={userLike !== null}
-                  initialCount={post.likes_count || 0}
-                />
-              ) : (
-                <Link href="/auth/login">
-                  <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes_count}</span>
-                  </Button>
-                </Link>
-              )}
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <MessageSquare className="h-4 w-4" />
-                <span>{post.comments_count} comments</span>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-slate-900">{post.profiles?.full_name || "Anonymous"}</p>
+                  {authorVisibleBadges.length > 0 && (
+                    <UserBadges badges={authorVisibleBadges} />
+                  )}
+                </div>
+                <p className="text-sm text-slate-500">
+                  {new Date(post.created_at).toLocaleDateString("ko-KR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            {(isAuthor || isMaster) && (
+              <PostActions postId={post.id} isAuthor={isAuthor} isMaster={isMaster} />
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">{post.title}</h1>
+          <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{post.content}</p>
 
-        {/* Comments Section */}
-        <div className="mt-8">
-          <CommentSection postId={post.id} userId={user?.id} comments={comments || []} />
-        </div>
-      </div>
+          {/* Actions */}
+          <div className="mt-6 flex items-center gap-4 border-t border-slate-200 pt-4">
+            {user ? (
+              <LikeButton
+                postId={post.id}
+                userId={user.id}
+                initialLiked={userLike !== null}
+                initialCount={post.likes_count || 0}
+              />
+            ) : (
+              <Link href="/auth/login">
+                <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                  <Heart className="h-4 w-4" />
+                  <span>{post.likes_count}</span>
+                </Button>
+              </Link>
+            )}
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <MessageSquare className="h-4 w-4" />
+              <span>{post.comments_count} comments</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Comments Section */}
+      <CommentSection postId={post.id} userId={user?.id} comments={comments || []} />
     </div>
   )
 }

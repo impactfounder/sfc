@@ -11,6 +11,8 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, header, rightSidebar, sidebarProfile }: DashboardLayoutProps) {
+  const hasAside = Boolean(rightSidebar || sidebarProfile)
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 1. Global Header (Passed from server component) */}
@@ -32,21 +34,24 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
       <main
         className={cn(
           "min-h-screen w-full transition-all duration-200 ease-in-out",
-          header ? "pt-14 lg:pl-72" : "lg:pl-72" // Header 유무에 따라 패딩 조정
+          header ? "pt-14 lg:pl-72" : "lg:pl-72"
         )}
       >
-        <div className="mx-auto max-w-7xl w-full px-4 py-8 md:px-8 lg:py-10">
-          <div className={cn("w-full", rightSidebar || sidebarProfile ? "flex flex-col lg:flex-row gap-8" : "")}>
-            <div className="flex-1 min-w-0">{children}</div>
-            {(rightSidebar || sidebarProfile) && (
-              <aside className="hidden lg:block w-72 shrink-0">
-                <div className="space-y-6">
-                  {sidebarProfile}
-                  {rightSidebar}
-                </div>
-              </aside>
-            )}
-          </div>
+        <div
+          className={cn(
+            "w-full",
+            hasAside ? "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8" : ""
+          )}
+        >
+          <div className={cn(hasAside ? "min-w-0" : "w-full")}>{children}</div>
+          {hasAside && (
+            <aside className="hidden lg:block">
+              <div className="space-y-6 w-80">
+                {sidebarProfile}
+                {rightSidebar}
+              </div>
+            </aside>
+          )}
         </div>
       </main>
     </div>

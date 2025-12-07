@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import { BadgeManager } from "@/components/badge-manager"
 import { updateProfileAvatar, updateProfileInfo } from "@/lib/actions/user"
 import { removeBadge } from "@/lib/actions/badges"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -29,14 +28,6 @@ import Link from "next/link"
 import { MapPin } from "lucide-react"
 
 type TabType = "posts" | "created_events" | "participated_events"
-
-// 포인트 거래 내역 타입 (현재 미사용이나 타입 유지)
-type PointTransaction = {
-  id: string
-  amount: number
-  description: string | null
-  created_at: string
-}
 
 // 이벤트 등록 쿼리 결과 타입
 type EventRegistrationQueryResult = {

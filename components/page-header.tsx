@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface PageHeaderProps {
   title: string
@@ -8,12 +9,57 @@ interface PageHeaderProps {
   compact?: boolean
 }
 
+interface PageHeaderSkeletonProps {
+  compact?: boolean
+  className?: string
+  hasAction?: boolean
+}
+
+/**
+ * PageHeader의 스켈레톤 버전 - loading.tsx에서 사용
+ * 실제 PageHeader와 동일한 높이/레이아웃을 유지하여 레이아웃 시프트 방지
+ */
+export function PageHeaderSkeleton({ compact = false, className, hasAction = false }: PageHeaderSkeletonProps) {
+  return (
+    <div
+      className={cn(
+        "relative rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 shadow-sm flex flex-col justify-center",
+        compact ? "h-[130px]" : "h-[180px]",
+        className
+      )}
+    >
+      <div className={cn(
+        "relative z-10 container mx-auto",
+        compact ? "px-8 py-6" : "px-6 md:px-10 py-8"
+      )}>
+        <div className={cn(
+          "flex flex-col md:flex-row md:items-center justify-between",
+          compact ? "gap-2" : "gap-6"
+        )}>
+          <div className="flex-1 min-w-0">
+            <Skeleton className={cn(
+              "bg-slate-700/50 mb-2",
+              compact ? "h-7 w-48" : "h-9 w-64"
+            )} />
+            <Skeleton className="h-5 w-80 max-w-full bg-slate-700/50" />
+          </div>
+          {hasAction && (
+            <div className="flex-shrink-0">
+              <Skeleton className="h-10 w-32 bg-slate-700/50" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PageHeader({ title, description, children, className, compact = false }: PageHeaderProps) {
   return (
     <div
       className={cn(
         "relative rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white mb-6 shadow-sm flex flex-col justify-center",
-        compact ? "h-[140px]" : "h-[180px]",
+        compact ? "h-[130px]" : "h-[180px]",
         className
       )}
     >

@@ -31,19 +31,7 @@ export function SidebarProfileClient({ user, profile }: SidebarProfileClientProp
 
   // 비로그인 상태 UI
   if (!user || !profile) {
-    return (
-      <div className="px-4 py-3">
-        <Button
-          asChild
-          className="w-full h-10 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-all duration-300 text-sm"
-        >
-          <Link href="/auth/login">
-            <LogIn className="mr-2 h-4 w-4" />
-            로그인 / 회원가입
-          </Link>
-        </Button>
-      </div>
-    )
+    return null
   }
 
   const userRole = profile?.role || "member"

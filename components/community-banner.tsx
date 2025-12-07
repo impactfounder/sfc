@@ -69,7 +69,7 @@ export function CommunityBanner({
       <PageHeader
         title={title}
         description={description}
-        className="w-full"
+        className="w-full mb-0"
         compact={true}
       />
     )
@@ -109,7 +109,7 @@ export function CommunityBanner({
       <PageHeader
         title={title}
         description={description}
-        className="w-full"
+        className="w-full mb-0"
         compact={true}
       >
         {/* PageHeader의 children으로 버튼 전달 */}

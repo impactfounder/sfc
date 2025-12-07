@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { CommunityGrid } from "@/components/community/community-grid"
@@ -34,28 +33,18 @@ export default async function CommunityDashboardPage() {
   }
 
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <div className="lg:col-span-9 flex flex-col gap-6">
-        {/* Header Area */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h1 className="text-2xl font-bold text-slate-900">커뮤니티 리스트</h1>
-          <Link href="/communities/new">
-            <Button size="sm" className="gap-1.5 shadow-sm active:scale-95 transition-all">
-              <Plus className="h-4 w-4" />
-              새 커뮤니티 만들기
-            </Button>
-          </Link>
-        </div>
-
-        {/* Content Area: Community Grid */}
-        <CommunityGrid communities={mergedCommunities} />
+    <div className="w-full flex flex-col gap-6">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900">커뮤니티 리스트</h1>
+        <Link href="/communities/new">
+          <Button size="sm" className="gap-1.5 shadow-sm active:scale-95 transition-all">
+            <Plus className="h-4 w-4" />
+            새 커뮤니티 만들기
+          </Button>
+        </Link>
       </div>
 
-      <div className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-8">
-          <StandardRightSidebar />
-        </div>
-      </div>
+      <CommunityGrid communities={mergedCommunities} />
     </div>
   )
 }

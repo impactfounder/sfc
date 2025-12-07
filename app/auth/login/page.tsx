@@ -3,11 +3,11 @@
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { useState, Suspense } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
+import { AuthHeader } from "@/components/auth-header"
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -121,12 +121,14 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <DashboardLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-6">
+    <>
+      <AuthHeader />
+
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-6 pt-20">
         <Suspense fallback={<div>Loading...</div>}>
           <LoginContent />
         </Suspense>
       </div>
-    </DashboardLayout>
+    </>
   )
 }
