@@ -39,8 +39,13 @@ export default function NotificationsDropdown({
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
   const supabase = createClient()
   const router = useRouter()
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     async function fetchNotifications() {
@@ -119,22 +124,41 @@ export default function NotificationsDropdown({
     }
   }
 
-  // 로딩 중이거나 비로그인 상태일 때 비활성화된 알림 버튼 표시
-  if (isLoading || !user) return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn(
-        "relative h-10 w-10 rounded-lg border-0 hover:bg-slate-100 transition-all",
-        triggerClassName
-      )}
-      aria-label="알림"
-      disabled={isLoading}
-      onClick={() => !isLoading && router.push("/auth/login")}
-    >
-      <Bell className="h-6 w-6 text-slate-400" />
-    </Button>
-  )
+  // 클라이언트 마운트 전에는 기본 버튼만 렌더링 (hydration mismatch 방지)
+  if (!isMounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "relative h-10 w-10 rounded-lg border-0 hover:bg-slate-100 transition-all",
+          triggerClassName
+        )}
+        aria-label="알림"
+      >
+        <Bell className="h-6 w-6 text-slate-400" />
+      </Button>
+    )
+  }
+
+  // 로딩 중이거나 비로그인 상태
+  if (isLoading || !user) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "relative h-10 w-10 rounded-lg border-0 hover:bg-slate-100 transition-all",
+          triggerClassName
+        )}
+        aria-label="알림"
+        disabled={isLoading}
+        onClick={() => !isLoading && router.push("/auth/login")}
+      >
+        <Bell className="h-6 w-6 text-slate-400" />
+      </Button>
+    )
+  }
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>

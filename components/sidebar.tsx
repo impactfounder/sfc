@@ -55,7 +55,12 @@ export function Sidebar() {
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [isRoleLoaded, setIsRoleLoaded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const prefetch = usePrefetchPosts()
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // 유저 및 role 정보 가져오기
   useEffect(() => {
@@ -106,7 +111,8 @@ export function Sidebar() {
   }, [supabase])
 
   const isAdmin = userRole === "admin" || userRole === "master"
-  const shouldShowAdminMenu = isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
+  // isMounted를 추가하여 hydration mismatch 방지
+  const shouldShowAdminMenu = isMounted && isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
 
   const isLinkActive = (href: string, startsWith = false) => {
     if (href === '/community' || href === '/community/page') {

@@ -9,9 +9,16 @@ import Link from "next/link"
 export function StandardRightSidebar() {
   const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string }>>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
     async function fetchAnnouncements() {
       try {
         const { data, error } = await supabase
@@ -40,7 +47,7 @@ export function StandardRightSidebar() {
     }
 
     fetchAnnouncements()
-  }, [supabase])
+  }, [isMounted, supabase])
 
   return (
     <div className="flex flex-col gap-8 h-full">
