@@ -120,7 +120,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-56px)] bg-slate-50 p-6">
+    <div className="flex items-center justify-center min-h-[60vh] py-12">
       <Suspense fallback={<div>Loading...</div>}>
         <LoginContent />
       </Suspense>

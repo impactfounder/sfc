@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { SiteHeader } from "@/components/site-header"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 
 export default function AuthLayout({
   children,
@@ -9,7 +10,7 @@ export default function AuthLayout({
 }) {
   return (
     <DashboardLayout header={<SiteHeader />}>
-      <ThreeColumnLayout>
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         {children}
       </ThreeColumnLayout>
     </DashboardLayout>
