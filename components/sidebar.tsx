@@ -64,11 +64,13 @@ export function Sidebar() {
       setUser(user)
 
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single()
+
+        console.log('[Sidebar] Profile fetch result:', { role: profile?.role, error })
 
         if (profile?.role) {
           setUserRole(profile.role)

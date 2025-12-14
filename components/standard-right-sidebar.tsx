@@ -25,6 +25,7 @@ export function StandardRightSidebar() {
           .order("created_at", { ascending: false })
           .limit(3)
 
+        console.log('[RightSidebar] Announcements fetch result:', { data, error })
         if (!error && data) {
           setAnnouncements(data.map((post: any) => ({
             id: post.id,
