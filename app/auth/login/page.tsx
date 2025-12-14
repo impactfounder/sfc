@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { AuthHeader } from "@/components/auth-header"
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -121,14 +120,10 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <>
-      <AuthHeader />
-
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-6 pt-20">
-        <Suspense fallback={<div>Loading...</div>}>
-          <LoginContent />
-        </Suspense>
-      </div>
-    </>
+    <div className="flex items-center justify-center min-h-[calc(100vh-56px)] bg-slate-50 p-6">
+      <Suspense fallback={<div>Loading...</div>}>
+        <LoginContent />
+      </Suspense>
+    </div>
   )
 }
