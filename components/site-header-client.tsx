@@ -239,10 +239,7 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""} cursor-pointer`}
-                                    onSelect={(e) => {
-                                        e.preventDefault()
-                                        handleSignOut()
-                                    }}
+                                    onClick={() => handleSignOut()}
                                     onMouseEnter={() => setActiveProfileItem("logout")}
                                 >
                                     <LogOut className={`mr-2 h-4 w-4 ${activeProfileItem === "logout" ? "text-red-600" : "text-slate-500"}`} />
