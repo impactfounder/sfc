@@ -95,10 +95,18 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
         setIsMounted(true)
     }, [])
 
-    const handleSignOut = () => {
-        supabase.auth.signOut().then(() => {
+    const handleSignOut = async () => {
+        try {
+            const { error } = await supabase.auth.signOut()
+            if (error) {
+                console.error('로그아웃 오류:', error)
+            }
+            // 로그아웃 성공/실패 여부와 상관없이 홈으로 리다이렉트
             window.location.href = "/"
-        })
+        } catch (err) {
+            console.error('로그아웃 예외:', err)
+            window.location.href = "/"
+        }
     }
 
     const isLinkActive = (href: string) => {
@@ -230,8 +238,11 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                    className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""}`}
-                                    onSelect={handleSignOut}
+                                    className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""} cursor-pointer`}
+                                    onSelect={(e) => {
+                                        e.preventDefault()
+                                        handleSignOut()
+                                    }}
                                     onMouseEnter={() => setActiveProfileItem("logout")}
                                 >
                                     <LogOut className={`mr-2 h-4 w-4 ${activeProfileItem === "logout" ? "text-red-600" : "text-slate-500"}`} />
