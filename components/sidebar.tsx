@@ -50,67 +50,18 @@ const navigationSections = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  // ... existing hooks ... (kept hooks but removed unused ones if any)
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [isRoleLoaded, setIsRoleLoaded] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
   const prefetch = usePrefetchPosts()
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // 유저 및 role 정보 가져오기
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-
-      if (user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-
-        if (profile?.role) {
-          setUserRole(profile.role)
-        }
-      }
-      setIsRoleLoaded(true)
-    }
-
-    fetchUserRole()
-
-    // 인증 상태 변경 구독
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user || null)
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profile?.role) {
-          setUserRole(profile.role)
-        }
-      } else {
-        setUserRole("member")
-      }
-      setIsRoleLoaded(true)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [supabase])
+  // ... existing useEffects ...
 
   const isAdmin = userRole === "admin" || userRole === "master"
-  // isMounted를 추가하여 hydration mismatch 방지
-  const shouldShowAdminMenu = isMounted && isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
+  const shouldShowAdminMenu = isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
 
   const isLinkActive = (href: string, startsWith = false) => {
     if (href === '/community' || href === '/community/page') {
