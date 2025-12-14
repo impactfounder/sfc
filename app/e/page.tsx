@@ -1,14 +1,9 @@
-import { redirect } from 'next/navigation'
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import EventCard from "@/components/ui/event-card"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { PageHeader } from "@/components/page-header"
 import { EventsSection } from "@/components/home/events-section"
 import { getEventShortUrl } from "@/lib/utils/event-url"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { SiteHeader } from "@/components/site-header"
-import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
 
 export default async function EventsPage() {
   const supabase = await createClient()
@@ -18,8 +13,7 @@ export default async function EventsPage() {
   today.setHours(0, 0, 0, 0);
   const todayStart = today.toISOString();
   
-  const [userResult, upcomingEventsResult, pastEventsResult] = await Promise.all([
-    supabase.auth.getUser(),
+  const [upcomingEventsResult, pastEventsResult] = await Promise.all([
     supabase
       .from("events")
       .select(`
@@ -51,7 +45,6 @@ export default async function EventsPage() {
       .limit(5),
   ])
 
-  const user = userResult.data.user
   const upcomingEvents = upcomingEventsResult.data
   const pastEvents = pastEventsResult.data
 
@@ -78,57 +71,53 @@ export default async function EventsPage() {
   )
 
   return (
-    <DashboardLayout header={<SiteHeader />}>
-      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
-        <div className="w-full flex flex-col gap-10">
-          <PageHeader
-            title="이벤트"
-            description="다양한 네트워킹, 클래스, 액티비티 이벤트에 참여하세요"
-            compact={true}
-          />
+    <div className="w-full flex flex-col gap-10">
+      <PageHeader
+        title="이벤트"
+        description="다양한 네트워킹, 클래스, 액티비티 이벤트에 참여하세요"
+        compact={true}
+      />
 
-          <EventsSection
-            events={formattedUpcomingEvents}
-            createLink="/e/new"
-            isLoading={false}
-            title="다가오는 이벤트"
-            showFilters={true}
-          />
+      <EventsSection
+        events={formattedUpcomingEvents}
+        createLink="/e/new"
+        isLoading={false}
+        title="다가오는 이벤트"
+        showFilters={true}
+      />
 
-          {pastEvents && pastEvents.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">지난 이벤트</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-                {pastEvents.map(async (event) => {
-                  const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
-                  return (
-                    <Link key={event.id} href={shortCode}>
-                      <EventCard
-                        event={{
-                          id: event.id,
-                          title: event.title,
-                          thumbnail_url: event.thumbnail_url,
-                          event_date: event.event_date,
-                          event_time: null,
-                          location: event.location,
-                          max_participants: event.max_participants,
-                          current_participants: event.event_registrations?.[0]?.count || 0,
-                          host_name: event.profiles?.full_name,
-                          host_avatar_url: event.profiles?.avatar_url,
-                          host_bio: event.profiles?.bio,
-                          event_type: event.event_type || 'networking',
-                          shortUrl: shortCode,
-                        }}
-                      />
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+      {pastEvents && pastEvents.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-4">지난 이벤트</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            {pastEvents.map(async (event) => {
+              const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
+              return (
+                <Link key={event.id} href={shortCode}>
+                  <EventCard
+                    event={{
+                      id: event.id,
+                      title: event.title,
+                      thumbnail_url: event.thumbnail_url,
+                      event_date: event.event_date,
+                      event_time: null,
+                      location: event.location,
+                      max_participants: event.max_participants,
+                      current_participants: event.event_registrations?.[0]?.count || 0,
+                      host_name: event.profiles?.full_name,
+                      host_avatar_url: event.profiles?.avatar_url,
+                      host_bio: event.profiles?.bio,
+                      event_type: event.event_type || 'networking',
+                      shortUrl: shortCode,
+                    }}
+                  />
+                </Link>
+              )
+            })}
+          </div>
         </div>
-      </ThreeColumnLayout>
-    </DashboardLayout>
+      )}
+    </div>
   )
 }
 
