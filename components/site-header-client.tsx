@@ -12,7 +12,8 @@ import {
     PenSquare,
     Calendar,
     Users,
-    Search
+    Search,
+    Menu
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -123,10 +124,10 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                             align="end"
                         />
 
-                        {/* 프로필 드롭다운 */}
+                        {/* 프로필 드롭다운 - 데스크탑만 */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-1 border border-slate-200 overflow-hidden">
+                                <Button variant="ghost" className="relative hidden md:flex h-9 w-9 rounded-full p-0 ml-1 border border-slate-200 overflow-hidden">
                                     <Avatar className="h-9 w-9">
                                         <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || ""} />
                                         <AvatarFallback className="bg-slate-100 text-slate-600 font-medium">
@@ -178,23 +179,92 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+
+                        {/* 햄버거 메뉴 - 모바일만 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full">
+                                    <Menu className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-56 z-[70] bg-white shadow-lg border border-slate-200"
+                                align="end"
+                                sideOffset={10}
+                            >
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || ""} />
+                                            <AvatarFallback className="bg-slate-100 text-slate-600 font-medium text-sm">
+                                                {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex flex-col">
+                                            <p className="text-sm font-medium leading-none">{profile?.full_name || "사용자"}</p>
+                                            <p className="text-xs leading-none text-muted-foreground mt-1">
+                                                {user.email}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => router.push("/settings")}>
+                                    <Settings className="mr-2 h-4 w-4 text-slate-500" />
+                                    <span>설정</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={handleSignOut}
+                                >
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>로그아웃</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </>
                 ) : (
-                    <div className="flex items-center gap-2">
-                        <Link href="/auth/login">
-                            <Button
-                                variant="ghost"
-                                className="rounded-full hover:bg-slate-100 hover:text-slate-900"
+                    <>
+                        {/* 데스크탑: 로그인/가입하기 버튼 */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <Link href="/auth/login">
+                                <Button
+                                    variant="ghost"
+                                    className="rounded-full hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    로그인
+                                </Button>
+                            </Link>
+                            <Link href="/auth/login">
+                                <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                                    가입하기
+                                </Button>
+                            </Link>
+                        </div>
+
+                        {/* 모바일: 햄버거 메뉴 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full">
+                                    <Menu className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-48 z-[70] bg-white shadow-lg border border-slate-200"
+                                align="end"
+                                sideOffset={10}
                             >
-                                로그인
-                            </Button>
-                        </Link>
-                        <Link href="/auth/login">
-                            <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                                가입하기
-                            </Button>
-                        </Link>
-                    </div>
+                                <DropdownMenuItem onClick={() => router.push("/auth/login")}>
+                                    <User className="mr-2 h-4 w-4 text-slate-500" />
+                                    <span>로그인</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("/auth/login")}>
+                                    <span className="ml-6">가입하기</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </>
                 )}
             </div>
         </div>
