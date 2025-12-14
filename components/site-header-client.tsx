@@ -95,10 +95,10 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
         setIsMounted(true)
     }, [])
 
-    const handleSignOut = async () => {
-        await supabase.auth.signOut()
-        router.refresh()
-        window.location.href = "/" // 강제 리디렉션
+    const handleSignOut = () => {
+        supabase.auth.signOut().then(() => {
+            window.location.href = "/"
+        })
     }
 
     const isLinkActive = (href: string) => {
