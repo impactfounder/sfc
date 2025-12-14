@@ -21,7 +21,7 @@ export function StandardRightSidebar() {
             title,
             board_categories!inner(slug)
           `)
-          .eq("board_categories.slug", "announcement")
+          .eq("board_categories.slug", "announcements")
           .order("created_at", { ascending: false })
           .limit(3)
 
