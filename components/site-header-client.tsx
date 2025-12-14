@@ -121,6 +121,7 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                         <NotificationsDropdown
                             triggerClassName="h-9 w-9 rounded-full"
                             align="end"
+                            initialUser={user}
                         />
 
                         {/* 프로필 드롭다운 */}

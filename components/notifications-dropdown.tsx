@@ -27,29 +27,37 @@ interface NotificationsDropdownProps {
   triggerClassName?: string
   align?: "center" | "start" | "end"
   side?: "top" | "right" | "bottom" | "left"
+  initialUser?: any // 서버에서 전달받은 user 정보
 }
 
-export default function NotificationsDropdown({ 
-  triggerClassName, 
-  align = "end", 
-  side = "bottom" 
+export default function NotificationsDropdown({
+  triggerClassName,
+  align = "end",
+  side = "bottom",
+  initialUser
 }: NotificationsDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<any>(initialUser || null)
+  const [isLoading, setIsLoading] = useState(!initialUser)
   const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {
     async function fetchNotifications() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      let currentUser = user
 
-      if (!user) return
+      // initialUser가 없을 때만 서버에서 user 가져오기
+      if (!currentUser) {
+        const { data: { user: fetchedUser } } = await supabase.auth.getUser()
+        currentUser = fetchedUser
+        setUser(currentUser)
+      }
 
-      setUser(user)
+      setIsLoading(false)
+
+      if (!currentUser) return
 
       const { data } = await supabase
         .from("notifications")
@@ -57,7 +65,7 @@ export default function NotificationsDropdown({
           *,
           profiles:actor_id(full_name, avatar_url)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", currentUser.id)
         .order("created_at", { ascending: false })
         .limit(10)
 
@@ -117,7 +125,9 @@ export default function NotificationsDropdown({
     }
   }
 
-  if (!user) return (
+  // 로딩 중이거나 비로그인 상태일 때 단순 알림 아이콘 표시
+  // (로딩 중에는 로그인 페이지로 리다이렉트하지 않음)
+  if (isLoading || !user) return (
     <Button
       variant="ghost"
       size="icon"
@@ -126,7 +136,11 @@ export default function NotificationsDropdown({
         triggerClassName
       )}
       aria-label="알림"
-      onClick={() => router.push("/auth/login")}
+      onClick={() => {
+        if (!isLoading && !user) {
+          router.push("/auth/login")
+        }
+      }}
     >
       <Bell className="h-6 w-6 text-slate-400" />
     </Button>
