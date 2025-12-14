@@ -96,15 +96,17 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
     }, [])
 
     const handleSignOut = async () => {
+        console.log('[handleSignOut] 로그아웃 시작')
         try {
-            const { error } = await supabase.auth.signOut()
+            const { error } = await supabase.auth.signOut({ scope: 'local' })
+            console.log('[handleSignOut] signOut 완료, error:', error)
             if (error) {
                 console.error('로그아웃 오류:', error)
             }
-            // 로그아웃 성공/실패 여부와 상관없이 홈으로 리다이렉트
-            window.location.href = "/"
         } catch (err) {
             console.error('로그아웃 예외:', err)
+        } finally {
+            console.log('[handleSignOut] 리다이렉트 실행')
             window.location.href = "/"
         }
     }
