@@ -29,15 +29,16 @@ interface NotificationsDropdownProps {
   side?: "top" | "right" | "bottom" | "left"
 }
 
-export default function NotificationsDropdown({ 
-  triggerClassName, 
-  align = "end", 
-  side = "bottom" 
+export default function NotificationsDropdown({
+  triggerClassName,
+  align = "end",
+  side = "bottom"
 }: NotificationsDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
   const router = useRouter()
 
@@ -47,9 +48,10 @@ export default function NotificationsDropdown({
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) return
-
       setUser(user)
+      setIsLoading(false)
+
+      if (!user) return
 
       const { data } = await supabase
         .from("notifications")
@@ -117,7 +119,8 @@ export default function NotificationsDropdown({
     }
   }
 
-  if (!user) return (
+  // 로딩 중이거나 비로그인 상태일 때 비활성화된 알림 버튼 표시
+  if (isLoading || !user) return (
     <Button
       variant="ghost"
       size="icon"
@@ -126,7 +129,8 @@ export default function NotificationsDropdown({
         triggerClassName
       )}
       aria-label="알림"
-      onClick={() => router.push("/auth/login")}
+      disabled={isLoading}
+      onClick={() => !isLoading && router.push("/auth/login")}
     >
       <Bell className="h-6 w-6 text-slate-400" />
     </Button>
