@@ -58,7 +58,51 @@ export function Sidebar() {
   const [isRoleLoaded, setIsRoleLoaded] = useState(false)
   const prefetch = usePrefetchPosts()
 
-  // ... existing useEffects ...
+  // 유저 및 role 정보 가져오기
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.role) {
+          setUserRole(profile.role)
+        }
+      }
+      setIsRoleLoaded(true)
+    }
+
+    fetchUserRole()
+
+    // 인증 상태 변경 구독
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user || null)
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile?.role) {
+          setUserRole(profile.role)
+        }
+      } else {
+        setUserRole("member")
+      }
+      setIsRoleLoaded(true)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const isAdmin = userRole === "admin" || userRole === "master"
   const shouldShowAdminMenu = isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
