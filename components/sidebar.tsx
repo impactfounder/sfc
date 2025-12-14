@@ -70,7 +70,7 @@ export function Sidebar() {
           .eq('id', user.id)
           .single()
 
-        console.log('[Sidebar] Profile fetch result:', { role: profile?.role, error })
+        console.log('[Sidebar] Profile fetch result: role=' + profile?.role + ', error=' + (error ? JSON.stringify(error) : 'null'))
 
         if (profile?.role) {
           setUserRole(profile.role)
