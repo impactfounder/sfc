@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Calendar, Shield, Megaphone, MessageSquare, Home, Users, Lightbulb, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { useEffect, useState, useMemo, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
 
 // 관리자 메뉴 링크 컴포넌트 - 클라이언트에서만 렌더링
@@ -66,7 +66,7 @@ const navigationSections = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
   const [isMounted, setIsMounted] = useState(false)
