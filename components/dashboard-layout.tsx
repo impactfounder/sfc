@@ -8,9 +8,10 @@ interface DashboardLayoutProps {
   header?: ReactNode
   rightSidebar?: ReactNode
   sidebarProfile?: ReactNode
+  userRole?: string | null
 }
 
-export function DashboardLayout({ children, header, rightSidebar, sidebarProfile }: DashboardLayoutProps) {
+export function DashboardLayout({ children, header, rightSidebar, sidebarProfile, userRole }: DashboardLayoutProps) {
   const hasAside = Boolean(rightSidebar || sidebarProfile)
 
   return (
@@ -27,7 +28,7 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
 
       {/* 2. Left Sidebar: Header 아래 배치 (top-14) */}
       <aside className="fixed top-14 left-0 z-40 hidden h-[calc(100vh-3.5rem)] w-72 border-r border-slate-200 bg-white lg:block overflow-y-auto">
-        <Sidebar />
+        <Sidebar userRole={userRole} />
       </aside>
 
       {/* 3. Main Content Wrapper: Header 높이(pt-14) + Sidebar 너비(pl-72) */}
