@@ -48,13 +48,10 @@ const navigationSections = [
 export function MobileHeader() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
-    setIsMounted(true)
-
     const loadUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -116,101 +113,93 @@ export function MobileHeader() {
         </div>
 
         {/* 햄버거 메뉴 */}
-        {isMounted ? (
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 -mr-2 text-slate-600 hover:bg-slate-100">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 bg-white border-l border-slate-200">
-              <SheetHeader className="p-6 border-b border-slate-100 text-left">
-                <SheetTitle className="text-lg font-bold text-slate-900">메뉴</SheetTitle>
-              </SheetHeader>
-              
-              <div className="flex flex-col h-full overflow-y-auto py-4 pb-20">
-                {navigationSections.map((section) => (
-                  <div key={section.title} className="mb-6 px-4">
-                    <h4 className="mb-2 px-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      {section.title}
-                    </h4>
-                    <div className="space-y-1">
-                      {section.links.map((item) => {
-                        const Icon = item.icon
-                        const active = isLinkActive(item.href)
-                        // 게시판 링크인지 확인 (/community/board/로 시작)
-                        const isBoardLink = item.href.startsWith("/community/board/")
-                        
-                        return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            prefetch={isBoardLink ? true : undefined}
-                            onClick={() => setIsOpen(false)}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
-                              active 
-                                ? "bg-slate-100 text-slate-900 font-bold" 
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
-                            )}
-                          >
-                            <Icon className={cn("h-5 w-5 flex-shrink-0", active ? "text-slate-900" : "text-slate-400")} />
-                            <span>{item.name}</span>
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-                
-                {/* 기타 섹션 */}
-                <div className="mb-6 px-4">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-10 w-10 -mr-2 text-slate-600 hover:bg-slate-100">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 bg-white border-l border-slate-200">
+            <SheetHeader className="p-6 border-b border-slate-100 text-left">
+              <SheetTitle className="text-lg font-bold text-slate-900">메뉴</SheetTitle>
+            </SheetHeader>
+
+            <div className="flex flex-col h-full overflow-y-auto py-4 pb-20">
+              {navigationSections.map((section) => (
+                <div key={section.title} className="mb-6 px-4">
                   <h4 className="mb-2 px-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    기타
+                    {section.title}
                   </h4>
                   <div className="space-y-1">
+                    {section.links.map((item) => {
+                      const Icon = item.icon
+                      const active = isLinkActive(item.href)
+                      const isBoardLink = item.href.startsWith("/community/board/")
+
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          prefetch={isBoardLink ? true : undefined}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
+                            active
+                              ? "bg-slate-100 text-slate-900 font-bold"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                          )}
+                        >
+                          <Icon className={cn("h-5 w-5 flex-shrink-0", active ? "text-slate-900" : "text-slate-400")} />
+                          <span>{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* 기타 섹션 */}
+              <div className="mb-6 px-4">
+                <h4 className="mb-2 px-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  기타
+                </h4>
+                <div className="space-y-1">
+                  <Link
+                    href="/customer-center"
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
+                      isLinkActive("/customer-center")
+                        ? "bg-slate-100 text-slate-900 font-bold"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                    )}
+                  >
+                    <Headset className={cn("h-5 w-5 flex-shrink-0", isLinkActive("/customer-center") ? "text-slate-900" : "text-slate-400")} />
+                    <span>고객센터</span>
+                  </Link>
+                  {showAdminMenu && (
                     <Link
-                      href="/customer-center"
+                      href="/admin"
                       onClick={() => setIsOpen(false)}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
-                        isLinkActive("/customer-center")
+                        isLinkActive("/admin")
                           ? "bg-slate-100 text-slate-900 font-bold"
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
                       )}
                     >
-                      <Headset className={cn("h-5 w-5 flex-shrink-0", isLinkActive("/customer-center") ? "text-slate-900" : "text-slate-400")} />
-                      <span>고객센터</span>
+                      <Shield className={cn("h-5 w-5 flex-shrink-0", isLinkActive("/admin") ? "text-slate-900" : "text-slate-400")} />
+                      <span>관리자</span>
                     </Link>
-                    {showAdminMenu && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setIsOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
-                          isLinkActive("/admin")
-                            ? "bg-slate-100 text-slate-900 font-bold"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
-                        )}
-                      >
-                        <Shield className={cn("h-5 w-5 flex-shrink-0", isLinkActive("/admin") ? "text-slate-900" : "text-slate-400")} />
-                        <span>관리자</span>
-                      </Link>
-                    )}
-                  </div>
+                  )}
                 </div>
-                
-                {/* 하단 여백 (하단바에 가려지지 않도록) */}
-                <div className="h-12" />
               </div>
-            </SheetContent>
-          </Sheet>
-        ) : (
-          // 서버 렌더링 시 보여줄 깡통 버튼 (모양만 유지)
-          <Button variant="ghost" size="icon" className="h-10 w-10 -mr-2 text-slate-600 hover:bg-slate-100">
-            <Menu className="h-6 w-6" />
-          </Button>
-        )}
+
+              {/* 하단 여백 (하단바에 가려지지 않도록) */}
+              <div className="h-12" />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   )
