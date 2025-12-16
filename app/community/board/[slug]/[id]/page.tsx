@@ -1,4 +1,5 @@
-﻿import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare, ChevronLeft } from "lucide-react"
@@ -26,6 +27,8 @@ export default async function BoardPostDetailPage({
 }) {
   const { slug, id } = await params
   const supabase = await createClient()
+  const userProfile = await getCurrentUserProfile(supabase)
+  const userRole = userProfile?.profile?.role || null
 
   let dbSlug = slug
   if (slug === "free") dbSlug = "free-board"
@@ -95,7 +98,7 @@ export default async function BoardPostDetailPage({
   const actualLikesCount = likesResult.count || 0
 
   return (
-    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} rightSidebar={<StandardRightSidebar />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} rightSidebar={<StandardRightSidebar />} userRole={userRole}>
       <div className="w-full flex flex-col gap-6">
         {/* 헤더 (카드 바로 위로 이동) */}
         <div className="flex items-center justify-between">

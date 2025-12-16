@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,6 +32,8 @@ const getCategoryColor = (categoryName: string, index: number): string => {
 
 export default async function PartnersPage() {
   const supabase = await createClient()
+  const userProfile = await getCurrentUserProfile(supabase)
+  const userRole = userProfile?.profile?.role || null
 
   // 파트너 카테고리 가져오기
   const { data: partnerCategories } = await supabase
@@ -117,7 +120,7 @@ export default async function PartnersPage() {
   const displayServices = allServices.length > 0 ? allServices : dummyPartners
 
   return (
-    <DashboardLayout header={<SiteHeader />}>
+    <DashboardLayout header={<SiteHeader />} userRole={userRole}>
       <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         <div className="w-full flex flex-col gap-10">
         <PageHeader

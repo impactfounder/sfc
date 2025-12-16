@@ -1,11 +1,17 @@
+import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
 import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const supabase = await createClient()
+  const userProfile = await getCurrentUserProfile(supabase)
+  const userRole = userProfile?.profile?.role || null
+
   return (
-    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} userRole={userRole}>
       <div className="max-w-4xl mx-auto p-6 w-full">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>

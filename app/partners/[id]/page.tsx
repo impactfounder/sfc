@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
 import { SiteHeader } from "@/components/site-header"
@@ -34,6 +35,8 @@ export default async function PartnerServiceDetailPage({
   params: { id: string }
 }) {
   const supabase = await createClient()
+  const userProfile = await getCurrentUserProfile(supabase)
+  const userRole = userProfile?.profile?.role || null
 
   // 파트너 카테고리 가져오기
   const { data: partnerCategories } = await supabase
@@ -70,7 +73,7 @@ export default async function PartnerServiceDetailPage({
   }
 
   return (
-    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />}>
+    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} userRole={userRole}>
       <div className="w-full flex flex-col gap-8">
         {/* 썸네일 이미지 */}
         <div className="relative aspect-video w-full rounded-xl overflow-hidden">
