@@ -1,5 +1,7 @@
 "use client"
 
+import * as React from "react"
+import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
 import { cn } from "@/lib/utils"
 
 type BoardCategory = {
@@ -16,32 +18,41 @@ interface FilterButtonsProps {
 
 export function FilterButtons({ categories, selectedSlug, onSelect }: FilterButtonsProps) {
   return (
-    <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
-      <button
-        onClick={() => onSelect("all")}
+    <ToggleGroupPrimitive.Root
+      type="single"
+      value={selectedSlug}
+      onValueChange={(value) => {
+        if (value) onSelect(value)
+      }}
+      className="flex flex-wrap gap-2 overflow-x-auto pb-2"
+    >
+      <ToggleGroupPrimitive.Item
+        value="all"
         className={cn(
           "px-4 py-1.5 rounded-full border font-medium transition whitespace-nowrap text-sm",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
           selectedSlug === "all"
-            ? "bg-gray-900 text-white border-gray-900"
-            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+            ? "bg-slate-900 text-white border-slate-900"
+            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
         )}
       >
         전체
-      </button>
+      </ToggleGroupPrimitive.Item>
       {categories.map((category) => (
-        <button
+        <ToggleGroupPrimitive.Item
           key={category.id}
-          onClick={() => onSelect(category.slug)}
+          value={category.slug}
           className={cn(
             "px-4 py-1.5 rounded-full border font-medium transition whitespace-nowrap text-sm",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
             selectedSlug === category.slug
-              ? "bg-gray-900 text-white border-gray-900"
-              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+              ? "bg-slate-900 text-white border-slate-900"
+              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
           )}
         >
           {category.name}
-        </button>
+        </ToggleGroupPrimitive.Item>
       ))}
-    </div>
+    </ToggleGroupPrimitive.Root>
   )
 }

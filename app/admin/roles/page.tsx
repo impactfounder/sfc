@@ -1,9 +1,8 @@
 import { requireMaster } from "@/lib/auth/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft, Shield, Crown } from 'lucide-react';
+import { Shield, Crown } from 'lucide-react';
 import { RoleManager } from "@/components/role-manager";
+import { AdminBreadcrumb } from "@/components/admin/admin-breadcrumb";
 
 export default async function RolesManagementPage() {
   const { supabase, user } = await requireMaster();
@@ -17,14 +16,7 @@ export default async function RolesManagementPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <Link href="/admin">
-            <Button variant="ghost">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              대시보드로 돌아가기
-            </Button>
-          </Link>
-        </div>
+        <AdminBreadcrumb items={[{ label: "관리자 지정" }]} />
 
         <div className="mb-8">
           <div className="flex items-center gap-3">

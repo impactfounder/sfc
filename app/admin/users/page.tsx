@@ -1,10 +1,8 @@
 import { requireAdmin } from "@/lib/auth/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { UserManagementRow } from "@/components/user-management"
+import { AdminBreadcrumb } from "@/components/admin/admin-breadcrumb"
 
 export default async function UsersManagementPage() {
   const { supabase, user, isMaster } = await requireAdmin()
@@ -17,14 +15,7 @@ export default async function UsersManagementPage() {
   return (
     <div className="min-h-screen bg-white p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <Link href="/admin">
-            <Button variant="ghost">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              대시보드로 돌아가기
-            </Button>
-          </Link>
-        </div>
+        <AdminBreadcrumb items={[{ label: "회원 관리" }]} />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">회원 관리</h1>

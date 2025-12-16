@@ -1,9 +1,9 @@
 import { requireAdmin } from "@/lib/auth/server"
-import { createClient } from "@/lib/supabase/server"
 import { PartnerListTab } from "@/components/admin/partners/partner-list-tab"
 import { PartnerApplicationsTab } from "@/components/admin/partner-applications-tab"
 import { PartnerCategoryTab } from "@/components/admin/partners/partner-category-tab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AdminBreadcrumb } from "@/components/admin/admin-breadcrumb"
 
 export default async function AdminPartnersPage() {
   const { supabase } = await requireAdmin()
@@ -97,6 +97,8 @@ export default async function AdminPartnersPage() {
 
   return (
     <div className="w-full">
+      <AdminBreadcrumb items={[{ label: "파트너스 관리" }]} />
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">파트너스 관리</h1>
         <p className="mt-2 text-slate-600">제휴 업체 및 신청 내역을 관리합니다</p>

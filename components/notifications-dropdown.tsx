@@ -38,13 +38,6 @@ export default function NotificationsDropdown({
   initialUser,
   initialNotifications = []
 }: NotificationsDropdownProps) {
-  // 디버그 로그
-  console.log('[NotificationsDropdown] Props received:', {
-    hasInitialUser: !!initialUser,
-    initialNotificationsCount: initialNotifications.length,
-    initialNotifications
-  })
-
   // 서버에서 미리 가져온 데이터가 있으면 초기 상태로 사용
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
   const [unreadCount, setUnreadCount] = useState(initialNotifications.filter((n) => !n.is_read).length)
@@ -254,7 +247,7 @@ export default function NotificationsDropdown({
                         <p className="font-bold text-sm text-slate-900 leading-tight">
                           {notification.title}
                         </p>
-                        <span className="text-[10px] text-slate-400 shrink-0 font-medium">
+                        <span className="text-[10px] text-slate-400 shrink-0 font-medium" suppressHydrationWarning>
                           {new Date(notification.created_at).toLocaleDateString("ko-KR", {
                             month: "short",
                             day: "numeric",

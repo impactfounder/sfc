@@ -10,13 +10,7 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { createPost } from "@/lib/actions/posts";
 import { createClient } from "@/lib/supabase/client";
 import { ImagePlus, X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 type NewPostFormProps = {
   userId?: string; // Optional: 서버 액션에서 자동으로 가져옴
@@ -208,22 +202,17 @@ export function NewPostForm({ userId, boardCategoryId, communityId, slug, onSucc
           <Label htmlFor="category" className="text-sm font-medium text-slate-900">
             카테고리 {isInsightBoard && <span className="text-red-500">*</span>}
           </Label>
-          <Select
+          <Combobox
+            options={(isInsightBoard ? insightCategories : partnerCategories).map((cat) => ({
+              value: cat.id,
+              label: cat.name,
+            }))}
             value={selectedCategory}
             onValueChange={setSelectedCategory}
-            required={isInsightBoard}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="카테고리를 선택해주세요" />
-            </SelectTrigger>
-            <SelectContent>
-              {(isInsightBoard ? insightCategories : partnerCategories).map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="카테고리를 선택해주세요"
+            searchPlaceholder="카테고리 검색..."
+            emptyText="카테고리가 없습니다."
+          />
         </div>
       )}
 

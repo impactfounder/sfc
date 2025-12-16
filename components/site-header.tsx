@@ -24,7 +24,6 @@ export async function SiteHeader() {
             .order("created_at", { ascending: false })
             .limit(10)
 
-        console.log('[SiteHeader] Server-side notifications fetch:', { userId: user.id, data, error })
         initialNotifications = data || []
     }
 

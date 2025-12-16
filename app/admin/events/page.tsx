@@ -2,9 +2,10 @@ import { requireAdmin } from "@/lib/auth/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowLeft, Calendar, MapPin, Users, User, Settings, Trash2 } from "lucide-react"
+import { Calendar, MapPin, Users, User, Settings } from "lucide-react"
 import { DeleteEventButton } from "@/components/delete-event-button"
 import Image from "next/image"
+import { AdminBreadcrumb } from "@/components/admin/admin-breadcrumb"
 
 export default async function AdminEventsPage() {
   const { supabase } = await requireAdmin()
@@ -46,14 +47,7 @@ export default async function AdminEventsPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 pt-20 md:pt-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <Link href="/admin">
-            <Button variant="ghost">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              관리자 페이지로 돌아가기
-            </Button>
-          </Link>
-        </div>
+        <AdminBreadcrumb items={[{ label: "이벤트 관리" }]} />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">이벤트 관리</h1>
