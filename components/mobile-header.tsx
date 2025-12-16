@@ -91,7 +91,7 @@ export function MobileHeader() {
   }
 
   return (
-    <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-between px-4 transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-between px-4 transition-all duration-300">
       {/* 1. 로고 */}
       <Link href="/" className="flex-shrink-0 relative z-50">
         <Image

@@ -46,26 +46,17 @@ export default function NotificationsDropdown({
 
   useEffect(() => {
     async function fetchNotifications() {
-      // 항상 클라이언트에서 최신 user 가져오기 (initialUser는 서버 렌더링 시점의 데이터)
-      const { data: { user: fetchedUser }, error: authError } = await supabase.auth.getUser()
+      // 클라이언트에서 세션 확인
+      const { data: { session } } = await supabase.auth.getSession()
 
-      console.log('[NotificationsDropdown] Auth check:', {
-        fetchedUser: fetchedUser?.id,
-        initialUser: initialUser?.id,
-        authError
-      })
-
-      const currentUser = fetchedUser || initialUser
-
-      setUser(currentUser)
-      setIsLoading(false)
-
-      if (!currentUser) {
-        console.log('[NotificationsDropdown] No user, skipping fetch')
+      if (!session?.user) {
+        setUser(null)
+        setIsLoading(false)
         return
       }
 
-      console.log('[NotificationsDropdown] Fetching notifications for user:', currentUser.id)
+      setUser(session.user)
+      setIsLoading(false)
 
       const { data, error } = await supabase
         .from("notifications")
@@ -73,18 +64,12 @@ export default function NotificationsDropdown({
           *,
           profiles:actor_id(full_name, avatar_url)
         `)
-        .eq("user_id", currentUser.id)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
         .limit(10)
 
-      console.log('[NotificationsDropdown] Query result:', {
-        count: data?.length,
-        error,
-        firstNotification: data?.[0]?.title
-      })
-
       if (error) {
-        console.error('[NotificationsDropdown] Error fetching notifications:', error)
+        console.error('[NotificationsDropdown] Error:', error)
         return
       }
 
@@ -114,7 +99,7 @@ export default function NotificationsDropdown({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [initialUser, supabase])
+  }, [supabase])
 
 
   async function markAsRead(notificationId: string) {

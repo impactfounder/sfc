@@ -15,7 +15,9 @@
       "Bash(cat:*)",
       "Bash(git config:*)",
       "Bash(git remote:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git diff:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

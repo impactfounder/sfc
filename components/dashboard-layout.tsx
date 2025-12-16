@@ -23,8 +23,10 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
         </div>
       )}
 
-      {/* 2. Mobile Header (lg 미만에서 항상 표시) */}
-      <MobileHeader />
+      {/* 2. Mobile Header (lg 미만에서만 표시) */}
+      <div className="lg:hidden">
+        <MobileHeader />
+      </div>
 
       {/* 2. Left Sidebar: Header 아래 배치 (top-14) */}
       <aside className="fixed top-14 left-0 z-40 hidden h-[calc(100vh-3.5rem)] w-72 border-r border-slate-200 bg-white lg:block overflow-y-auto">
