@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, BookOpen, Users, Calendar, Bell, Megaphone, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase } from "lucide-react"
+import { Menu, BookOpen, Users, Calendar, Bell, Megaphone, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase, Shield } from "lucide-react"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 // 사이드바와 동일한 메뉴 구조
 const navigationSections = [
@@ -48,10 +49,44 @@ export function MobileHeader() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const supabase = createClient()
 
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+
+    const loadUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+        setUserRole(profile?.role || null)
+      }
+    }
+
+    loadUserRole()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+        setUserRole(profile?.role || null)
+      } else {
+        setUserRole(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  const isAdmin = userRole === "admin" || userRole === "master"
+  const showAdminMenu = isAdmin || pathname.startsWith('/admin')
 
   const isLinkActive = (href: string) => {
     if (href === '/community') return pathname === href
@@ -134,14 +169,34 @@ export function MobileHeader() {
                     기타
                   </h4>
                   <div className="space-y-1">
-                    <a
-                      href="mailto:support@seoulfounders.club"
+                    <Link
+                      href="/customer-center"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
+                        isLinkActive("/customer-center")
+                          ? "bg-slate-100 text-slate-900 font-bold"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                      )}
                     >
-                      <Headset className="h-5 w-5 flex-shrink-0 text-slate-400" />
+                      <Headset className={cn("h-5 w-5 flex-shrink-0", isLinkActive("/customer-center") ? "text-slate-900" : "text-slate-400")} />
                       <span>고객센터</span>
-                    </a>
+                    </Link>
+                    {showAdminMenu && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 text-[15px] transition-all rounded-xl",
+                          isLinkActive("/admin")
+                            ? "bg-slate-100 text-slate-900 font-bold"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                        )}
+                      >
+                        <Shield className={cn("h-5 w-5 flex-shrink-0", isLinkActive("/admin") ? "text-slate-900" : "text-slate-400")} />
+                        <span>관리자</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
                 

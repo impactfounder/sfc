@@ -151,13 +151,10 @@ export function MobileActionBar() {
           <button
             type="button"
             onClick={handleProfile}
-            className={cn(
-              "flex flex-col items-center justify-center transition-colors active:bg-gray-50 pt-1",
-              activeTab === "profile" ? "text-slate-900 font-bold" : "text-gray-400"
-            )}
+            className="flex flex-col items-center justify-center transition-colors active:bg-gray-50 pt-1"
           >
             <Avatar className={cn(
-              "size-7 mb-0.5 ring-2 ring-offset-1",
+              "size-7 ring-2 ring-offset-1",
               activeTab === "profile" ? "ring-slate-900" : "ring-transparent"
             )}>
               <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "프로필"} />
@@ -165,7 +162,6 @@ export function MobileActionBar() {
                 {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
-            <span className="text-[10px]">프로필</span>
           </button>
         ) : (
           <NavButton
