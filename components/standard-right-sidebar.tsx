@@ -9,11 +9,11 @@ import Link from "next/link"
 export function StandardRightSidebar() {
   const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string }>>([])
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     async function fetchAnnouncements() {
       try {
+        const supabase = createClient()
         const { data, error } = await supabase
           .from("posts")
           .select(`
@@ -39,7 +39,7 @@ export function StandardRightSidebar() {
     }
 
     fetchAnnouncements()
-  }, [supabase])
+  }, [])
 
   return (
     <div className="flex flex-col gap-8 h-full">

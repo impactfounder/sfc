@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 let supabaseInstance: SupabaseClient | null = null;
 
 export function createClient() {
-  if (supabaseInstance) {
+  // 브라우저 환경에서만 싱글톤 사용
+  if (typeof window !== 'undefined' && supabaseInstance) {
     return supabaseInstance;
   }
 
@@ -16,6 +17,12 @@ export function createClient() {
     throw new Error("Supabase 환경 변수 미설정");
   }
 
-  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
-  return supabaseInstance;
+  const client = createBrowserClient(supabaseUrl, supabaseAnonKey);
+
+  // 브라우저 환경에서만 캐싱
+  if (typeof window !== 'undefined') {
+    supabaseInstance = client;
+  }
+
+  return client;
 }
