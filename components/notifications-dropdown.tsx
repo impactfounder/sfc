@@ -46,15 +46,15 @@ export default function NotificationsDropdown({
 
   useEffect(() => {
     async function fetchNotifications() {
-      let currentUser = user
+      let currentUser = initialUser
 
-      // initialUser가 없을 때만 서버에서 user 가져오기
+      // initialUser가 없을 때만 클라이언트에서 user 가져오기
       if (!currentUser) {
         const { data: { user: fetchedUser } } = await supabase.auth.getUser()
         currentUser = fetchedUser
-        setUser(currentUser)
       }
 
+      setUser(currentUser)
       setIsLoading(false)
 
       if (!currentUser) return
@@ -95,7 +95,7 @@ export default function NotificationsDropdown({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [initialUser, supabase])
 
 
   async function markAsRead(notificationId: string) {
