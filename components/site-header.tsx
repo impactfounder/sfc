@@ -11,6 +11,23 @@ export async function SiteHeader() {
     const user = userProfile?.user || null
     const profile = userProfile?.profile || null
 
+    // 서버에서 알림 데이터 미리 가져오기
+    let initialNotifications: any[] = []
+    if (user) {
+        const { data, error } = await supabase
+            .from("notifications")
+            .select(`
+                *,
+                profiles:actor_id(full_name, avatar_url)
+            `)
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(10)
+
+        console.log('[SiteHeader] Server-side notifications fetch:', { userId: user.id, data, error })
+        initialNotifications = data || []
+    }
+
     return (
         <header className="fixed inset-x-0 top-0 z-50 h-14 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
             <div className="flex h-14 w-full items-center px-4 lg:px-[27px]">
@@ -29,7 +46,7 @@ export async function SiteHeader() {
                 </div>
 
                 {/* Client Side Content (Search, Actions, Profile) */}
-                <SiteHeaderClient user={user} profile={profile} />
+                <SiteHeaderClient user={user} profile={profile} initialNotifications={initialNotifications} />
             </div>
         </header>
     )

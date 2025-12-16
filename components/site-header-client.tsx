@@ -31,9 +31,10 @@ import { Input } from "@/components/ui/input"
 interface SiteHeaderClientProps {
     user: any
     profile: any
+    initialNotifications?: any[]
 }
 
-export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
+export function SiteHeaderClient({ user, profile, initialNotifications = [] }: SiteHeaderClientProps) {
     const router = useRouter()
     const supabase = createClient()
     const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
@@ -130,6 +131,7 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
                             triggerClassName="h-9 w-9 rounded-full"
                             align="end"
                             initialUser={user}
+                            initialNotifications={initialNotifications}
                         />
 
                         {/* 프로필 드롭다운 */}

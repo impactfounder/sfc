@@ -28,19 +28,30 @@ interface NotificationsDropdownProps {
   align?: "center" | "start" | "end"
   side?: "top" | "right" | "bottom" | "left"
   initialUser?: any // 서버에서 전달받은 user 정보
+  initialNotifications?: Notification[] // 서버에서 미리 가져온 알림 데이터
 }
 
 export default function NotificationsDropdown({
   triggerClassName,
   align = "end",
   side = "bottom",
-  initialUser
+  initialUser,
+  initialNotifications = []
 }: NotificationsDropdownProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
+  // 디버그 로그
+  console.log('[NotificationsDropdown] Props received:', {
+    hasInitialUser: !!initialUser,
+    initialNotificationsCount: initialNotifications.length,
+    initialNotifications
+  })
+
+  // 서버에서 미리 가져온 데이터가 있으면 초기 상태로 사용
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
+  const [unreadCount, setUnreadCount] = useState(initialNotifications.filter((n) => !n.is_read).length)
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<any>(initialUser || null)
-  const [isLoading, setIsLoading] = useState(!initialUser)
+  // initialNotifications가 있으면 로딩 완료 상태로 시작
+  const [isLoading, setIsLoading] = useState(!initialUser && initialNotifications.length === 0)
   const supabase = createClient()
   const router = useRouter()
 
@@ -79,8 +90,12 @@ export default function NotificationsDropdown({
       }
     }
 
-    fetchNotifications()
+    // 서버에서 미리 가져온 데이터가 없을 때만 클라이언트에서 fetch
+    if (initialNotifications.length === 0) {
+      fetchNotifications()
+    }
 
+    // 실시간 업데이트 구독 (항상 활성화)
     const channel = supabase
       .channel("notifications")
       .on(
@@ -99,7 +114,7 @@ export default function NotificationsDropdown({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [supabase, initialNotifications.length])
 
 
   async function markAsRead(notificationId: string) {
