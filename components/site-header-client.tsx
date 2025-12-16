@@ -40,9 +40,19 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
     const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut()
-        router.refresh()
-        window.location.href = "/" // 강제 리디렉션
+        console.log('[SignOut] Starting sign out...')
+        try {
+            const { error } = await supabase.auth.signOut()
+            if (error) {
+                console.error('[SignOut] Error:', error)
+            } else {
+                console.log('[SignOut] Success, redirecting...')
+            }
+            router.refresh()
+            window.location.href = "/"
+        } catch (err) {
+            console.error('[SignOut] Exception:', err)
+        }
     }
 
     return (
