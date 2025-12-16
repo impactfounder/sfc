@@ -107,6 +107,9 @@ export function Sidebar() {
   const isAdmin = userRole === "admin" || userRole === "master"
   const shouldShowAdminMenu = isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
 
+  // 디버깅용 로그
+  console.log('[Sidebar] userRole:', userRole, 'isAdmin:', isAdmin, 'shouldShowAdminMenu:', shouldShowAdminMenu, 'isRoleLoaded:', isRoleLoaded)
+
   const isLinkActive = (href: string, startsWith = false) => {
     if (href === '/community' || href === '/community/page') {
       return pathname === href
