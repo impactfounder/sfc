@@ -1,14 +1,30 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, LogOut, Shield, Bell, Megaphone, MessageSquare, Home, Users, Lightbulb, ClipboardList, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
+import { Calendar, Shield, Megaphone, MessageSquare, Home, Users, Lightbulb, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useMemo, useRef } from "react"
-import Image from "next/image"
 import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
-import type React from "react"
+
+// 관리자 메뉴 링크 컴포넌트 - 클라이언트에서만 렌더링
+function AdminMenuLink({ isActive }: { isActive: boolean }) {
+  return (
+    <Link
+      href="/admin"
+      className={cn(
+        "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
+        isActive
+          ? "bg-slate-100 text-slate-900 font-bold"
+          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
+      )}
+    >
+      <Shield className="h-5 w-5 flex-shrink-0" />
+      <span>관리자</span>
+    </Link>
+  )
+}
 
 const navigationSections = [
   // ... (navigationSections 배열은 기존과 동일)
@@ -50,8 +66,6 @@ const navigationSections = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  // ... existing hooks ... (kept hooks but removed unused ones if any)
-  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
@@ -230,20 +244,12 @@ export function Sidebar() {
                 <Headset className="h-5 w-5 flex-shrink-0" />
                 <span>고객센터</span>
               </Link>
-              {shouldShowAdminMenu && (
-                <Link
-                  href="/admin"
-                  className={cn(
-                    "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
-                    isLinkActive("/admin", true)
-                      ? "bg-slate-100 text-slate-900 font-bold"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
-                  )}
-                >
-                  <Shield className="h-5 w-5 flex-shrink-0" />
-                  <span>관리자</span>
-                </Link>
-              )}
+              {/* 관리자 메뉴 - suppressHydrationWarning으로 hydration 불일치 방지 */}
+              <div suppressHydrationWarning>
+                {shouldShowAdminMenu && (
+                  <AdminMenuLink isActive={isLinkActive("/admin", true)} />
+                )}
+              </div>
             </div>
           </div>
         </nav>
