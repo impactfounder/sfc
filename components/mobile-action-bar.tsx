@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { Home, Calendar, Plus, Users, User } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { ReactNode } from "react"
 
 type NavButtonProps = {
@@ -34,22 +35,42 @@ export function MobileActionBar() {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<{ avatar_url?: string; full_name?: string } | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadUserAndProfile = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
       setUser(user)
+
+      if (user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("avatar_url, full_name")
+          .eq("id", user.id)
+          .single()
+        setProfile(profileData)
+      }
     }
 
-    loadUser()
+    loadUserAndProfile()
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("avatar_url, full_name")
+          .eq("id", session.user.id)
+          .single()
+        setProfile(profileData)
+      } else {
+        setProfile(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -125,12 +146,35 @@ export function MobileActionBar() {
           isActive={activeTab === "community"}
           onClick={handleCommunity}
         />
-        <NavButton
-          icon={<User className={cn("size-6 mb-1", !user ? "text-gray-400" : "text-gray-400")} />}
-          label={user ? "프로필" : "로그인"}
-          isActive={activeTab === "profile"}
-          onClick={handleProfile}
-        />
+        {/* 프로필/로그인 버튼 - 로그인 상태에 따라 분기 */}
+        {user ? (
+          <button
+            type="button"
+            onClick={handleProfile}
+            className={cn(
+              "flex flex-col items-center justify-center transition-colors active:bg-gray-50 pt-1",
+              activeTab === "profile" ? "text-slate-900 font-bold" : "text-gray-400"
+            )}
+          >
+            <Avatar className={cn(
+              "size-7 mb-0.5 ring-2 ring-offset-1",
+              activeTab === "profile" ? "ring-slate-900" : "ring-transparent"
+            )}>
+              <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "프로필"} />
+              <AvatarFallback className="text-xs bg-slate-200 text-slate-600">
+                {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-[10px]">프로필</span>
+          </button>
+        ) : (
+          <NavButton
+            icon={<User className="size-6 mb-1 text-gray-400" />}
+            label="로그인"
+            isActive={false}
+            onClick={handleProfile}
+          />
+        )}
       </div>
     </nav>
   )
