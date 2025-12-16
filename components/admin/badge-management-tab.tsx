@@ -1406,14 +1406,24 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
               <div>
                 <h4 className="text-sm font-semibold text-slate-900 mb-2">첨부 파일</h4>
                 {viewingEvidence.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                  <div className="relative w-full h-64 rounded-lg overflow-hidden border border-slate-200">
+                  <a
+                    href={viewingEvidence.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block relative w-full h-64 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity group"
+                  >
                     <Image
                       src={viewingEvidence.url}
                       alt="증빙 이미지"
                       fill
                       className="object-contain"
                     />
-                  </div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full transition-opacity">
+                        클릭하여 원본 보기
+                      </span>
+                    </div>
+                  </a>
                 ) : (
                   <Button asChild variant="outline" className="w-full justify-start">
                     <a href={viewingEvidence.url} target="_blank" rel="noopener noreferrer">
