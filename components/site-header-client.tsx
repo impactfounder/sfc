@@ -39,19 +39,18 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
     const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
     const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
 
-    const handleSignOut = async () => {
-        console.log('[SignOut] Starting sign out...')
-        try {
-            // 로컬 세션만 삭제 (네트워크 문제 방지)
-            const { error } = await supabase.auth.signOut({ scope: 'local' })
-            console.log('[SignOut] signOut completed, error:', error)
-        } catch (err) {
-            console.error('[SignOut] Exception:', err)
-        } finally {
-            // 에러 여부와 관계없이 항상 리디렉션
-            console.log('[SignOut] Redirecting...')
-            window.location.href = "/"
-        }
+    const handleSignOut = () => {
+        console.log('[SignOut] Clearing cookies and redirecting...')
+        // 쿠키 직접 삭제
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+        })
+        // localStorage 클리어
+        localStorage.clear()
+        // 리디렉션
+        window.location.href = "/"
     }
 
     return (
