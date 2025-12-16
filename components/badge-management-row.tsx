@@ -129,18 +129,15 @@ export function BadgeManagementRow({ badgeRequest }: { badgeRequest: BadgeReques
           </div>
         </TableCell>
         <TableCell className="text-right">
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-2">
             <Button
               onClick={handleApprove}
               disabled={isProcessing}
               size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
             >
               {isProcessing && processingAction === 'approve' ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  처리 중...
-                </>
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
                 <>
                   <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -153,16 +150,14 @@ export function BadgeManagementRow({ badgeRequest }: { badgeRequest: BadgeReques
               disabled={isProcessing}
               size="sm"
               variant="destructive"
+              className="w-full sm:w-auto"
             >
               {isProcessing && processingAction === 'reject' ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  처리 중...
-                </>
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
                 <>
                   <XCircle className="h-3 w-3 mr-1" />
-                  거절
+                  반려
                 </>
               )}
             </Button>
