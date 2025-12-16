@@ -42,16 +42,15 @@ export function SiteHeaderClient({ user, profile }: SiteHeaderClientProps) {
     const handleSignOut = async () => {
         console.log('[SignOut] Starting sign out...')
         try {
-            const { error } = await supabase.auth.signOut()
-            if (error) {
-                console.error('[SignOut] Error:', error)
-            } else {
-                console.log('[SignOut] Success, redirecting...')
-            }
-            router.refresh()
-            window.location.href = "/"
+            // 로컬 세션만 삭제 (네트워크 문제 방지)
+            const { error } = await supabase.auth.signOut({ scope: 'local' })
+            console.log('[SignOut] signOut completed, error:', error)
         } catch (err) {
             console.error('[SignOut] Exception:', err)
+        } finally {
+            // 에러 여부와 관계없이 항상 리디렉션
+            console.log('[SignOut] Redirecting...')
+            window.location.href = "/"
         }
     }
 
