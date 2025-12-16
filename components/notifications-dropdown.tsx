@@ -47,13 +47,25 @@ export default function NotificationsDropdown({
   useEffect(() => {
     async function fetchNotifications() {
       // 항상 클라이언트에서 최신 user 가져오기 (initialUser는 서버 렌더링 시점의 데이터)
-      const { data: { user: fetchedUser } } = await supabase.auth.getUser()
+      const { data: { user: fetchedUser }, error: authError } = await supabase.auth.getUser()
+
+      console.log('[NotificationsDropdown] Auth check:', {
+        fetchedUser: fetchedUser?.id,
+        initialUser: initialUser?.id,
+        authError
+      })
+
       const currentUser = fetchedUser || initialUser
 
       setUser(currentUser)
       setIsLoading(false)
 
-      if (!currentUser) return
+      if (!currentUser) {
+        console.log('[NotificationsDropdown] No user, skipping fetch')
+        return
+      }
+
+      console.log('[NotificationsDropdown] Fetching notifications for user:', currentUser.id)
 
       const { data, error } = await supabase
         .from("notifications")
@@ -64,6 +76,12 @@ export default function NotificationsDropdown({
         .eq("user_id", currentUser.id)
         .order("created_at", { ascending: false })
         .limit(10)
+
+      console.log('[NotificationsDropdown] Query result:', {
+        count: data?.length,
+        error,
+        firstNotification: data?.[0]?.title
+      })
 
       if (error) {
         console.error('[NotificationsDropdown] Error fetching notifications:', error)
