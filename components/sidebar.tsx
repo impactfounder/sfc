@@ -55,7 +55,7 @@ export function Sidebar() {
   const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>("member")
-  const [isRoleLoaded, setIsRoleLoaded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const prefetch = usePrefetchPosts()
 
   // 유저 및 role 정보 가져오기
@@ -75,7 +75,7 @@ export function Sidebar() {
           setUserRole(profile.role)
         }
       }
-      setIsRoleLoaded(true)
+      setIsMounted(true)
     }
 
     fetchUserRole()
@@ -96,7 +96,6 @@ export function Sidebar() {
       } else {
         setUserRole("member")
       }
-      setIsRoleLoaded(true)
     })
 
     return () => {
@@ -105,7 +104,7 @@ export function Sidebar() {
   }, [supabase])
 
   const isAdmin = userRole === "admin" || userRole === "master"
-  const shouldShowAdminMenu = isRoleLoaded && (isAdmin || pathname.startsWith('/admin'))
+  const shouldShowAdminMenu = isMounted && (isAdmin || pathname.startsWith('/admin'))
 
   const isLinkActive = (href: string, startsWith = false) => {
     if (href === '/community' || href === '/community/page') {
