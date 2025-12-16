@@ -91,6 +91,12 @@ export default async function BoardPage({
     .order("created_at", { ascending: false })
     .range(0, 14);
 
+  // 디버깅 로그 (프로덕션에서도 출력)
+  if (postsResult.error) {
+    console.error('[BoardPage] Posts query error:', postsResult.error);
+  }
+  console.log('[BoardPage] dbSlug:', dbSlug, 'posts count:', postsResult.data?.length || 0);
+
   const initialPosts = postsResult.data || [];
   const initialPostsCount = postsResult.count || 0;
 
