@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare, ChevronLeft } from "lucide-react"
@@ -10,12 +9,8 @@ import { EventShareButton } from "@/components/event-share-button"
 import Link from "next/link"
 import { UserBadges } from "@/components/user-badges"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import SidebarProfile from "@/components/sidebar-profile"
-import { SiteHeader } from "@/components/site-header"
 import { isMasterAdmin, isAdmin } from "@/lib/utils"
 import { getComments } from "@/lib/actions/comments"
-import { DashboardLayout } from "@/components/dashboard-layout"
 
 // 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights", "reviews"]
@@ -27,8 +22,6 @@ export default async function BoardPostDetailPage({
 }) {
   const { slug, id } = await params
   const supabase = await createClient()
-  const userProfile = await getCurrentUserProfile(supabase)
-  const userRole = userProfile?.profile?.role || null
 
   let dbSlug = slug
   if (slug === "free") dbSlug = "free-board"
@@ -98,106 +91,104 @@ export default async function BoardPostDetailPage({
   const actualLikesCount = likesResult.count || 0
 
   return (
-    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} rightSidebar={<StandardRightSidebar />} userRole={userRole}>
-      <div className="w-full flex flex-col gap-6">
-        {/* 헤더 (카드 바로 위로 이동) */}
-        <div className="flex items-center justify-between">
-          <Link
-            href={`/community/board/${slug}`}
-            className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-              <ChevronLeft className="h-4 w-4" />
-            </div>
-            {boardName} 목록
-          </Link>
-          {(isAuthor || isUserAdmin) && (
-            <PostActions
-              postId={post.id}
-              isAuthor={isAuthor}
-              isAdmin={isUserAdmin}
-              isMaster={isMaster}
-              slug={slug}
-              redirectUrl={`/community/board/${slug}`}
-            />
-          )}
-        </div>
-
-        <Card className="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden">
-          <CardContent className="p-6 md:p-8">
-            {/* 게시판 태그 (자유게시판, 반골, 하이토크 제외) */}
-            {dbSlug !== "free-board" && dbSlug !== "vangol" && dbSlug !== "hightalk" && (
-              <div className="mb-4">
-                <span className="bg-slate-100 text-slate-600 rounded-md px-2.5 py-1 text-xs font-bold">
-                  {boardName}
-                </span>
-              </div>
-            )}
-
-            {/* 작성자 정보 */}
-            <div className="mb-6 flex items-center gap-3">
-              <Avatar className="h-10 w-10 border border-slate-100">
-                <AvatarImage src={post.profiles?.avatar_url || undefined} />
-                <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
-                  {post.profiles?.full_name?.[0] || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-900 text-sm">
-                    {post.profiles?.full_name || "익명"}
-                  </span>
-                  {authorVisibleBadges.length > 0 && <UserBadges badges={authorVisibleBadges} />}
-                </div>
-                <span className="text-xs text-slate-500">
-                  {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-            </div>
-
-            {/* 제목 */}
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 leading-snug">{post.title}</h1>
-
-            {/* 본문 */}
-            <div
-              className="prose prose-slate max-w-none text-slate-800 leading-relaxed mb-10 min-h-[200px]"
-              dangerouslySetInnerHTML={{ __html: post.content || "" }}
-            />
-
-            {/* 하단 액션 */}
-            <div className="flex items-center justify-between pt-6 border-t border-slate-100">
-              <div className="flex items-center gap-4">
-                <LikeButton
-                  postId={post.id}
-                  userId={user?.id}
-                  initialLiked={!!userLikeResult.data}
-                  initialCount={actualLikesCount}
-                />
-                <div className="flex items-center gap-1.5 text-slate-500 text-sm">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{actualCommentsCount}</span>
-                </div>
-              </div>
-              <EventShareButton title={post.title} variant="ghost" size="sm" className="text-slate-500">
-                공유
-              </EventShareButton>
-            </div>
-
-            {/* 댓글 섹션 */}
-            <div className="mt-8 pt-8 border-t border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900 mb-6">댓글</h3>
-              <ThreadedComments postId={post.id} userId={user?.id} comments={comments} />
-            </div>
-          </CardContent>
-        </Card>
+    <div className="w-full flex flex-col gap-6">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/community/board/${slug}`}
+          className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
+            <ChevronLeft className="h-4 w-4" />
+          </div>
+          {boardName} 목록
+        </Link>
+        {(isAuthor || isUserAdmin) && (
+          <PostActions
+            postId={post.id}
+            isAuthor={isAuthor}
+            isAdmin={isUserAdmin}
+            isMaster={isMaster}
+            slug={slug}
+            redirectUrl={`/community/board/${slug}`}
+          />
+        )}
       </div>
-    </DashboardLayout>
+
+      <Card className="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden">
+        <CardContent className="p-6 md:p-8">
+          {/* 게시판 태그 (자유게시판, 반골, 하이토크 제외) */}
+          {dbSlug !== "free-board" && dbSlug !== "vangol" && dbSlug !== "hightalk" && (
+            <div className="mb-4">
+              <span className="bg-slate-100 text-slate-600 rounded-md px-2.5 py-1 text-xs font-bold">
+                {boardName}
+              </span>
+            </div>
+          )}
+
+          {/* 작성자 정보 */}
+          <div className="mb-6 flex items-center gap-3">
+            <Avatar className="h-10 w-10 border border-slate-100">
+              <AvatarImage src={post.profiles?.avatar_url || undefined} />
+              <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
+                {post.profiles?.full_name?.[0] || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-900 text-sm">
+                  {post.profiles?.full_name || "익명"}
+                </span>
+                {authorVisibleBadges.length > 0 && <UserBadges badges={authorVisibleBadges} />}
+              </div>
+              <span className="text-xs text-slate-500">
+                {new Date(post.created_at).toLocaleDateString("ko-KR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* 제목 */}
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 leading-snug">{post.title}</h1>
+
+          {/* 본문 */}
+          <div
+            className="prose prose-slate max-w-none text-slate-800 leading-relaxed mb-10 min-h-[200px]"
+            dangerouslySetInnerHTML={{ __html: post.content || "" }}
+          />
+
+          {/* 하단 액션 */}
+          <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+            <div className="flex items-center gap-4">
+              <LikeButton
+                postId={post.id}
+                userId={user?.id}
+                initialLiked={!!userLikeResult.data}
+                initialCount={actualLikesCount}
+              />
+              <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+                <MessageSquare className="h-4 w-4" />
+                <span>{actualCommentsCount}</span>
+              </div>
+            </div>
+            <EventShareButton title={post.title} variant="ghost" size="sm" className="text-slate-500">
+              공유
+            </EventShareButton>
+          </div>
+
+          {/* 댓글 섹션 */}
+          <div className="mt-8 pt-8 border-t border-slate-100">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">댓글</h3>
+            <ThreadedComments postId={post.id} userId={user?.id} comments={comments} />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
