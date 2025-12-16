@@ -1,45 +1,28 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/server"
 import { Separator } from "@/components/ui/separator"
 import { Bell, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
-export function StandardRightSidebar() {
-  const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string }>>([])
-  const [isLoading, setIsLoading] = useState(true)
+export async function StandardRightSidebar() {
+  const supabase = await createClient()
 
-  useEffect(() => {
-    async function fetchAnnouncements() {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from("posts")
-          .select(`
-            id,
-            title,
-            board_categories!inner(slug)
-          `)
-          .eq("board_categories.slug", "announcement")
-          .order("created_at", { ascending: false })
-          .limit(3)
+  const { data, error } = await supabase
+    .from("posts")
+    .select(`
+      id,
+      title,
+      board_categories!inner(slug)
+    `)
+    .eq("board_categories.slug", "announcement")
+    .order("created_at", { ascending: false })
+    .limit(3)
 
-        if (!error && data) {
-          setAnnouncements(data.map((post: any) => ({
-            id: post.id,
-            title: post.title,
-          })))
-        }
-      } catch (error) {
-        console.error("공지사항 로드 오류:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAnnouncements()
-  }, [])
+  const announcements = (!error && data)
+    ? data.map((post: any) => ({
+        id: post.id,
+        title: post.title,
+      }))
+    : []
 
   return (
     <div className="flex flex-col gap-8 h-full">
@@ -55,13 +38,7 @@ export function StandardRightSidebar() {
             <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
-        {isLoading ? (
-          <div className="space-y-2 px-1">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-3.5 bg-slate-100 rounded animate-pulse" />
-            ))}
-          </div>
-        ) : announcements.length > 0 ? (
+        {announcements.length > 0 ? (
           <div className="flex flex-col">
             {announcements.map((announcement, idx) => (
               <div key={announcement.id}>
