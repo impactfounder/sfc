@@ -28,6 +28,8 @@ interface BoardPageClientProps {
   communityId: string | null
   isMember: boolean
   canEditDescription: boolean
+  initialPosts?: any[]
+  initialPostsCount?: number
 }
 
 export function BoardPageClient({
@@ -38,7 +40,9 @@ export function BoardPageClient({
   user,
   communityId,
   isMember: initialIsMember,
-  canEditDescription
+  canEditDescription,
+  initialPosts = [],
+  initialPostsCount = 0
 }: BoardPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -47,16 +51,21 @@ export function BoardPageClient({
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false)
   const [isMember, setIsMember] = useState(initialIsMember)
   const [isJoining, setIsJoining] = useState(false)
-  
+
   // 뷰 모드 상태 (기본값: 공지사항은 list, 자유게시판과 나머지는 feed)
   const defaultViewMode = (slug === "announcement" || slug === "announcements") ? "list" : "feed"
   const [viewMode, setViewMode] = useState<"feed" | "list">(defaultViewMode)
 
-  // ★ 수정: 커스텀 훅 사용
+  // 서버에서 전달받은 초기 데이터가 있으면 사용, 없거나 페이지 변경 시 클라이언트에서 fetch
   const { data, isLoading, isError } = usePosts(dbSlug, currentPage)
 
-  const posts = data?.posts || []
-  const totalPosts = data?.count || 0
+  // 1페이지이고 서버 초기 데이터가 있으면 사용, 그 외에는 클라이언트 데이터 사용
+  const posts = (currentPage === 1 && initialPosts.length > 0 && !data)
+    ? initialPosts
+    : (data?.posts || initialPosts)
+  const totalPosts = (currentPage === 1 && initialPostsCount > 0 && !data)
+    ? initialPostsCount
+    : (data?.count || initialPostsCount)
 
   // 시스템 게시판 목록 (기존 사이드바 사용)
   const systemBoards = ['announcement', 'announcements', 'free', 'free-board', 'event-requests', 'insights', 'reviews']
@@ -305,13 +314,18 @@ export function BoardPageClient({
         </Dialog>
 
         <div className="flex flex-col gap-4">
-          {isLoading ? (
+          {/* 서버에서 초기 데이터가 있으면 로딩 상태 건너뛰기 */}
+          {(isLoading && posts.length === 0) ? (
             [1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="w-full h-24 rounded-xl border border-gray-200 p-4">
                 <Skeleton className="h-4 w-3/4 mb-2" />
                 <Skeleton className="h-3 w-1/4" />
               </div>
             ))
+          ) : posts.length === 0 ? (
+            <div className="text-center py-16 text-slate-500">
+              아직 게시글이 없습니다. 첫 번째 글을 작성해보세요!
+            </div>
           ) : (
             postsWithMembership.map((post) => (
               <PostCard

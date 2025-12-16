@@ -128,7 +128,11 @@ export async function updateUserMembershipTier(userId: string, membershipTier: s
   return { success: true }
 }
 
-export async function updateBadgeStatus(userBadgeId: string, status: 'approved' | 'rejected') {
+export async function updateBadgeStatus(
+  userBadgeId: string,
+  status: 'approved' | 'rejected',
+  rejectionReason?: string
+) {
   const supabase = await createClient()
 
   const {
@@ -156,15 +160,27 @@ export async function updateBadgeStatus(userBadgeId: string, status: 'approved' 
     throw new Error("Unauthorized: Only admins can update badge status")
   }
 
+  // 먼저 user_badge 정보 가져오기 (알림 생성을 위해)
+  const { data: userBadge } = await supabase
+    .from("user_badges")
+    .select(`
+      user_id,
+      badges:badge_id (name, icon)
+    `)
+    .eq("id", userBadgeId)
+    .single()
+
   // Update badge status
-  const updateData: { status: string; is_visible?: boolean } = { status }
-  
+  const updateData: { status: string; is_visible?: boolean; rejection_reason?: string | null } = { status }
+
   // 승인 시 is_visible을 true로 설정
   if (status === 'approved') {
     updateData.is_visible = true
+    updateData.rejection_reason = null
   } else {
-    // 거절 시 is_visible을 false로 유지
+    // 거절 시 is_visible을 false로 유지하고 반려 사유 저장
     updateData.is_visible = false
+    updateData.rejection_reason = rejectionReason || null
   }
 
   const { error } = await supabase
@@ -176,7 +192,34 @@ export async function updateBadgeStatus(userBadgeId: string, status: 'approved' 
     throw new Error(error.message)
   }
 
+  // 알림 생성
+  if (userBadge?.user_id) {
+    const badge = Array.isArray(userBadge.badges) ? userBadge.badges[0] : userBadge.badges
+    const badgeName = badge?.name || '뱃지'
+    const badgeIcon = badge?.icon || '🏅'
+
+    if (status === 'approved') {
+      await supabase.from("notifications").insert({
+        user_id: userBadge.user_id,
+        type: 'badge_approved',
+        title: '뱃지 승인',
+        message: `${badgeIcon} ${badgeName} 뱃지 신청이 승인되었습니다.`,
+        actor_id: user.id,
+      })
+    } else {
+      const reasonText = rejectionReason ? `\n사유: ${rejectionReason}` : ''
+      await supabase.from("notifications").insert({
+        user_id: userBadge.user_id,
+        type: 'badge_rejected',
+        title: '뱃지 반려',
+        message: `${badgeIcon} ${badgeName} 뱃지 신청이 반려되었습니다.${reasonText}`,
+        actor_id: user.id,
+      })
+    }
+  }
+
   revalidatePath("/admin/badges")
+  revalidatePath("/admin")
   return { success: true }
 }
 

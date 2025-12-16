@@ -394,6 +394,11 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     description: "",
   })
 
+  // 반려 다이얼로그 관련 state
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [rejectingBadgeId, setRejectingBadgeId] = useState<string | null>(null)
+  const [rejectionMessage, setRejectionMessage] = useState("")
+
   // 드래그앤드롭 센서 설정
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -698,27 +703,52 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
     setProcessingAction('approve')
     try {
       await updateBadgeStatus(userBadgeId, 'approved')
+      toast({
+        title: "승인 완료",
+        description: "뱃지 신청이 승인되었습니다. 사용자에게 알림이 전송됩니다.",
+      })
       router.refresh()
     } catch (error) {
       console.error("Failed to approve badge:", error)
-      alert("승인 처리에 실패했습니다.")
+      toast({
+        variant: "destructive",
+        title: "승인 실패",
+        description: error instanceof Error ? error.message : "승인 처리에 실패했습니다.",
+      })
     } finally {
       setIsProcessing(false)
       setProcessingAction(null)
     }
   }
 
-  const handleReject = async (userBadgeId: string) => {
-    if (!confirm("이 뱃지 신청을 거절하시겠습니까?")) return
+  const handleRejectClick = (userBadgeId: string) => {
+    setRejectingBadgeId(userBadgeId)
+    setRejectionMessage("")
+    setShowRejectDialog(true)
+  }
+
+  const handleRejectConfirm = async () => {
+    if (!rejectingBadgeId) return
 
     setIsProcessing(true)
     setProcessingAction('reject')
     try {
-      await updateBadgeStatus(userBadgeId, 'rejected')
+      await updateBadgeStatus(rejectingBadgeId, 'rejected', rejectionMessage || undefined)
+      toast({
+        title: "반려 완료",
+        description: "뱃지 신청이 반려되었습니다.",
+      })
+      setShowRejectDialog(false)
+      setRejectingBadgeId(null)
+      setRejectionMessage("")
       router.refresh()
     } catch (error) {
       console.error("Failed to reject badge:", error)
-      alert("거절 처리에 실패했습니다.")
+      toast({
+        variant: "destructive",
+        title: "반려 실패",
+        description: error instanceof Error ? error.message : "반려 처리에 실패했습니다.",
+      })
     } finally {
       setIsProcessing(false)
       setProcessingAction(null)
@@ -927,24 +957,13 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                               )}
                             </Button>
                             <Button
-                              onClick={async () => {
-                                await handleReject(badgeRequest.id)
-                              }}
+                              onClick={() => handleRejectClick(badgeRequest.id)}
                               disabled={isProcessing}
                               size="sm"
                               variant="destructive"
                             >
-                              {isProcessing && processingAction === 'reject' ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  처리 중...
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  거절
-                                </>
-                              )}
+                              <XCircle className="h-3 w-3 mr-1" />
+                              반려
                             </Button>
                           </div>
                         </TableCell>
@@ -1485,6 +1504,63 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 뱃지 반려 다이얼로그 */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md bg-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-red-600">뱃지 신청 반려</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              반려 사유를 입력해주세요. 사용자에게 알림으로 전달됩니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label htmlFor="rejection_message" className="mb-2 block text-slate-700">
+                반려 사유 <span className="text-slate-400 text-xs">(선택)</span>
+              </Label>
+              <Textarea
+                id="rejection_message"
+                value={rejectionMessage}
+                onChange={(e) => setRejectionMessage(e.target.value)}
+                placeholder="예: 증빙 자료가 불명확합니다. 자산 증명을 위한 금융기관 발급 서류를 첨부해주세요."
+                rows={4}
+                className="bg-white border-slate-200 resize-none"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                반려 사유를 입력하지 않으면 기본 메시지로 알림이 전송됩니다.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRejectDialog(false)
+                  setRejectingBadgeId(null)
+                  setRejectionMessage("")
+                }}
+                disabled={isProcessing}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleRejectConfirm}
+                disabled={isProcessing}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isProcessing && processingAction === 'reject' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    처리 중...
+                  </>
+                ) : (
+                  "반려하기"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -78,6 +78,47 @@ export default async function BoardPage({
   const systemBoards = ['announcement', 'free-board', 'event-requests', 'insights'];
   const isSystemBoard = systemBoards.includes(dbSlug);
 
+  // 서버 사이드에서 초기 posts 데이터 가져오기 (RLS 문제 방지)
+  const postsResult = await supabase
+    .from("posts")
+    .select(`
+      *,
+      profiles:author_id(full_name, avatar_url),
+      board_categories!inner(name, slug),
+      post_images(id, image_url, sort_order)
+    `, { count: "exact" })
+    .eq("board_categories.slug", dbSlug)
+    .order("created_at", { ascending: false })
+    .range(0, 14);
+
+  const initialPosts = postsResult.data || [];
+  const initialPostsCount = postsResult.count || 0;
+
+  // 좋아요 및 댓글 수 조회
+  let postsWithCounts = initialPosts;
+  if (initialPosts.length > 0) {
+    const postIds = initialPosts.map((post: any) => post.id);
+    const [likesResult, commentsResult] = await Promise.all([
+      supabase.from("post_likes").select("post_id").in("post_id", postIds),
+      supabase.from("comments").select("post_id").in("post_id", postIds)
+    ]);
+
+    const likesCountMap = new Map<string, number>();
+    const commentsCountMap = new Map<string, number>();
+    (likesResult.data || []).forEach((like: any) => {
+      likesCountMap.set(like.post_id, (likesCountMap.get(like.post_id) || 0) + 1);
+    });
+    (commentsResult.data || []).forEach((comment: any) => {
+      commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1);
+    });
+
+    postsWithCounts = initialPosts.map((post: any) => ({
+      ...post,
+      likes_count: likesCountMap.get(post.id) || 0,
+      comments_count: commentsCountMap.get(post.id) || 0,
+    }));
+  }
+
   let communityId: string | null = null;
   let isMember = false;
   let canEditDescription = false;
@@ -125,6 +166,8 @@ export default async function BoardPage({
       communityId={communityId}
       isMember={isMember}
       canEditDescription={canEditDescription}
+      initialPosts={postsWithCounts}
+      initialPostsCount={initialPostsCount}
     />
   );
 }

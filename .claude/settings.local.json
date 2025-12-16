@@ -13,7 +13,9 @@
       "Bash(npx supabase db query:*)",
       "Bash(git checkout:*)",
       "Bash(cat:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(git remote:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
