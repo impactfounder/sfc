@@ -75,18 +75,22 @@ export function Sidebar() {
   // 유저 및 role 정보 가져오기
   useEffect(() => {
     const fetchUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      console.log('[Sidebar] getUser result:', { user: user?.id, email: user?.email, error: userError })
       setUser(user)
 
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single()
 
+        console.log('[Sidebar] profile result:', { profile, error: profileError })
+
         if (profile?.role) {
           setUserRole(profile.role)
+          console.log('[Sidebar] userRole set to:', profile.role)
         }
       }
       setIsMounted(true)
@@ -96,6 +100,7 @@ export function Sidebar() {
 
     // 인증 상태 변경 구독
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Sidebar] onAuthStateChange:', { event, userId: session?.user?.id })
       setUser(session?.user || null)
       if (session?.user) {
         const { data: profile } = await supabase
@@ -106,6 +111,7 @@ export function Sidebar() {
 
         if (profile?.role) {
           setUserRole(profile.role)
+          console.log('[Sidebar] userRole updated via onAuthStateChange:', profile.role)
         }
       } else {
         setUserRole("member")
