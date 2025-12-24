@@ -88,10 +88,14 @@ function PostListItem({ post }: { post: PostListItem }) {
 }
 
 function EventListItem({ event }: { event: EventListItem }) {
-    const eventDate = new Date(event.event_date)
-    const now = new Date()
-    const isPast = eventDate < now
-    
+    // isPast 계산을 클라이언트에서만 수행하여 hydration 불일치 방지
+    const [isPast, setIsPast] = useState(false)
+
+    useEffect(() => {
+        const eventDate = new Date(event.event_date)
+        setIsPast(eventDate < new Date())
+    }, [event.event_date])
+
     let badgeText = "모집중"
     let badgeStyle = "bg-blue-50 text-blue-700"
 
