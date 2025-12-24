@@ -39,6 +39,8 @@ export default function NotificationsDropdown({
   initialUser,
   initialNotifications = []
 }: NotificationsDropdownProps) {
+  // Hydration 안전을 위한 mounted 상태
+  const [mounted, setMounted] = useState(false)
   // 서버에서 미리 가져온 데이터가 있으면 초기 상태로 사용
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
   const [unreadCount, setUnreadCount] = useState(initialNotifications.filter((n) => !n.is_read).length)
@@ -48,6 +50,11 @@ export default function NotificationsDropdown({
   const [isLoading, setIsLoading] = useState(!initialUser && initialNotifications.length === 0)
   const supabase = createClient()
   const router = useRouter()
+
+  // 클라이언트 마운트 확인
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     // initialUser가 있으면 로딩 완료
@@ -210,7 +217,7 @@ export default function NotificationsDropdown({
           aria-label="알림"
         >
           <Bell className={cn("h-6 w-6 transition-colors", isOpen ? "text-slate-900" : "text-slate-600")} />
-          {unreadCount > 0 && (
+          {mounted && unreadCount > 0 && (
             <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white shadow-sm" />
           )}
         </Button>
@@ -229,7 +236,7 @@ export default function NotificationsDropdown({
           <div className="flex items-center gap-2.5">
             <Bell className="h-5 w-5 text-slate-900" />
             <h3 className="font-bold text-xl text-slate-900">알림</h3>
-            {unreadCount > 0 && (
+            {mounted && unreadCount > 0 && (
               <span className="bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                 {unreadCount} NEW
               </span>
