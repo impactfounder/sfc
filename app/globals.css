@@ -44,21 +44,9 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* 헤딩 타이포그래피 강화 */
+  /* 헤딩 타이포그래피 강화 - tracking만 적용 (크기는 각 컴포넌트에서 지정) */
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
-  }
-
-  h1 {
-    @apply text-3xl sm:text-4xl font-bold;
-  }
-
-  h2 {
-    @apply text-2xl sm:text-3xl font-bold;
-  }
-
-  h3 {
-    @apply text-xl sm:text-2xl font-semibold;
   }
 
   /* 프리미엄 포커스 스타일 */

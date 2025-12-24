@@ -72,7 +72,7 @@ function PostListItem({ post }: { post: PostListItem }) {
                 <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
                     {post.board_categories?.name || "게시판"}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400" suppressHydrationWarning>
                     {new Date(post.created_at).toLocaleDateString()}
                 </span>
             </div>
@@ -118,7 +118,7 @@ function EventListItem({ event }: { event: EventListItem }) {
             <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">{event.title}</h3>
                 <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {new Date(event.event_date).toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1" suppressHydrationWarning><CalendarDays className="h-3 w-3" /> {new Date(event.event_date).toLocaleDateString()}</span>
                     <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location || "장소 미정"}</span>
                 </div>
                 <div className="mt-2">
@@ -896,7 +896,7 @@ export default function ProfilePage() {
 
               <div className="mt-6 text-xs text-slate-400 flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                가입일: {new Date(user.created_at).toLocaleDateString()}
+                <span suppressHydrationWarning>가입일: {new Date(user.created_at).toLocaleDateString()}</span>
               </div>
             </CardContent>
           </Card>
