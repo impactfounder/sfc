@@ -37,8 +37,8 @@ export function PostCard({ post, href = `/community/board/${post.board_categorie
   })
 
   return (
-    <Card className={cn("border border-slate-200 shadow-sm hover:shadow-md transition-all", className)}>
-      <CardContent className="p-4 sm:p-5">
+    <Card className={cn("border-0 bg-white shadow-sm shadow-slate-900/5 ring-1 ring-slate-900/[0.04] hover:shadow-md hover:ring-slate-900/[0.08] transition-all duration-200 group", className)}>
+      <CardContent className="p-5 sm:p-6">
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="h-8 w-8">
@@ -70,7 +70,7 @@ export function PostCard({ post, href = `/community/board/${post.board_categorie
 
         {/* 본문 */}
         <Link href={href} className="block group">
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-slate-700 transition-colors">
+          <h3 className="text-lg sm:text-xl font-semibold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
             {post.title}
           </h3>
           {post.content_preview && (

@@ -28,8 +28,8 @@ export async function SiteHeader() {
     }
 
     return (
-        <header className="fixed inset-x-0 top-0 z-50 h-14 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-            <div className="flex h-14 w-full items-center px-4 lg:px-[27px]">
+        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
+            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
                 {/* Left: Logo */}
                 <div className="ml-1 mr-4 flex items-center">
                     <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">

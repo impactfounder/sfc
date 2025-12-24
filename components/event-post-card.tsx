@@ -35,8 +35,8 @@ export function EventPostCard({ event, href = `/events/${event.id}`, className }
   const capacity = event.max_participants ? `${event.current_participants || 0} / ${event.max_participants}` : `${event.current_participants || 0}명`
 
   return (
-    <Card className={cn("border border-indigo-100 shadow-sm hover:shadow-md transition-all bg-white", className)}>
-      <div className="w-full aspect-[4/3] bg-indigo-50 border-b border-indigo-100 overflow-hidden">
+    <Card className={cn("border-0 bg-white shadow-md shadow-slate-900/5 ring-1 ring-slate-900/[0.04] hover:shadow-xl hover:shadow-slate-900/10 hover:ring-slate-900/[0.08] transition-all duration-300", className)}>
+      <div className="w-full aspect-[16/10] bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden rounded-t-2xl">
         {event.thumbnail_url ? (
           <img
             src={event.thumbnail_url}
@@ -48,9 +48,9 @@ export function EventPostCard({ event, href = `/events/${event.id}`, className }
           <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">이미지가 없습니다</div>
         )}
       </div>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 text-[11px]">
+          <Badge variant="outline" className="border-slate-200 text-slate-700 bg-slate-50 text-[11px]">
             {event.event_type || "이벤트"}
           </Badge>
           <span className="text-xs text-slate-500">{dateLabel}</span>

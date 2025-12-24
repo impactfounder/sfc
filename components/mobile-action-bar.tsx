@@ -116,7 +116,7 @@ export function MobileActionBar() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 lg:hidden pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-lg border-t border-slate-200/50 lg:hidden pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
       <div className="grid h-16 grid-cols-5 divide-x-0 text-[10px] font-medium text-gray-500">
         <NavButton
           icon={<Home className={cn("size-6 mb-1", activeTab === "home" ? "text-slate-900" : "text-gray-400")} />}
@@ -135,7 +135,7 @@ export function MobileActionBar() {
           onClick={handleCreate}
           className="flex flex-col items-center justify-center pt-0.5"
         >
-          <div className="flex items-center justify-center size-10 bg-slate-900 rounded-full shadow-lg text-white transform active:scale-95 transition-transform">
+          <div className="flex items-center justify-center size-12 bg-gradient-to-br from-slate-800 to-slate-950 rounded-full shadow-lg shadow-slate-900/30 text-white transform active:scale-90 transition-all duration-150 ring-4 ring-white">
             <Plus className="size-6" />
           </div>
           <span className="text-[10px] text-slate-900 font-semibold">만들기</span>

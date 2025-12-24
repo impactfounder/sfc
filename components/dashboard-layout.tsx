@@ -28,16 +28,16 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
         <MobileHeader />
       </div>
 
-      {/* 2. Left Sidebar: Header 아래 배치 (top-14) */}
-      <aside className="fixed top-14 left-0 z-40 hidden h-[calc(100vh-3.5rem)] w-72 border-r border-slate-200 bg-white lg:block overflow-y-auto">
+      {/* 2. Left Sidebar: Header 아래 배치 (top-16) */}
+      <aside className="fixed top-16 left-0 z-40 hidden h-[calc(100vh-4rem)] w-72 border-r border-slate-200/50 bg-white lg:block overflow-y-auto">
         <Sidebar userRole={userRole} />
       </aside>
 
-      {/* 3. Main Content Wrapper: Header 높이(pt-14) + Sidebar 너비(pl-72) */}
+      {/* 3. Main Content Wrapper: Header 높이(pt-16) + Sidebar 너비(pl-72) */}
       <main
         className={cn(
           "min-h-screen w-full transition-all duration-200 ease-in-out",
-          header ? "pt-14 lg:pl-72" : "lg:pl-72"
+          header ? "pt-16 lg:pl-72" : "lg:pl-72"
         )}
       >
         <div
