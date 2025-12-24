@@ -184,33 +184,55 @@ export default function ProfilePage() {
     setMounted(true)
   }, [])
 
+  // 로딩 상태 안전장치: 10초가 지나면 강제로 로딩을 끝냄
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.warn("[Profile] 로딩 시간 초과 - 강제 종료")
+        setLoading(false)
+      }
+    }, 10000)
+    return () => clearTimeout(timer)
+  }, [loading])
+
   useEffect(() => {
     const loadData = async () => {
       try {
         console.log('[Profile] loadData 시작')
         setLoading(true)
 
-        const userProfile = await getCurrentUserProfile(supabase)
+        // 타임아웃을 적용한 프로필 조회 함수 (5초 제한)
+        const fetchProfileWithTimeout = async () => {
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+          )
+
+          try {
+            return await Promise.race([
+              getCurrentUserProfile(supabase),
+              timeoutPromise
+            ]) as Awaited<ReturnType<typeof getCurrentUserProfile>>
+          } catch (e) {
+            console.error('[Profile] 프로필 로드 시간 초과', e)
+            return null
+          }
+        }
+
+        const userProfile = await fetchProfileWithTimeout()
         console.log('[Profile] userProfile:', userProfile ? 'exists' : 'null')
 
         if (!userProfile || !userProfile.user) {
-          console.log('[Profile] No user, redirecting to home')
+          console.log('[Profile] No user, redirecting to login')
           setLoading(false)
-          router.push("/")
+          router.push("/auth/login")
           return
         }
 
         setUser(userProfile.user)
-        let profileData: Profile | null = userProfile.profile
-
-        let myEvents: EventListItem[] = []
-        let myPosts: PostListItem[] = []
-        let myRegistrations: EventRegistrationQueryResult[] = []
-        let badgesData: BadgeQueryResult[] = []
+        const profileData = userProfile.profile
 
         if (profileData) {
           setProfile(profileData)
-          
           setEditForm({
             full_name: profileData.full_name || "",
             company: profileData.company || "",
@@ -219,60 +241,66 @@ export default function ProfilePage() {
             position_2: profileData.position_2 || "",
             tagline: (profileData as any).tagline || "",
             introduction: profileData.introduction || "",
-            member_type: Array.isArray((profileData as any).member_type) 
-              ? (profileData as any).member_type 
-              : (profileData as any).member_type 
+            member_type: Array.isArray((profileData as any).member_type)
+              ? (profileData as any).member_type
+              : (profileData as any).member_type
                 ? [(profileData as any).member_type]
                 : [],
             is_profile_public: profileData.is_profile_public || false,
           })
         }
 
+        // 병렬 데이터 로딩 (각각 실패해도 전체 로딩이 멈추지 않도록 개별 try-catch)
         await Promise.all([
+          // 1. 이벤트
           (async () => {
             try {
-              const result = await supabase
+              const { data, error } = await supabase
                 .from("events")
                 .select(`id, title, thumbnail_url, event_date, location, created_at`)
                 .eq("created_by", userProfile.user.id)
                 .order("created_at", { ascending: false })
                 .limit(20)
-              if (!result.error && result.data) {
-                myEvents = result.data.map((event) => ({
+              if (!error && data) {
+                setCreatedEvents(data.map((event) => ({
                   id: event.id,
                   title: event.title,
                   thumbnail_url: event.thumbnail_url,
                   event_date: event.event_date,
                   location: event.location,
                   created_at: event.created_at,
-                }))
+                })))
               }
             } catch (error) {
               console.error('이벤트 로드 오류:', error)
             }
           })(),
+
+          // 2. 게시글
           (async () => {
             try {
-              const result = await supabase
+              const { data, error } = await supabase
                 .from("posts")
-                .select(`id, title, created_at, board_categories (name, slug)`)
+                .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
                 .eq("author_id", userProfile.user.id)
                 .order("created_at", { ascending: false })
                 .limit(20)
-              if (!result.error && result.data) {
-                myPosts = result.data.map((post) => ({
+              if (!error && data) {
+                setUserPosts(data.map((post) => ({
                   id: post.id,
                   title: post.title,
                   created_at: post.created_at,
                   board_categories: Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories,
-                  likes_count: 0,
-                  comments_count: 0,
-                }))
+                  likes_count: post.likes_count || 0,
+                  comments_count: post.comments_count || 0,
+                })))
               }
             } catch (error) {
               console.error('게시글 로드 오류:', error)
             }
           })(),
+
+          // 3. 등록 이벤트
           (async () => {
             try {
               const queryPromise = supabase
@@ -286,37 +314,52 @@ export default function ProfilePage() {
                 .eq("user_id", userProfile.user.id)
                 .order("registered_at", { ascending: false })
                 .limit(20)
-              
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('쿼리 타임아웃')), 5000)
+
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Registrations timeout')), 5000)
               )
-              
-              const result = await Promise.race([queryPromise, timeoutPromise]) as { error?: Error; data?: EventRegistrationQueryResult[] }
+
+              const result = await Promise.race([queryPromise, timeoutPromise]) as any
               if (!result.error && result.data) {
-                myRegistrations = result.data
+                const flattened = result.data
+                  .map((reg: any) => {
+                    if (!reg.events) return null
+                    return {
+                      id: reg.events.id,
+                      title: reg.events.title,
+                      thumbnail_url: reg.events.thumbnail_url,
+                      event_date: reg.events.event_date,
+                      location: reg.events.location,
+                      created_at: reg.events.event_date,
+                      registration_date: reg.registered_at ?? null,
+                    }
+                  })
+                  .filter(Boolean)
+                setRegisteredEvents(flattened)
               }
             } catch (error) {
               console.error('등록 이벤트 로드 오류:', error)
-              myRegistrations = []
             }
           })(),
+
+          // 4. 뱃지
           (async () => {
             try {
-              const result = await supabase
+              const { data, error } = await supabase
                 .from("user_badges")
-                .select(`
-                  badges:badge_id (
-                    icon,
-                    name,
-                    is_active
-                  )
-                `)
+                .select(`badges:badge_id (icon, name, is_active)`)
                 .eq("user_id", userProfile.user.id)
                 .eq("is_visible", true)
                 .limit(10)
-              if (!result.error && result.data) {
-                // 활성화된 뱃지만 필터링
-                badgesData = result.data.filter((item: any) => item.badges && item.badges.is_active !== false) as any
+
+              if (!error && data) {
+                const mappedBadges = data
+                  .filter((item: any) => item.badges && item.badges.is_active !== false)
+                  .map((item: any) => ({
+                    icon: item.badges.icon,
+                    name: item.badges.name,
+                  }))
+                setVisibleBadges(mappedBadges)
               }
             } catch (error) {
               console.error('뱃지 로드 오류:', error)
@@ -324,35 +367,10 @@ export default function ProfilePage() {
           })()
         ])
 
-        setProfile(profileData)
-        setCreatedEvents(myEvents)
-        setUserPosts(myPosts)
-        
-        const flattenedRegistrations = myRegistrations
-          .map((reg) => {
-            if (!reg.events) return null
-            return {
-              id: reg.events.id,
-              title: reg.events.title,
-              thumbnail_url: reg.events.thumbnail_url,
-              event_date: reg.events.event_date,
-              location: reg.events.location,
-              created_at: reg.events.event_date, 
-              registration_date: reg.registered_at ?? null,
-            }
-          })
-          .filter(Boolean) as EventListItem[]
-        setRegisteredEvents(flattenedRegistrations)
-        
-        const mappedBadges: VisibleBadge[] = badgesData
-          .map((ub) => ub.badges)
-          .filter((badge): badge is { icon: string; name: string } => badge !== null)
-          .map((badge) => ({ icon: (badge as any).icon, name: (badge as any).name }))
-        setVisibleBadges(mappedBadges)
-
       } catch (error) {
-        console.error('[Profile] 데이터 로드 중 오류 발생:', error)
+        console.error('[Profile] 치명적 오류:', error)
       } finally {
+        // 어떤 상황에서도 로딩 상태 해제 보장
         console.log('[Profile] loadData 완료, loading=false')
         setLoading(false)
       }
