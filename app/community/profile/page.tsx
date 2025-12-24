@@ -201,35 +201,42 @@ export default function ProfilePage() {
         console.log('[Profile] loadData 시작')
         setLoading(true)
 
-        // 타임아웃을 적용한 프로필 조회 함수 (5초 제한)
+        // 클라이언트에서는 getSession을 먼저 사용해야 함 (getUser는 서버 호출 필요)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log('[Profile] session:', session ? 'exists' : 'null', sessionError ? `error: ${sessionError.message}` : '')
+
+        if (!session?.user) {
+          console.log('[Profile] No session, redirecting to login')
+          setLoading(false)
+          router.push("/auth/login")
+          return
+        }
+
+        setUser(session.user as any)
+
+        // 프로필 조회 (타임아웃 5초)
         const fetchProfileWithTimeout = async () => {
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
           )
 
           try {
-            return await Promise.race([
-              getCurrentUserProfile(supabase),
-              timeoutPromise
-            ]) as Awaited<ReturnType<typeof getCurrentUserProfile>>
+            const profilePromise = supabase
+              .from("profiles")
+              .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, tagline, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at")
+              .eq("id", session.user.id)
+              .single()
+
+            const result = await Promise.race([profilePromise, timeoutPromise]) as any
+            return result.data || null
           } catch (e) {
             console.error('[Profile] 프로필 로드 시간 초과', e)
             return null
           }
         }
 
-        const userProfile = await fetchProfileWithTimeout()
-        console.log('[Profile] userProfile:', userProfile ? 'exists' : 'null')
-
-        if (!userProfile || !userProfile.user) {
-          console.log('[Profile] No user, redirecting to login')
-          setLoading(false)
-          router.push("/auth/login")
-          return
-        }
-
-        setUser(userProfile.user)
-        const profileData = userProfile.profile
+        const profileData = await fetchProfileWithTimeout()
+        console.log('[Profile] profileData:', profileData ? 'exists' : 'null')
 
         if (profileData) {
           setProfile(profileData)
@@ -258,7 +265,7 @@ export default function ProfilePage() {
               const { data, error } = await supabase
                 .from("events")
                 .select(`id, title, thumbnail_url, event_date, location, created_at`)
-                .eq("created_by", userProfile.user.id)
+                .eq("created_by", session.user.id)
                 .order("created_at", { ascending: false })
                 .limit(20)
               if (!error && data) {
@@ -282,7 +289,7 @@ export default function ProfilePage() {
               const { data, error } = await supabase
                 .from("posts")
                 .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
-                .eq("author_id", userProfile.user.id)
+                .eq("author_id", session.user.id)
                 .order("created_at", { ascending: false })
                 .limit(20)
               if (!error && data) {
@@ -311,7 +318,7 @@ export default function ProfilePage() {
                     id, title, thumbnail_url, event_date, location
                   )
                 `)
-                .eq("user_id", userProfile.user.id)
+                .eq("user_id", session.user.id)
                 .order("registered_at", { ascending: false })
                 .limit(20)
 
@@ -348,7 +355,7 @@ export default function ProfilePage() {
               const { data, error } = await supabase
                 .from("user_badges")
                 .select(`badges:badge_id (icon, name, is_active)`)
-                .eq("user_id", userProfile.user.id)
+                .eq("user_id", session.user.id)
                 .eq("is_visible", true)
                 .limit(10)
 
