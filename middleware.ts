@@ -71,6 +71,19 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL("/auth/login", request.url));
     }
+
+    // 관리자 역할 검증
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isAdmin = profile?.role === "admin" || profile?.role === "master";
+    if (!isAdmin) {
+      // 관리자가 아니면 홈으로 리다이렉트
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return response;

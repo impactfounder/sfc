@@ -62,67 +62,73 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 이벤트 정보 조회
-    const { data: event, error: eventError } = await supabase
-      .from("events")
-      .select("id, title, max_participants")
-      .eq("id", eventId)
-      .single();
-
-    if (eventError || !event) {
-      return NextResponse.json(
-        { error: "이벤트를 찾을 수 없습니다." },
-        { status: 404 }
-      );
-    }
-
-    // 참가자 수 확인
-    const { count: currentCount } = await supabase
-      .from("event_registrations")
-      .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId);
-
-    if (event.max_participants && currentCount && currentCount >= event.max_participants) {
-      return NextResponse.json(
-        { error: "이벤트 정원이 마감되었습니다." },
-        { status: 400 }
-      );
-    }
-
     // 결제 정보에서 고객 정보 추출
     const customerName = paymentData.customer?.name || paymentData.customerName || "";
     const customerEmail = paymentData.customer?.email || paymentData.customerEmail || "";
 
-    // event_registrations에 데이터 insert
-    const registrationData: any = {
-      event_id: eventId,
-      registered_at: new Date().toISOString(),
-    };
+    // 원자적 이벤트 등록 (Race Condition 방지)
+    // RPC 함수를 사용하여 정원 체크와 등록을 하나의 트랜잭션으로 처리
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('register_for_event', {
+      p_event_id: eventId,
+      p_user_id: user?.id || null,
+      p_guest_name: user ? null : customerName,
+      p_guest_contact: user ? null : customerEmail,
+    });
 
-    if (user) {
-      // 로그인 유저
-      registrationData.user_id = user.id;
-    } else {
-      // 비회원
-      registrationData.guest_name = customerName;
-      registrationData.guest_contact = customerEmail;
-    }
+    if (rpcError) {
+      console.error("RPC error:", rpcError);
 
-    const { data: registration, error: registrationError } = await supabase
-      .from("event_registrations")
-      .insert(registrationData)
-      .select("id")
-      .single();
+      // RPC 함수가 없는 경우 기존 방식으로 폴백
+      if (rpcError.code === "42883") {
+        console.warn("register_for_event 함수가 없습니다. 기존 방식으로 등록합니다.");
 
-    if (registrationError) {
-      console.error("Failed to create registration:", registrationError);
-      
-      // 중복 등록 체크
-      if (registrationError.code === "23505") {
-        return NextResponse.json(
-          { error: "이미 등록된 이벤트입니다." },
-          { status: 400 }
-        );
+        // 기존 방식 (폴백)
+        const { data: event } = await supabase
+          .from("events")
+          .select("max_participants")
+          .eq("id", eventId)
+          .single();
+
+        const { count: currentCount } = await supabase
+          .from("event_registrations")
+          .select("*", { count: "exact", head: true })
+          .eq("event_id", eventId);
+
+        if (event?.max_participants && currentCount && currentCount >= event.max_participants) {
+          return NextResponse.json(
+            { error: "이벤트 정원이 마감되었습니다." },
+            { status: 400 }
+          );
+        }
+
+        const registrationData: any = {
+          event_id: eventId,
+          registered_at: new Date().toISOString(),
+          ...(user ? { user_id: user.id } : { guest_name: customerName, guest_contact: customerEmail }),
+        };
+
+        const { data: fallbackReg, error: insertError } = await supabase
+          .from("event_registrations")
+          .insert(registrationData)
+          .select("id")
+          .single();
+
+        if (insertError) {
+          if (insertError.code === "23505") {
+            return NextResponse.json({ error: "이미 등록된 이벤트입니다." }, { status: 400 });
+          }
+          return NextResponse.json({ error: "등록 처리 중 오류가 발생했습니다." }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          success: true,
+          registrationId: fallbackReg.id,
+          paymentData: {
+            paymentKey: paymentData.paymentKey,
+            orderId: paymentData.orderId,
+            amount: paymentData.totalAmount,
+          },
+        });
       }
 
       return NextResponse.json(
@@ -131,9 +137,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // RPC 결과 처리
+    const registration = rpcResult?.[0];
+    if (!registration?.success) {
+      return NextResponse.json(
+        { error: registration?.message || "등록 처리 중 오류가 발생했습니다." },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      registrationId: registration.id,
+      registrationId: registration.registration_id,
       paymentData: {
         paymentKey: paymentData.paymentKey,
         orderId: paymentData.orderId,

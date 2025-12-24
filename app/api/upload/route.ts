@@ -1,8 +1,20 @@
 import { put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   try {
+    // 인증 체크 - 로그인한 사용자만 업로드 가능
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      )
+    }
+
     // BLOB_READ_WRITE_TOKEN 환경변수 확인
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error("❌ BLOB_READ_WRITE_TOKEN is missing")
