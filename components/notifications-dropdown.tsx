@@ -17,6 +17,7 @@ interface Notification {
   related_event_id: string | null
   is_read: boolean
   created_at: string
+  actor_id: string | null
   profiles: {
     full_name: string
     avatar_url: string | null
@@ -49,18 +50,29 @@ export default function NotificationsDropdown({
   const router = useRouter()
 
   useEffect(() => {
-    async function fetchNotifications() {
-      // 클라이언트에서 세션 확인
-      const { data: { session } } = await supabase.auth.getSession()
+    // initialUser가 있으면 로딩 완료
+    if (initialUser) {
+      setIsLoading(false)
+    }
 
-      if (!session?.user) {
-        setUser(null)
+    async function fetchNotifications() {
+      // 이미 user가 있으면 세션 체크 스킵
+      const currentUser = user || initialUser
+
+      if (!currentUser) {
+        // 클라이언트에서 세션 확인
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user) {
+          setUser(null)
+          setIsLoading(false)
+          return
+        }
+        setUser(session.user)
         setIsLoading(false)
-        return
       }
 
-      setUser(session.user)
-      setIsLoading(false)
+      const userId = currentUser?.id || user?.id
+      if (!userId) return
 
       const { data, error } = await supabase
         .from("notifications")
@@ -68,7 +80,7 @@ export default function NotificationsDropdown({
           *,
           profiles:actor_id(full_name, avatar_url)
         `)
-        .eq("user_id", session.user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(10)
 
@@ -84,22 +96,48 @@ export default function NotificationsDropdown({
     }
 
     // 서버에서 미리 가져온 데이터가 없을 때만 클라이언트에서 fetch
-    if (initialNotifications.length === 0) {
+    if (initialNotifications.length === 0 && !initialUser) {
       fetchNotifications()
     }
 
-    // 실시간 업데이트 구독 (항상 활성화)
+    // 실시간 업데이트 구독 (로그인 사용자만)
+    const currentUserId = initialUser?.id || user?.id
+    if (!currentUserId) return
+
     const channel = supabase
-      .channel("notifications")
+      .channel(`notifications:${currentUserId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "notifications",
+          filter: `user_id=eq.${currentUserId}`,
         },
-        () => {
-          fetchNotifications()
+        (payload) => {
+          // 새 알림이 오면 기존 목록에 추가 (전체 refetch 대신)
+          const newNotification = payload.new as Notification
+          // actor 프로필 정보 가져오기
+          if (newNotification.actor_id) {
+            supabase
+              .from("profiles")
+              .select("full_name, avatar_url")
+              .eq("id", newNotification.actor_id)
+              .single()
+              .then(({ data: profile }) => {
+                setNotifications((prev) => [{
+                  ...newNotification,
+                  profiles: profile
+                } as Notification, ...prev.slice(0, 9)])
+                setUnreadCount((prev) => prev + 1)
+              })
+          } else {
+            setNotifications((prev) => [{
+              ...newNotification,
+              profiles: null
+            } as Notification, ...prev.slice(0, 9)])
+            setUnreadCount((prev) => prev + 1)
+          }
         },
       )
       .subscribe()
@@ -107,7 +145,7 @@ export default function NotificationsDropdown({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, initialNotifications.length])
+  }, [supabase, initialNotifications.length, initialUser, user])
 
 
   async function markAsRead(notificationId: string) {
