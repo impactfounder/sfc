@@ -187,12 +187,15 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('[Profile] loadData 시작')
         setLoading(true)
 
         const userProfile = await getCurrentUserProfile(supabase)
+        console.log('[Profile] userProfile:', userProfile ? 'exists' : 'null')
 
         if (!userProfile || !userProfile.user) {
-          setLoading(false) 
+          console.log('[Profile] No user, redirecting to home')
+          setLoading(false)
           router.push("/")
           return
         }
@@ -348,8 +351,9 @@ export default function ProfilePage() {
         setVisibleBadges(mappedBadges)
 
       } catch (error) {
-        console.error('데이터 로드 중 오류 발생:', error)
+        console.error('[Profile] 데이터 로드 중 오류 발생:', error)
       } finally {
+        console.log('[Profile] loadData 완료, loading=false')
         setLoading(false)
       }
     }
