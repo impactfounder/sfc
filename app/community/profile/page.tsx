@@ -140,17 +140,20 @@ export default function ProfilePage() {
   const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  
+
+  // Hydration 안전을 위한 mounted 상태
+  const [mounted, setMounted] = useState(false)
+
   // Data States
   const [createdEvents, setCreatedEvents] = useState<EventListItem[]>([])
   const [userPosts, setUserPosts] = useState<PostListItem[]>([])
   const [registeredEvents, setRegisteredEvents] = useState<EventListItem[]>([])
-  const [visibleBadges, setVisibleBadges] = useState<VisibleBadge[]>([]) 
-  const [userBadges, setUserBadges] = useState<UserBadgeWithBadge[]>([]) 
-  const [allBadges, setAllBadges] = useState<BadgeType[]>([]) 
-  
+  const [visibleBadges, setVisibleBadges] = useState<VisibleBadge[]>([])
+  const [userBadges, setUserBadges] = useState<UserBadgeWithBadge[]>([])
+  const [allBadges, setAllBadges] = useState<BadgeType[]>([])
+
   // UI State
-  const [activeTab, setActiveTab] = useState<TabType>("posts") 
+  const [activeTab, setActiveTab] = useState<TabType>("posts")
   const [loading, setLoading] = useState(true)
   const [showBadgeManager, setShowBadgeManager] = useState(false) 
   const [isUploading, setIsUploading] = useState(false) 
@@ -176,11 +179,16 @@ export default function ProfilePage() {
     is_profile_public: false,
   })
 
+  // 클라이언트 마운트 확인
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true)
-        
+
         const userProfile = await getCurrentUserProfile(supabase)
 
         if (!userProfile || !userProfile.user) {
@@ -364,7 +372,8 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) {
+  // 서버/클라이언트 hydration 일치를 위해 mounted 전에는 로딩 UI 표시
+  if (!mounted || loading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />

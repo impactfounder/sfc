@@ -20,7 +20,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run dev:*)",
       "Bash(taskkill:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []
