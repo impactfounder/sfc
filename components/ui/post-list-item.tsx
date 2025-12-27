@@ -52,6 +52,7 @@ type PostListItemProps = {
   isMember?: boolean
   viewMode?: "feed" | "list"
   currentUserId?: string
+  hideCategory?: boolean
 }
 
 export function PostListItem({
@@ -60,7 +61,8 @@ export function PostListItem({
   className,
   isMember = true,
   viewMode = "feed",
-  currentUserId
+  currentUserId,
+  hideCategory = false
 }: PostListItemProps) {
   const [userId, setUserId] = useState<string | null>(currentUserId || null)
   const [isLiked, setIsLiked] = useState(false)
@@ -96,11 +98,13 @@ export function PostListItem({
   }
 
   const contentPreview = getPlainText(post.content)
-  // 카테고리 이름 표시 (자유게시판, 반골, 하이토크 제외)
+  // 카테고리 이름 표시 (hideCategory가 true이거나, 자유게시판/반골/하이토크인 경우 숨김)
   const boardSlug = post.board_categories?.slug
-  const categoryName = (boardSlug === "free-board" || boardSlug === "free" || boardSlug === "vangol" || boardSlug === "hightalk") 
-    ? null 
-    : (post.board_categories?.name || post.communities?.name || "게시판")
+  const categoryName = hideCategory
+    ? null
+    : (boardSlug === "free-board" || boardSlug === "free" || boardSlug === "vangol" || boardSlug === "hightalk")
+      ? null
+      : (post.board_categories?.name || post.communities?.name || "게시판")
   const isGroupOnly = post.visibility === "group" && !isMember
 
   // 대표 뱃지 (첫 번째 뱃지만)

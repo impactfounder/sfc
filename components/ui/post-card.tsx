@@ -21,6 +21,7 @@ type PostCardProps = {
   userId?: string
   initialLiked?: boolean
   onShare?: () => void
+  hideCategory?: boolean
 }
 
 export function PostCard({
@@ -38,6 +39,7 @@ export function PostCard({
   userId,
   initialLiked = false,
   onShare,
+  hideCategory = false,
 }: PostCardProps) {
   const router = useRouter()
   const timeLabel = formatRelativeTime(createdAt)
@@ -74,11 +76,15 @@ export function PostCard({
         <span className="font-bold text-slate-900 text-sm">{author.name}</span>
         <span className="text-slate-400">•</span>
         <span className="text-slate-400">{timeLabel}</span>
-        <span className="text-slate-400">•</span>
-        <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-          <Tag className="h-3 w-3" />
-          {community.name}
-        </span>
+        {!hideCategory && (
+          <>
+            <span className="text-slate-400">•</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              <Tag className="h-3 w-3" />
+              {community.name}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Title */}

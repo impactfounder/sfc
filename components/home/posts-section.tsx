@@ -256,6 +256,7 @@ export function PostsSection({
                   key={post.id}
                   post={post}
                   href={`/community/board/${boardSlug}/${post.id}`}
+                  hideCategory={hideTabs}
                 />
               )
             }
@@ -268,6 +269,7 @@ export function PostsSection({
                 href={`/community/board/${boardSlug}/${post.id}`}
                 isMember={post.isMember ?? true}
                 viewMode={viewMode}
+                hideCategory={hideTabs}
               />
             )
           })

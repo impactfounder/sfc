@@ -27,9 +27,10 @@ type InsightCardProps = {
   post: Post
   href: string
   className?: string
+  hideCategory?: boolean
 }
 
-export function InsightCard({ post, href, className }: InsightCardProps) {
+export function InsightCard({ post, href, className, hideCategory = false }: InsightCardProps) {
   // HTML 태그 제거하고 텍스트만 추출
   const getPlainText = (html?: string | null) => {
     if (!html) return ""
@@ -46,12 +47,14 @@ export function InsightCard({ post, href, className }: InsightCardProps) {
           {/* 좌측: 콘텐츠 영역 */}
           <div className="flex-1 p-6 md:p-8 flex flex-col justify-between">
             <div>
-              {/* 태그 및 카테고리 */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
-                  #{categoryName}
-                </span>
-              </div>
+              {/* 태그 및 카테고리 (hideCategory가 false일 때만 표시) */}
+              {!hideCategory && (
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                    #{categoryName}
+                  </span>
+                </div>
+              )}
 
               {/* 제목 */}
               <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">

@@ -347,6 +347,7 @@ export function BoardPageClient({
                 commentsCount={post.comments_count ?? 0}
                 userId={user?.id}
                 initialLiked={false}
+                hideCategory={true}
               />
             ))
           )}
