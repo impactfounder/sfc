@@ -53,12 +53,13 @@ export default async function BoardPostDetailPage({
   if (!post) notFound()
 
   // 추가 데이터 조회
-  const [userLikeResult, commentsResult, likesResult, badgesResult] = await Promise.all([
+  // ✅ 수정: likesResult 조회 제거 - post.likes_count를 그대로 사용
+  // (익명 좋아요는 posts.likes_count에만 반영되므로, post_likes 카운트는 부정확함)
+  const [userLikeResult, commentsResult, badgesResult] = await Promise.all([
     user
       ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     getComments(id),
-    supabase.from("post_likes").select("id", { count: "exact" }).eq("post_id", id),
     post.author_id
       ? supabase
           .from("user_badges")
@@ -88,7 +89,8 @@ export default async function BoardPostDetailPage({
   const authorVisibleBadges = badgesResult.data?.map((ub: any) => ub.badges).filter(Boolean) || []
   const comments = commentsResult || []
   const actualCommentsCount = countTree(comments)
-  const actualLikesCount = likesResult.count || 0
+  // ✅ 수정: post.likes_count 사용 (익명 좋아요 포함)
+  const actualLikesCount = post.likes_count || 0
 
   return (
     <div className="w-full flex flex-col gap-6">
