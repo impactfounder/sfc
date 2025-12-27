@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-// 로컬 스토리지 키 (비로그인 유저 중복 방지용)
 const STORAGE_KEY = 'liked_posts';
 
 export function LikeButton({
@@ -17,7 +16,7 @@ export function LikeButton({
   onLikeChange,
 }: {
   postId: string;
-  userId?: string; // 로그인 안 했으면 undefined
+  userId?: string;
   initialLiked: boolean;
   initialCount: number;
   onLikeChange?: (newCount: number) => void;
@@ -25,8 +24,9 @@ export function LikeButton({
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [isProcessing, setIsProcessing] = useState(false);
+  const supabase = createClient();
 
-  // 비로그인 유저가 이미 눌렀는지 로컬 스토리지 확인
+  // [비로그인] 로컬 스토리지 체크
   useEffect(() => {
     if (!userId && typeof window !== 'undefined') {
       const likedList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -40,18 +40,11 @@ export function LikeButton({
     e.preventDefault();
     e.stopPropagation();
 
-    if (isProcessing) return; // 중복 클릭 방지
+    if (isProcessing) return;
 
-    // 1. 낙관적 업데이트 (화면 먼저 갱신)
-    const prevLiked = liked;
-    const prevCount = count;
-
-    // 로그인 안 했으면 좋아요 취소 불가 (UX 결정: 비회원은 누르기만 가능하게 함)
-    if (!userId && liked) {
-        // 이미 눌렀다면 반응 없음 (또는 취소 로직 구현 가능)
-        return;
-    }
-
+    // 1. 낙관적 업데이트 (화면 먼저 반영)
+    const previousLiked = liked;
+    const previousCount = count;
     const newLiked = !liked;
     const newCount = newLiked ? count + 1 : Math.max(0, count - 1);
 
@@ -60,37 +53,47 @@ export function LikeButton({
     if (onLikeChange) onLikeChange(newCount);
 
     setIsProcessing(true);
-    const supabase = createClient();
 
     try {
       if (userId) {
-        // [A] 로그인 유저: DB 관계 테이블 조작 (Trigger가 카운트 올림)
+        // [A] 로그인 유저 로직
         if (newLiked) {
-          await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
+          // 좋아요 추가
+          const { error } = await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
+          if (error) throw error;
         } else {
-          await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", userId);
+          // 좋아요 취소 (삭제)
+          const { error } = await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", userId);
+          if (error) throw error;
         }
       } else {
-        // [B] 비로그인 유저: RPC 함수 호출 (직접 카운트 올림)
-        // 비회원은 '취소' 기능을 DB에서 처리하기 복잡하므로 증가만 시킴
-        if (newLiked) {
-            const { error } = await supabase.rpc('increment_post_likes', { post_id: postId });
-            if (error) throw error;
+        // [B] 비로그인 유저 로직
+        const likedList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-            // 로컬 스토리지에 기록
-            const likedList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (!likedList.includes(postId)) {
-                likedList.push(postId);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(likedList));
-            }
+        if (newLiked) {
+          // 좋아요 추가 RPC
+          const { error } = await supabase.rpc('increment_post_likes', { post_id: postId });
+          if (error) throw error;
+
+          if (!likedList.includes(postId)) {
+            likedList.push(postId);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(likedList));
+          }
+        } else {
+          // 좋아요 취소 RPC (새로 추가된 함수)
+          const { error } = await supabase.rpc('decrement_post_likes', { post_id: postId });
+          if (error) throw error;
+
+          const newList = likedList.filter((id: string) => id !== postId);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
         }
       }
     } catch (error) {
-      console.error("좋아요 실패:", error);
+      console.error("좋아요 처리 실패:", error);
       // 실패 시 롤백
-      setLiked(prevLiked);
-      setCount(prevCount);
-      if (onLikeChange) onLikeChange(prevCount);
+      setLiked(previousLiked);
+      setCount(previousCount);
+      if (onLikeChange) onLikeChange(previousCount);
     } finally {
       setIsProcessing(false);
     }
