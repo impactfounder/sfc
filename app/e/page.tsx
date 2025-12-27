@@ -3,7 +3,7 @@ import Link from "next/link"
 import EventCard from "@/components/ui/event-card"
 import { PageHeader } from "@/components/page-header"
 import { EventsSection } from "@/components/home/events-section"
-import { getEventShortUrl } from "@/lib/utils/event-url"
+import { getEventShortUrlSync } from "@/lib/utils/event-url"
 
 // ISR: 60초마다 재검증
 export const revalidate = 60
@@ -51,27 +51,22 @@ export default async function EventsPage() {
   const upcomingEvents = upcomingEventsResult.data
   const pastEvents = pastEventsResult.data
 
-  // 데이터 포맷팅 및 짧은 코드 계산
-  const formattedUpcomingEvents = await Promise.all(
-    (upcomingEvents || []).map(async (event) => {
-      const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
-      return {
-        id: event.id,
-        title: event.title,
-        thumbnail_url: event.thumbnail_url,
-        event_date: event.event_date,
-        event_time: null,
-        location: event.location,
-        max_participants: event.max_participants,
-        current_participants: event.event_registrations?.[0]?.count || 0,
-        host_name: event.profiles?.full_name,
-        host_avatar_url: event.profiles?.avatar_url,
-        host_bio: event.profiles?.bio,
-        event_type: event.event_type || 'networking',
-        shortUrl: shortCode,
-      }
-    })
-  )
+  // 데이터 포맷팅 및 짧은 코드 계산 (동기식 - DB 호출 없음)
+  const formattedUpcomingEvents = (upcomingEvents || []).map((event) => ({
+    id: event.id,
+    title: event.title,
+    thumbnail_url: event.thumbnail_url,
+    event_date: event.event_date,
+    event_time: null,
+    location: event.location,
+    max_participants: event.max_participants,
+    current_participants: event.event_registrations?.[0]?.count || 0,
+    host_name: event.profiles?.full_name,
+    host_avatar_url: event.profiles?.avatar_url,
+    host_bio: event.profiles?.bio,
+    event_type: event.event_type || 'networking',
+    shortUrl: getEventShortUrlSync(event.id, event.event_date),
+  }))
 
   return (
     <div className="w-full flex flex-col gap-10">
@@ -93,10 +88,10 @@ export default async function EventsPage() {
         <div className="mt-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4">지난 이벤트</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-            {pastEvents.map(async (event) => {
-              const shortCode = await getEventShortUrl(event.id, event.event_date, supabase)
+            {pastEvents.map((event) => {
+              const shortUrl = getEventShortUrlSync(event.id, event.event_date)
               return (
-                <Link key={event.id} href={shortCode}>
+                <Link key={event.id} href={shortUrl}>
                   <EventCard
                     event={{
                       id: event.id,
@@ -111,7 +106,7 @@ export default async function EventsPage() {
                       host_avatar_url: event.profiles?.avatar_url,
                       host_bio: event.profiles?.bio,
                       event_type: event.event_type || 'networking',
-                      shortUrl: shortCode,
+                      shortUrl: shortUrl,
                     }}
                   />
                 </Link>

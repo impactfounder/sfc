@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
-import { getEventShortUrl } from "@/lib/utils/event-url";
+import { getEventShortUrlSync } from "@/lib/utils/event-url";
 import { getReviewsByEvent } from "@/lib/queries/posts";
 import EventDetailContent from "@/components/event-detail-content";
 import type { Metadata } from 'next';
@@ -98,8 +98,8 @@ export async function generateMetadata({
   }
 }
 
-// 캐싱 방지
-export const dynamic = 'force-dynamic';
+// ISR: 5분마다 재검증
+export const revalidate = 300;
 
 
 export default async function EventDetailPage({
@@ -119,8 +119,8 @@ export default async function EventDetailPage({
       .single();
 
     if (eventData) {
-      const { getEventShortUrl } = await import("@/lib/utils/event-url");
-      const shortUrl = await getEventShortUrl(id, eventData.event_date, supabase);
+      // 동기식 shortUrl 생성 (DB 호출 없음 - 성능 최적화)
+      const shortUrl = getEventShortUrlSync(id, eventData.event_date);
       redirect(shortUrl);
     }
     notFound();
