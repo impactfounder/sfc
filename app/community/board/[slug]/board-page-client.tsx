@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PostCard } from "@/components/ui/post-card"
+import { PostListItem } from "@/components/ui/post-list-item"
 import Link from "next/link"
 import { Plus, Pencil, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
@@ -313,11 +314,17 @@ export function BoardPageClient({
           </DialogContent>
         </Dialog>
 
-        <div className="flex flex-col gap-4">
+        <div className={cn(
+          "flex flex-col",
+          viewMode === "feed" ? "gap-4" : "gap-0 border-t border-slate-100"
+        )}>
           {/* 서버에서 초기 데이터가 있으면 로딩 상태 건너뛰기 */}
           {(isLoading && posts.length === 0) ? (
             [1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="w-full h-24 rounded-xl border border-gray-200 p-4">
+              <div key={i} className={cn(
+                "w-full bg-white",
+                viewMode === "feed" ? "h-24 rounded-xl border border-gray-200 p-4" : "h-16 border-b border-gray-100 px-4 py-3"
+              )}>
                 <Skeleton className="h-4 w-3/4 mb-2" />
                 <Skeleton className="h-3 w-1/4" />
               </div>
@@ -327,29 +334,49 @@ export function BoardPageClient({
               아직 게시글이 없습니다. 첫 번째 글을 작성해보세요!
             </div>
           ) : (
-            postsWithMembership.map((post) => (
-              <PostCard
-                key={post.id}
-                postId={post.id}
-                href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
-                community={{
-                  name: post.board_categories?.name ?? "커뮤니티",
-                  href: `/community/board/${post.board_categories?.slug ?? "community"}`,
-                  iconUrl: post.thumbnail_url ?? undefined,
-                }}
-                author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
-                createdAt={post.created_at}
-                title={post.title}
-                content={post.content ?? undefined}
-                contentRaw={(post as any).content ?? undefined}
-                thumbnailUrl={post.thumbnail_url ?? undefined}
-                likesCount={post.likes_count ?? 0}
-                commentsCount={post.comments_count ?? 0}
-                userId={user?.id}
-                initialLiked={false}
-                hideCategory={true}
-              />
-            ))
+            postsWithMembership.map((post) => {
+              const postHref = `/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`
+
+              // 리스트형 뷰
+              if (viewMode === "list") {
+                return (
+                  <PostListItem
+                    key={post.id}
+                    post={post}
+                    href={postHref}
+                    isMember={true}
+                    viewMode="list"
+                    currentUserId={user?.id}
+                    hideCategory={true}
+                  />
+                )
+              }
+
+              // 피드형 뷰 (기본)
+              return (
+                <PostCard
+                  key={post.id}
+                  postId={post.id}
+                  href={postHref}
+                  community={{
+                    name: post.board_categories?.name ?? "커뮤니티",
+                    href: `/community/board/${post.board_categories?.slug ?? "community"}`,
+                    iconUrl: post.thumbnail_url ?? undefined,
+                  }}
+                  author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
+                  createdAt={post.created_at}
+                  title={post.title}
+                  content={post.content ?? undefined}
+                  contentRaw={(post as any).content ?? undefined}
+                  thumbnailUrl={post.thumbnail_url ?? undefined}
+                  likesCount={post.likes_count ?? 0}
+                  commentsCount={post.comments_count ?? 0}
+                  userId={user?.id}
+                  initialLiked={false}
+                  hideCategory={true}
+                />
+              )
+            })
           )}
         </div>
 
