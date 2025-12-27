@@ -103,27 +103,25 @@ export default async function BoardPage({
   const initialPosts = postsResult.data || [];
   const initialPostsCount = postsResult.count || 0;
 
-  // 좋아요 및 댓글 수 조회
+  // 댓글 수 조회 (좋아요는 posts.likes_count를 그대로 사용)
+  // ✅ 수정: post_likes 별도 조회 제거 - 익명 좋아요가 posts.likes_count에만 반영되므로
   let postsWithCounts = initialPosts;
   if (initialPosts.length > 0) {
     const postIds = initialPosts.map((post: any) => post.id);
-    const [likesResult, commentsResult] = await Promise.all([
-      supabase.from("post_likes").select("post_id").in("post_id", postIds),
-      supabase.from("comments").select("post_id").in("post_id", postIds)
-    ]);
 
-    const likesCountMap = new Map<string, number>();
+    const commentsResult = await supabase
+      .from("comments")
+      .select("post_id")
+      .in("post_id", postIds);
+
     const commentsCountMap = new Map<string, number>();
-    (likesResult.data || []).forEach((like: any) => {
-      likesCountMap.set(like.post_id, (likesCountMap.get(like.post_id) || 0) + 1);
-    });
     (commentsResult.data || []).forEach((comment: any) => {
       commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1);
     });
 
     postsWithCounts = initialPosts.map((post: any) => ({
       ...post,
-      likes_count: likesCountMap.get(post.id) || 0,
+      likes_count: post.likes_count || 0,  // DB 값 그대로 사용
       comments_count: commentsCountMap.get(post.id) || 0,
     }));
   }
