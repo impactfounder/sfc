@@ -29443,193 +29443,6 @@ export default async function Image({ params }: { params: Promise<{ id: string }
 }
 </file>
 
-<file path="app/e/[id]/page.tsx">
-import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
-import { createClient } from "@/lib/supabase/server"
-import { buildEventQueryFromShortCode } from "@/lib/utils/event-url"
-import EventDetailContent from "@/components/event-detail-content"
-
-// ISR: 5분마다 재검증 (이벤트 상세는 자주 안 바뀜)
-export const revalidate = 300
-
-// 이벤트 ID를 찾는 헬퍼 함수 (최적화됨)
-async function findEventId(id: string, supabase: any): Promise<string | null> {
-  // 짧은 코드(6자)인 경우
-  if (id.length === 6) {
-    const month = parseInt(id.substring(0, 2), 10)
-    const day = parseInt(id.substring(2, 4), 10)
-    const idPrefix = id.substring(4, 6)
-
-    // 먼저 새로운 형식(ID 접두사)으로 검색 시도
-    const { data: eventsById } = await supabase
-      .from("events")
-      .select("id, event_date")
-      .ilike("id", `${idPrefix}%`)
-      .limit(50)
-
-    if (eventsById && eventsById.length > 0) {
-      // 날짜가 일치하는 이벤트 찾기
-      const match = eventsById.find((event: any) => {
-        const eventDate = new Date(event.event_date)
-        return eventDate.getMonth() + 1 === month && eventDate.getDate() === day
-      })
-
-      if (match) {
-        return match.id
-      }
-    }
-
-    // 새 형식으로 못 찾으면 기존 형식(순서번호)으로 폴백
-    const query = buildEventQueryFromShortCode(id)
-    if (!query) {
-      return null
-    }
-
-    const { orderNumber } = query
-
-    // 해당 날짜의 이벤트만 조회
-    const { data: allEventsForDate } = await supabase
-      .from("events")
-      .select("id, event_date, created_at")
-      .order("created_at", { ascending: true })
-
-    if (!allEventsForDate || allEventsForDate.length === 0) {
-      return null
-    }
-
-    const allMatchingEvents = allEventsForDate.filter((event: any) => {
-      const eventDate = new Date(event.event_date)
-      const eventMonth = eventDate.getMonth() + 1
-      const eventDay = eventDate.getDate()
-      return eventMonth === month && eventDay === day
-    })
-
-    allMatchingEvents.sort((a: any, b: any) => {
-      const dateA = new Date(a.created_at).getTime()
-      const dateB = new Date(b.created_at).getTime()
-      return dateA - dateB
-    })
-
-    if (allMatchingEvents.length >= orderNumber) {
-      return allMatchingEvents[orderNumber - 1].id
-    }
-
-    return null
-  } else {
-    // 전체 UUID인 경우
-    return id
-  }
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const supabase = await createClient();
-  
-  const eventId = await findEventId(id, supabase);
-  
-  if (!eventId) {
-    return {
-      title: '이벤트를 찾을 수 없습니다',
-    };
-  }
-
-  try {
-    const { data: event } = await supabase
-      .from("events")
-      .select(`
-        title,
-        description,
-        thumbnail_url,
-        event_date,
-        location
-      `)
-      .eq("id", eventId)
-      .single();
-
-    if (!event) {
-      return {
-        title: '이벤트를 찾을 수 없습니다',
-      };
-    }
-
-    // 날짜 포맷팅
-    const eventDate = new Date(event.event_date);
-    const dateStr = eventDate.toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "short",
-    });
-
-    // HTML 태그 제거 및 텍스트 정리
-    const plainDescription = event.description?.replace(/<[^>]*>/g, "").substring(0, 200) || event.title;
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
-
-    return {
-      title: event.title,
-      description: `${dateStr} · ${event.location}\n${plainDescription}`,
-      openGraph: {
-        title: event.title,
-        description: `${dateStr} · ${event.location}`,
-        images: event.thumbnail_url ? [
-          {
-            url: event.thumbnail_url,
-            width: 1200,
-            height: 630,
-            alt: event.title,
-          }
-        ] : [
-          {
-            url: `${baseUrl}/e/${id}/opengraph-image`,
-            width: 1200,
-            height: 630,
-            alt: event.title,
-          }
-        ],
-        type: 'website',
-        siteName: 'Seoul Founders Club',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: event.title,
-        description: `${dateStr} · ${event.location}`,
-        images: event.thumbnail_url ? [event.thumbnail_url] : [`${baseUrl}/e/${id}/opengraph-image`],
-      },
-    };
-  } catch (error) {
-    console.error("Error generating metadata:", error);
-    return {
-      title: 'Seoul Founders Club',
-    };
-  }
-}
-
-export default async function ShortEventPage({
-    params,
-}: {
-    params: Promise<{ id: string }>;
-}) {
-    const { id } = await params;
-    const supabase = await createClient();
-
-    // findEventId 헬퍼 함수 재사용 (최적화된 검색)
-    const eventId = await findEventId(id, supabase);
-
-    if (!eventId) {
-        notFound();
-    }
-
-    // 이벤트 ID로 상세 페이지 렌더링
-    return <EventDetailContent eventId={eventId} basePath="/e" />
-}
-</file>
-
 <file path="app/events/[id]/opengraph-image.tsx">
 import { ImageResponse } from 'next/og'
 import { createClient } from '@/lib/supabase/server'
@@ -38223,6 +38036,213 @@ export default function CommunityLayout({ children }: { children: ReactNode }) {
 }
 </file>
 
+<file path="app/e/[id]/page.tsx">
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { createClient } from "@/lib/supabase/server"
+import { buildEventQueryFromShortCode } from "@/lib/utils/event-url"
+import EventDetailContent from "@/components/event-detail-content"
+
+// ISR: 5분마다 재검증 (이벤트 상세는 자주 안 바뀜)
+export const revalidate = 300
+
+// 이벤트 ID를 찾는 헬퍼 함수 (최적화됨 + KST/UTC 타임존 지원)
+async function findEventId(id: string, supabase: any): Promise<string | null> {
+  // 짧은 코드(6자)인 경우
+  if (id.length === 6) {
+    const month = parseInt(id.substring(0, 2), 10)
+    const day = parseInt(id.substring(2, 4), 10)
+    const idPrefix = id.substring(4, 6)
+
+    // 1. ID 접두사로 먼저 검색 (가장 확실한 필터)
+    const { data: eventsById } = await supabase
+      .from("events")
+      .select("id, event_date")
+      .ilike("id", `${idPrefix}%`)
+      .limit(50)
+
+    if (eventsById && eventsById.length > 0) {
+      // 2. 날짜 매칭 (UTC와 KST 모두 확인)
+      const match = eventsById.find((event: any) => {
+        const eventDate = new Date(event.event_date)
+
+        // A. UTC 기준 확인
+        const utcMonth = eventDate.getUTCMonth() + 1
+        const utcDay = eventDate.getUTCDate()
+
+        // B. KST 기준 확인 (UTC + 9시간)
+        const kstDate = new Date(eventDate.getTime() + 9 * 60 * 60 * 1000)
+        const kstMonth = kstDate.getUTCMonth() + 1
+        const kstDay = kstDate.getUTCDate()
+
+        // 둘 중 하나라도 URL의 날짜와 맞으면 통과
+        return (utcMonth === month && utcDay === day) || (kstMonth === month && kstDay === day)
+      })
+
+      if (match) {
+        return match.id
+      }
+    }
+
+    // 새 형식으로 못 찾으면 기존 형식(순서번호)으로 폴백
+    const query = buildEventQueryFromShortCode(id)
+    if (!query) {
+      return null
+    }
+
+    const { orderNumber } = query
+
+    // 해당 날짜의 이벤트만 조회
+    const { data: allEventsForDate } = await supabase
+      .from("events")
+      .select("id, event_date, created_at")
+      .order("created_at", { ascending: true })
+
+    if (!allEventsForDate || allEventsForDate.length === 0) {
+      return null
+    }
+
+    // KST 기준으로 날짜 매칭
+    const allMatchingEvents = allEventsForDate.filter((event: any) => {
+      const eventDate = new Date(event.event_date)
+
+      // UTC 기준
+      const utcMonth = eventDate.getUTCMonth() + 1
+      const utcDay = eventDate.getUTCDate()
+
+      // KST 기준 (UTC + 9시간)
+      const kstDate = new Date(eventDate.getTime() + 9 * 60 * 60 * 1000)
+      const kstMonth = kstDate.getUTCMonth() + 1
+      const kstDay = kstDate.getUTCDate()
+
+      return (utcMonth === month && utcDay === day) || (kstMonth === month && kstDay === day)
+    })
+
+    allMatchingEvents.sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateA - dateB
+    })
+
+    if (allMatchingEvents.length >= orderNumber) {
+      return allMatchingEvents[orderNumber - 1].id
+    }
+
+    return null
+  } else {
+    // 전체 UUID인 경우
+    return id
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  
+  const eventId = await findEventId(id, supabase);
+  
+  if (!eventId) {
+    return {
+      title: '이벤트를 찾을 수 없습니다',
+    };
+  }
+
+  try {
+    const { data: event } = await supabase
+      .from("events")
+      .select(`
+        title,
+        description,
+        thumbnail_url,
+        event_date,
+        location
+      `)
+      .eq("id", eventId)
+      .single();
+
+    if (!event) {
+      return {
+        title: '이벤트를 찾을 수 없습니다',
+      };
+    }
+
+    // 날짜 포맷팅
+    const eventDate = new Date(event.event_date);
+    const dateStr = eventDate.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short",
+    });
+
+    // HTML 태그 제거 및 텍스트 정리
+    const plainDescription = event.description?.replace(/<[^>]*>/g, "").substring(0, 200) || event.title;
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club";
+
+    return {
+      title: event.title,
+      description: `${dateStr} · ${event.location}\n${plainDescription}`,
+      openGraph: {
+        title: event.title,
+        description: `${dateStr} · ${event.location}`,
+        images: event.thumbnail_url ? [
+          {
+            url: event.thumbnail_url,
+            width: 1200,
+            height: 630,
+            alt: event.title,
+          }
+        ] : [
+          {
+            url: `${baseUrl}/e/${id}/opengraph-image`,
+            width: 1200,
+            height: 630,
+            alt: event.title,
+          }
+        ],
+        type: 'website',
+        siteName: 'Seoul Founders Club',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: event.title,
+        description: `${dateStr} · ${event.location}`,
+        images: event.thumbnail_url ? [event.thumbnail_url] : [`${baseUrl}/e/${id}/opengraph-image`],
+      },
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {
+      title: 'Seoul Founders Club',
+    };
+  }
+}
+
+export default async function ShortEventPage({
+    params,
+}: {
+    params: Promise<{ id: string }>;
+}) {
+    const { id } = await params;
+    const supabase = await createClient();
+
+    // findEventId 헬퍼 함수 재사용 (최적화된 검색)
+    const eventId = await findEventId(id, supabase);
+
+    if (!eventId) {
+        notFound();
+    }
+
+    // 이벤트 ID로 상세 페이지 렌더링
+    return <EventDetailContent eventId={eventId} basePath="/e" />
+}
+</file>
+
 <file path="app/e/layout.tsx">
 import type { ReactNode } from "react"
 import { StandardLayout } from "@/components/layout/standard-layout"
@@ -42217,6 +42237,209 @@ export default function CustomerCenterLayout({ children }: { children: ReactNode
 }
 </file>
 
+<file path="app/layout.tsx">
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import Script from "next/script"
+import "./globals.css"
+import { DailyLoginChecker } from "@/components/daily-login-checker"
+import { MobileActionBar } from "@/components/mobile-action-bar"
+import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
+import { cn } from "@/lib/utils"
+import Providers from "./providers"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  // 카카오톡/메신저 링크 미리보기용 기본 메타데이터
+  // 제목은 "Seoul Founders Club" 만 보이도록 심플하게 설정
+  title: {
+    default: "Seoul Founders Club",
+    template: "%s | Seoul Founders Club",
+  },
+  description: "서울 파운더스 클럽",
+  keywords: ["서울 파운더스 클럽", "창업가 커뮤니티", "비즈니스 네트워킹", "스타트업", "투자자", "인플루언서", "Seoul Founders Club"],
+  authors: [{ name: "Seoul Founders Club" }],
+  creator: "Seoul Founders Club",
+  publisher: "Seoul Founders Club",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "https://seoulfounders.club",
+    siteName: "Seoul Founders Club",
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    images: [
+      {
+        // 카카오톡 등에서 사용할 대표 OG 이미지 (원형 로고 중앙 정렬된 이미지)
+        // 카카오톡 권장 비율: 1200x630 (1.91:1)
+        // opengraph-image.tsx에서 동적으로 생성됨
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club"}/opengraph-image`,
+        width: 1200,
+        height: 630,
+        alt: "Seoul Founders Club",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    images: ["https://seoulfounders.club/images/logo-circle.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    // Google Search Console 등에서 제공하는 verification 코드를 여기에 추가
+    google: "GOOGLE_SITE_VERIFICATION_CODE_HERE",
+  },
+}
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        {/* 스크롤바 레이아웃 시프트 방지 - 초기 렌더링 전에 즉시 실행 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  'use strict';
+  
+  // 즉시 실행하여 초기 렌더링 전에 스크롤바 너비를 확보
+  function fixScrollbar() {
+    try {
+      // 스크롤바 너비 계산 (가장 정확한 방법)
+      var scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // 스크롤바가 없는 경우 (모바일 등) 아무것도 하지 않음
+      if (scrollbarWidth <= 0) return;
+      
+      var body = document.body;
+      if (!body) return;
+      
+      // 이미 적용되어 있지 않은 경우에만 적용
+      if (body.style.getPropertyValue('--scrollbar-fix-applied')) return;
+      
+      // 현재 padding-right 값 가져오기
+      var computedStyle = window.getComputedStyle(body);
+      var currentPaddingRight = computedStyle.paddingRight;
+      var currentPaddingRightValue = parseInt(currentPaddingRight, 10) || 0;
+      
+      // 원본 padding-right 값 저장
+      body.style.setProperty('--body-padding-right-original', currentPaddingRight || '0px', 'important');
+      
+      // 스크롤바 너비만큼 padding-right 추가
+      var newPaddingRight = currentPaddingRightValue + scrollbarWidth;
+      body.style.setProperty('padding-right', newPaddingRight + 'px', 'important');
+      body.style.setProperty('--scrollbar-fix-applied', 'true');
+    } catch (e) {
+      // 에러 발생 시 무시 (안전하게)
+      console.warn('Scrollbar fix error:', e);
+    }
+  }
+  
+  // 즉시 실행 시도
+  if (document.body) {
+    fixScrollbar();
+  }
+  
+  // DOMContentLoaded 시에도 실행 (body가 준비되지 않았을 경우 대비)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixScrollbar, { once: true });
+  } else {
+    // 이미 로드된 경우 즉시 실행
+    setTimeout(fixScrollbar, 0);
+  }
+  
+  // body가 아직 없으면 MutationObserver로 대기
+  if (!document.body) {
+    var observer = new MutationObserver(function() {
+      if (document.body) {
+        fixScrollbar();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true });
+    
+    // 타임아웃으로 안전장치 (5초 후 중단)
+    setTimeout(function() {
+      observer.disconnect();
+    }, 5000);
+  }
+})();
+            `,
+          }}
+        />
+        {/* Google Tag Manager */}
+        <Script
+          id="gtm-script"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-K8DN9RB2');`,
+          }}
+        />
+      </head>
+      <body className={cn(inter.className, "pb-16 lg:pb-0")} suppressHydrationWarning>
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-K8DN9RB2"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+        {/* Providers가 최상위에서 감싸야 합니다 */}
+        <Providers>
+          <DailyLoginChecker />
+          {children}
+          <MobileActionBar />
+          <Toaster />
+          <SonnerToaster />
+        </Providers>
+      </body>
+    </html>
+  )
+}
+</file>
+
 <file path="app/member/page.tsx">
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
@@ -45855,209 +46078,6 @@ export default async function EventDetailPage({
       />
     </div>
   );
-}
-</file>
-
-<file path="app/layout.tsx">
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import Script from "next/script"
-import "./globals.css"
-import { DailyLoginChecker } from "@/components/daily-login-checker"
-import { MobileActionBar } from "@/components/mobile-action-bar"
-import { Toaster } from "@/components/ui/toaster"
-import { Toaster as SonnerToaster } from "@/components/ui/sonner"
-import { cn } from "@/lib/utils"
-import Providers from "./providers"
-
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  // 카카오톡/메신저 링크 미리보기용 기본 메타데이터
-  // 제목은 "Seoul Founders Club" 만 보이도록 심플하게 설정
-  title: {
-    default: "Seoul Founders Club",
-    template: "%s | Seoul Founders Club",
-  },
-  description: "서울 파운더스 클럽",
-  keywords: ["서울 파운더스 클럽", "창업가 커뮤니티", "비즈니스 네트워킹", "스타트업", "투자자", "인플루언서", "Seoul Founders Club"],
-  authors: [{ name: "Seoul Founders Club" }],
-  creator: "Seoul Founders Club",
-  publisher: "Seoul Founders Club",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club"),
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    locale: "ko_KR",
-    url: "https://seoulfounders.club",
-    siteName: "Seoul Founders Club",
-    title: "Seoul Founders Club",
-    description: "서울 파운더스 클럽",
-    images: [
-      {
-        // 카카오톡 등에서 사용할 대표 OG 이미지 (원형 로고 중앙 정렬된 이미지)
-        // 카카오톡 권장 비율: 1200x630 (1.91:1)
-        // opengraph-image.tsx에서 동적으로 생성됨
-        url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://seoulfounders.club"}/opengraph-image`,
-        width: 1200,
-        height: 630,
-        alt: "Seoul Founders Club",
-        type: "image/png",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Seoul Founders Club",
-    description: "서울 파운더스 클럽",
-    images: ["https://seoulfounders.club/images/logo-circle.png"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  verification: {
-    // Google Search Console 등에서 제공하는 verification 코드를 여기에 추가
-    google: "GOOGLE_SITE_VERIFICATION_CODE_HERE",
-  },
-}
-
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-}
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
-  return (
-    <html lang="ko" suppressHydrationWarning>
-      <head>
-        {/* 스크롤바 레이아웃 시프트 방지 - 초기 렌더링 전에 즉시 실행 */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-(function() {
-  'use strict';
-  
-  // 즉시 실행하여 초기 렌더링 전에 스크롤바 너비를 확보
-  function fixScrollbar() {
-    try {
-      // 스크롤바 너비 계산 (가장 정확한 방법)
-      var scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      
-      // 스크롤바가 없는 경우 (모바일 등) 아무것도 하지 않음
-      if (scrollbarWidth <= 0) return;
-      
-      var body = document.body;
-      if (!body) return;
-      
-      // 이미 적용되어 있지 않은 경우에만 적용
-      if (body.style.getPropertyValue('--scrollbar-fix-applied')) return;
-      
-      // 현재 padding-right 값 가져오기
-      var computedStyle = window.getComputedStyle(body);
-      var currentPaddingRight = computedStyle.paddingRight;
-      var currentPaddingRightValue = parseInt(currentPaddingRight, 10) || 0;
-      
-      // 원본 padding-right 값 저장
-      body.style.setProperty('--body-padding-right-original', currentPaddingRight || '0px', 'important');
-      
-      // 스크롤바 너비만큼 padding-right 추가
-      var newPaddingRight = currentPaddingRightValue + scrollbarWidth;
-      body.style.setProperty('padding-right', newPaddingRight + 'px', 'important');
-      body.style.setProperty('--scrollbar-fix-applied', 'true');
-    } catch (e) {
-      // 에러 발생 시 무시 (안전하게)
-      console.warn('Scrollbar fix error:', e);
-    }
-  }
-  
-  // 즉시 실행 시도
-  if (document.body) {
-    fixScrollbar();
-  }
-  
-  // DOMContentLoaded 시에도 실행 (body가 준비되지 않았을 경우 대비)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fixScrollbar, { once: true });
-  } else {
-    // 이미 로드된 경우 즉시 실행
-    setTimeout(fixScrollbar, 0);
-  }
-  
-  // body가 아직 없으면 MutationObserver로 대기
-  if (!document.body) {
-    var observer = new MutationObserver(function() {
-      if (document.body) {
-        fixScrollbar();
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.documentElement, { childList: true });
-    
-    // 타임아웃으로 안전장치 (5초 후 중단)
-    setTimeout(function() {
-      observer.disconnect();
-    }, 5000);
-  }
-})();
-            `,
-          }}
-        />
-        {/* Google Tag Manager */}
-        <Script
-          id="gtm-script"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-K8DN9RB2');`,
-          }}
-        />
-      </head>
-      <body className={cn(inter.className, "pb-16 lg:pb-0")} suppressHydrationWarning>
-        {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-K8DN9RB2"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
-        {/* Providers가 최상위에서 감싸야 합니다 */}
-        <Providers>
-          <DailyLoginChecker />
-          {children}
-          <MobileActionBar />
-          <Toaster />
-          <SonnerToaster />
-        </Providers>
-      </body>
-    </html>
-  )
 }
 </file>
 
