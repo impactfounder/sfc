@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { createClient } from "@/lib/supabase/server"
 import EventDetailContent from "@/components/event-detail-content"
 
-// 디버깅을 위해 캐시를 끕니다. (해결되면 300으로 변경)
-export const revalidate = 0
+// ISR: 60초마다 재검증
+export const revalidate = 60
 
 async function findEventId(shortCode: string, supabase: any): Promise<string | null> {
   // 1. 코드가 6자리가 아니면 그대로 UUID로 간주
