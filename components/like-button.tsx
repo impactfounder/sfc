@@ -5,133 +5,94 @@ import { Heart } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { likePostAnonymously } from "@/lib/actions/posts";
 
+// 로컬 스토리지 키 (비로그인 유저 중복 방지용)
 const STORAGE_KEY = 'liked_posts';
-
-// localStorage에서 좋아요한 게시글 목록 가져오기
-function getLikedPosts(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-// localStorage에 좋아요한 게시글 ID 저장
-function saveLikedPost(postId: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    const liked = getLikedPosts();
-    if (!liked.includes(postId)) {
-      liked.push(postId);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(liked));
-    }
-  } catch {
-    // localStorage 오류 무시
-  }
-}
 
 export function LikeButton({
   postId,
-  userId: initialUserId,
+  userId,
   initialLiked,
   initialCount,
   onLikeChange,
 }: {
   postId: string;
-  userId?: string;
+  userId?: string; // 로그인 안 했으면 undefined
   initialLiked: boolean;
   initialCount: number;
   onLikeChange?: (newCount: number) => void;
 }) {
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
-  const [isLoading, setIsLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(initialUserId || null);
-  const [anonymousLiked, setAnonymousLiked] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // 사용자 정보 가져오기 및 익명 좋아요 상태 확인
+  // 비로그인 유저가 이미 눌렀는지 로컬 스토리지 확인
   useEffect(() => {
-    if (!initialUserId) {
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          setUserId(user.id);
-        } else {
-          // 비로그인 사용자: localStorage 확인
-          const likedPosts = getLikedPosts();
-          if (likedPosts.includes(postId)) {
-            setAnonymousLiked(true);
-            setLiked(true);
-          }
-        }
-      });
+    if (!userId && typeof window !== 'undefined') {
+      const likedList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      if (likedList.includes(postId)) {
+        setLiked(true);
+      }
     }
-  }, [initialUserId, postId]);
+  }, [userId, postId]);
 
   const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // 이벤트 전파 차단
-    
-    setIsLoading(true);
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isProcessing) return; // 중복 클릭 방지
+
+    // 1. 낙관적 업데이트 (화면 먼저 갱신)
+    const prevLiked = liked;
+    const prevCount = count;
+
+    // 로그인 안 했으면 좋아요 취소 불가 (UX 결정: 비회원은 누르기만 가능하게 함)
+    if (!userId && liked) {
+        // 이미 눌렀다면 반응 없음 (또는 취소 로직 구현 가능)
+        return;
+    }
+
+    const newLiked = !liked;
+    const newCount = newLiked ? count + 1 : Math.max(0, count - 1);
+
+    setLiked(newLiked);
+    setCount(newCount);
+    if (onLikeChange) onLikeChange(newCount);
+
+    setIsProcessing(true);
+    const supabase = createClient();
 
     try {
       if (userId) {
-        // 로그인 사용자: 기존 로직 (post_likes 테이블 사용)
-        const supabase = createClient();
-        
-        if (liked) {
-          // Unlike
-          const { error } = await supabase
-            .from("post_likes")
-            .delete()
-            .eq("post_id", postId)
-            .eq("user_id", userId);
-
-          if (!error) {
-            setLiked(false);
-            const newCount = Math.max(0, count - 1);
-            setCount(newCount);
-            onLikeChange?.(newCount);
-          }
+        // [A] 로그인 유저: DB 관계 테이블 조작 (Trigger가 카운트 올림)
+        if (newLiked) {
+          await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
         } else {
-          // Like
-          const { error } = await supabase.from("post_likes").insert({
-            post_id: postId,
-            user_id: userId,
-          });
-
-          if (!error) {
-            setLiked(true);
-            const newCount = count + 1;
-            setCount(newCount);
-            onLikeChange?.(newCount);
-          }
+          await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", userId);
         }
       } else {
-        // 비로그인 사용자: 익명 좋아요
-        if (anonymousLiked) {
-          // 이미 좋아요를 누른 경우 (취소 불가)
-          alert("이미 좋아요를 누르셨습니다.");
-          return;
+        // [B] 비로그인 유저: RPC 함수 호출 (직접 카운트 올림)
+        // 비회원은 '취소' 기능을 DB에서 처리하기 복잡하므로 증가만 시킴
+        if (newLiked) {
+            const { error } = await supabase.rpc('increment_post_likes', { post_id: postId });
+            if (error) throw error;
+
+            // 로컬 스토리지에 기록
+            const likedList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (!likedList.includes(postId)) {
+                likedList.push(postId);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(likedList));
+            }
         }
-        
-        // 익명 좋아요 실행
-        await likePostAnonymously(postId);
-        setAnonymousLiked(true);
-        setLiked(true);
-        const newCount = count + 1;
-        setCount(newCount);
-        saveLikedPost(postId);
-        onLikeChange?.(newCount);
       }
     } catch (error) {
-      console.error("Failed to update like:", error);
-      alert("좋아요 처리 중 오류가 발생했습니다.");
+      console.error("좋아요 실패:", error);
+      // 실패 시 롤백
+      setLiked(prevLiked);
+      setCount(prevCount);
+      if (onLikeChange) onLikeChange(prevCount);
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -140,14 +101,19 @@ export function LikeButton({
       variant="ghost"
       size="sm"
       onClick={handleLike}
-      disabled={isLoading}
       className={cn(
-        "gap-1.5 flex-row items-center justify-center p-1.5 min-w-[auto] h-auto hover:bg-slate-100 rounded-lg transition-colors",
+        "gap-1.5 flex-row items-center justify-center p-1.5 min-w-[auto] h-auto hover:bg-slate-100 rounded-lg transition-colors group",
         liked ? "text-red-500 hover:text-red-600 hover:bg-red-50" : "text-slate-400 hover:text-slate-600"
       )}
     >
-      <Heart className={cn("h-4 w-4", liked && "fill-red-500")} />
-      <span className="text-xs font-medium">{count}</span>
+      <Heart
+        className={cn(
+            "h-4 w-4 transition-all duration-300",
+            liked && "fill-current scale-110",
+            !liked && "group-active:scale-90"
+        )}
+      />
+      <span className="text-xs font-medium tabular-nums">{count}</span>
     </Button>
   );
 }
