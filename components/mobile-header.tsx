@@ -2,14 +2,13 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, BookOpen, Users, Calendar, Bell, Megaphone, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase, Shield } from "lucide-react"
+import { Menu, BookOpen, Users, Calendar, Megaphone, MessageSquare, Ticket, Lightbulb, Zap, Headset, Briefcase, Shield } from "lucide-react"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useState } from "react"
 
 // 사이드바와 동일한 메뉴 구조
 const navigationSections = [
@@ -45,43 +44,15 @@ const navigationSections = [
   },
 ]
 
-export function MobileHeader() {
+interface MobileHeaderProps {
+  userRole?: string | null
+}
+
+export function MobileHeader({ userRole }: MobileHeaderProps) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const supabase = createClient()
 
-  useEffect(() => {
-    const loadUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single()
-        setUserRole(profile?.role || null)
-      }
-    }
-
-    loadUserRole()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single()
-        setUserRole(profile?.role || null)
-      } else {
-        setUserRole(null)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
+  // props로 전달받은 userRole 사용 (DB 호출 제거 - 성능 최적화)
   const isAdmin = userRole === "admin" || userRole === "master"
   const showAdminMenu = isAdmin || pathname.startsWith('/admin')
 

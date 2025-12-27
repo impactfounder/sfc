@@ -25,7 +25,7 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
 
       {/* 2. Mobile Header (lg 미만에서만 표시) */}
       <div className="lg:hidden">
-        <MobileHeader />
+        <MobileHeader userRole={userRole} />
       </div>
 
       {/* 2. Left Sidebar: Header 아래 배치 (top-16) */}

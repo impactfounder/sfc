@@ -6,6 +6,28 @@
  */
 
 /**
+ * DB 호출 없이 shortUrl 생성 (간단 버전)
+ * 형식: MMddXX (앞 2자리 ID 사용)
+ * 성능 최적화를 위해 DB 조회 없이 즉시 생성
+ */
+export function formatShortCodeSync(eventId: string, eventDate: string): string {
+  const date = new Date(eventDate)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  // 이벤트 ID의 앞 2자리를 순서 대용으로 사용
+  const idSuffix = eventId.substring(0, 2)
+  return `${month}${day}${idSuffix}`
+}
+
+/**
+ * 동기식 shortUrl 생성 (DB 호출 없음)
+ */
+export function getEventShortUrlSync(eventId: string, eventDate: string): string {
+  const shortCode = formatShortCodeSync(eventId, eventDate)
+  return `/e/${shortCode}`
+}
+
+/**
  * 이벤트 ID와 날짜로 짧은 코드 생성
  * 해당 날짜에 몇 번째로 만들어진 이벤트인지 계산
  * 예: 12월 19일 첫번째 이벤트 -> "121901"

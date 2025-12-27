@@ -9,7 +9,7 @@ import { FeedSection } from "@/components/home/feed-section"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import SidebarProfile from "@/components/sidebar-profile"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { getEventShortUrl } from "@/lib/utils/event-url"
+import { getEventShortUrlSync } from "@/lib/utils/event-url"
 import { fetchFeedPosts } from "@/lib/actions/feed"
 import { SiteHeader } from "@/components/site-header"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
@@ -57,12 +57,11 @@ export default async function HomePage() {
   const user = userProfile?.user || null
   const profile = userProfile?.profile || null
 
-  const formattedEvents = await Promise.all(
-    events.map(async (event) => {
-      const shortUrl = await getEventShortUrl(event.id, event.event_date, supabase)
-      return { ...event, shortUrl }
-    })
-  )
+  // shortUrl을 동기식으로 생성 (DB 호출 없음 - 성능 최적화)
+  const formattedEvents = events.map((event) => ({
+    ...event,
+    shortUrl: getEventShortUrlSync(event.id, event.event_date)
+  }))
 
   return (
     <DashboardLayout header={<SiteHeader />} userRole={profile?.role}>
