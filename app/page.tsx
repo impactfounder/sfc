@@ -41,21 +41,21 @@ export const metadata: Metadata = {
   },
 }
 
-// 홈은 실시간 이벤트/피드 노출이 필요하므로 정적 캐시를 사용하지 않는다.
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+// ISR: 60초마다 재검증하여 캐시 활용
+export const revalidate = 60
 
 export default async function HomePage() {
   const supabase = await createClient()
 
-  const userProfile = await getCurrentUserProfile(supabase)
-  const user = userProfile?.user || null
-  const profile = userProfile?.profile || null
-
-  const [events, posts] = await Promise.all([
+  // 모든 데이터를 병렬로 가져오기
+  const [userProfile, events, posts] = await Promise.all([
+    getCurrentUserProfile(supabase),
     getUpcomingEvents(supabase, 4),
     fetchFeedPosts(1, "latest"),
   ])
+
+  const user = userProfile?.user || null
+  const profile = userProfile?.profile || null
 
   const formattedEvents = await Promise.all(
     events.map(async (event) => {

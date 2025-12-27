@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { isAdmin } from "@/lib/utils";
 import { BoardPageClient } from "./board-page-client";
 
-// 동적 렌더링 강제 (캐시 비활성화)
-export const dynamic = 'force-dynamic';
+// ISR: 30초마다 재검증 (게시판은 비교적 짧은 캐시)
+export const revalidate = 30;
 
 // 전체 공개 게시판 slug 목록 (참고용, 메타데이터 생성에선 안 쓰지만 로직엔 필요할 수 있음)
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];

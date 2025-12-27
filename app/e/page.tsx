@@ -5,6 +5,9 @@ import { PageHeader } from "@/components/page-header"
 import { EventsSection } from "@/components/home/events-section"
 import { getEventShortUrl } from "@/lib/utils/event-url"
 
+// ISR: 60초마다 재검증
+export const revalidate = 60
+
 export default async function EventsPage() {
   const supabase = await createClient()
 
