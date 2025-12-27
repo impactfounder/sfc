@@ -1,10 +1,12 @@
 "use client"
 
-import { Heart, MessageSquare, Share2, Tag } from "lucide-react"
+import { MessageSquare, Share2, Tag, Check } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { LikeButton } from "@/components/like-button"
+import { useToast } from "@/hooks/use-toast"
 
 type PostCardProps = {
   postId: string
@@ -42,12 +44,51 @@ export function PostCard({
   hideCategory = false,
 }: PostCardProps) {
   const router = useRouter()
+  const { toast } = useToast()
+  const [copied, setCopied] = useState(false)
   const timeLabel = formatRelativeTime(createdAt)
   const derivedThumb = thumbnailUrl || extractFirstImage(contentRaw || content)
   const previewHtml = useMemo(
     () => sanitizePreview(contentRaw || content || "", Boolean(derivedThumb)),
     [content, contentRaw, derivedThumb]
   )
+
+  // 공유 버튼 핸들러
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const shareUrl = window.location.origin + href
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+    // 모바일: Web Share API 사용
+    if (isMobile && navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          url: shareUrl,
+        })
+        toast({ description: "공유되었습니다!", duration: 2000 })
+        return
+      } catch (error: any) {
+        if (error.name === 'AbortError') return
+      }
+    }
+
+    // PC: 클립보드 복사
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      toast({ description: "링크가 복사되었습니다!", duration: 2000 })
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast({
+        title: "복사 실패",
+        description: "링크를 복사할 수 없습니다.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <div
@@ -116,43 +157,38 @@ export function PostCard({
 
       {/* Footer */}
       <div className="px-3 py-2 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1 text-xs text-slate-600">
+        {/* 좋아요 버튼 */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <LikeButton
+            postId={postId}
+            userId={userId}
+            initialLiked={initialLiked}
+            initialCount={likesCount}
+          />
+        </div>
+
+        {/* 댓글 버튼 - 클릭 시 상세 페이지로 이동 */}
         <button
           type="button"
           className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-slate-200 transition-colors"
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-          }}
-        >
-          <Heart className="h-4 w-4" />
-          <span>{likesCount}</span>
-        </button>
-        <button
-          type="button"
-          className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-slate-200 transition-colors"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
+            router.push(href)
           }}
         >
           <MessageSquare className="h-4 w-4" />
           <span>{commentsCount} 댓글</span>
         </button>
+
+        {/* 공유 버튼 */}
         <button
           type="button"
           className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-slate-200 transition-colors"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            if (onShare) {
-              onShare()
-            } else if (typeof navigator !== "undefined") {
-              navigator.clipboard.writeText(window.location.origin + href).catch(() => {})
-            }
-          }}
+          onClick={handleShare}
         >
-          <Share2 className="h-4 w-4" />
-          <span>공유</span>
+          {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+          <span>{copied ? "복사됨" : "공유"}</span>
         </button>
       </div>
     </div>

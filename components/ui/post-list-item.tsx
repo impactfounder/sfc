@@ -9,6 +9,7 @@ import { LikeButton } from "@/components/like-button"
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 type Badge = {
   icon: string
@@ -64,6 +65,7 @@ export function PostListItem({
   currentUserId,
   hideCategory = false
 }: PostListItemProps) {
+  const router = useRouter()
   const [userId, setUserId] = useState<string | null>(currentUserId || null)
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(post.likes_count || 0)
@@ -113,7 +115,10 @@ export function PostListItem({
   // 리스트형 뷰 (밀도 높은 세련된 디자인)
   if (viewMode === "list") {
     return (
-      <Link href={href} className={cn("block w-full group", className)}>
+      <div
+        className={cn("block w-full group cursor-pointer", className)}
+        onClick={() => router.push(href)}
+      >
         {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
         <div className="flex items-center gap-3 py-2 pl-4 pr-4 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
 
@@ -137,22 +142,28 @@ export function PostListItem({
             <span className="text-slate-500 w-24 text-left truncate">{post.profiles?.full_name || "익명"}</span>
             <span className="w-20 text-right whitespace-nowrap">{formatRelativeTime(post.created_at)}</span>
 
-            {/* 좋아요 아이콘 영역 (고정 너비) */}
-            <div className="flex items-center justify-center w-12 flex-shrink-0">
-              <div className={cn(
-                "flex items-center gap-0.5",
-                isLiked ? "text-red-500" : (post.likes_count || 0) > 0 ? "text-red-500" : "text-slate-300"
-              )}>
-                <Heart className={cn(
-                  "h-3 w-3",
-                  isLiked ? "fill-current" : (post.likes_count || 0) > 0 ? "fill-current" : ""
-                )} />
-                <span>{likeCount || post.likes_count || 0}</span>
-              </div>
+            {/* 좋아요 버튼 (클릭 가능) */}
+            <div
+              className="flex items-center justify-center w-12 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <LikeButton
+                postId={post.id}
+                userId={userId || undefined}
+                initialLiked={isLiked}
+                initialCount={likeCount}
+                onLikeChange={(newCount) => setLikeCount(newCount)}
+              />
             </div>
 
-            {/* 댓글 아이콘 영역 (고정 너비) */}
-            <div className="flex items-center justify-center w-12 flex-shrink-0">
+            {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
+            <div
+              className="flex items-center justify-center w-12 flex-shrink-0 cursor-pointer hover:bg-slate-100 rounded-full p-1"
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(href)
+              }}
+            >
               {(post.comments_count || 0) > 0 ? (
                 <div className="flex items-center gap-0.5 text-blue-500">
                   <MessageSquare className="h-3 w-3 fill-current" />
@@ -169,22 +180,28 @@ export function PostListItem({
 
           {/* 모바일 정보 (아이콘만 간략히, 고정 위치) */}
           <div className="flex sm:hidden items-center gap-2 text-xs text-slate-400 flex-shrink-0">
-            {/* 좋아요 아이콘 영역 (고정 너비) */}
-            <div className="flex items-center justify-center w-10 flex-shrink-0">
-              <div className={cn(
-                "flex items-center gap-0.5",
-                isLiked ? "text-red-500" : (post.likes_count || 0) > 0 ? "text-red-500" : "text-slate-300"
-              )}>
-                <Heart className={cn(
-                  "h-3 w-3",
-                  isLiked ? "fill-current" : (post.likes_count || 0) > 0 ? "fill-current" : ""
-                )} />
-                {(likeCount || post.likes_count || 0) > 0 && <span>{likeCount || post.likes_count || 0}</span>}
-              </div>
+            {/* 좋아요 버튼 (클릭 가능) */}
+            <div
+              className="flex items-center justify-center w-10 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <LikeButton
+                postId={post.id}
+                userId={userId || undefined}
+                initialLiked={isLiked}
+                initialCount={likeCount}
+                onLikeChange={(newCount) => setLikeCount(newCount)}
+              />
             </div>
 
-            {/* 댓글 아이콘 영역 (고정 너비) */}
-            <div className="flex items-center justify-center w-10 flex-shrink-0">
+            {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
+            <div
+              className="flex items-center justify-center w-10 flex-shrink-0 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(href)
+              }}
+            >
               {(post.comments_count || 0) > 0 ? (
                 <div className="flex items-center gap-0.5 text-blue-500">
                   <MessageSquare className="h-3 w-3 fill-current" />
@@ -198,7 +215,7 @@ export function PostListItem({
             </div>
           </div>
         </div>
-      </Link>
+      </div>
     )
   }
 
