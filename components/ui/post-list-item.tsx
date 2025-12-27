@@ -161,6 +161,7 @@ export function PostListItem({
               className="flex items-center justify-center w-12 flex-shrink-0 cursor-pointer hover:bg-slate-100 rounded-full p-1"
               onClick={(e) => {
                 e.stopPropagation()
+                window.scrollTo(0, 0)
                 router.push(href)
               }}
             >
@@ -199,6 +200,7 @@ export function PostListItem({
               className="flex items-center justify-center w-10 flex-shrink-0 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation()
+                window.scrollTo(0, 0)
                 router.push(href)
               }}
             >
