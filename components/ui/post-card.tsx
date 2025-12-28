@@ -87,10 +87,14 @@ export function PostCard({
     <div
       role="link"
       tabIndex={0}
-      onClick={() => router.push(href)}
+      onClick={() => {
+        window.scrollTo(0, 0)
+        router.push(href)
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
+          window.scrollTo(0, 0)
           router.push(href)
         }
       }}
@@ -162,7 +166,7 @@ export function PostCard({
           }}
         >
           <MessageSquare className="h-4 w-4" />
-          <span>{commentsCount} 댓글</span>
+          <span>{commentsCount}</span>
         </button>
 
         {/* 공유 버튼 */}

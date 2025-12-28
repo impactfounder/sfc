@@ -86,7 +86,10 @@ export function PostListItem({
     return (
       <div
         className={cn("block w-full group cursor-pointer", className)}
-        onClick={() => router.push(href)}
+        onClick={() => {
+          window.scrollTo(0, 0)
+          router.push(href)
+        }}
       >
         {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
         <div className="flex items-center gap-3 py-2 pl-4 pr-4 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
