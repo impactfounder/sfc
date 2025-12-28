@@ -1,12 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Heart, MessageSquare } from "lucide-react"
-import { LikeButton } from "@/components/like-button"
+import { MessageSquare } from "lucide-react"
 import { CommentSection } from "@/components/comment-section"
 import { PostActions } from "@/components/post-actions"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { isMasterAdmin } from "@/lib/utils"
 import { UserBadges } from "@/components/user-badges"
 
@@ -43,8 +40,7 @@ export default async function PostDetailPage({
   }
 
   // 병렬로 나머지 데이터 가져오기
-  const [userLikeResult, commentsResult, profileResult, badgesResult] = await Promise.all([
-    user ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+  const [commentsResult, profileResult, badgesResult] = await Promise.all([
     supabase
       .from("comments")
       .select(`
@@ -69,8 +65,6 @@ export default async function PostDetailPage({
       .eq("user_id", post.author_id)
       .eq("is_visible", true) : Promise.resolve({ data: null })
   ])
-
-  const userLike = userLikeResult.data
   const { data: comments } = commentsResult
   const { data: profile } = profileResult
 
@@ -129,24 +123,9 @@ export default async function PostDetailPage({
 
           {/* Actions */}
           <div className="mt-6 flex items-center gap-4 border-t border-slate-200 pt-4">
-            {user ? (
-              <LikeButton
-                postId={post.id}
-                userId={user.id}
-                initialLiked={userLike !== null}
-                initialCount={post.likes_count || 0}
-              />
-            ) : (
-              <Link href="/auth/login">
-                <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                  <Heart className="h-4 w-4" />
-                  <span>{post.likes_count}</span>
-                </Button>
-              </Link>
-            )}
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <MessageSquare className="h-4 w-4" />
-              <span>{post.comments_count} comments</span>
+              <span>{post.comments_count} 댓글</span>
             </div>
           </div>
         </CardContent>

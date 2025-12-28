@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare, ChevronLeft } from "lucide-react"
-import { LikeButton } from "@/components/like-button"
 import { ThreadedComments } from "@/components/threaded-comments"
 import { PostActions } from "@/components/post-actions"
 import { EventShareButton } from "@/components/event-share-button"
@@ -53,12 +52,7 @@ export default async function BoardPostDetailPage({
   if (!post) notFound()
 
   // 추가 데이터 조회
-  // ✅ 수정: likesResult 조회 제거 - post.likes_count를 그대로 사용
-  // (익명 좋아요는 posts.likes_count에만 반영되므로, post_likes 카운트는 부정확함)
-  const [userLikeResult, commentsResult, badgesResult] = await Promise.all([
-    user
-      ? supabase.from("post_likes").select("id").eq("post_id", id).eq("user_id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
+  const [commentsResult, badgesResult] = await Promise.all([
     getComments(id),
     post.author_id
       ? supabase
@@ -89,8 +83,6 @@ export default async function BoardPostDetailPage({
   const authorVisibleBadges = badgesResult.data?.map((ub: any) => ub.badges).filter(Boolean) || []
   const comments = commentsResult || []
   const actualCommentsCount = countTree(comments)
-  // ✅ 수정: post.likes_count 사용 (익명 좋아요 포함)
-  const actualLikesCount = post.likes_count || 0
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -167,12 +159,6 @@ export default async function BoardPostDetailPage({
           {/* 하단 액션 */}
           <div className="flex items-center justify-between pt-6 border-t border-slate-100">
             <div className="flex items-center gap-4">
-              <LikeButton
-                postId={post.id}
-                userId={user?.id}
-                initialLiked={!!userLikeResult.data}
-                initialCount={actualLikesCount}
-              />
               <div className="flex items-center gap-1.5 text-slate-500 text-sm">
                 <MessageSquare className="h-4 w-4" />
                 <span>{actualCommentsCount}</span>

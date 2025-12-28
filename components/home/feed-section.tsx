@@ -89,10 +89,7 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
               content={post.content ?? undefined}
               contentRaw={(post as any).content ?? undefined}
               thumbnailUrl={post.thumbnail_url ?? undefined}
-              likesCount={post.likes_count ?? 0}
               commentsCount={post.comments_count ?? 0}
-              userId={undefined}
-              initialLiked={false}
             />
           ))
         )}

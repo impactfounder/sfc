@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
-import { LikeButton } from "@/components/like-button"
 import { useToast } from "@/hooks/use-toast"
 
 type PostCardProps = {
@@ -18,10 +17,7 @@ type PostCardProps = {
   content?: string | null
   contentRaw?: string | null
   thumbnailUrl?: string | null
-  likesCount?: number
   commentsCount?: number
-  userId?: string
-  initialLiked?: boolean
   onShare?: () => void
   hideCategory?: boolean
 }
@@ -36,10 +32,7 @@ export function PostCard({
   content,
   contentRaw,
   thumbnailUrl,
-  likesCount = 0,
   commentsCount = 0,
-  userId,
-  initialLiked = false,
   onShare,
   hideCategory = false,
 }: PostCardProps) {
@@ -157,16 +150,6 @@ export function PostCard({
 
       {/* Footer */}
       <div className="px-3 py-2 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1 text-xs text-slate-600">
-        {/* 좋아요 버튼 */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <LikeButton
-            postId={postId}
-            userId={userId}
-            initialLiked={initialLiked}
-            initialCount={likesCount}
-          />
-        </div>
-
         {/* 댓글 버튼 - 클릭 시 상세 페이지로 이동 */}
         <button
           type="button"

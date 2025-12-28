@@ -346,7 +346,6 @@ export function BoardPageClient({
                     href={postHref}
                     isMember={true}
                     viewMode="list"
-                    currentUserId={user?.id}
                     hideCategory={true}
                   />
                 )
@@ -369,10 +368,7 @@ export function BoardPageClient({
                   content={post.content ?? undefined}
                   contentRaw={(post as any).content ?? undefined}
                   thumbnailUrl={post.thumbnail_url ?? undefined}
-                  likesCount={post.likes_count ?? 0}
                   commentsCount={post.comments_count ?? 0}
-                  userId={user?.id}
-                  initialLiked={false}
                   hideCategory={true}
                 />
               )

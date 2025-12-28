@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Megaphone } from 'lucide-react';
-import { LikeButton } from "@/components/like-button";
 import { CommentSection } from "@/components/comment-section";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -21,8 +20,7 @@ export default async function AnnouncementDetailPage({
     .from("posts")
     .select(`
       *,
-      profiles:author_id (full_name, avatar_url),
-      post_likes (count)
+      profiles:author_id (full_name, avatar_url)
     `)
     .eq("id", params.id)
     .eq("category", "announcement")
@@ -41,7 +39,6 @@ export default async function AnnouncementDetailPage({
     .eq("post_id", params.id)
     .order("created_at", { ascending: false });
 
-  const likesCount = announcement.post_likes?.[0]?.count || 0;
   const createdAt = new Date(announcement.created_at);
 
   return (
@@ -89,18 +86,6 @@ export default async function AnnouncementDetailPage({
               </p>
             </div>
 
-            {user && (
-              <div className="flex items-center gap-4 border-t border-slate-200 pt-6">
-                <LikeButton postId={announcement.id} initialLiked={false} initialCount={likesCount} />
-              </div>
-            )}
-            {!user && (
-              <div className="flex items-center gap-4 border-t border-slate-200 pt-6">
-                <p className="text-sm text-slate-500">
-                  좋아요를 누르려면 <Link href="/auth/login" className="text-blue-600 hover:underline">로그인</Link>이 필요합니다.
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 

@@ -1,12 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
-import { MessageSquare, Lock, Heart } from "lucide-react"
+import { MessageSquare, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatRelativeTime } from "@/lib/format-time"
-import { LikeButton } from "@/components/like-button"
-import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -22,7 +19,6 @@ type Post = {
   content?: string | null
   created_at: string
   visibility?: "public" | "group"
-  likes_count?: number
   comments_count?: number
   thumbnail_url?: string | null
   board_categories?: {
@@ -52,7 +48,6 @@ type PostListItemProps = {
   className?: string
   isMember?: boolean
   viewMode?: "feed" | "list"
-  currentUserId?: string
   hideCategory?: boolean
 }
 
@@ -62,35 +57,9 @@ export function PostListItem({
   className,
   isMember = true,
   viewMode = "feed",
-  currentUserId,
   hideCategory = false
 }: PostListItemProps) {
   const router = useRouter()
-  const [userId, setUserId] = useState<string | null>(currentUserId || null)
-  const [isLiked, setIsLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(post.likes_count || 0)
-
-  // 사용자 정보 및 좋아요 상태 가져오기
-  useEffect(() => {
-    const loadUserAndLikeStatus = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        // 좋아요 상태 확인
-        const { data } = await supabase
-          .from("post_likes")
-          .select("id")
-          .eq("post_id", post.id)
-          .eq("user_id", user.id)
-          .maybeSingle()
-        setIsLiked(!!data)
-      }
-    }
-    if (!currentUserId) {
-      loadUserAndLikeStatus()
-    }
-  }, [post.id, currentUserId])
 
   // content에서 HTML 태그 제거하고 텍스트만 추출 (미리보기용)
   const getPlainText = (html?: string | null) => {
@@ -142,20 +111,6 @@ export function PostListItem({
             <span className="text-slate-500 w-24 text-left truncate">{post.profiles?.full_name || "익명"}</span>
             <span className="w-20 text-right whitespace-nowrap">{formatRelativeTime(post.created_at)}</span>
 
-            {/* 좋아요 버튼 (클릭 가능) */}
-            <div
-              className="flex items-center justify-center w-12 flex-shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <LikeButton
-                postId={post.id}
-                userId={userId || undefined}
-                initialLiked={isLiked}
-                initialCount={likeCount}
-                onLikeChange={(newCount) => setLikeCount(newCount)}
-              />
-            </div>
-
             {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
             <div
               className="flex items-center justify-center w-12 flex-shrink-0 cursor-pointer hover:bg-slate-100 rounded-full p-1"
@@ -181,20 +136,6 @@ export function PostListItem({
 
           {/* 모바일 정보 (아이콘만 간략히, 고정 위치) */}
           <div className="flex sm:hidden items-center gap-2 text-xs text-slate-400 flex-shrink-0">
-            {/* 좋아요 버튼 (클릭 가능) */}
-            <div
-              className="flex items-center justify-center w-10 flex-shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <LikeButton
-                postId={post.id}
-                userId={userId || undefined}
-                initialLiked={isLiked}
-                initialCount={likeCount}
-                onLikeChange={(newCount) => setLikeCount(newCount)}
-              />
-            </div>
-
             {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
             <div
               className="flex items-center justify-center w-10 flex-shrink-0 cursor-pointer"
@@ -305,17 +246,7 @@ export function PostListItem({
           </div>
 
           {/* 푸터 (액션 버튼) */}
-          <div className="flex items-center gap-4 pt-2" onClick={(e) => e.stopPropagation()}>
-            <div className="z-10">
-              <LikeButton
-                postId={post.id}
-                userId={userId || undefined}
-                initialLiked={isLiked}
-                initialCount={likeCount}
-                onLikeChange={(newCount) => setLikeCount(newCount)}
-              />
-            </div>
-
+          <div className="flex items-center gap-4 pt-2">
             {/* 댓글 정보 표시 (링크 없음, 카드 클릭 시 이동) */}
             <div className="flex items-center gap-1.5 text-sm text-slate-600 px-3 py-1.5 rounded-lg">
               <MessageSquare className="h-4 w-4" />
