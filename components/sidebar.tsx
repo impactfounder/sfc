@@ -100,6 +100,7 @@ export function Sidebar({ userRole }: SidebarProps) {
         <div className="space-y-0.5 mb-1">
           <Link
             href="/"
+            prefetch={true}
             className={cn(
               "flex items-center gap-3 rounded-xl px-[27px] py-1.5 text-[15px] font-medium transition-all",
               isLinkActive("/") ? "bg-slate-100 text-slate-900 font-bold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
@@ -134,7 +135,7 @@ export function Sidebar({ userRole }: SidebarProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    prefetch={isBoardLink ? true : undefined}
+                    prefetch={true}
                     onMouseEnter={() => {
                       if (isBoardLink && dbSlug) {
                         prefetch(dbSlug)
@@ -162,6 +163,7 @@ export function Sidebar({ userRole }: SidebarProps) {
           <div className="space-y-0.5">
             <Link
               href="/customer-center"
+              prefetch={true}
               className={cn(
                 "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
                 isLinkActive("/customer-center", true)
@@ -175,6 +177,7 @@ export function Sidebar({ userRole }: SidebarProps) {
             {showAdminMenu && (
               <Link
                 href="/admin"
+                prefetch={true}
                 className={cn(
                   "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
                   isLinkActive("/admin", true)

@@ -15,6 +15,12 @@ export async function getCurrentUserProfile(
   supabase: SupabaseClient
 ): Promise<UserWithProfile | null> {
   try {
+    // 세션 없으면 getUser() 호출 없이 즉시 반환 (비로그인 최적화)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return null
+    }
+
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {

@@ -711,11 +711,11 @@ export function NewEventForm({
         <div className="lg:col-span-7">
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
             {/* 시작/종료 시간 */}
-            <div className="flex items-start gap-4">
-              <div className="mt-1 p-2 bg-slate-100 rounded-lg text-slate-500">
+            <div className="grid grid-cols-[40px_1fr] gap-4 items-start">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
                 <Calendar className="h-5 w-5" />
               </div>
-              <div className="flex-1 space-y-3">
+              <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-slate-700 w-10">시작</span>
                   <input
@@ -759,11 +759,11 @@ export function NewEventForm({
             </div>
 
             {/* 장소 */}
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
+            <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
                 <MapPin className="h-5 w-5" />
               </div>
-              <div className="flex-1">
+              <div>
                 {hasApiKey && isLoaded && !scriptLoadError ? (
                   <Autocomplete
                     onLoad={(autocomplete) => {
@@ -799,41 +799,41 @@ export function NewEventForm({
               </div>
             </div>
 
-            {/* 가격 & 인원 - 한 줄에 배치 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
-                  <Ticket className="h-5 w-5" />
-                </div>
-                <Input
-                  type="number"
-                  placeholder="가격 (무료면 비워두기)"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
-                  min="0"
-                />
+            {/* 가격 */}
+            <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
+                <Ticket className="h-5 w-5" />
               </div>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
-                  <Users className="h-5 w-5" />
-                </div>
-                <Input
-                  type="number"
-                  placeholder="최대 인원 (선택)"
-                  value={maxParticipants}
-                  onChange={(e) => setMaxParticipants(e.target.value)}
-                  className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
-                />
+              <Input
+                type="number"
+                placeholder="가격 (무료면 비워두기)"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
+                min="0"
+              />
+            </div>
+
+            {/* 인원 */}
+            <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
+                <Users className="h-5 w-5" />
               </div>
+              <Input
+                type="number"
+                placeholder="최대 인원 (선택)"
+                value={maxParticipants}
+                onChange={(e) => setMaxParticipants(e.target.value)}
+                className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
+              />
             </div>
 
             {/* 이벤트 유형 */}
-            <div className="flex items-start gap-4">
-              <div className="mt-1 p-2 bg-slate-100 rounded-lg text-slate-500">
+            <div className="grid grid-cols-[40px_1fr] gap-4 items-start">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
                 <Target className="h-5 w-5" />
               </div>
-              <div className="flex-1">
+              <div>
                 <span className="text-sm font-semibold text-slate-700 block mb-3">이벤트 유형</span>
                 <RadioGroup
                   value={eventType}

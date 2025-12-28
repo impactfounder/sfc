@@ -11,19 +11,28 @@ export const revalidate = 60
 export default async function MemberPage() {
   const supabase = await createClient()
 
-  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  // 세션 먼저 확인 (비로그인 최적화 - getUser 네트워크 호출 방지)
+  const { data: { session } } = await supabase.auth.getSession()
 
+  let currentUser = null
   let currentUserProfile = null
-  if (currentUser) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, is_profile_public, role")
-      .eq("id", currentUser.id)
-      .single()
-    currentUserProfile = data
+
+  if (session) {
+    // 세션이 있을 때만 getUser 호출
+    const { data: { user } } = await supabase.auth.getUser()
+    currentUser = user
+
+    if (currentUser) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, is_profile_public, role")
+        .eq("id", currentUser.id)
+        .single()
+      currentUserProfile = data
+    }
   }
 
-  // 1. 멤버 조회 시도
+  // 1. 멤버 조회 시도 (공개 페이지 - 로그인 여부와 무관하게 항상 조회)
   let { data: publicMembers, error } = await supabase
     .from("profiles")
     .select(`

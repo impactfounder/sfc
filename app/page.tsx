@@ -64,7 +64,7 @@ export default async function HomePage() {
   }))
 
   return (
-    <DashboardLayout header={<SiteHeader />} userRole={profile?.role}>
+    <DashboardLayout header={<SiteHeader user={user} profile={profile} />} userRole={profile?.role}>
       <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         <div className="flex flex-col gap-10 w-full">
           <HeroSection user={user} profile={profile} loginHref="/auth/login" />

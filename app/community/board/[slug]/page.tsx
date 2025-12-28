@@ -47,34 +47,42 @@ export default async function BoardPage({
     notFound();
   }
 
-  const [categoryResult, userResult] = await Promise.all([
+  // 세션 먼저 확인 (비로그인 최적화 - getUser 네트워크 호출 방지)
+  const [categoryResult, sessionResult] = await Promise.all([
     supabase
       .from("board_categories")
       .select("id, name, description, slug, is_active")
       .eq("slug", dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
       .eq("is_active", true)
       .single(),
-    supabase.auth.getUser(),
+    supabase.auth.getSession(),
   ]);
 
   const category = categoryResult.data;
-  const user = userResult.data.user;
+  const session = sessionResult.data.session;
 
   if (!category) {
     notFound();
   }
 
-  // 관리자 여부 확인
+  // 관리자 여부 확인 (세션이 있을 때만 getUser 호출)
+  let user = null;
   let isUserAdmin = false;
   let userProfile: any = null;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, email")
-      .eq("id", user.id)
-      .single();
-    userProfile = profile;
-    isUserAdmin = isAdmin(profile?.role, profile?.email);
+
+  if (session) {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    user = authUser;
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, email")
+        .eq("id", user.id)
+        .single();
+      userProfile = profile;
+      isUserAdmin = isAdmin(profile?.role, profile?.email);
+    }
   }
 
   // 커뮤니티 ID 및 멤버십 확인 (시스템 게시판 제외)

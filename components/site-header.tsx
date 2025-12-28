@@ -4,12 +4,19 @@ import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { SiteHeaderClient } from "./site-header-client"
 
-export async function SiteHeader() {
-    const supabase = await createClient()
-    const userProfile = await getCurrentUserProfile(supabase)
+interface SiteHeaderProps {
+    user?: any
+    profile?: any
+}
 
-    const user = userProfile?.user || null
-    const profile = userProfile?.profile || null
+export async function SiteHeader({ user, profile }: SiteHeaderProps = {}) {
+    // props가 없을 때만 조회 (중복 호출 방지)
+    if (user === undefined && profile === undefined) {
+        const supabase = await createClient()
+        const userProfile = await getCurrentUserProfile(supabase)
+        user = userProfile?.user || null
+        profile = userProfile?.profile || null
+    }
 
     return (
         <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
