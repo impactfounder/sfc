@@ -566,31 +566,45 @@ export function NewEventForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 lg:space-y-8">
-      {/* Top Section: Image (Left) & Info (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
-        
+    <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+      {/* 1. 제목 입력 - 최상단 (전체 너비, Luma 스타일) */}
+      <div className="space-y-3">
+        <input
+          type="text"
+          placeholder="이벤트 이름을 입력하세요"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full text-3xl sm:text-4xl font-bold text-slate-900 placeholder:text-slate-300 border-none bg-transparent focus:outline-none focus:ring-0 px-0 py-1"
+          required
+        />
+        <div className="h-px bg-slate-200 w-full" />
+      </div>
+
+      {/* 2. 이미지(좌) + 상세정보(우) 그리드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+
         {/* [Left] Image Upload Section (5 cols) */}
-        <div className="lg:col-span-5 space-y-3 sm:space-y-4">
-          <div 
-            className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 transition-colors"
+        <div className="lg:col-span-5 space-y-4">
+          <div
+            className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-all"
             onClick={() => fileInputRef.current?.click()}
           >
             {thumbnailUrl ? (
               <>
                 <img src={thumbnailUrl} alt="Thumbnail" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Upload className="h-8 w-8 text-white" />
                 </div>
               </>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center text-slate-400 gap-2">
+              <div className="flex h-full flex-col items-center justify-center text-slate-400 gap-3">
                 {isUploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <Loader2 className="h-10 w-10 animate-spin" />
                 ) : (
                   <>
-                    <ImageIcon className="h-10 w-10" />
-                    <span className="text-sm font-medium">이미지 업로드</span>
+                    <ImageIcon className="h-12 w-12" />
+                    <span className="text-sm font-medium">클릭하여 이미지 업로드</span>
+                    <span className="text-xs text-slate-400">또는 아래에서 Unsplash 검색</span>
                   </>
                 )}
               </div>
@@ -598,54 +612,47 @@ export function NewEventForm({
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
           </div>
 
-          {/* Unsplash Search Input (이미지 업로드 영역 아래) */}
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <Search className="h-4 w-4" />
-                </div>
-                <Input
-                  placeholder="Unsplash 이미지 검색 (예: startup, meeting)"
-                  value={unsplashQuery}
-                  onChange={(e) => setUnsplashQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault() // ★ 폼 제출 막기 (가장 중요)
-                      handleUnsplashSearch() // 검색 실행
-                    }
-                  }}
-                  className="pl-9 h-11"
-                />
-              </div>
-              <Button 
-                type="button" 
-                variant="outline"
-                disabled={!unsplashQuery.trim()}
-                onClick={handleUnsplashSearch}
-                className="gap-2"
-              >
-                <Search className="h-4 w-4" />
-                검색
-              </Button>
+          {/* Unsplash Search */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Unsplash 검색 (예: meeting)"
+                value={unsplashQuery}
+                onChange={(e) => setUnsplashQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleUnsplashSearch()
+                  }
+                }}
+                className="pl-9 h-10"
+              />
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!unsplashQuery.trim()}
+              onClick={handleUnsplashSearch}
+              className="h-10 px-4"
+            >
+              검색
+            </Button>
           </div>
 
-          {/* Unsplash Search Dialog */}
+          {/* Unsplash Dialog */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>이미지 검색</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
-                {/* Search Input (다이얼로그 내부) */}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                      <Search className="h-4 w-4" />
-                    </div>
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                      placeholder="검색어 입력 (예: meeting, party, business)"
+                      placeholder="검색어 입력"
                       value={unsplashQuery}
                       onChange={(e) => setUnsplashQuery(e.target.value)}
                       onKeyDown={(e) => {
@@ -654,29 +661,18 @@ export function NewEventForm({
                           handleUnsplashSearch()
                         }
                       }}
-                      className="pl-9 h-11"
+                      className="pl-9"
                     />
                   </div>
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     onClick={handleUnsplashSearch}
                     disabled={isSearching || !unsplashQuery.trim()}
                   >
-                    {isSearching ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        검색 중...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        검색
-                      </>
-                    )}
+                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "검색"}
                   </Button>
                 </div>
 
-                {/* Search Results */}
                 {isSearching && (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -684,36 +680,26 @@ export function NewEventForm({
                 )}
 
                 {!isSearching && unsplashResults.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     {unsplashResults.map((img) => (
-                      <div 
-                        key={img.id} 
+                      <div
+                        key={img.id}
                         className="aspect-square relative cursor-pointer rounded-lg overflow-hidden border border-slate-200 hover:border-slate-400 hover:shadow-md transition-all group"
                         onClick={() => handleImageSelect(img.urls.regular)}
                       >
-                        <img 
-                          src={img.urls.small} 
-                          alt={img.alt_description || "Unsplash"} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" 
+                        <img
+                          src={img.urls.small}
+                          alt={img.alt_description || "Unsplash"}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                       </div>
                     ))}
                   </div>
                 )}
 
                 {!isSearching && unsplashQuery && unsplashResults.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-                    <Search className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm font-medium">검색 결과가 없습니다</p>
-                    <p className="text-xs mt-1">다른 검색어를 시도해보세요</p>
-                  </div>
-                )}
-
-                {!isSearching && !unsplashQuery && unsplashResults.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                    <ImageIcon className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">검색어를 입력하고 검색 버튼을 눌러주세요</p>
+                  <div className="text-center py-12 text-slate-500">
+                    <p className="text-sm">검색 결과가 없습니다</p>
                   </div>
                 )}
               </div>
@@ -721,73 +707,63 @@ export function NewEventForm({
           </Dialog>
         </div>
 
-        {/* [Right] Event Info Section (7 cols) */}
-        <div className="lg:col-span-7 space-y-4 sm:space-y-6">
-          
-          {/* Title Input (Big & Bold like Luma) - 최상단 */}
-          <div>
-            <input
-              type="text"
-              placeholder="이벤트 이름"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-3xl md:text-4xl font-bold text-slate-900 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 px-0 py-2"
-              required
-            />
-          </div>
-
-          <div className="space-y-3 sm:space-y-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm">
-            {/* Date & Time Row */}
+        {/* [Right] Event Info Section (7 cols) - 카드 형태 */}
+        <div className="lg:col-span-7">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+            {/* 시작/종료 시간 */}
             <div className="flex items-start gap-4">
-              <div className="mt-2 p-2 bg-slate-100 rounded-lg text-slate-500">
+              <div className="mt-1 p-2 bg-slate-100 rounded-lg text-slate-500">
                 <Calendar className="h-5 w-5" />
               </div>
               <div className="flex-1 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold w-10">시작</span>
-                  <input 
-                    type="date" 
-                    value={startDate} 
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-700 w-10">시작</span>
+                  <input
+                    type="date"
+                    value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-slate-50 border-none rounded-md px-3 py-2 text-sm font-medium focus:ring-1 focus:ring-slate-200"
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
-                  <select 
-                    value={startTime} 
+                  <select
+                    value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="bg-slate-50 border-none rounded-md px-3 py-2 text-sm font-medium focus:ring-1 focus:ring-slate-200"
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
                   >
-                    {timeOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {timeOptions.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
                   </select>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold w-10 text-slate-400">종료</span>
-                  <input 
-                    type="date" 
-                    value={endDate} 
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-400 w-10">종료</span>
+                  <input
+                    type="date"
+                    value={endDate}
                     onChange={(e) => {
                       setEndDate(e.target.value)
                       setIsEndDateManuallyChanged(true)
                     }}
-                    className="bg-slate-50 border-none rounded-md px-3 py-2 text-sm font-medium text-slate-600 focus:ring-1 focus:ring-slate-200"
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
-                  <select 
-                    value={endTime} 
+                  <select
+                    value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="bg-slate-50 border-none rounded-md px-3 py-2 text-sm font-medium text-slate-600 focus:ring-1 focus:ring-slate-200"
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-200"
                   >
-                    {timeOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {timeOptions.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* Location Row */}
+            {/* 장소 */}
             <div className="flex items-center gap-4">
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
                 <MapPin className="h-5 w-5" />
               </div>
-              <span className="text-sm font-semibold w-12 shrink-0">장소</span>
-              <div className="flex-1 relative">
+              <div className="flex-1">
                 {hasApiKey && isLoaded && !scriptLoadError ? (
                   <Autocomplete
                     onLoad={(autocomplete) => {
@@ -806,109 +782,86 @@ export function NewEventForm({
                     }}
                   >
                     <Input
-                      placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
+                      placeholder="장소 입력 (예: 강남역 스타벅스, Zoom 링크)"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                      className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
                     />
                   </Autocomplete>
                 ) : (
                   <Input
-                    placeholder="강남역 1번 출구 스타벅스, 줌(Zoom) 링크 등"
+                    placeholder="장소 입력 (예: 강남역 스타벅스, Zoom 링크)"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                    className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
                   />
                 )}
               </div>
             </div>
 
-            {/* Price Row */}
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
-                <Ticket className="h-5 w-5" />
-              </div>
-              <span className="text-sm font-semibold w-12 shrink-0">가격</span>
-              <div className="flex items-center gap-2 w-full">
+            {/* 가격 & 인원 - 한 줄에 배치 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
+                  <Ticket className="h-5 w-5" />
+                </div>
                 <Input
                   type="number"
-                  placeholder="참가비 (원) - 비워두면 무료"
+                  placeholder="가격 (무료면 비워두기)"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                  className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
                   min="0"
                 />
               </div>
-            </div>
-
-            {/* Capacity Row */}
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
-                <Users className="h-5 w-5" />
-              </div>
-              <span className="text-sm font-semibold w-12 shrink-0">인원</span>
-              <div className="flex items-center gap-2 w-full">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
+                  <Users className="h-5 w-5" />
+                </div>
                 <Input
                   type="number"
                   placeholder="최대 인원 (선택)"
                   value={maxParticipants}
                   onChange={(e) => setMaxParticipants(e.target.value)}
-                  className="border-none bg-transparent text-base px-0 shadow-none focus-visible:ring-0 placeholder:text-slate-400 w-full"
+                  className="border-slate-200 bg-slate-50 h-10 focus-visible:ring-slate-200"
                 />
               </div>
             </div>
 
-            {/* Event Type Row */}
+            {/* 이벤트 유형 */}
             <div className="flex items-start gap-4">
-              <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
+              <div className="mt-1 p-2 bg-slate-100 rounded-lg text-slate-500">
                 <Target className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <span className="text-sm font-semibold block mb-2">이벤트 유형</span>
+                <span className="text-sm font-semibold text-slate-700 block mb-3">이벤트 유형</span>
                 <RadioGroup
                   value={eventType}
                   onValueChange={(value) => setEventType(value as "networking" | "class" | "activity")}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full"
+                  className="grid grid-cols-3 gap-2"
                 >
-                  <label
-                    htmlFor="networking"
-                    className={cn(
-                      "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all w-full cursor-pointer",
-                      eventType === "networking" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
-                    )}
-                  >
-                    <RadioGroupItem value="networking" id="networking" className="text-slate-900" />
-                    <div className="flex-1">
-                      <div className="font-medium text-slate-900">네트워킹</div>
-                      <div className="text-xs text-slate-500">모임, 소셜링, 파티</div>
-                    </div>
-                  </label>
-                  <label
-                    htmlFor="class"
-                    className={cn(
-                      "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all w-full cursor-pointer",
-                      eventType === "class" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
-                    )}
-                  >
-                    <RadioGroupItem value="class" id="class" className="text-slate-900" />
-                    <div className="flex-1">
-                      <div className="font-medium text-slate-900">클래스</div>
-                      <div className="text-xs text-slate-500">워크샵, 강의, 세미나</div>
-                    </div>
-                  </label>
-                  <label
-                    htmlFor="activity"
-                    className={cn(
-                      "flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 transition-all w-full cursor-pointer",
-                      eventType === "activity" ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
-                    )}
-                  >
-                    <RadioGroupItem value="activity" id="activity" className="text-slate-900" />
-                    <div className="flex-1">
-                      <div className="font-medium text-slate-900">액티비티</div>
-                      <div className="text-xs text-slate-500">운동, 야외 활동</div>
-                    </div>
-                  </label>
+                  {[
+                    { value: "networking", label: "네트워킹", desc: "모임, 파티" },
+                    { value: "class", label: "클래스", desc: "강의, 세미나" },
+                    { value: "activity", label: "액티비티", desc: "운동, 야외" },
+                  ].map((type) => (
+                    <label
+                      key={type.value}
+                      htmlFor={type.value}
+                      className={cn(
+                        "flex flex-col items-center p-3 border rounded-xl cursor-pointer transition-all text-center",
+                        eventType === type.value
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      )}
+                    >
+                      <RadioGroupItem value={type.value} id={type.value} className="sr-only" />
+                      <span className="font-medium text-sm">{type.label}</span>
+                      <span className={cn("text-xs mt-0.5", eventType === type.value ? "text-slate-300" : "text-slate-500")}>
+                        {type.desc}
+                      </span>
+                    </label>
+                  ))}
                 </RadioGroup>
               </div>
             </div>
@@ -916,16 +869,21 @@ export function NewEventForm({
         </div>
       </div>
 
-      {/* Bottom: Rich Text Editor */}
-      <div className="space-y-2">
+      {/* 상세 내용 에디터 */}
+      <div className="space-y-3">
         <Label className="text-lg font-semibold text-slate-900">상세 내용</Label>
-        <RichTextEditor content={description} onChange={setDescription} />
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <RichTextEditor content={description} onChange={setDescription} />
+        </div>
       </div>
 
-      {/* 커스텀 필드 섹션 */}
-      <div className="space-y-4 bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+      {/* 참가자 질문 섹션 */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-lg font-semibold text-slate-900">참가자 질문 추가</Label>
+          <div>
+            <Label className="text-lg font-semibold text-slate-900">참가자 질문</Label>
+            <p className="text-sm text-slate-500 mt-0.5">참가 신청 시 받을 질문을 추가하세요</p>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -945,7 +903,7 @@ export function NewEventForm({
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
-            질문 추가
+            추가
           </Button>
         </div>
 
@@ -959,7 +917,7 @@ export function NewEventForm({
               items={customFields.map((field) => field.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="space-y-4 pb-32">
+              <div className="space-y-3">
                 {customFields.map((field, index) => (
                   <SortableItem
                     key={field.id}
@@ -973,49 +931,34 @@ export function NewEventForm({
             </SortableContext>
           </DndContext>
         )}
-        
-        {customFields.length > 0 && (
-          <div className="flex justify-end mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setCustomFields([
-                  ...customFields,
-                  {
-                    id: `field-${Date.now()}`,
-                    label: "",
-                    type: "text",
-                    options: [],
-                    required: false,
-                  },
-                ])
-              }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              질문 추가
-            </Button>
+
+        {customFields.length === 0 && (
+          <div className="text-center py-8 text-slate-400">
+            <p className="text-sm">아직 추가된 질문이 없습니다</p>
           </div>
         )}
       </div>
 
+      {/* 에러 메시지 */}
       {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-medium">
+        <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
           {error}
         </div>
       )}
 
-      <div className="sticky bottom-0 z-20 bg-slate-50/80 backdrop-blur-md border-t border-slate-200/60 py-4 px-6 mt-8 flex justify-end">
-        <Button 
-          type="submit" 
-          size="lg" 
-          className="bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-full text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300"
+      {/* 제출 버튼 */}
+      <div className="sticky bottom-0 z-20 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-4 pb-6 -mx-4 px-4 sm:-mx-6 sm:px-6">
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full sm:w-auto sm:min-w-[200px] sm:ml-auto sm:flex bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-base font-semibold shadow-lg hover:shadow-xl transition-all h-12"
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              처리 중...
+            </>
           ) : initialData ? (
             "이벤트 수정하기"
           ) : (
