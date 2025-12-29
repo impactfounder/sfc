@@ -1,7 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/queries/profiles"
+import { getCachedUserProfile } from "@/lib/queries/cached"
 import { SiteHeaderClient } from "./site-header-client"
 
 interface SiteHeaderProps {
@@ -10,10 +9,9 @@ interface SiteHeaderProps {
 }
 
 export async function SiteHeader({ user, profile }: SiteHeaderProps = {}) {
-    // props가 없을 때만 조회 (중복 호출 방지)
+    // props가 없을 때만 조회 (캐시된 함수 사용으로 중복 호출 방지)
     if (user === undefined && profile === undefined) {
-        const supabase = await createClient()
-        const userProfile = await getCurrentUserProfile(supabase)
+        const userProfile = await getCachedUserProfile()
         user = userProfile?.user || null
         profile = userProfile?.profile || null
     }

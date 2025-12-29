@@ -1,28 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { getCachedAnnouncements } from "@/lib/queries/cached"
 import { Separator } from "@/components/ui/separator"
 import { Bell, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
 export async function StandardRightSidebar() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("posts")
-    .select(`
-      id,
-      title,
-      board_categories!inner(slug)
-    `)
-    .eq("board_categories.slug", "announcement")
-    .order("created_at", { ascending: false })
-    .limit(3)
-
-  const announcements = (!error && data)
-    ? data.map((post: any) => ({
-        id: post.id,
-        title: post.title,
-      }))
-    : []
+  const announcements = await getCachedAnnouncements()
 
   return (
     <div className="flex flex-col gap-8 h-full">

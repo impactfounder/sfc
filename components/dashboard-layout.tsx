@@ -9,9 +9,11 @@ interface DashboardLayoutProps {
   rightSidebar?: ReactNode
   sidebarProfile?: ReactNode
   userRole?: string | null
+  sidebar?: ReactNode
+  mobileHeader?: ReactNode
 }
 
-export function DashboardLayout({ children, header, rightSidebar, sidebarProfile, userRole }: DashboardLayoutProps) {
+export function DashboardLayout({ children, header, rightSidebar, sidebarProfile, userRole, sidebar, mobileHeader }: DashboardLayoutProps) {
   const hasAside = Boolean(rightSidebar || sidebarProfile)
 
   return (
@@ -25,12 +27,12 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
 
       {/* 2. Mobile Header (lg 미만에서만 표시) */}
       <div className="lg:hidden">
-        <MobileHeader userRole={userRole} />
+        {mobileHeader ? mobileHeader : <MobileHeader userRole={userRole} />}
       </div>
 
       {/* 2. Left Sidebar: Header 아래 배치 (top-16) */}
       <aside className="fixed top-16 left-0 z-40 hidden h-[calc(100vh-4rem)] w-72 border-r border-slate-200/50 bg-white lg:block overflow-y-auto">
-        <Sidebar userRole={userRole} />
+        {sidebar ? sidebar : <Sidebar userRole={userRole} />}
       </aside>
 
       {/* 3. Main Content Wrapper: Header 높이(pt-16) + Sidebar 너비(pl-72) */}

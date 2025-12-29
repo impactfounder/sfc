@@ -1,18 +1,15 @@
 import type { Metadata } from "next"
-import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/queries/profiles"
-import { getUpcomingEvents } from "@/lib/queries/events"
-import { getLatestPosts } from "@/lib/queries/posts"
-import { HeroSection } from "@/components/home/hero-section"
-import { EventsSection } from "@/components/home/events-section"
-import { FeedSection } from "@/components/home/feed-section"
+import { Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import SidebarProfile from "@/components/sidebar-profile"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { getEventShortUrlSync } from "@/lib/utils/event-url"
-import { fetchFeedPosts } from "@/lib/actions/feed"
 import { SiteHeader } from "@/components/site-header"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
+import { SidebarContainer } from "@/components/sidebar-container"
+import { MobileHeaderContainer } from "@/components/mobile-header-container"
+import { HeroSectionContainer } from "@/components/home/hero-section-container"
+import { EventsSectionContainer } from "@/components/home/events-section-container"
+import { FeedSectionContainer } from "@/components/home/feed-section-container"
+import { SidebarSkeleton, HeroSkeleton, EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
 
 export const metadata: Metadata = {
   title: "Seoul Founders Club",
@@ -41,36 +38,40 @@ export const metadata: Metadata = {
   },
 }
 
-// ISR: 60초마다 재검증하여 캐시 활용
-export const revalidate = 60
-
-export default async function HomePage() {
-  const supabase = await createClient()
-
-  // 모든 데이터를 병렬로 가져오기
-  const [userProfile, events, posts] = await Promise.all([
-    getCurrentUserProfile(supabase),
-    getUpcomingEvents(supabase, 4),
-    fetchFeedPosts(1, "latest"),
-  ])
-
-  const user = userProfile?.user || null
-  const profile = userProfile?.profile || null
-
-  // shortUrl을 동기식으로 생성 (DB 호출 없음 - 성능 최적화)
-  const formattedEvents = events.map((event) => ({
-    ...event,
-    shortUrl: getEventShortUrlSync(event.id, event.event_date)
-  }))
-
+export default function HomePage() {
   return (
-    <DashboardLayout header={<SiteHeader user={user} profile={profile} />} userRole={profile?.role}>
+    <DashboardLayout
+      header={
+        <Suspense fallback={<div className="h-16 w-full bg-white/80 border-b border-slate-200/50 backdrop-blur-xl" />}>
+          <SiteHeader />
+        </Suspense>
+      }
+      sidebar={
+        <Suspense fallback={<SidebarSkeleton />}>
+          <SidebarContainer />
+        </Suspense>
+      }
+      mobileHeader={
+        <Suspense fallback={<div className="h-14 w-full bg-white/95 border-b border-slate-100" />}>
+          <MobileHeaderContainer />
+        </Suspense>
+      }
+    >
       <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         <div className="flex flex-col gap-10 w-full">
-          <HeroSection user={user} profile={profile} loginHref="/auth/login" />
-          <EventsSection events={formattedEvents as any} title="주요 이벤트" createLink="/e/new" showFilters={false} />
+          <Suspense fallback={<HeroSkeleton />}>
+            <HeroSectionContainer />
+          </Suspense>
+
+          <Suspense fallback={<EventsSkeleton />}>
+            <EventsSectionContainer />
+          </Suspense>
+
           <div className="h-px bg-slate-200" />
-          <FeedSection initialPosts={posts as any} />
+
+          <Suspense fallback={<FeedSkeleton />}>
+            <FeedSectionContainer />
+          </Suspense>
         </div>
       </ThreeColumnLayout>
     </DashboardLayout>
