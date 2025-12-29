@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip, Info } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -136,7 +136,6 @@ function EventListItem({ event }: { event: EventListItem }) {
 
 export default function ProfileContent() {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
 
@@ -196,12 +195,33 @@ export default function ProfileContent() {
 
   useEffect(() => {
     const loadData = async () => {
+      // 각 useEffect 호출마다 새 클라이언트 생성
+      const supabase = createClient()
+
       try {
         console.log('[Profile] loadData 시작')
         setLoading(true)
 
-        // 클라이언트에서는 getSession을 먼저 사용해야 함 (getUser는 서버 호출 필요)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        // getSession에 타임아웃 적용 (5초)
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Session fetch timeout')), 5000)
+        )
+
+        let session: any = null
+        let sessionError: any = null
+
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise])
+          session = result.data?.session
+          sessionError = result.error
+        } catch (e) {
+          console.error('[Profile] getSession 타임아웃:', e)
+          setLoading(false)
+          router.push("/auth/login")
+          return
+        }
+
         console.log('[Profile] session:', session ? 'exists' : 'null', sessionError ? `error: ${sessionError.message}` : '')
 
         if (!session?.user) {
@@ -383,13 +403,14 @@ export default function ProfileContent() {
     }
 
     loadData()
-  }, [supabase, router])
+  }, [router])
 
   const handleSignOut = async () => {
     if (isSigningOut) return
-    
+
     setIsSigningOut(true)
     try {
+      const supabase = createClient()
       await supabase.auth.signOut()
       localStorage.clear()
       sessionStorage.clear()
@@ -579,8 +600,9 @@ export default function ProfileContent() {
 
     setAddingBadge(true)
     try {
+      const supabase = createClient()
       let proofUrl = null
-      
+
       if (badgeProofFile) {
         const formData = new FormData()
         formData.append("file", badgeProofFile)
@@ -649,14 +671,15 @@ export default function ProfileContent() {
   }
 
   const handleRemoveBadge = async (userBadgeId: string) => {
-    if (!showProfileEdit) return 
-    
+    if (!showProfileEdit) return
+
     if (!confirm("뱃지를 삭제하시겠습니까?")) return
 
     try {
       await removeBadge(userBadgeId)
-      
+
       if (user) {
+        const supabase = createClient()
         const { data } = await supabase
           .from("user_badges")
           .select(`
@@ -699,8 +722,9 @@ export default function ProfileContent() {
 
   const handleOpenProfileEdit = async () => {
     setShowProfileEdit(true)
-    
+
     if (user) {
+      const supabase = createClient()
       const [userBadgesResult, allBadgesResult] = await Promise.all([
         supabase
           .from("user_badges")
