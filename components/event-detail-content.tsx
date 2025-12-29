@@ -147,7 +147,7 @@ export default async function EventDetailContent({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
           {/* Row 1 - Left: 1:1 이미지 */}
           <div className="lg:col-span-5">
-            <div className="bg-slate-900 rounded-2xl overflow-hidden shadow-lg h-full">
+            <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-white h-full">
               <div className="relative aspect-square w-full overflow-hidden">
                 {event.thumbnail_url ? (
                   <img
@@ -156,8 +156,8 @@ export default async function EventDetailContent({
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center">
-                    <Calendar className="w-20 h-20 text-slate-600" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
+                    <Calendar className="w-20 h-20 text-slate-400" />
                   </div>
                 )}
                 {/* 상태 배지 */}
