@@ -51,12 +51,22 @@ export default function EventCard({ event, href, className, layout = "card" }: P
     >
       {/* 배경 이미지 */}
       {event.thumbnail_url ? (
-        <Image
-          src={event.thumbnail_url}
-          alt={event.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        <>
+          {/* Layer 1: 블러 배경 (꽉 채움) */}
+          <Image
+            src={event.thumbnail_url}
+            alt=""
+            fill
+            className="object-cover blur-xl opacity-60 scale-110"
+          />
+          {/* Layer 2: 전경 이미지 (비율 유지) */}
+          <Image
+            src={event.thumbnail_url}
+            alt={event.title}
+            fill
+            className="object-contain z-10 transition-transform duration-500 group-hover:scale-105"
+          />
+        </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900" />
       )}

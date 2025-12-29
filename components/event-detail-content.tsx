@@ -147,13 +147,20 @@ export default async function EventDetailContent({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Row 1 - Left (8) */}
           <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
-            <div className="relative aspect-video w-full bg-slate-100">
+            <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
+              {/* Layer 1: 블러 배경 (꽉 채움) */}
+              <img
+                src={event.thumbnail_url || "/placeholder.svg"}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover blur-2xl opacity-50 scale-110"
+              />
+              {/* Layer 2: 전경 이미지 (비율 유지) */}
               <img
                 src={event.thumbnail_url || "/placeholder.svg"}
                 alt={event.title}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-contain z-10"
               />
-              <div className="absolute top-4 left-4">
+              <div className="absolute top-4 left-4 z-20">
                 {isCompleted ? (
                   <Badge className="bg-slate-800 text-white border-none px-3 py-1.5 text-sm font-medium">종료됨</Badge>
                 ) : isPastEvent ? (
