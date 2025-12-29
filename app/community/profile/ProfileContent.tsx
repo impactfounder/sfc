@@ -1,7 +1,6 @@
 "use client"
 
 import { createClient } from "@/lib/supabase/client"
-import { getCurrentUserProfile } from "@/lib/queries/profiles"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip, Info } from "lucide-react"
 import Image from "next/image"

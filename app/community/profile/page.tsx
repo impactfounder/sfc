@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 // SSR 완전 비활성화 - hydration 에러 방지
 const ProfileContent = dynamic(() => import("./ProfileContent"), {
@@ -14,5 +15,19 @@ const ProfileContent = dynamic(() => import("./ProfileContent"), {
 })
 
 export default function ProfilePage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+      </div>
+    )
+  }
+
   return <ProfileContent />
 }
