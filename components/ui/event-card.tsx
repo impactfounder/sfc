@@ -31,6 +31,7 @@ type Props = {
 export default function EventCard({ event, href, className, layout = "card" }: Props) {
   const dateObj = new Date(event.event_date)
   const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`
+  const weekdayStr = dateObj.toLocaleDateString('ko-KR', { weekday: 'short' })
 
   const timeStr = dateObj.toLocaleTimeString('ko-KR', {
     hour: 'numeric',
@@ -45,12 +46,12 @@ export default function EventCard({ event, href, className, layout = "card" }: P
   const content = (
     <div
       className={cn(
-        "group relative w-full overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+        "group relative w-full overflow-hidden rounded-2xl shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
         className
       )}
     >
       {/* 썸네일 이미지 - 정사각형 */}
-      <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+      <div className="relative aspect-square w-full overflow-hidden bg-slate-900">
         {event.thumbnail_url ? (
           <Image
             src={event.thumbnail_url}
@@ -59,8 +60,8 @@ export default function EventCard({ event, href, className, layout = "card" }: P
             className="object-cover h-full w-full transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 flex items-center justify-center">
-            <Calendar className="w-12 h-12 text-slate-400" />
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center">
+            <Calendar className="w-12 h-12 text-slate-500" />
           </div>
         )}
 
@@ -89,11 +90,11 @@ export default function EventCard({ event, href, className, layout = "card" }: P
         </div>
       </div>
 
-      {/* 하단 콘텐츠 영역 */}
-      <div className="p-4">
+      {/* 하단 콘텐츠 영역 - 검은 배경 + 흰 텍스트 */}
+      <div className="p-4 bg-slate-900">
         {/* 호스트 프로필 */}
         <div className="flex items-center gap-2 mb-2">
-          <div className="relative h-6 w-6 flex-shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden">
+          <div className="relative h-5 w-5 flex-shrink-0 rounded-full border border-slate-700 bg-slate-800 overflow-hidden">
             {event.host_avatar_url ? (
               <Image
                 src={event.host_avatar_url}
@@ -103,33 +104,27 @@ export default function EventCard({ event, href, className, layout = "card" }: P
                 unoptimized
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-400">
-                <User className="w-3 h-3" />
+              <div className="flex h-full w-full items-center justify-center text-slate-500">
+                <User className="w-2.5 h-2.5" />
               </div>
             )}
           </div>
-          <span className="font-medium text-xs text-slate-600 truncate">{event.host_name || "호스트"}</span>
+          <span className="font-medium text-xs text-slate-400 truncate">{event.host_name || "호스트"}</span>
         </div>
 
         {/* 제목 */}
-        <h3 className="text-base font-bold text-slate-900 leading-snug mb-2 line-clamp-2">
+        <h3 className="text-base font-bold text-white leading-snug mb-3 line-clamp-2">
           {event.title}
         </h3>
 
         {/* 날짜/시간 & 장소 */}
-        <div className="flex flex-col gap-1 text-slate-500 text-xs">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>{dateStr}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{timeStr}</span>
-            </div>
+        <div className="flex flex-col gap-1.5 text-slate-400 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+            <span>{dateStr} ({weekdayStr}) · {timeStr}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
             <span className="truncate">{event.location || "장소 미정"}</span>
           </div>
         </div>

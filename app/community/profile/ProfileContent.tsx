@@ -153,6 +153,7 @@ export default function ProfileContent() {
   // UI State
   const [activeTab, setActiveTab] = useState<TabType>("posts")
   const [loading, setLoading] = useState(true)
+  const [sessionError, setSessionError] = useState<string | null>(null)
   const [showBadgeManager, setShowBadgeManager] = useState(false) 
   const [isUploading, setIsUploading] = useState(false) 
   const [showProfileEdit, setShowProfileEdit] = useState(false) 
@@ -194,71 +195,31 @@ export default function ProfileContent() {
   }, [loading])
 
   useEffect(() => {
-    const loadData = async () => {
-      // 각 useEffect 호출마다 새 클라이언트 생성
-      const supabase = createClient()
+    const supabase = createClient()
+    let isMounted = true
+    let dataLoaded = false
+
+    const loadUserData = async (authUser: any) => {
+      if (!isMounted || dataLoaded) return
+      dataLoaded = true
 
       try {
-        console.log('[Profile] loadData 시작')
+        console.log('[Profile] loadUserData 시작')
         setLoading(true)
+        setSessionError(null)
+        setUser(authUser)
 
-        // getSession에 타임아웃 적용 (5초)
-        const sessionPromise = supabase.auth.getSession()
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Session fetch timeout')), 5000)
-        )
+        // 프로필 조회
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, tagline, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at, member_type")
+          .eq("id", authUser.id)
+          .single()
 
-        let session: any = null
-        let sessionError: any = null
-
-        try {
-          const result = await Promise.race([sessionPromise, timeoutPromise])
-          session = result.data?.session
-          sessionError = result.error
-        } catch (e) {
-          console.error('[Profile] getSession 타임아웃:', e)
-          setLoading(false)
-          router.push("/auth/login")
-          return
-        }
-
-        console.log('[Profile] session:', session ? 'exists' : 'null', sessionError ? `error: ${sessionError.message}` : '')
-
-        if (!session?.user) {
-          console.log('[Profile] No session, redirecting to login')
-          setLoading(false)
-          router.push("/auth/login")
-          return
-        }
-
-        setUser(session.user as any)
-
-        // 프로필 조회 (타임아웃 5초)
-        const fetchProfileWithTimeout = async () => {
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-          )
-
-          try {
-            const profilePromise = supabase
-              .from("profiles")
-              .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, tagline, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at")
-              .eq("id", session.user.id)
-              .single()
-
-            const result = await Promise.race([profilePromise, timeoutPromise]) as any
-            return result.data || null
-          } catch (e) {
-            console.error('[Profile] 프로필 로드 시간 초과', e)
-            return null
-          }
-        }
-
-        const profileData = await fetchProfileWithTimeout()
         console.log('[Profile] profileData:', profileData ? 'exists' : 'null')
 
-        if (profileData) {
-          setProfile(profileData)
+        if (profileData && isMounted) {
+          setProfile(profileData as Profile)
           setEditForm({
             full_name: profileData.full_name || "",
             company: profileData.company || "",
@@ -276,7 +237,7 @@ export default function ProfileContent() {
           })
         }
 
-        // 병렬 데이터 로딩 (각각 실패해도 전체 로딩이 멈추지 않도록 개별 try-catch)
+        // 병렬 데이터 로딩
         await Promise.all([
           // 1. 이벤트
           (async () => {
@@ -284,10 +245,10 @@ export default function ProfileContent() {
               const { data, error } = await supabase
                 .from("events")
                 .select(`id, title, thumbnail_url, event_date, location, created_at`)
-                .eq("created_by", session.user.id)
+                .eq("created_by", authUser.id)
                 .order("created_at", { ascending: false })
                 .limit(20)
-              if (!error && data) {
+              if (!error && data && isMounted) {
                 setCreatedEvents(data.map((event) => ({
                   id: event.id,
                   title: event.title,
@@ -308,10 +269,10 @@ export default function ProfileContent() {
               const { data, error } = await supabase
                 .from("posts")
                 .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
-                .eq("author_id", session.user.id)
+                .eq("author_id", authUser.id)
                 .order("created_at", { ascending: false })
                 .limit(20)
-              if (!error && data) {
+              if (!error && data && isMounted) {
                 setUserPosts(data.map((post) => ({
                   id: post.id,
                   title: post.title,
@@ -329,7 +290,7 @@ export default function ProfileContent() {
           // 3. 등록 이벤트
           (async () => {
             try {
-              const queryPromise = supabase
+              const { data, error } = await supabase
                 .from("event_registrations")
                 .select(`
                   registered_at,
@@ -337,30 +298,22 @@ export default function ProfileContent() {
                     id, title, thumbnail_url, event_date, location
                   )
                 `)
-                .eq("user_id", session.user.id)
+                .eq("user_id", authUser.id)
                 .order("registered_at", { ascending: false })
                 .limit(20)
 
-              const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Registrations timeout')), 5000)
-              )
-
-              const result = await Promise.race([queryPromise, timeoutPromise]) as any
-              if (!result.error && result.data) {
-                const flattened = result.data
-                  .map((reg: any) => {
-                    if (!reg.events) return null
-                    return {
-                      id: reg.events.id,
-                      title: reg.events.title,
-                      thumbnail_url: reg.events.thumbnail_url,
-                      event_date: reg.events.event_date,
-                      location: reg.events.location,
-                      created_at: reg.events.event_date,
-                      registration_date: reg.registered_at ?? null,
-                    }
-                  })
-                  .filter(Boolean)
+              if (!error && data && isMounted) {
+                const flattened: EventListItem[] = data
+                  .filter((reg: any) => reg.events)
+                  .map((reg: any) => ({
+                    id: reg.events.id,
+                    title: reg.events.title,
+                    thumbnail_url: reg.events.thumbnail_url,
+                    event_date: reg.events.event_date,
+                    location: reg.events.location,
+                    created_at: reg.events.event_date,
+                    registration_date: reg.registered_at ?? undefined,
+                  }))
                 setRegisteredEvents(flattened)
               }
             } catch (error) {
@@ -374,11 +327,11 @@ export default function ProfileContent() {
               const { data, error } = await supabase
                 .from("user_badges")
                 .select(`badges:badge_id (icon, name, is_active)`)
-                .eq("user_id", session.user.id)
+                .eq("user_id", authUser.id)
                 .eq("is_visible", true)
                 .limit(10)
 
-              if (!error && data) {
+              if (!error && data && isMounted) {
                 const mappedBadges = data
                   .filter((item: any) => item.badges && item.badges.is_active !== false)
                   .map((item: any) => ({
@@ -396,13 +349,63 @@ export default function ProfileContent() {
       } catch (error) {
         console.error('[Profile] 치명적 오류:', error)
       } finally {
-        // 어떤 상황에서도 로딩 상태 해제 보장
-        console.log('[Profile] loadData 완료, loading=false')
-        setLoading(false)
+        if (isMounted) {
+          console.log('[Profile] loadUserData 완료')
+          setLoading(false)
+        }
       }
     }
 
-    loadData()
+    // onAuthStateChange로 세션 상태 감지
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return
+
+        console.log('[Profile] Auth state:', event, session ? 'has session' : 'no session')
+
+        if (event === 'SIGNED_OUT') {
+          router.push("/auth/login")
+          return
+        }
+
+        if (session?.user && !dataLoaded) {
+          await loadUserData(session.user)
+        }
+      }
+    )
+
+    // 초기 세션 체크
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!isMounted) return
+
+        console.log('[Profile] Initial session:', session ? 'exists' : 'null')
+
+        if (!session?.user) {
+          setLoading(false)
+          router.push("/auth/login")
+          return
+        }
+
+        if (!dataLoaded) {
+          await loadUserData(session.user)
+        }
+      } catch (e) {
+        console.error('[Profile] Session check error:', e)
+        if (isMounted) {
+          setSessionError('세션 확인 중 오류가 발생했습니다.')
+          setLoading(false)
+        }
+      }
+    }
+
+    checkSession()
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [router])
 
   const handleSignOut = async () => {
@@ -426,6 +429,35 @@ export default function ProfileContent() {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+      </div>
+    )
+  }
+
+  // 세션 에러 시 재시도 UI 표시
+  if (sessionError) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+        <div className="text-center p-8 max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <Info className="h-8 w-8 text-amber-600" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">연결 지연</h2>
+          <p className="text-slate-600 mb-6">{sessionError}</p>
+          <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-slate-900 hover:bg-slate-800 text-white"
+            >
+              다시 시도
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+            >
+              홈으로
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }

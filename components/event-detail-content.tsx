@@ -143,153 +143,115 @@ export default async function EventDetailContent({
       </div>
 
       <div className="flex flex-col gap-8">
-        {/* [ROW 1] */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Row 1 - Left (8) */}
-          <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
-            <div className="relative aspect-video w-full bg-slate-950 overflow-hidden">
-              {/* Layer 1: 블러 배경 (시네마 모드 - 아주 어둡고 흐릿하게) */}
-              <img
-                src={event.thumbnail_url || "/placeholder.svg"}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover blur-3xl brightness-50 scale-110"
-              />
-              {/* Layer 2: 전경 이미지 (포스터처럼 입체적으로) */}
-              <img
-                src={event.thumbnail_url || "/placeholder.svg"}
-                alt={event.title}
-                className="absolute inset-0 h-full w-full object-contain z-10 shadow-2xl"
-              />
-              <div className="absolute top-4 left-4 z-20">
-                {isCompleted ? (
-                  <Badge className="bg-slate-800 text-white border-none px-3 py-1.5 text-sm font-medium">종료됨</Badge>
-                ) : isPastEvent ? (
-                  <Badge variant="secondary" className="bg-slate-200 text-slate-700 border-none px-3 py-1.5 text-sm font-medium">기간 만료</Badge>
-                ) : isFull ? (
-                  <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium">마감임박</Badge>
+        {/* [ROW 1] - 모바일: 세로 스택, 데스크톱: 가로 그리드 (5:7 비율) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+          {/* Row 1 - Left: 1:1 이미지 */}
+          <div className="lg:col-span-5">
+            <div className="bg-slate-900 rounded-2xl overflow-hidden shadow-lg h-full">
+              <div className="relative aspect-square w-full overflow-hidden">
+                {event.thumbnail_url ? (
+                  <img
+                    src={event.thumbnail_url}
+                    alt={event.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
                 ) : (
-                  <Badge className="bg-green-600 hover:bg-green-700 text-white border-none px-3 py-1.5 text-sm font-medium shadow-sm">
-                    모집중
-                  </Badge>
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center">
+                    <Calendar className="w-20 h-20 text-slate-600" />
+                  </div>
                 )}
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight mb-4 sm:mb-8">
-                {event.title}
-              </h1>
-
-              {/* 호스트 정보 + 한마디 */}
-              <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
-                <Avatar className="h-10 w-10 sm:h-11 sm:w-11 border border-slate-100 shrink-0">
-                  <AvatarImage src={event.profiles?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-slate-900 text-white font-bold text-xs sm:text-sm">
-                    {event.profiles?.full_name?.[0] || "H"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0 space-y-0.5">
-                  <p className="text-xs text-slate-500 font-medium">호스트</p>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-sm sm:text-base font-bold text-slate-900 truncate max-w-[40%]">
-                      {event.profiles?.full_name || "알 수 없음"}
-                    </span>
-                    {event.profiles && (event.profiles as any).tagline && (
-                      <span className="text-xs sm:text-[13px] text-slate-500 truncate max-w-[55%]">
-                        {(event.profiles as any).tagline}
-                      </span>
-                    )}
+                {/* 상태 배지 */}
+                <div className="absolute top-4 left-4 z-10">
+                  {isCompleted ? (
+                    <Badge className="bg-slate-800/90 text-white border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">종료됨</Badge>
+                  ) : isPastEvent ? (
+                    <Badge variant="secondary" className="bg-white/90 text-slate-700 border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">기간 만료</Badge>
+                  ) : isFull ? (
+                    <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium backdrop-blur-sm">마감임박</Badge>
+                  ) : (
+                    <Badge className="bg-green-600/90 hover:bg-green-700 text-white border-none px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm">
+                      모집중
+                    </Badge>
+                  )}
+                </div>
+                {/* 인원 배지 */}
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-black/60 text-white backdrop-blur-sm">
+                    <Users className="w-4 h-4" />
+                    <span>{attendeesCount || 0}/{event.max_participants || '∞'}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Row 1 - Right (4) */}
-          <Card id="register-card" className="lg:col-span-4 border-slate-200 shadow-md bg-white h-full flex flex-col">
-            <CardContent className="p-6 flex flex-col h-full">
-              {/* 날짜, 시간, 장소, 금액 정보 */}
-              <div className="mb-6">
-                {/* 모바일: 하나의 박스로 통합 */}
-                <div className="lg:hidden p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
-                  {/* 날짜 & 시간 */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                      <Calendar className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-500 mb-0.5">일시</p>
-                      <p className="text-sm font-bold text-slate-900">
-                        {dateStr} ({weekdayStr}) {timeStr}
-                      </p>
-                    </div>
-                  </div>
+          {/* Row 1 - Right: 제목 + 정보 + 신청 */}
+          <Card id="register-card" className="lg:col-span-7 border-slate-200 shadow-md bg-white flex flex-col">
+            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
+              {/* 제목 */}
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 leading-tight mb-4">
+                {event.title}
+              </h1>
 
-                  {/* 장소 */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                      <MapPin className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-500 mb-0.5">장소</p>
-                      <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
-                    </div>
-                  </div>
+              {/* 호스트 정보 */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 mb-5">
+                <Avatar className="h-10 w-10 border-2 border-white shadow-sm shrink-0">
+                  <AvatarImage src={event.profiles?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-slate-900 text-white font-bold text-sm">
+                    {event.profiles?.full_name?.[0] || "H"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-500 font-medium">호스트</p>
+                  <p className="text-sm font-bold text-slate-900 truncate">
+                    {event.profiles?.full_name || "알 수 없음"}
+                  </p>
+                  {event.profiles && (event.profiles as any).tagline && (
+                    <p className="text-xs text-slate-500 truncate">
+                      {(event.profiles as any).tagline}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-                  {/* 금액 */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                      <span className="text-base font-bold">₩</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-500 mb-0.5">참가비</p>
-                      <p className="text-sm font-bold text-slate-900">
-                        {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
-                      </p>
-                    </div>
+              {/* 날짜, 시간, 장소, 금액 정보 - 가로 그리드 */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                {/* 날짜 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-500">날짜</span>
                   </div>
+                  <p className="text-sm font-bold text-slate-900">{dateStr} ({weekdayStr})</p>
                 </div>
 
-                {/* 데스크톱: 각각 별도 박스 */}
-                <div className="hidden lg:block space-y-3">
-                  {/* 날짜 & 시간 */}
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <span className="text-sm font-bold text-slate-900 truncate">
-                          {dateStr} ({weekdayStr})
-                        </span>
-                        <span className="text-sm font-bold text-slate-900 whitespace-nowrap">
-                          {timeStr}
-                        </span>
-                      </div>
-                    </div>
+                {/* 시간 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Ticket className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-500">시간</span>
                   </div>
+                  <p className="text-sm font-bold text-slate-900">{timeStr}</p>
+                </div>
 
-                  {/* 장소 */}
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
-                    </div>
+                {/* 장소 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-500">장소</span>
                   </div>
+                  <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
+                </div>
 
-                  {/* 금액 */}
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm border border-slate-100">
-                      <span className="text-base sm:text-lg font-bold">₩</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900">
-                        {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
-                      </p>
-                    </div>
+                {/* 금액 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-slate-400">₩</span>
+                    <span className="text-xs text-slate-500">참가비</span>
                   </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
+                  </p>
                 </div>
               </div>
 
