@@ -34,9 +34,15 @@ function NavButton({ icon, label, isActive, onClick }: NavButtonProps) {
 export function MobileActionBar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<{ avatar_url?: string; full_name?: string } | null>(null)
   const supabase = createClient()
+
+  // Hydration 안전을 위해 마운트 확인
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const loadUserAndProfile = async () => {
@@ -147,7 +153,8 @@ export function MobileActionBar() {
           onClick={handleCommunity}
         />
         {/* 프로필/로그인 버튼 - 로그인 상태에 따라 분기 */}
-        {user ? (
+        {/* Hydration 안전: 마운트 전에는 항상 로그인 버튼 표시 */}
+        {mounted && user ? (
           <button
             type="button"
             onClick={handleProfile}
