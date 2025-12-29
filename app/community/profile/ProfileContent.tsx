@@ -183,40 +183,160 @@ export default function ProfileContent() {
     setMounted(true)
   }, [])
 
-  // 로딩 상태 안전장치: 10초가 지나면 강제로 로딩을 끝냄
+  // 로딩 상태 안전장치: 5초가 지나면 강제로 로딩을 끝냄
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn("[Profile] 로딩 시간 초과 - 강제 종료")
+        console.warn("[Profile] 로딩 시간 초과 - 강제 화면 표시")
         setLoading(false)
       }
-    }, 10000)
+    }, 5000)
     return () => clearTimeout(timer)
   }, [loading])
 
+  // 통합된 인증 및 데이터 로딩 로직
   useEffect(() => {
     const supabase = createClient()
     let isMounted = true
-    let dataLoaded = false
 
-    const loadUserData = async (authUser: any) => {
-      if (!isMounted || dataLoaded) return
-      dataLoaded = true
+    // 리스트 데이터 비동기 로딩 (Fire & Forget)
+    // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
+    const loadListData = (userId: string) => {
+      console.log('[Profile] 3. 리스트 데이터 백그라운드 로딩 시작')
 
+      // (1) 만든 이벤트
+      supabase
+        .from("events")
+        .select(`id, title, thumbnail_url, event_date, location, created_at`)
+        .eq("created_by", userId)
+        .order("created_at", { ascending: false })
+        .limit(20)
+        .then(({ data, error }) => {
+          if (!error && data && isMounted) {
+            setCreatedEvents(data.map((event) => ({
+              id: event.id,
+              title: event.title,
+              thumbnail_url: event.thumbnail_url,
+              event_date: event.event_date,
+              location: event.location,
+              created_at: event.created_at,
+            })))
+          }
+        })
+
+      // (2) 작성 게시글
+      supabase
+        .from("posts")
+        .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
+        .eq("author_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20)
+        .then(({ data, error }) => {
+          if (!error && data && isMounted) {
+            setUserPosts(data.map((post) => ({
+              id: post.id,
+              title: post.title,
+              created_at: post.created_at,
+              board_categories: Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories,
+              likes_count: post.likes_count || 0,
+              comments_count: post.comments_count || 0,
+            })))
+          }
+        })
+
+      // (3) 신청 내역
+      supabase
+        .from("event_registrations")
+        .select(`
+          registered_at,
+          events!inner (
+            id, title, thumbnail_url, event_date, location
+          )
+        `)
+        .eq("user_id", userId)
+        .order("registered_at", { ascending: false })
+        .limit(20)
+        .then(({ data, error }) => {
+          if (!error && data && isMounted) {
+            const flattened: EventListItem[] = data
+              .filter((reg: any) => reg.events)
+              .map((reg: any) => ({
+                id: reg.events.id,
+                title: reg.events.title,
+                thumbnail_url: reg.events.thumbnail_url,
+                event_date: reg.events.event_date,
+                location: reg.events.location,
+                created_at: reg.events.event_date,
+                registration_date: reg.registered_at ?? undefined,
+              }))
+            setRegisteredEvents(flattened)
+          }
+        })
+
+      // (4) 뱃지 정보
+      supabase
+        .from("user_badges")
+        .select(`badges:badge_id (icon, name, is_active)`)
+        .eq("user_id", userId)
+        .eq("is_visible", true)
+        .limit(10)
+        .then(({ data, error }) => {
+          if (!error && data && isMounted) {
+            const mappedBadges = data
+              .filter((item: any) => item.badges && item.badges.is_active !== false)
+              .map((item: any) => ({
+                icon: item.badges.icon,
+                name: item.badges.name,
+              }))
+            setVisibleBadges(mappedBadges)
+          }
+        })
+
+      // (5) 전체 뱃지 및 내 뱃지 상세 (편집 모달용)
+      supabase
+        .from("user_badges")
+        .select(`
+          id, badge_id, is_visible, status, evidence,
+          badges:badge_id (id, name, icon, category, description, is_active)
+        `)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .then(({ data }) => {
+          if (data && isMounted) setUserBadges(data as any)
+        })
+    }
+
+    const initProfile = async () => {
       try {
-        console.log('[Profile] loadUserData 시작')
+        console.log('[Profile] 1. 초기화 시작')
         setLoading(true)
-        setSessionError(null)
-        setUser(authUser)
 
-        // 프로필 조회
-        const { data: profileData } = await supabase
+        // 1. 세션 확인 (로컬 캐시 확인이라 빠름)
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!isMounted) return
+
+        if (!session?.user) {
+          console.log('[Profile] 세션 없음 -> 로그인 이동')
+          setLoading(false)
+          router.push("/auth/login")
+          return
+        }
+
+        const currentUser = session.user
+        setUser(currentUser)
+
+        // 2. 프로필 기본 정보만 "동기적"으로 로드 (필수 데이터)
+        console.log('[Profile] 2. 프로필 정보 조회')
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("id, email, full_name, avatar_url, bio, role, roles, points, company, position, company_2, position_2, tagline, introduction, is_profile_public, membership_tier, last_login_date, created_at, updated_at, member_type")
-          .eq("id", authUser.id)
+          .select("*")
+          .eq("id", currentUser.id)
           .single()
 
-        console.log('[Profile] profileData:', profileData ? 'exists' : 'null')
+        if (profileError) {
+          console.error('프로필 조회 에러:', profileError)
+        }
 
         if (profileData && isMounted) {
           setProfile(profileData as Profile)
@@ -237,170 +357,32 @@ export default function ProfileContent() {
           })
         }
 
-        // 병렬 데이터 로딩
-        await Promise.all([
-          // 1. 이벤트
-          (async () => {
-            try {
-              const { data, error } = await supabase
-                .from("events")
-                .select(`id, title, thumbnail_url, event_date, location, created_at`)
-                .eq("created_by", authUser.id)
-                .order("created_at", { ascending: false })
-                .limit(20)
-              if (!error && data && isMounted) {
-                setCreatedEvents(data.map((event) => ({
-                  id: event.id,
-                  title: event.title,
-                  thumbnail_url: event.thumbnail_url,
-                  event_date: event.event_date,
-                  location: event.location,
-                  created_at: event.created_at,
-                })))
-              }
-            } catch (error) {
-              console.error('이벤트 로드 오류:', error)
-            }
-          })(),
+        // ✅ [핵심] 프로필 로드가 끝나면 즉시 화면을 보여줌!
+        // 리스트 데이터 로딩을 기다리지 않음
+        if (isMounted) {
+          setLoading(false)
+        }
 
-          // 2. 게시글
-          (async () => {
-            try {
-              const { data, error } = await supabase
-                .from("posts")
-                .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
-                .eq("author_id", authUser.id)
-                .order("created_at", { ascending: false })
-                .limit(20)
-              if (!error && data && isMounted) {
-                setUserPosts(data.map((post) => ({
-                  id: post.id,
-                  title: post.title,
-                  created_at: post.created_at,
-                  board_categories: Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories,
-                  likes_count: post.likes_count || 0,
-                  comments_count: post.comments_count || 0,
-                })))
-              }
-            } catch (error) {
-              console.error('게시글 로드 오류:', error)
-            }
-          })(),
-
-          // 3. 등록 이벤트
-          (async () => {
-            try {
-              const { data, error } = await supabase
-                .from("event_registrations")
-                .select(`
-                  registered_at,
-                  events!inner (
-                    id, title, thumbnail_url, event_date, location
-                  )
-                `)
-                .eq("user_id", authUser.id)
-                .order("registered_at", { ascending: false })
-                .limit(20)
-
-              if (!error && data && isMounted) {
-                const flattened: EventListItem[] = data
-                  .filter((reg: any) => reg.events)
-                  .map((reg: any) => ({
-                    id: reg.events.id,
-                    title: reg.events.title,
-                    thumbnail_url: reg.events.thumbnail_url,
-                    event_date: reg.events.event_date,
-                    location: reg.events.location,
-                    created_at: reg.events.event_date,
-                    registration_date: reg.registered_at ?? undefined,
-                  }))
-                setRegisteredEvents(flattened)
-              }
-            } catch (error) {
-              console.error('등록 이벤트 로드 오류:', error)
-            }
-          })(),
-
-          // 4. 뱃지
-          (async () => {
-            try {
-              const { data, error } = await supabase
-                .from("user_badges")
-                .select(`badges:badge_id (icon, name, is_active)`)
-                .eq("user_id", authUser.id)
-                .eq("is_visible", true)
-                .limit(10)
-
-              if (!error && data && isMounted) {
-                const mappedBadges = data
-                  .filter((item: any) => item.badges && item.badges.is_active !== false)
-                  .map((item: any) => ({
-                    icon: item.badges.icon,
-                    name: item.badges.name,
-                  }))
-                setVisibleBadges(mappedBadges)
-              }
-            } catch (error) {
-              console.error('뱃지 로드 오류:', error)
-            }
-          })()
-        ])
+        // 3. 나머지 무거운 데이터는 비동기로 요청 (Fire & Forget)
+        loadListData(currentUser.id)
 
       } catch (error) {
         console.error('[Profile] 치명적 오류:', error)
-      } finally {
-        if (isMounted) {
-          console.log('[Profile] loadUserData 완료')
-          setLoading(false)
-        }
+        if (isMounted) setSessionError('데이터를 불러오는 중 오류가 발생했습니다.')
+        if (isMounted) setLoading(false)
       }
     }
 
-    // onAuthStateChange로 세션 상태 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return
+    // 실행
+    initProfile()
 
-        console.log('[Profile] Auth state:', event, session ? 'has session' : 'no session')
-
-        if (event === 'SIGNED_OUT') {
-          router.push("/auth/login")
-          return
-        }
-
-        if (session?.user && !dataLoaded) {
-          await loadUserData(session.user)
-        }
+    // Auth 상태 변경 감지 (로그아웃만 처리)
+    // 데이터 로딩은 initProfile에서 한 번만 수행하므로 경쟁 조건 해결
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        router.push("/auth/login")
       }
-    )
-
-    // 초기 세션 체크
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!isMounted) return
-
-        console.log('[Profile] Initial session:', session ? 'exists' : 'null')
-
-        if (!session?.user) {
-          setLoading(false)
-          router.push("/auth/login")
-          return
-        }
-
-        if (!dataLoaded) {
-          await loadUserData(session.user)
-        }
-      } catch (e) {
-        console.error('[Profile] Session check error:', e)
-        if (isMounted) {
-          setSessionError('세션 확인 중 오류가 발생했습니다.')
-          setLoading(false)
-        }
-      }
-    }
-
-    checkSession()
+    })
 
     return () => {
       isMounted = false
@@ -429,6 +411,7 @@ export default function ProfileContent() {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+        <span className="ml-2 text-sm text-slate-500">프로필 불러오는 중...</span>
       </div>
     )
   }
