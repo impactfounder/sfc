@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import localFont from "next/font/local"
 import Script from "next/script"
 import "./globals.css"
 import { DailyLoginChecker } from "@/components/daily-login-checker"
@@ -10,7 +10,13 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import Providers from "./providers"
 
-const inter = Inter({ subsets: ["latin"] })
+// Pretendard Variable 폰트 설정
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.woff2",
+  display: "swap",
+  variable: "--font-pretendard",
+  weight: "45 920",
+})
 
 export const metadata: Metadata = {
   // 카카오톡/메신저 링크 미리보기용 기본 메타데이터
@@ -89,7 +95,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko" className={pretendard.variable} suppressHydrationWarning>
       <head>
         {/* 스크롤바 레이아웃 시프트 방지 - 초기 렌더링 전에 즉시 실행 */}
         <script
@@ -176,7 +182,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
       </head>
-      <body className={cn(inter.className, "pb-16 lg:pb-0")} suppressHydrationWarning>
+      <body className={cn(pretendard.className, "pb-16 lg:pb-0")} suppressHydrationWarning>
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe

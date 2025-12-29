@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Pretendard 폰트를 Tailwind sans 기본 폰트로 설정 */
+@theme {
+  --font-sans: var(--font-pretendard), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   /* ... (기존 CSS 변수 유지) ... */
   --background: oklch(1 0 0);
