@@ -2,14 +2,17 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { SiteHeader } from "@/components/site-header"
+import { SiteHeaderStatic } from "@/components/site-header-static"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
-import { SidebarContainer } from "@/components/sidebar-container"
-import { MobileHeaderContainer } from "@/components/mobile-header-container"
-import { HeroSectionContainer } from "@/components/home/hero-section-container"
+import { Sidebar } from "@/components/sidebar"
+import { MobileHeader } from "@/components/mobile-header"
+import { HeroSectionStatic } from "@/components/home/hero-section-static"
 import { EventsSectionContainer } from "@/components/home/events-section-container"
 import { FeedSectionContainer } from "@/components/home/feed-section-container"
-import { SidebarSkeleton, HeroSkeleton, EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
+import { EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
+
+// ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: "Seoul Founders Club",
@@ -41,27 +44,13 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <DashboardLayout
-      header={
-        <Suspense fallback={<div className="h-16 w-full bg-white/80 border-b border-slate-200/50 backdrop-blur-xl" />}>
-          <SiteHeader />
-        </Suspense>
-      }
-      sidebar={
-        <Suspense fallback={<SidebarSkeleton />}>
-          <SidebarContainer />
-        </Suspense>
-      }
-      mobileHeader={
-        <Suspense fallback={<div className="h-14 w-full bg-white/95 border-b border-slate-100" />}>
-          <MobileHeaderContainer />
-        </Suspense>
-      }
+      header={<SiteHeaderStatic />}
+      sidebar={<Sidebar />}
+      mobileHeader={<MobileHeader />}
     >
       <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         <div className="flex flex-col gap-10 w-full">
-          <Suspense fallback={<HeroSkeleton />}>
-            <HeroSectionContainer />
-          </Suspense>
+          <HeroSectionStatic />
 
           <Suspense fallback={<EventsSkeleton />}>
             <EventsSectionContainer />

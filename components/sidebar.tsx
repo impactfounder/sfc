@@ -4,8 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Calendar, Shield, Megaphone, MessageSquare, Home, Users, Lightbulb, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
+import { createClient } from "@/lib/supabase/client"
 
 interface SidebarProps {
   userRole?: string | null
@@ -48,10 +49,37 @@ const navigationSections = [
   },
 ]
 
-export function Sidebar({ userRole }: SidebarProps) {
+export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
   const pathname = usePathname()
   const prefetch = usePrefetchPosts()
   const sidebarRef = useRef<HTMLDivElement>(null)
+  const [userRole, setUserRole] = useState<string | null>(initialUserRole || null)
+
+  // 클라이언트에서 인증 상태 체크 (ISR 호환)
+  useEffect(() => {
+    if (initialUserRole) return // props로 전달받은 경우 스킵
+
+    const supabase = createClient()
+
+    async function checkRole() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single()
+
+          setUserRole(profile?.role || null)
+        }
+      } catch (error) {
+        console.error("Role check error:", error)
+      }
+    }
+
+    checkRole()
+  }, [initialUserRole])
 
   const isAdmin = userRole === "admin" || userRole === "master"
   const showAdminMenu = isAdmin || pathname.startsWith('/admin')

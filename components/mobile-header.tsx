@@ -8,7 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 // 사이드바와 동일한 메뉴 구조
 const navigationSections = [
@@ -48,11 +49,37 @@ interface MobileHeaderProps {
   userRole?: string | null
 }
 
-export function MobileHeader({ userRole }: MobileHeaderProps) {
+export function MobileHeader({ userRole: initialUserRole }: MobileHeaderProps) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(initialUserRole || null)
 
-  // props로 전달받은 userRole 사용 (DB 호출 제거 - 성능 최적화)
+  // 클라이언트에서 인증 상태 체크 (ISR 호환)
+  useEffect(() => {
+    if (initialUserRole) return // props로 전달받은 경우 스킵
+
+    const supabase = createClient()
+
+    async function checkRole() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single()
+
+          setUserRole(profile?.role || null)
+        }
+      } catch (error) {
+        console.error("Role check error:", error)
+      }
+    }
+
+    checkRole()
+  }, [initialUserRole])
+
   const isAdmin = userRole === "admin" || userRole === "master"
   const showAdminMenu = isAdmin || pathname.startsWith('/admin')
 
