@@ -147,18 +147,18 @@ export default async function EventDetailContent({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Row 1 - Left (8) */}
           <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
-            <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
-              {/* Layer 1: 블러 배경 (꽉 채움) */}
+            <div className="relative aspect-video w-full bg-slate-900 overflow-hidden">
+              {/* Layer 1: 블러 배경 (시네마 모드 - 아주 어둡고 흐릿하게) */}
               <img
                 src={event.thumbnail_url || "/placeholder.svg"}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover blur-2xl opacity-50 scale-110"
+                className="absolute inset-0 h-full w-full object-cover blur-3xl brightness-[0.3] scale-125"
               />
-              {/* Layer 2: 전경 이미지 (비율 유지) */}
+              {/* Layer 2: 전경 이미지 (포스터처럼 입체적으로) */}
               <img
                 src={event.thumbnail_url || "/placeholder.svg"}
                 alt={event.title}
-                className="absolute inset-0 h-full w-full object-contain z-10"
+                className="absolute inset-0 h-full w-full object-contain z-10 drop-shadow-2xl"
               />
               <div className="absolute top-4 left-4 z-20">
                 {isCompleted ? (
