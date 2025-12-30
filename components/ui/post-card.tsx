@@ -4,7 +4,7 @@ import { MessageSquare, Share2, Tag, Check } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 
 type PostCardProps = {
@@ -39,7 +39,12 @@ export function PostCard({
   const router = useRouter()
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
-  const timeLabel = formatRelativeTime(createdAt)
+  const [timeLabel, setTimeLabel] = useState<string>("")
+
+  // Hydration 에러 방지: 클라이언트 마운트 후에만 시간 계산
+  useEffect(() => {
+    setTimeLabel(formatRelativeTime(createdAt))
+  }, [createdAt])
   const derivedThumb = thumbnailUrl || extractFirstImage(contentRaw || content)
   const previewHtml = useMemo(
     () => sanitizePreview(contentRaw || content || "", Boolean(derivedThumb)),

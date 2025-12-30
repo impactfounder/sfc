@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { MapPin, User, Users, Calendar, Clock } from "lucide-react"
 
@@ -29,16 +30,19 @@ type Props = {
 }
 
 export default function EventCard({ event, href, className, layout = "card" }: Props) {
-  const dateObj = new Date(event.event_date)
-  const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`
-  const weekdayStr = dateObj.toLocaleDateString('ko-KR', { weekday: 'short' })
+  // Hydration 에러 방지: 클라이언트 마운트 후에만 날짜/시간 계산
+  const [dateInfo, setDateInfo] = useState({ dateStr: '', weekdayStr: '', timeStr: '' })
 
-  const timeStr = dateObj.toLocaleTimeString('ko-KR', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  })
+  useEffect(() => {
+    const dateObj = new Date(event.event_date)
+    setDateInfo({
+      dateStr: `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`,
+      weekdayStr: dateObj.toLocaleDateString('ko-KR', { weekday: 'short' }),
+      timeStr: dateObj.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true })
+    })
+  }, [event.event_date])
 
+  const { dateStr, weekdayStr, timeStr } = dateInfo
   const current = event.current_participants || 0
   const max = event.max_participants || 0
   const isFull = max > 0 && current >= max
