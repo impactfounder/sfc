@@ -9,7 +9,7 @@ import { SiteHeaderClient } from "./site-header-client"
 export function SiteHeaderStatic() {
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoaded, setIsLoaded] = useState(false)
 
     useEffect(() => {
         const supabase = createClient()
@@ -32,7 +32,7 @@ export function SiteHeaderStatic() {
             } catch (error) {
                 console.error("Auth check error:", error)
             } finally {
-                setIsLoading(false)
+                setIsLoaded(true)
             }
         }
 
@@ -75,10 +75,10 @@ export function SiteHeaderStatic() {
                     </Link>
                 </div>
 
-                {/* Client Side Content */}
+                {/* Client Side Content - 항상 null로 초기 렌더링하여 hydration 일치 */}
                 <SiteHeaderClient
-                    user={isLoading ? undefined : user}
-                    profile={isLoading ? undefined : profile}
+                    user={isLoaded ? user : null}
+                    profile={isLoaded ? profile : null}
                     initialNotifications={[]}
                 />
             </div>
