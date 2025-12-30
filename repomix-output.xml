@@ -37101,74 +37101,6 @@ export async function HeroSectionContainer() {
 }
 </file>
 
-<file path="components/home/hero-section-static.tsx">
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { HeroSection } from "./hero-section"
-
-export function HeroSectionStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) {
-                    setUser(session.user)
-
-                    // 프로필 조회 (경량 버전)
-                    const { data: profileData } = await supabase
-                        .from("profiles")
-                        .select("id, full_name, avatar_url, role, points")
-                        .eq("id", session.user.id)
-                        .single()
-
-                    setProfile(profileData)
-                }
-            } catch (error) {
-                console.error("Auth check error:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        checkAuth()
-
-        // 인증 상태 변화 구독
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                // 프로필 다시 조회
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    // 로딩 중에는 비로그인 버전 표시 (깜빡임 방지)
-    if (isLoading) {
-        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
-    }
-
-    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
-}
-</file>
-
 <file path="components/home/hero-section.tsx">
 "use client"
 
@@ -43039,6 +42971,185 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
 }
 </file>
 
+<file path="components/home/feed-section.tsx">
+"use client"
+
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useInfiniteQuery } from "@tanstack/react-query"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PostCard } from "@/components/ui/post-card"
+import { fetchFeedPosts } from "@/lib/actions/feed"
+import type { PostForDisplay } from "@/lib/types/posts"
+
+type SortOption = "latest" | "popular"
+
+type FeedSectionProps = {
+  initialPosts: PostForDisplay[]
+}
+
+export function FeedSection({ initialPosts }: FeedSectionProps) {
+  const PAGE_SIZE = 10
+  const [sort, setSort] = useState<SortOption>("latest")
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+
+  const initialData = useMemo(() => {
+    return {
+      pages: [initialPosts],
+      pageParams: [1],
+    }
+  }, [initialPosts])
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch,
+  } = useInfiniteQuery<PostForDisplay[]>({
+    queryKey: ["feed", sort],
+    queryFn: async ({ pageParam = 1 }) => fetchFeedPosts(pageParam as number, sort),
+    getNextPageParam: (lastPage, pages) => (lastPage.length < PAGE_SIZE ? undefined : pages.length + 1),
+    initialData,
+    initialPageParam: 1,
+    refetchOnWindowFocus: false,
+  })
+
+  useEffect(() => {
+    const node = loadMoreRef.current
+    if (!node) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { rootMargin: "200px" }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+
+  const posts = data?.pages.flat() ?? []
+
+  return (
+    <section className="space-y-4">
+      <Tabs value={sort} onValueChange={(v) => setSort(v as SortOption)} className="w-full">
+        <TabsList>
+          <TabsTrigger value="latest">최신</TabsTrigger>
+          <TabsTrigger value="popular">인기</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="flex flex-col gap-4">
+        {isLoading && posts.length === 0 ? (
+          [...Array(3)].map((_, i) => (
+            <div key={i} className="h-32 rounded-lg border border-slate-200 bg-white" />
+          ))
+        ) : (
+          posts.map((post) => (
+            <PostCard
+              key={post.id}
+              postId={post.id}
+              href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
+              community={{
+                name: post.board_categories?.name ?? "커뮤니티",
+                href: `/community/board/${post.board_categories?.slug ?? "community"}`,
+                iconUrl: post.thumbnail_url ?? undefined,
+              }}
+              author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
+              createdAt={post.created_at}
+              title={post.title}
+              content={post.content ?? undefined}
+              contentRaw={(post as any).content ?? undefined}
+              thumbnailUrl={post.thumbnail_url ?? undefined}
+              commentsCount={post.comments_count ?? 0}
+            />
+          ))
+        )}
+      </div>
+
+      <div ref={loadMoreRef} className="h-10" aria-hidden />
+      {isFetchingNextPage && <div className="text-xs text-slate-500">불러오는 중...</div>}
+    </section>
+  )
+}
+</file>
+
+<file path="components/home/hero-section-static.tsx">
+"use client"
+
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { HeroSection } from "./hero-section"
+
+export function HeroSectionStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function checkAuth() {
+            try {
+                // getUser()로 서버 쿠키를 확인하여 OAuth 콜백 직후에도 로그인 상태 감지
+                const { data: { user: authUser }, error } = await supabase.auth.getUser()
+
+                if (error || !authUser) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
+
+                setUser(authUser)
+
+                // 프로필 조회 (경량 버전)
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", authUser.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("Auth check error:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        checkAuth()
+
+        // 인증 상태 변화 구독
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                // 프로필 다시 조회
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    // 로딩 중에는 비로그인 버전 표시 (깜빡임 방지)
+    if (isLoading) {
+        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
+    }
+
+    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
+}
+</file>
+
 <file path="components/home/latest-feed.tsx">
 "use client"
 
@@ -44237,96 +44348,6 @@ export function NewEventForm({
 }
 </file>
 
-<file path="components/site-header-static.tsx">
-"use client"
-
-import Link from "next/link"
-import Image from "next/image"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { SiteHeaderClient } from "./site-header-client"
-
-export function SiteHeaderStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoaded, setIsLoaded] = useState(false)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) {
-                    setUser(session.user)
-
-                    // 프로필 조회 (경량 버전)
-                    const { data: profileData } = await supabase
-                        .from("profiles")
-                        .select("id, full_name, avatar_url, role, points")
-                        .eq("id", session.user.id)
-                        .single()
-
-                    setProfile(profileData)
-                }
-            } catch (error) {
-                console.error("Auth check error:", error)
-            } finally {
-                setIsLoaded(true)
-            }
-        }
-
-        checkAuth()
-
-        // 인증 상태 변화 구독
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                // 프로필 다시 조회
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    return (
-        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
-            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
-                {/* Left: Logo */}
-                <div className="ml-1 mr-4 flex items-center">
-                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
-                        <Image
-                            src="/images/logo-text.png"
-                            alt="Seoul Founders Club"
-                            width={580}
-                            height={51}
-                            className="h-8 w-auto max-w-56 object-contain"
-                            priority
-                        />
-                    </Link>
-                </div>
-
-                {/* Client Side Content - 항상 null로 초기 렌더링하여 hydration 일치 */}
-                <SiteHeaderClient
-                    user={isLoaded ? user : null}
-                    profile={isLoaded ? profile : null}
-                    initialNotifications={[]}
-                />
-            </div>
-        </header>
-    )
-}
-</file>
-
 <file path="lib/queries/events.ts">
 import { SupabaseClient } from "@supabase/supabase-js"
 
@@ -45198,108 +45219,99 @@ export default async function PartnersPage() {
 }
 </file>
 
-<file path="components/home/feed-section.tsx">
+<file path="components/site-header-static.tsx">
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useInfiniteQuery } from "@tanstack/react-query"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PostCard } from "@/components/ui/post-card"
-import { fetchFeedPosts } from "@/lib/actions/feed"
-import type { PostForDisplay } from "@/lib/types/posts"
+import Link from "next/link"
+import Image from "next/image"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { SiteHeaderClient } from "./site-header-client"
 
-type SortOption = "latest" | "popular"
+export function SiteHeaderStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoaded, setIsLoaded] = useState(false)
 
-type FeedSectionProps = {
-  initialPosts: PostForDisplay[]
-}
+    useEffect(() => {
+        const supabase = createClient()
 
-export function FeedSection({ initialPosts }: FeedSectionProps) {
-  const PAGE_SIZE = 10
-  const [sort, setSort] = useState<SortOption>("latest")
-  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+        async function checkAuth() {
+            try {
+                // getUser()로 서버와 통신하여 쿠키 기반의 확실한 인증 상태 확인
+                const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
-  const initialData = useMemo(() => {
-    return {
-      pages: [initialPosts],
-      pageParams: [1],
-    }
-  }, [initialPosts])
+                if (error || !authUser) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    refetch,
-  } = useInfiniteQuery<PostForDisplay[]>({
-    queryKey: ["feed", sort],
-    queryFn: async ({ pageParam = 1 }) => fetchFeedPosts(pageParam as number, sort),
-    getNextPageParam: (lastPage, pages) => (lastPage.length < PAGE_SIZE ? undefined : pages.length + 1),
-    initialData,
-    initialPageParam: 1,
-    refetchOnWindowFocus: false,
-  })
+                setUser(authUser)
 
-  useEffect(() => {
-    const node = loadMoreRef.current
-    if (!node) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
+                // 프로필 조회 (경량 버전)
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", authUser.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("Auth check error:", error)
+            } finally {
+                setIsLoaded(true)
+            }
         }
-      },
-      { rootMargin: "200px" }
+
+        checkAuth()
+
+        // 인증 상태 변화 구독
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                // 프로필 다시 조회
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    return (
+        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
+            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
+                {/* Left: Logo */}
+                <div className="ml-1 mr-4 flex items-center">
+                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
+                        <Image
+                            src="/images/logo-text.png"
+                            alt="Seoul Founders Club"
+                            width={580}
+                            height={51}
+                            className="h-8 w-auto max-w-56 object-contain"
+                            priority
+                        />
+                    </Link>
+                </div>
+
+                {/* Client Side Content - 항상 null로 초기 렌더링하여 hydration 일치 */}
+                <SiteHeaderClient
+                    user={isLoaded ? user : null}
+                    profile={isLoaded ? profile : null}
+                    initialNotifications={[]}
+                />
+            </div>
+        </header>
     )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
-
-  const posts = data?.pages.flat() ?? []
-
-  return (
-    <section className="space-y-4">
-      <Tabs value={sort} onValueChange={(v) => setSort(v as SortOption)} className="w-full">
-        <TabsList>
-          <TabsTrigger value="latest">최신</TabsTrigger>
-          <TabsTrigger value="popular">인기</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="flex flex-col gap-4">
-        {isLoading && posts.length === 0 ? (
-          [...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 rounded-lg border border-slate-200 bg-white" />
-          ))
-        ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post.id}
-              postId={post.id}
-              href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
-              community={{
-                name: post.board_categories?.name ?? "커뮤니티",
-                href: `/community/board/${post.board_categories?.slug ?? "community"}`,
-                iconUrl: post.thumbnail_url ?? undefined,
-              }}
-              author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
-              createdAt={post.created_at}
-              title={post.title}
-              content={post.content ?? undefined}
-              contentRaw={(post as any).content ?? undefined}
-              thumbnailUrl={post.thumbnail_url ?? undefined}
-              commentsCount={post.comments_count ?? 0}
-            />
-          ))
-        )}
-      </div>
-
-      <div ref={loadMoreRef} className="h-10" aria-hidden />
-      {isFetchingNextPage && <div className="text-xs text-slate-500">불러오는 중...</div>}
-    </section>
-  )
 }
 </file>
 

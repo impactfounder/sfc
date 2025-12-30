@@ -47,12 +47,15 @@ export async function GET(request: NextRequest) {
     );
 
     // 4. 인증 코드를 세션으로 교환합니다. (이때 setAll이 실행되어 쿠키가 심어짐)
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    console.log("🔥🔥🔥 [auth/callback] 코드 교환 시도:", { code: code?.substring(0, 10) + "...", origin, next });
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error("[auth/callback] Error exchanging code:", error.message);
+      console.error("🔥🔥🔥 [auth/callback] 로그인 실패 원인:", error.message, error);
       return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(error.message)}`, origin));
     }
+
+    console.log("🔥🔥🔥 [auth/callback] 로그인 성공:", { userId: data.user?.id, email: data.user?.email });
 
     // 5. [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
     try {
