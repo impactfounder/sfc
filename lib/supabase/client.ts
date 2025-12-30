@@ -1,14 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-let supabaseInstance: SupabaseClient | null = null;
 
 export function createClient() {
-  // 브라우저 환경에서만 싱글톤 사용
-  if (typeof window !== 'undefined' && supabaseInstance) {
-    return supabaseInstance;
-  }
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -17,12 +9,7 @@ export function createClient() {
     throw new Error("Supabase 환경 변수 미설정");
   }
 
-  const client = createBrowserClient(supabaseUrl, supabaseAnonKey);
-
-  // 브라우저 환경에서만 캐싱
-  if (typeof window !== 'undefined') {
-    supabaseInstance = client;
-  }
-
-  return client;
+  // 싱글톤 제거 - OAuth 콜백 후 쿠키 변경을 감지하기 위해 매번 새 클라이언트 생성
+  // createBrowserClient는 내부적으로 쿠키를 읽어 세션을 복원함
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }

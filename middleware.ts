@@ -9,34 +9,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 보호 경로가 아니면 Supabase 호출 없이 통과
-  const protectedPrefixes = ["/admin"];
-  const isProtected = protectedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  if (!isProtected) {
-    return NextResponse.next();
-  }
-
   // 환경 변수 검증
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase 환경 변수가 설정되지 않았습니다.');
-    console.error('필요한 환경 변수:');
-    console.error('- NEXT_PUBLIC_SUPABASE_URL');
-    console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY');
-
-    // 개발 환경에서는 middleware를 우회
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('⚠️  개발 환경: 인증 없이 계속 진행합니다.');
-      return NextResponse.next();
-    }
-
-    // 프로덕션에서는 에러 페이지로 리다이렉트
-    return NextResponse.json(
-      { error: 'Server configuration error' },
-      { status: 500 }
-    );
+    // 환경 변수 없으면 그냥 통과
+    return NextResponse.next();
   }
 
   let response = NextResponse.next({
@@ -63,11 +42,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // 핵심: 세션을 갱신하여 쿠키 수명을 연장합니다
+  // 핵심: 모든 경로에서 세션을 갱신하여 쿠키 수명을 연장합니다
+  // 이렇게 해야 OAuth 콜백 후 홈페이지에서도 세션이 제대로 인식됩니다
   const { data: { user } } = await supabase.auth.getUser();
 
   // 관리자 페이지 접근 제어
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/admin")) {
     if (!user) {
       return NextResponse.redirect(new URL("/auth/login", request.url));
     }
