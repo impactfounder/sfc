@@ -16,19 +16,25 @@ export function SiteHeaderStatic() {
 
         async function checkAuth() {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) {
-                    setUser(session.user)
+                // getUser()로 서버와 통신하여 쿠키 기반의 확실한 인증 상태 확인
+                const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
-                    // 프로필 조회 (경량 버전)
-                    const { data: profileData } = await supabase
-                        .from("profiles")
-                        .select("id, full_name, avatar_url, role, points")
-                        .eq("id", session.user.id)
-                        .single()
-
-                    setProfile(profileData)
+                if (error || !authUser) {
+                    setUser(null)
+                    setProfile(null)
+                    return
                 }
+
+                setUser(authUser)
+
+                // 프로필 조회 (경량 버전)
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", authUser.id)
+                    .single()
+
+                setProfile(profileData)
             } catch (error) {
                 console.error("Auth check error:", error)
             } finally {
