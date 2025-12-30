@@ -14,20 +14,21 @@ export function HeroSectionStatic() {
 
         async function checkAuth() {
             try {
-                const { data: { user: authUser }, error } = await supabase.auth.getUser()
+                // getSession은 로컬 캐시 우선 → 빠름
+                const { data: { session } } = await supabase.auth.getSession()
 
-                if (error || !authUser) {
+                if (!session?.user) {
                     setUser(null)
                     setProfile(null)
                     return
                 }
 
-                setUser(authUser)
+                setUser(session.user)
 
                 const { data: profileData } = await supabase
                     .from("profiles")
                     .select("id, full_name, avatar_url, role, points")
-                    .eq("id", authUser.id)
+                    .eq("id", session.user.id)
                     .single()
 
                 setProfile(profileData)
