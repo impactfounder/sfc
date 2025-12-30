@@ -6,11 +6,11 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/";
 
-  // 개발/배포 환경 구분 (Origin 설정)
+  // 1. 배포 환경(프로덕션)이면 무조건 https://seoulfounders.club 사용
   const isDevelopment = process.env.NODE_ENV === "development";
   const origin = isDevelopment ? requestUrl.origin : "https://seoulfounders.club";
 
-  // 1. 리디렉션 응답 객체를 '미리' 생성합니다.
+  // 2. 리다이렉트 응답 객체 미리 생성
   const response = NextResponse.redirect(`${origin}${next}`);
 
   if (code) {
@@ -24,14 +24,9 @@ export async function GET(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // 2. 미리 생성한 response 객체에 쿠키를 직접 심습니다. (핵심!)
-              response.cookies.set(name, value, {
-                ...options,
-                sameSite: 'lax',
-                secure: !isDevelopment,
-                httpOnly: true,
-                path: '/',
-              });
+              // ✅ 핵심: response 객체에 쿠키 설정 + options 그대로 전달
+              // Supabase가 httpOnly/Secure 등을 자동 관리하므로 덮어쓰지 않음
+              response.cookies.set(name, value, options);
             });
           },
         },
@@ -40,14 +35,13 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data.session) {
-      console.log("🔥🔥🔥 [auth/callback] 세션 교환 및 쿠키 설정 성공");
+    if (!error) {
+      console.log("🔥🔥🔥 [auth/callback] 로그인 성공 & 쿠키 설정 완료");
 
       // [신규 가입 알림 로직]
       try {
         const user = data.user;
         if (user) {
-          // 알림 발송을 위한 별도 클라이언트 (쿠키 불필요)
           const adminSupabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -91,13 +85,12 @@ export async function GET(request: NextRequest) {
         console.error("[auth/callback] Notification error:", err);
       }
 
-      // 3. 쿠키가 심어진 response를 반환합니다.
+      // 3. 쿠키가 담긴 response 반환
       return response;
     } else {
-      console.error("🔥🔥🔥 [auth/callback] 로그인 에러:", error?.message);
+      console.error("🔥🔥🔥 [auth/callback] 에러:", error.message);
     }
   }
 
-  // 에러 발생 시 로그인 페이지로 리디렉션
   return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
 }
