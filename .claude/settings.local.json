@@ -22,7 +22,8 @@
       "Bash(taskkill:*)",
       "Bash(git reset:*)",
       "Bash(timeout:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
