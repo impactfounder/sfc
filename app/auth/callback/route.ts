@@ -8,21 +8,16 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/";
 
-  // 1. 리디렉션할 기본 오리진 설정
-  // Vercel 배포 환경에서는 request.url이 http로 인식될 수 있어 https로 강제 변환이 필요할 수 있습니다.
-  let origin = requestUrl.origin;
+  // 개발 환경인지 확인
+  const isDevelopment = process.env.NODE_ENV === "development";
 
-  // x-forwarded-host 헤더가 있다면(Vercel 등 프록시 환경), 그 호스트를 신뢰하여 origin 재구성
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const isLocal = process.env.NODE_ENV === 'development';
-
-  if (forwardedHost && !isLocal) {
-    // 프로덕션에서는 무조건 https 사용
-    origin = `https://${forwardedHost}`;
-  }
+  // 1. 리디렉션 Origin 설정 (커스텀 도메인 강제)
+  const origin = isDevelopment ? requestUrl.origin : "https://seoulfounders.club";
 
   if (code) {
     const cookieStore = await cookies();
+
+    // 2. 쿠키 옵션을 명시적으로 설정한 클라이언트 생성
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,7 +28,14 @@ export async function GET(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, {
+                ...options,
+                // Vercel 배포 환경에서 필수적인 옵션들 강제 적용
+                sameSite: 'lax',
+                secure: !isDevelopment, // 프로덕션에서는 무조건 Secure
+                httpOnly: true,
+                path: '/', // 모든 경로에서 쿠키 유효
+              });
             });
           },
         },
@@ -43,9 +45,9 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      console.log("🔥🔥🔥 [auth/callback] 로그인 성공:", { userId: data.user?.id, email: data.user?.email });
+      console.log("🔥🔥🔥 [auth/callback] 세션 교환 및 쿠키 설정 완료:", { userId: data.user?.id });
 
-      // 로그인 성공 시 메인 페이지 캐시 무효화 (상단 헤더 로그인 상태 갱신을 위해)
+      // 3. 캐시 초기화
       revalidatePath("/", "layout");
 
       // [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
@@ -98,18 +100,13 @@ export async function GET(request: NextRequest) {
         // 알림 실패가 로그인 흐름을 방해하지 않도록 예외 무시
       }
 
-      // 2. 최종 리디렉션 생성
-      // 여기서 origin은 위에서 보정한 https://seoulfounders.club 형태가 됩니다.
-      const redirectUrl = new URL(next, origin);
-
-      console.log(`🔥🔥🔥 [auth/callback] 리디렉션: ${redirectUrl.toString()}`);
-
-      return NextResponse.redirect(redirectUrl);
+      // 4. 절대 경로로 리디렉션 (Origin 강제)
+      return NextResponse.redirect(`${origin}${next}`);
     } else {
-      console.error("🔥🔥🔥 [auth/callback] 세션 교환 에러:", error.message);
+      console.error("🔥🔥🔥 [auth/callback] 로그인 에러:", error.message);
     }
   }
 
-  // 에러 발생 시 로그인 페이지로 이동
+  // 에러 발생 시
   return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
 }
