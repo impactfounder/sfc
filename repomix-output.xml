@@ -43656,80 +43656,6 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
 }
 </file>
 
-<file path="components/home/hero-section-static.tsx">
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { HeroSection } from "./hero-section"
-
-export function HeroSectionStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                // getUser()로 서버 쿠키를 확인하여 OAuth 콜백 직후에도 로그인 상태 감지
-                const { data: { user: authUser }, error } = await supabase.auth.getUser()
-
-                if (error || !authUser) {
-                    setUser(null)
-                    setProfile(null)
-                    return
-                }
-
-                setUser(authUser)
-
-                // 프로필 조회 (경량 버전)
-                const { data: profileData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", authUser.id)
-                    .single()
-
-                setProfile(profileData)
-            } catch (error) {
-                console.error("Auth check error:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        checkAuth()
-
-        // 인증 상태 변화 구독
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                // 프로필 다시 조회
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    // 로딩 중에는 비로그인 버전 표시 (깜빡임 방지)
-    if (isLoading) {
-        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
-    }
-
-    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
-}
-</file>
-
 <file path="components/like-button.tsx">
 "use client";
 
@@ -45183,120 +45109,6 @@ export default async function EventsPage() {
 }
 </file>
 
-<file path="components/site-header-static.tsx">
-"use client"
-
-import Link from "next/link"
-import Image from "next/image"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { SiteHeaderClient } from "./site-header-client"
-
-export function SiteHeaderStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoaded, setIsLoaded] = useState(false)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                // getUser()로 서버와 통신하여 쿠키 기반의 확실한 인증 상태 확인
-                const { data: { user: authUser }, error } = await supabase.auth.getUser()
-
-                if (error || !authUser) {
-                    setUser(null)
-                    setProfile(null)
-                    return
-                }
-
-                setUser(authUser)
-
-                // 프로필 조회 (경량 버전)
-                const { data: profileData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", authUser.id)
-                    .single()
-
-                setProfile(profileData)
-            } catch (error) {
-                console.error("Auth check error:", error)
-            } finally {
-                setIsLoaded(true)
-            }
-        }
-
-        checkAuth()
-
-        // 인증 상태 변화 구독
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                // 프로필 다시 조회
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    return (
-        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
-            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
-                {/* Left: Logo */}
-                <div className="ml-1 mr-4 flex items-center">
-                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
-                        <Image
-                            src="/images/logo-text.png"
-                            alt="Seoul Founders Club"
-                            width={580}
-                            height={51}
-                            className="h-8 w-auto max-w-56 object-contain"
-                            priority
-                        />
-                    </Link>
-                </div>
-
-                {/* Client Side Content - 항상 null로 초기 렌더링하여 hydration 일치 */}
-                <SiteHeaderClient
-                    user={isLoaded ? user : null}
-                    profile={isLoaded ? profile : null}
-                    initialNotifications={[]}
-                />
-            </div>
-        </header>
-    )
-}
-</file>
-
-<file path="lib/supabase/client.ts">
-import { createBrowserClient } from "@supabase/ssr";
-
-export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Supabase 환경 변수가 설정되지 않았습니다. NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 를 확인하세요.");
-    throw new Error("Supabase 환경 변수 미설정");
-  }
-
-  // 싱글톤 제거 - OAuth 콜백 후 쿠키 변경을 감지하기 위해 매번 새 클라이언트 생성
-  // createBrowserClient는 내부적으로 쿠키를 읽어 세션을 복원함
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
-}
-</file>
-
 <file path="app/community/board/[slug]/[id]/page.tsx">
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
@@ -45986,6 +45798,76 @@ export default async function ShortEventPage({
 }
 </file>
 
+<file path="components/home/hero-section-static.tsx">
+"use client"
+
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { HeroSection } from "./hero-section"
+
+export function HeroSectionStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function checkAuth() {
+            try {
+                // getSession은 로컬 캐시 우선 → 빠름
+                const { data: { session } } = await supabase.auth.getSession()
+
+                if (!session?.user) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
+
+                setUser(session.user)
+
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("Auth check failed:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        checkAuth()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    if (isLoading) {
+        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
+    }
+
+    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
+}
+</file>
+
 <file path="components/mobile-action-bar.tsx">
 "use client"
 
@@ -46170,6 +46052,968 @@ export function MobileActionBar() {
       </div>
     </nav>
   )
+}
+</file>
+
+<file path="components/event-detail-content.tsx">
+/**
+ * 이벤트 상세 페이지 공통 렌더링 로직
+ * /e/[id]와 /events/[id]에서 공통으로 사용
+ */
+
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from 'next/navigation';
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, MapPin, Users, ChevronLeft, AlertCircle, Ticket, Edit } from 'lucide-react';
+import { RegisterButton } from "@/components/register-button";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { EventShareButton } from "@/components/event-share-button";
+import { DeleteEventButton } from "@/components/delete-event-button";
+import { FloatingActionBar } from "@/components/floating-action-bar";
+
+import { getReviewsByEvent } from "@/lib/queries/posts";
+import { ReviewWriteButton } from "@/components/reviews/review-modal";
+import { ReviewCard } from "@/components/reviews/review-card";
+
+export default async function EventDetailContent({
+  eventId,
+  basePath = '/events'
+}: {
+  eventId: string;
+  basePath?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 이벤트 정보 조회
+  let event;
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select(`
+        *,
+        profiles:created_by (
+          id,
+          full_name,
+          avatar_url,
+          email,
+          bio,
+          tagline
+        )
+      `)
+      .eq("id", eventId)
+      .single();
+
+    if (error || !data) {
+      notFound();
+    }
+
+    event = data;
+  } catch (error) {
+    notFound();
+  }
+
+  // 사용자 등록 여부 조회
+  let userRegistration = null;
+  if (user) {
+    const { data: registrationData } = await supabase
+      .from("event_registrations")
+      .select("id, payment_status")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .single();
+
+    userRegistration = registrationData;
+  }
+
+  // 참석자 수 조회
+  const { count: attendeesCount } = await supabase
+    .from("event_registrations")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", eventId);
+
+  // 참석자 목록 조회
+  const { data: attendeesData } = await supabase
+    .from("event_registrations")
+    .select(`
+      id,
+      user_id,
+      guest_name,
+      profiles:user_id (
+        id,
+        full_name,
+        avatar_url
+      )
+    `)
+    .eq("event_id", eventId);
+
+  // 후기 목록 조회
+  const reviews = await getReviewsByEvent(supabase, eventId);
+
+  const attendees = attendeesData || [];
+  const isRegistered = !!userRegistration;
+  const isPastEvent = new Date(event.event_date) < new Date();
+  const isFull = event.max_participants && attendeesCount && attendeesCount >= event.max_participants;
+  const isCreator = user && event.created_by === user.id;
+  const isCompleted = event.status === 'completed';
+
+  // 날짜/시간 포맷팅
+  const eventDate = new Date(event.event_date);
+  const dateStr = eventDate.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const weekdayStr = eventDate.toLocaleDateString("ko-KR", {
+    weekday: "short",
+  });
+  const timeStr = eventDate.toLocaleTimeString("ko-KR", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  const CardHeader = ({ icon: Icon, title, rightElement }: { icon: React.ComponentType<{ className?: string }>, title: string, rightElement?: React.ReactNode }) => (
+    <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
+          <Icon className="h-4 w-4" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
+      </div>
+      {rightElement}
+    </div>
+  );
+
+  return (
+    <div className="w-full">
+      {/* 상단 네비게이션 */}
+      <div className="mb-6 flex items-center justify-between">
+        <Link href="/e" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
+            <ChevronLeft className="h-4 w-4" />
+          </div>
+          이벤트 목록
+        </Link>
+      </div>
+
+      <div className="flex flex-col gap-8">
+        {/* [ROW 1] - 모바일: 세로 스택, 데스크톱: 가로 그리드 (5:7 비율) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+          {/* Row 1 - Left: 1:1 이미지 */}
+          <div className="lg:col-span-5">
+            <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-white h-full">
+              <div className="relative aspect-square w-full overflow-hidden">
+                {event.thumbnail_url ? (
+                  <img
+                    src={event.thumbnail_url}
+                    alt={event.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
+                    <Calendar className="w-20 h-20 text-slate-400" />
+                  </div>
+                )}
+                {/* 상태 배지 */}
+                <div className="absolute top-4 left-4 z-10">
+                  {isCompleted ? (
+                    <Badge className="bg-slate-800/90 text-white border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">종료됨</Badge>
+                  ) : isPastEvent ? (
+                    <Badge variant="secondary" className="bg-white/90 text-slate-700 border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">기간 만료</Badge>
+                  ) : isFull ? (
+                    <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium backdrop-blur-sm">마감임박</Badge>
+                  ) : (
+                    <Badge className="bg-green-600/90 hover:bg-green-700 text-white border-none px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm">
+                      모집중
+                    </Badge>
+                  )}
+                </div>
+                {/* 인원 배지 */}
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-black/60 text-white backdrop-blur-sm">
+                    <Users className="w-4 h-4" />
+                    <span>{attendeesCount || 0}/{event.max_participants || '∞'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 1 - Right: 제목 + 정보 + 신청 */}
+          <Card id="register-card" className="lg:col-span-7 border-slate-200 shadow-md bg-white flex flex-col">
+            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
+              {/* 제목 */}
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 leading-tight mb-4">
+                {event.title}
+              </h1>
+
+              {/* 호스트 정보 */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 mb-5">
+                <Avatar className="h-10 w-10 border-2 border-white shadow-sm shrink-0">
+                  <AvatarImage src={event.profiles?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-slate-900 text-white font-bold text-sm">
+                    {event.profiles?.full_name?.[0] || "H"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-500 font-medium">호스트</p>
+                  <p className="text-sm font-bold text-slate-900 truncate">
+                    {event.profiles?.full_name || "알 수 없음"}
+                  </p>
+                  {event.profiles && (event.profiles as any).tagline && (
+                    <p className="text-xs text-slate-500 truncate">
+                      {(event.profiles as any).tagline}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* 날짜, 시간, 장소, 금액 정보 - 가로 그리드 */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                {/* 날짜 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-500">날짜</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">{dateStr} ({weekdayStr})</p>
+                </div>
+
+                {/* 시간 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Ticket className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-500">시간</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">{timeStr}</p>
+                </div>
+
+                {/* 장소 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-500">장소</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
+                </div>
+
+                {/* 금액 */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-slate-400">₩</span>
+                    <span className="text-xs text-slate-500">참가비</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 현재 모집 현황 */}
+              <div className="mb-6">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-sm text-slate-500 font-medium">현재 모집 현황</span>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-slate-900">{attendeesCount || 0}</span>
+                    <span className="text-slate-400 text-sm font-medium ml-1">
+                      / {event.max_participants ? event.max_participants : '∞'}
+                    </span>
+                  </div>
+                </div>
+                {event.max_participants && event.max_participants > 0 ? (
+                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
+                      style={{ width: `${Math.min(100, ((attendeesCount || 0) / event.max_participants) * 100)}%` }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col flex-1">
+                <div className="flex flex-col gap-2">
+                  {isPastEvent ? (
+                    <Button className="w-full bg-slate-100 text-slate-500 hover:bg-slate-200 border-0 h-11 text-sm font-medium" disabled>
+                      <AlertCircle className="mr-2 h-4 w-4" />
+                      이벤트가 종료되었습니다
+                    </Button>
+                  ) : isCreator ? (
+                    <>
+                      <Link href={`${basePath}/${eventId}/edit`}>
+                        <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-11 text-sm font-medium">
+                          <Edit className="mr-2 h-4 w-4" />
+                          이벤트 수정
+                        </Button>
+                      </Link>
+
+                      <Link href={`${basePath}/${eventId}/manage`}>
+                        <Button variant="outline" className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-11 text-sm font-medium">
+                          <Users className="mr-2 h-4 w-4" />
+                          참석자 관리
+                        </Button>
+                      </Link>
+
+                      <EventShareButton
+                        title={event.title}
+                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                        variant="outline"
+                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-10 text-sm font-medium transition-all shadow-sm hover:shadow"
+                      >
+                        공유하기
+                      </EventShareButton>
+                    </>
+                  ) : (
+                    <>
+                      <RegisterButton
+                        eventId={event.id}
+                        userId={user?.id}
+                        isRegistered={isRegistered}
+                        paymentStatus={userRegistration?.payment_status}
+                        isFull={!!isFull}
+                        price={event.price || 0}
+                      />
+
+                      <Separator className="my-2 bg-slate-100" />
+
+                      <EventShareButton
+                        title={event.title}
+                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                        variant="outline"
+                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-10 text-sm font-medium transition-all shadow-sm hover:shadow"
+                      >
+                        공유하기
+                      </EventShareButton>
+                    </>
+                  )}
+                </div>
+
+                {isCreator && !isPastEvent && (
+                  <div className="mt-auto pt-4 border-t border-slate-100">
+                    <DeleteEventButton
+                      eventId={eventId}
+                      variant="outline"
+                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11 text-base font-medium"
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* [ROW 2] */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          {/* Row 2 - Left (8) : 상세 내용 */}
+          <Card className="lg:col-span-8 border-slate-200 shadow-sm bg-white">
+            <CardContent className="p-6 sm:p-8">
+              <div
+                className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900"
+                dangerouslySetInnerHTML={{ __html: event.description || "" }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Row 2 - Right (4) : 참석자 멤버 */}
+          <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white">
+            <CardContent className="p-6">
+              <CardHeader
+                icon={Users}
+                title="참석자 멤버"
+                rightElement={
+                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                    {attendeesCount || 0}명
+                  </span>
+                }
+              />
+
+              {attendees && Array.isArray(attendees) && attendees.length > 0 ? (
+                <div className="flex flex-wrap gap-3 max-h-[400px] overflow-y-auto">
+                  {attendees.map((attendee: any, index: number) => {
+                    const profile = Array.isArray(attendee.profiles)
+                      ? attendee.profiles[0]
+                      : attendee.profiles;
+                    const name = profile?.full_name || attendee.guest_name || "익명";
+                    return (
+                      <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
+                        <Avatar className="h-12 w-12 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200">
+                          <AvatarImage src={profile?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">
+                            {name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900">
+                          {name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  <p className="text-slate-500 text-xs">아직 참석자가 없습니다.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+
+        {/* [ROW 3] 후기 섹션 */}
+        <Card className="border-slate-200 shadow-sm bg-white mt-4">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    참가자 후기
+                    <span className="text-base sm:text-lg text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
+                      {reviews ? reviews.length : 0}
+                    </span>
+                  </h2>
+                  <p className="text-sm sm:text-base text-slate-500 mt-1">
+                    이 모임에 참여한 분들의 생생한 이야기를 확인해보세요.
+                  </p>
+                </div>
+              </div>
+
+              {reviews && reviews.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {reviews.map((review: any) => (
+                    <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 sm:py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 sm:mb-4">
+                    <span className="text-2xl sm:text-3xl">📝</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
+                  <p className="text-sm sm:text-base text-slate-500 max-w-sm mx-auto mb-6 px-4">
+                    이 모임의 첫 번째 후기 작성자가 되어주세요!
+                    참여자들에게 큰 도움이 됩니다.
+                  </p>
+                  <ReviewWriteButton
+                    userId={user?.id || ""}
+                    eventId={eventId}
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* [Mobile Only] 하단 고정 액션 바 */}
+      <FloatingActionBar
+        eventId={eventId}
+        userId={user?.id}
+        isRegistered={isRegistered}
+        paymentStatus={userRegistration?.payment_status}
+        isFull={!!isFull}
+        price={event.price || 0}
+        isPastEvent={isPastEvent}
+        isCreator={!!isCreator}
+        eventTitle={event.title}
+        dateStr={dateStr}
+        timeStr={timeStr}
+        location={event.location}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="components/ui/post-list-item.tsx">
+"use client"
+
+import Link from "next/link"
+import { MessageSquare, Lock } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { formatRelativeTime } from "@/lib/format-time"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+
+type Badge = {
+  icon: string
+  name: string
+}
+
+type Post = {
+  id: string
+  title: string
+  content?: string | null
+  created_at: string
+  visibility?: "public" | "group"
+  comments_count?: number
+  thumbnail_url?: string | null
+  board_categories?: {
+    name?: string | null
+    slug?: string | null
+  } | null
+  profiles?: {
+    full_name?: string | null
+    id?: string
+    avatar_url?: string | null
+  } | null
+  visible_badges?: Badge[]
+  communities?: {
+    name?: string | null
+  } | null
+  isMember?: boolean
+  post_images?: Array<{
+    id: string
+    image_url: string
+    sort_order: number
+  }>
+}
+
+type PostListItemProps = {
+  post: Post
+  href: string
+  className?: string
+  isMember?: boolean
+  viewMode?: "feed" | "list"
+  hideCategory?: boolean
+}
+
+export function PostListItem({
+  post,
+  href,
+  className,
+  isMember = true,
+  viewMode = "feed",
+  hideCategory = false
+}: PostListItemProps) {
+  const router = useRouter()
+
+  // content에서 HTML 태그 제거하고 텍스트만 추출 (미리보기용)
+  const getPlainText = (html?: string | null) => {
+    if (!html) return ""
+    // 정규식 이스케이프 처리
+    return html.replace(/<[^>]*>/g, "").trim()
+  }
+
+  const contentPreview = getPlainText(post.content)
+  // 카테고리 이름 표시 (hideCategory가 true이거나, 자유게시판/반골/하이토크인 경우 숨김)
+  const boardSlug = post.board_categories?.slug
+  const categoryName = hideCategory
+    ? null
+    : (boardSlug === "free-board" || boardSlug === "free" || boardSlug === "vangol" || boardSlug === "hightalk")
+      ? null
+      : (post.board_categories?.name || post.communities?.name || "게시판")
+  const isGroupOnly = post.visibility === "group" && !isMember
+
+  // 대표 뱃지 (첫 번째 뱃지만)
+  const primaryBadge = post.visible_badges && post.visible_badges.length > 0 ? post.visible_badges[0] : null
+
+  // 리스트형 뷰 (밀도 높은 세련된 디자인)
+  if (viewMode === "list") {
+    return (
+      <div
+        className={cn("block w-full group cursor-pointer", className)}
+        onClick={() => {
+          window.scrollTo(0, 0)
+          router.push(href)
+        }}
+      >
+        {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
+        <div className="flex items-center gap-3 py-2 pl-4 pr-4 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
+
+          {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) - 자유게시판 제외 */}
+          {categoryName && (
+            <span className="bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 text-[11px] font-medium flex-shrink-0 w-16 text-center">
+              {categoryName}
+            </span>
+          )}
+
+          {/* 제목 및 내용 */}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            {/* 제목 */}
+            <h3 className="text-[15px] font-medium text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+              {post.title}
+            </h3>
+          </div>
+
+          {/* 데스크탑 정보 (우측 정렬, 고정 너비) */}
+          <div className="hidden sm:flex items-center gap-4 text-xs text-slate-400 flex-shrink-0">
+            <span className="text-slate-500 w-24 text-left truncate">{post.profiles?.full_name || "익명"}</span>
+            <span className="w-20 text-right whitespace-nowrap">{formatRelativeTime(post.created_at)}</span>
+
+            {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
+            <div
+              className="flex items-center justify-center w-12 flex-shrink-0 cursor-pointer hover:bg-slate-100 rounded-full p-1"
+              onClick={(e) => {
+                e.stopPropagation()
+                window.scrollTo(0, 0)
+                router.push(href)
+              }}
+            >
+              {(post.comments_count || 0) > 0 ? (
+                <div className="flex items-center gap-0.5 text-blue-500">
+                  <MessageSquare className="h-3 w-3 fill-current" />
+                  <span>{post.comments_count}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-0.5 text-slate-300">
+                  <MessageSquare className="h-3 w-3" />
+                  <span className="text-slate-300">0</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 모바일 정보 (아이콘만 간략히, 고정 위치) */}
+          <div className="flex sm:hidden items-center gap-2 text-xs text-slate-400 flex-shrink-0">
+            {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
+            <div
+              className="flex items-center justify-center w-10 flex-shrink-0 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation()
+                window.scrollTo(0, 0)
+                router.push(href)
+              }}
+            >
+              {(post.comments_count || 0) > 0 ? (
+                <div className="flex items-center gap-0.5 text-blue-500">
+                  <MessageSquare className="h-3 w-3 fill-current" />
+                  <span>{post.comments_count}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-0.5 text-slate-300">
+                  <MessageSquare className="h-3 w-3" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 피드형 뷰 (카드형 링크, 단순화)
+  return (
+    <Link href={href} className={cn("block", className)}>
+      <div
+        className={cn(
+          "flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
+          className
+        )}
+      >
+        {/* 썸네일 이미지 (피드형 뷰에서만 표시) */}
+        {post.thumbnail_url && (
+          <div className="relative w-full aspect-[2/1] md:aspect-[21/9] overflow-hidden">
+            <Image
+              src={post.thumbnail_url}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-300 hover:scale-105"
+            />
+          </div>
+        )}
+        <div className="p-5">
+          {/* 헤더: 작성자 아바타 + 메타 정보 */}
+          <div className="flex items-center gap-3 mb-4">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={post.profiles?.avatar_url || undefined} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs font-semibold">
+                {(post.profiles?.full_name || "익명")[0]?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold text-slate-900">{post.profiles?.full_name || "익명"}</span>
+                {primaryBadge && (
+                  <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 rounded px-1.5 py-0.5 text-xs">
+                    <span>{primaryBadge.icon}</span>
+                    <span>{primaryBadge.name}</span>
+                  </span>
+                )}
+                {categoryName && (
+                  <>
+                    <span className="bg-blue-50 text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                      {categoryName}
+                    </span>
+                    <span className="text-xs text-slate-400">·</span>
+                  </>
+                )}
+                <span className="text-xs text-slate-400">{formatRelativeTime(post.created_at)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 본문 영역 */}
+          <div className="mb-4 relative">
+            {/* 제목 */}
+            <h3 className="text-lg font-bold tracking-tight text-slate-900 mb-2.5 leading-snug hover:text-blue-600 transition-colors">
+              {post.title}
+            </h3>
+
+            {/* 내용 미리보기 */}
+            <div className="relative">
+              <p className={cn(
+                "text-slate-600 leading-relaxed line-clamp-3",
+                isGroupOnly ? "blur-sm select-none" : ""
+              )}>
+                {contentPreview}
+              </p>
+
+              {/* 그라데이션 마스크 (더 읽으려면 누르세요 뉘앙스) */}
+              {!isGroupOnly && contentPreview.length > 150 && (
+                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
+              )}
+
+              {isGroupOnly && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-lg">
+                  <div className="flex flex-col items-center gap-2 text-center px-4">
+                    <Lock className="h-5 w-5 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-700">멤버 전용 글입니다</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 푸터 (액션 버튼) */}
+          <div className="flex items-center gap-4 pt-2">
+            {/* 댓글 정보 표시 (링크 없음, 카드 클릭 시 이동) */}
+            <div className="flex items-center gap-1.5 text-sm text-slate-600 px-3 py-1.5 rounded-lg">
+              <MessageSquare className="h-4 w-4" />
+              <span className="font-medium">{post.comments_count || 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+</file>
+
+<file path="lib/supabase/client.ts">
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+let supabaseInstance: SupabaseClient | null = null;
+let lastAuthState: boolean | null = null;
+
+export function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase 환경 변수 미설정");
+  }
+
+  if (typeof window !== 'undefined') {
+    // 인증 쿠키 유무만 체크 (다른 쿠키 변경에 영향 안 받음)
+    const hasAuthCookie = document.cookie.includes('sb-');
+
+    if (supabaseInstance && lastAuthState === hasAuthCookie) {
+      return supabaseInstance;
+    }
+
+    lastAuthState = hasAuthCookie;
+    supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    return supabaseInstance;
+  }
+
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+}
+</file>
+
+<file path="app/community/board/[slug]/page.tsx">
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from 'next/navigation';
+import { isAdmin } from "@/lib/utils";
+import { BoardPageClient } from "./board-page-client";
+
+// ISR: 30초마다 재검증 (게시판은 비교적 짧은 캐시)
+export const revalidate = 30;
+
+// 전체 공개 게시판 slug 목록 (참고용, 메타데이터 생성에선 안 쓰지만 로직엔 필요할 수 있음)
+const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
+
+export default async function BoardPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  // ★ URL 슬러그 -> DB 슬러그 변환 (강제 적용)
+  let dbSlug = slug;
+
+  // ★ URL이 'free'면 DB의 'free-board'를 찾아라!
+  if (slug === 'free') {
+    dbSlug = 'free-board';
+  }
+
+  // 공지사항도 마찬가지
+  if (slug === 'announcements') {
+    dbSlug = 'announcement';
+  }
+
+  // 디버깅용 로그: 개발 환경에서만 출력
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
+  }
+
+  // insights slug 매핑
+  if (slug === 'insights') {
+    dbSlug = 'insights';
+  }
+
+  // 매핑 검증: 유효한 슬러그인지 확인
+  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests', 'insights'];
+  if (!validSlugs.includes(dbSlug)) {
+    console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
+    notFound();
+  }
+
+  // 세션 먼저 확인 (비로그인 최적화 - getUser 네트워크 호출 방지)
+  const [categoryResult, sessionResult] = await Promise.all([
+    supabase
+      .from("board_categories")
+      .select("id, name, description, slug, is_active")
+      .eq("slug", dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
+      .eq("is_active", true)
+      .single(),
+    supabase.auth.getSession(),
+  ]);
+
+  const category = categoryResult.data;
+  const session = sessionResult.data.session;
+
+  if (!category) {
+    notFound();
+  }
+
+  // 관리자 여부 확인 (세션이 있을 때만 getUser 호출)
+  let user = null;
+  let isUserAdmin = false;
+  let userProfile: any = null;
+
+  if (session) {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    user = authUser;
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, email")
+        .eq("id", user.id)
+        .single();
+      userProfile = profile;
+      isUserAdmin = isAdmin(profile?.role, profile?.email);
+    }
+  }
+
+  // 커뮤니티 ID 및 멤버십 확인 (시스템 게시판 제외)
+  const systemBoards = ['announcement', 'free-board', 'event-requests', 'insights'];
+  const isSystemBoard = systemBoards.includes(dbSlug);
+
+  // 서버 사이드에서 초기 posts 데이터 가져오기 (RLS 문제 방지)
+  const postsResult = await supabase
+    .from("posts")
+    .select(`
+      *,
+      profiles:author_id(full_name, avatar_url),
+      board_categories!inner(name, slug),
+      post_images(id, image_url, sort_order)
+    `, { count: "exact" })
+    .eq("board_categories.slug", dbSlug)
+    .order("created_at", { ascending: false })
+    .range(0, 14);
+
+  // 디버깅 로그 (프로덕션에서도 출력)
+  if (postsResult.error) {
+    console.error('[BoardPage] Posts query error:', postsResult.error);
+  }
+  console.log('[BoardPage] dbSlug:', dbSlug, 'posts count:', postsResult.data?.length || 0);
+
+  const initialPosts = postsResult.data || [];
+  const initialPostsCount = postsResult.count || 0;
+
+  // 댓글 수 조회 (좋아요는 posts.likes_count를 그대로 사용)
+  // ✅ 수정: post_likes 별도 조회 제거 - 익명 좋아요가 posts.likes_count에만 반영되므로
+  let postsWithCounts = initialPosts;
+  if (initialPosts.length > 0) {
+    const postIds = initialPosts.map((post: any) => post.id);
+
+    const commentsResult = await supabase
+      .from("comments")
+      .select("post_id")
+      .in("post_id", postIds);
+
+    const commentsCountMap = new Map<string, number>();
+    (commentsResult.data || []).forEach((comment: any) => {
+      commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1);
+    });
+
+    postsWithCounts = initialPosts.map((post: any) => ({
+      ...post,
+      likes_count: post.likes_count || 0,  // DB 값 그대로 사용
+      comments_count: commentsCountMap.get(post.id) || 0,
+    }));
+  }
+
+  let communityId: string | null = null;
+  let isMember = false;
+  let canEditDescription = false;
+
+  if (!isSystemBoard) {
+    // communities 테이블에서 커뮤니티 ID 및 description 가져오기
+    const { data: community } = await supabase
+      .from("communities")
+      .select("id, created_by, description")
+      .eq("name", category.name)
+      .single();
+
+    communityId = community?.id || null;
+
+    // communities 테이블의 description이 있으면 그것을 사용
+    if (community?.description) {
+      category.description = community.description;
+    }
+
+    // 멤버십 확인
+    if (communityId && user) {
+      const { data: membership } = await supabase
+        .from("community_members")
+        .select("id")
+        .eq("community_id", communityId)
+        .eq("user_id", user.id)
+        .single();
+
+      isMember = !!membership;
+
+      // 소개글 수정 권한 확인: 리더 또는 master
+      const isLeader = community?.created_by === user.id;
+      const isMaster = userProfile?.role === 'master';
+      canEditDescription = isLeader || isMaster;
+    }
+  }
+
+  return (
+    <BoardPageClient
+      slug={slug}
+      dbSlug={dbSlug}
+      category={category}
+      isUserAdmin={isUserAdmin}
+      user={user}
+      communityId={communityId}
+      isMember={isMember}
+      canEditDescription={canEditDescription}
+      initialPosts={postsWithCounts}
+      initialPostsCount={initialPostsCount}
+    />
+  );
 }
 </file>
 
@@ -46363,7 +47207,6 @@ export default function ProfileContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn("[Profile] 로딩 시간 초과 - 강제 화면 표시")
         setLoading(false)
       }
     }, 5000)
@@ -46378,7 +47221,6 @@ export default function ProfileContent() {
     // 리스트 데이터 비동기 로딩 (Fire & Forget)
     // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
     const loadListData = (userId: string) => {
-      console.log('[Profile] 3. 리스트 데이터 백그라운드 로딩 시작')
 
       // (1) 만든 이벤트
       supabase
@@ -46484,7 +47326,6 @@ export default function ProfileContent() {
 
     const initProfile = async () => {
       try {
-        console.log('[Profile] 1. 초기화 시작')
         setLoading(true)
 
         // 1. 세션 확인 (로컬 캐시 확인이라 빠름)
@@ -46493,7 +47334,6 @@ export default function ProfileContent() {
         if (!isMounted) return
 
         if (!session?.user) {
-          console.log('[Profile] 세션 없음 -> 로그인 이동')
           setLoading(false)
           router.push("/auth/login")
           return
@@ -46503,7 +47343,6 @@ export default function ProfileContent() {
         setUser(currentUser)
 
         // 2. 프로필 기본 정보만 "동기적"으로 로드 (필수 데이터)
-        console.log('[Profile] 2. 프로필 정보 조회')
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
@@ -46543,7 +47382,7 @@ export default function ProfileContent() {
         loadListData(currentUser.id)
 
       } catch (error) {
-        console.error('[Profile] 치명적 오류:', error)
+        console.error('Profile init error:', error)
         if (isMounted) setSessionError('데이터를 불러오는 중 오류가 발생했습니다.')
         if (isMounted) setLoading(false)
       }
@@ -47840,936 +48679,6 @@ export default function ProfileContent() {
 }
 </file>
 
-<file path="components/event-detail-content.tsx">
-/**
- * 이벤트 상세 페이지 공통 렌더링 로직
- * /e/[id]와 /events/[id]에서 공통으로 사용
- */
-
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, ChevronLeft, AlertCircle, Ticket, Edit } from 'lucide-react';
-import { RegisterButton } from "@/components/register-button";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { EventShareButton } from "@/components/event-share-button";
-import { DeleteEventButton } from "@/components/delete-event-button";
-import { FloatingActionBar } from "@/components/floating-action-bar";
-
-import { getReviewsByEvent } from "@/lib/queries/posts";
-import { ReviewWriteButton } from "@/components/reviews/review-modal";
-import { ReviewCard } from "@/components/reviews/review-card";
-
-export default async function EventDetailContent({
-  eventId,
-  basePath = '/events'
-}: {
-  eventId: string;
-  basePath?: string;
-}) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // 이벤트 정보 조회
-  let event;
-  try {
-    const { data, error } = await supabase
-      .from("events")
-      .select(`
-        *,
-        profiles:created_by (
-          id,
-          full_name,
-          avatar_url,
-          email,
-          bio,
-          tagline
-        )
-      `)
-      .eq("id", eventId)
-      .single();
-
-    if (error || !data) {
-      notFound();
-    }
-
-    event = data;
-  } catch (error) {
-    notFound();
-  }
-
-  // 사용자 등록 여부 조회
-  let userRegistration = null;
-  if (user) {
-    const { data: registrationData } = await supabase
-      .from("event_registrations")
-      .select("id, payment_status")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single();
-
-    userRegistration = registrationData;
-  }
-
-  // 참석자 수 조회
-  const { count: attendeesCount } = await supabase
-    .from("event_registrations")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  // 참석자 목록 조회
-  const { data: attendeesData } = await supabase
-    .from("event_registrations")
-    .select(`
-      id,
-      user_id,
-      guest_name,
-      profiles:user_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq("event_id", eventId);
-
-  // 후기 목록 조회
-  const reviews = await getReviewsByEvent(supabase, eventId);
-
-  const attendees = attendeesData || [];
-  const isRegistered = !!userRegistration;
-  const isPastEvent = new Date(event.event_date) < new Date();
-  const isFull = event.max_participants && attendeesCount && attendeesCount >= event.max_participants;
-  const isCreator = user && event.created_by === user.id;
-  const isCompleted = event.status === 'completed';
-
-  // 날짜/시간 포맷팅
-  const eventDate = new Date(event.event_date);
-  const dateStr = eventDate.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const weekdayStr = eventDate.toLocaleDateString("ko-KR", {
-    weekday: "short",
-  });
-  const timeStr = eventDate.toLocaleTimeString("ko-KR", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  const CardHeader = ({ icon: Icon, title, rightElement }: { icon: React.ComponentType<{ className?: string }>, title: string, rightElement?: React.ReactNode }) => (
-    <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-      <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
-          <Icon className="h-4 w-4" />
-        </div>
-        <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
-      </div>
-      {rightElement}
-    </div>
-  );
-
-  return (
-    <div className="w-full">
-      {/* 상단 네비게이션 */}
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/e" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
-          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-            <ChevronLeft className="h-4 w-4" />
-          </div>
-          이벤트 목록
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-8">
-        {/* [ROW 1] - 모바일: 세로 스택, 데스크톱: 가로 그리드 (5:7 비율) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
-          {/* Row 1 - Left: 1:1 이미지 */}
-          <div className="lg:col-span-5">
-            <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-white h-full">
-              <div className="relative aspect-square w-full overflow-hidden">
-                {event.thumbnail_url ? (
-                  <img
-                    src={event.thumbnail_url}
-                    alt={event.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
-                    <Calendar className="w-20 h-20 text-slate-400" />
-                  </div>
-                )}
-                {/* 상태 배지 */}
-                <div className="absolute top-4 left-4 z-10">
-                  {isCompleted ? (
-                    <Badge className="bg-slate-800/90 text-white border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">종료됨</Badge>
-                  ) : isPastEvent ? (
-                    <Badge variant="secondary" className="bg-white/90 text-slate-700 border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">기간 만료</Badge>
-                  ) : isFull ? (
-                    <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium backdrop-blur-sm">마감임박</Badge>
-                  ) : (
-                    <Badge className="bg-green-600/90 hover:bg-green-700 text-white border-none px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm">
-                      모집중
-                    </Badge>
-                  )}
-                </div>
-                {/* 인원 배지 */}
-                <div className="absolute top-4 right-4 z-10">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-black/60 text-white backdrop-blur-sm">
-                    <Users className="w-4 h-4" />
-                    <span>{attendeesCount || 0}/{event.max_participants || '∞'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 1 - Right: 제목 + 정보 + 신청 */}
-          <Card id="register-card" className="lg:col-span-7 border-slate-200 shadow-md bg-white flex flex-col">
-            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
-              {/* 제목 */}
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 leading-tight mb-4">
-                {event.title}
-              </h1>
-
-              {/* 호스트 정보 */}
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 mb-5">
-                <Avatar className="h-10 w-10 border-2 border-white shadow-sm shrink-0">
-                  <AvatarImage src={event.profiles?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-slate-900 text-white font-bold text-sm">
-                    {event.profiles?.full_name?.[0] || "H"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-500 font-medium">호스트</p>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {event.profiles?.full_name || "알 수 없음"}
-                  </p>
-                  {event.profiles && (event.profiles as any).tagline && (
-                    <p className="text-xs text-slate-500 truncate">
-                      {(event.profiles as any).tagline}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* 날짜, 시간, 장소, 금액 정보 - 가로 그리드 */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-                {/* 날짜 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-500">날짜</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">{dateStr} ({weekdayStr})</p>
-                </div>
-
-                {/* 시간 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Ticket className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-500">시간</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">{timeStr}</p>
-                </div>
-
-                {/* 장소 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-500">장소</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
-                </div>
-
-                {/* 금액 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-slate-400">₩</span>
-                    <span className="text-xs text-slate-500">참가비</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">
-                    {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
-                  </p>
-                </div>
-              </div>
-
-              {/* 현재 모집 현황 */}
-              <div className="mb-6">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-sm text-slate-500 font-medium">현재 모집 현황</span>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-slate-900">{attendeesCount || 0}</span>
-                    <span className="text-slate-400 text-sm font-medium ml-1">
-                      / {event.max_participants ? event.max_participants : '∞'}
-                    </span>
-                  </div>
-                </div>
-                {event.max_participants && event.max_participants > 0 ? (
-                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
-                      style={{ width: `${Math.min(100, ((attendeesCount || 0) / event.max_participants) * 100)}%` }}
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col flex-1">
-                <div className="flex flex-col gap-2">
-                  {isPastEvent ? (
-                    <Button className="w-full bg-slate-100 text-slate-500 hover:bg-slate-200 border-0 h-11 text-sm font-medium" disabled>
-                      <AlertCircle className="mr-2 h-4 w-4" />
-                      이벤트가 종료되었습니다
-                    </Button>
-                  ) : isCreator ? (
-                    <>
-                      <Link href={`${basePath}/${eventId}/edit`}>
-                        <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-11 text-sm font-medium">
-                          <Edit className="mr-2 h-4 w-4" />
-                          이벤트 수정
-                        </Button>
-                      </Link>
-
-                      <Link href={`${basePath}/${eventId}/manage`}>
-                        <Button variant="outline" className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-11 text-sm font-medium">
-                          <Users className="mr-2 h-4 w-4" />
-                          참석자 관리
-                        </Button>
-                      </Link>
-
-                      <EventShareButton
-                        title={event.title}
-                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                        variant="outline"
-                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-10 text-sm font-medium transition-all shadow-sm hover:shadow"
-                      >
-                        공유하기
-                      </EventShareButton>
-                    </>
-                  ) : (
-                    <>
-                      <RegisterButton
-                        eventId={event.id}
-                        userId={user?.id}
-                        isRegistered={isRegistered}
-                        paymentStatus={userRegistration?.payment_status}
-                        isFull={!!isFull}
-                        price={event.price || 0}
-                      />
-
-                      <Separator className="my-2 bg-slate-100" />
-
-                      <EventShareButton
-                        title={event.title}
-                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                        variant="outline"
-                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-10 text-sm font-medium transition-all shadow-sm hover:shadow"
-                      >
-                        공유하기
-                      </EventShareButton>
-                    </>
-                  )}
-                </div>
-
-                {isCreator && !isPastEvent && (
-                  <div className="mt-auto pt-4 border-t border-slate-100">
-                    <DeleteEventButton
-                      eventId={eventId}
-                      variant="outline"
-                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11 text-base font-medium"
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* [ROW 2] */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* Row 2 - Left (8) : 상세 내용 */}
-          <Card className="lg:col-span-8 border-slate-200 shadow-sm bg-white">
-            <CardContent className="p-6 sm:p-8">
-              <div
-                className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900"
-                dangerouslySetInnerHTML={{ __html: event.description || "" }}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Row 2 - Right (4) : 참석자 멤버 */}
-          <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white">
-            <CardContent className="p-6">
-              <CardHeader
-                icon={Users}
-                title="참석자 멤버"
-                rightElement={
-                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                    {attendeesCount || 0}명
-                  </span>
-                }
-              />
-
-              {attendees && Array.isArray(attendees) && attendees.length > 0 ? (
-                <div className="flex flex-wrap gap-3 max-h-[400px] overflow-y-auto">
-                  {attendees.map((attendee: any, index: number) => {
-                    const profile = Array.isArray(attendee.profiles)
-                      ? attendee.profiles[0]
-                      : attendee.profiles;
-                    const name = profile?.full_name || attendee.guest_name || "익명";
-                    return (
-                      <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
-                        <Avatar className="h-12 w-12 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200">
-                          <AvatarImage src={profile?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">
-                            {name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900">
-                          {name}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-8 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-slate-500 text-xs">아직 참석자가 없습니다.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-
-        {/* [ROW 3] 후기 섹션 */}
-        <Card className="border-slate-200 shadow-sm bg-white mt-4">
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    참가자 후기
-                    <span className="text-base sm:text-lg text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
-                      {reviews ? reviews.length : 0}
-                    </span>
-                  </h2>
-                  <p className="text-sm sm:text-base text-slate-500 mt-1">
-                    이 모임에 참여한 분들의 생생한 이야기를 확인해보세요.
-                  </p>
-                </div>
-              </div>
-
-              {reviews && reviews.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {reviews.map((review: any) => (
-                    <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 sm:py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 sm:mb-4">
-                    <span className="text-2xl sm:text-3xl">📝</span>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
-                  <p className="text-sm sm:text-base text-slate-500 max-w-sm mx-auto mb-6 px-4">
-                    이 모임의 첫 번째 후기 작성자가 되어주세요!
-                    참여자들에게 큰 도움이 됩니다.
-                  </p>
-                  <ReviewWriteButton
-                    userId={user?.id || ""}
-                    eventId={eventId}
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
-
-      {/* [Mobile Only] 하단 고정 액션 바 */}
-      <FloatingActionBar
-        eventId={eventId}
-        userId={user?.id}
-        isRegistered={isRegistered}
-        paymentStatus={userRegistration?.payment_status}
-        isFull={!!isFull}
-        price={event.price || 0}
-        isPastEvent={isPastEvent}
-        isCreator={!!isCreator}
-        eventTitle={event.title}
-        dateStr={dateStr}
-        timeStr={timeStr}
-        location={event.location}
-      />
-    </div>
-  );
-}
-</file>
-
-<file path="components/ui/post-list-item.tsx">
-"use client"
-
-import Link from "next/link"
-import { MessageSquare, Lock } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatRelativeTime } from "@/lib/format-time"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-
-type Badge = {
-  icon: string
-  name: string
-}
-
-type Post = {
-  id: string
-  title: string
-  content?: string | null
-  created_at: string
-  visibility?: "public" | "group"
-  comments_count?: number
-  thumbnail_url?: string | null
-  board_categories?: {
-    name?: string | null
-    slug?: string | null
-  } | null
-  profiles?: {
-    full_name?: string | null
-    id?: string
-    avatar_url?: string | null
-  } | null
-  visible_badges?: Badge[]
-  communities?: {
-    name?: string | null
-  } | null
-  isMember?: boolean
-  post_images?: Array<{
-    id: string
-    image_url: string
-    sort_order: number
-  }>
-}
-
-type PostListItemProps = {
-  post: Post
-  href: string
-  className?: string
-  isMember?: boolean
-  viewMode?: "feed" | "list"
-  hideCategory?: boolean
-}
-
-export function PostListItem({
-  post,
-  href,
-  className,
-  isMember = true,
-  viewMode = "feed",
-  hideCategory = false
-}: PostListItemProps) {
-  const router = useRouter()
-
-  // content에서 HTML 태그 제거하고 텍스트만 추출 (미리보기용)
-  const getPlainText = (html?: string | null) => {
-    if (!html) return ""
-    // 정규식 이스케이프 처리
-    return html.replace(/<[^>]*>/g, "").trim()
-  }
-
-  const contentPreview = getPlainText(post.content)
-  // 카테고리 이름 표시 (hideCategory가 true이거나, 자유게시판/반골/하이토크인 경우 숨김)
-  const boardSlug = post.board_categories?.slug
-  const categoryName = hideCategory
-    ? null
-    : (boardSlug === "free-board" || boardSlug === "free" || boardSlug === "vangol" || boardSlug === "hightalk")
-      ? null
-      : (post.board_categories?.name || post.communities?.name || "게시판")
-  const isGroupOnly = post.visibility === "group" && !isMember
-
-  // 대표 뱃지 (첫 번째 뱃지만)
-  const primaryBadge = post.visible_badges && post.visible_badges.length > 0 ? post.visible_badges[0] : null
-
-  // 리스트형 뷰 (밀도 높은 세련된 디자인)
-  if (viewMode === "list") {
-    return (
-      <div
-        className={cn("block w-full group cursor-pointer", className)}
-        onClick={() => {
-          window.scrollTo(0, 0)
-          router.push(href)
-        }}
-      >
-        {/* 패딩 축소: py-2.5 -> py-2, hover 효과 개선 */}
-        <div className="flex items-center gap-3 py-2 pl-4 pr-4 bg-white border-b border-slate-100 group-hover:bg-slate-50/80 transition-colors duration-150">
-
-          {/* 카테고리 뱃지 (크기 및 폰트 미세 조정) - 자유게시판 제외 */}
-          {categoryName && (
-            <span className="bg-slate-100 text-slate-600 rounded-md px-2 py-0.5 text-[11px] font-medium flex-shrink-0 w-16 text-center">
-              {categoryName}
-            </span>
-          )}
-
-          {/* 제목 및 내용 */}
-          <div className="flex-1 min-w-0 flex items-center gap-2">
-            {/* 제목 */}
-            <h3 className="text-[15px] font-medium text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-              {post.title}
-            </h3>
-          </div>
-
-          {/* 데스크탑 정보 (우측 정렬, 고정 너비) */}
-          <div className="hidden sm:flex items-center gap-4 text-xs text-slate-400 flex-shrink-0">
-            <span className="text-slate-500 w-24 text-left truncate">{post.profiles?.full_name || "익명"}</span>
-            <span className="w-20 text-right whitespace-nowrap">{formatRelativeTime(post.created_at)}</span>
-
-            {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
-            <div
-              className="flex items-center justify-center w-12 flex-shrink-0 cursor-pointer hover:bg-slate-100 rounded-full p-1"
-              onClick={(e) => {
-                e.stopPropagation()
-                window.scrollTo(0, 0)
-                router.push(href)
-              }}
-            >
-              {(post.comments_count || 0) > 0 ? (
-                <div className="flex items-center gap-0.5 text-blue-500">
-                  <MessageSquare className="h-3 w-3 fill-current" />
-                  <span>{post.comments_count}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-0.5 text-slate-300">
-                  <MessageSquare className="h-3 w-3" />
-                  <span className="text-slate-300">0</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 모바일 정보 (아이콘만 간략히, 고정 위치) */}
-          <div className="flex sm:hidden items-center gap-2 text-xs text-slate-400 flex-shrink-0">
-            {/* 댓글 아이콘 영역 (클릭 시 상세 페이지 이동) */}
-            <div
-              className="flex items-center justify-center w-10 flex-shrink-0 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation()
-                window.scrollTo(0, 0)
-                router.push(href)
-              }}
-            >
-              {(post.comments_count || 0) > 0 ? (
-                <div className="flex items-center gap-0.5 text-blue-500">
-                  <MessageSquare className="h-3 w-3 fill-current" />
-                  <span>{post.comments_count}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-0.5 text-slate-300">
-                  <MessageSquare className="h-3 w-3" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // 피드형 뷰 (카드형 링크, 단순화)
-  return (
-    <Link href={href} className={cn("block", className)}>
-      <div
-        className={cn(
-          "flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
-          className
-        )}
-      >
-        {/* 썸네일 이미지 (피드형 뷰에서만 표시) */}
-        {post.thumbnail_url && (
-          <div className="relative w-full aspect-[2/1] md:aspect-[21/9] overflow-hidden">
-            <Image
-              src={post.thumbnail_url}
-              alt={post.title}
-              fill
-              className="object-cover transition-transform duration-300 hover:scale-105"
-            />
-          </div>
-        )}
-        <div className="p-5">
-          {/* 헤더: 작성자 아바타 + 메타 정보 */}
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarImage src={post.profiles?.avatar_url || undefined} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs font-semibold">
-                {(post.profiles?.full_name || "익명")[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-slate-900">{post.profiles?.full_name || "익명"}</span>
-                {primaryBadge && (
-                  <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 rounded px-1.5 py-0.5 text-xs">
-                    <span>{primaryBadge.icon}</span>
-                    <span>{primaryBadge.name}</span>
-                  </span>
-                )}
-                {categoryName && (
-                  <>
-                    <span className="bg-blue-50 text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                      {categoryName}
-                    </span>
-                    <span className="text-xs text-slate-400">·</span>
-                  </>
-                )}
-                <span className="text-xs text-slate-400">{formatRelativeTime(post.created_at)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 본문 영역 */}
-          <div className="mb-4 relative">
-            {/* 제목 */}
-            <h3 className="text-lg font-bold tracking-tight text-slate-900 mb-2.5 leading-snug hover:text-blue-600 transition-colors">
-              {post.title}
-            </h3>
-
-            {/* 내용 미리보기 */}
-            <div className="relative">
-              <p className={cn(
-                "text-slate-600 leading-relaxed line-clamp-3",
-                isGroupOnly ? "blur-sm select-none" : ""
-              )}>
-                {contentPreview}
-              </p>
-
-              {/* 그라데이션 마스크 (더 읽으려면 누르세요 뉘앙스) */}
-              {!isGroupOnly && contentPreview.length > 150 && (
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
-              )}
-
-              {isGroupOnly && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-lg">
-                  <div className="flex flex-col items-center gap-2 text-center px-4">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                    <p className="text-sm font-medium text-slate-700">멤버 전용 글입니다</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 푸터 (액션 버튼) */}
-          <div className="flex items-center gap-4 pt-2">
-            {/* 댓글 정보 표시 (링크 없음, 카드 클릭 시 이동) */}
-            <div className="flex items-center gap-1.5 text-sm text-slate-600 px-3 py-1.5 rounded-lg">
-              <MessageSquare className="h-4 w-4" />
-              <span className="font-medium">{post.comments_count || 0}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
-  )
-}
-</file>
-
-<file path="app/community/board/[slug]/page.tsx">
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { isAdmin } from "@/lib/utils";
-import { BoardPageClient } from "./board-page-client";
-
-// ISR: 30초마다 재검증 (게시판은 비교적 짧은 캐시)
-export const revalidate = 30;
-
-// 전체 공개 게시판 slug 목록 (참고용, 메타데이터 생성에선 안 쓰지만 로직엔 필요할 수 있음)
-const PUBLIC_BOARDS = ["free", "vangol", "hightalk"];
-
-export default async function BoardPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const supabase = await createClient();
-
-  // ★ URL 슬러그 -> DB 슬러그 변환 (강제 적용)
-  let dbSlug = slug;
-
-  // ★ URL이 'free'면 DB의 'free-board'를 찾아라!
-  if (slug === 'free') {
-    dbSlug = 'free-board';
-  }
-
-  // 공지사항도 마찬가지
-  if (slug === 'announcements') {
-    dbSlug = 'announcement';
-  }
-
-  // 디버깅용 로그: 개발 환경에서만 출력
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Current Slug:', slug, 'Mapped DB Slug:', dbSlug);
-  }
-
-  // insights slug 매핑
-  if (slug === 'insights') {
-    dbSlug = 'insights';
-  }
-
-  // 매핑 검증: 유효한 슬러그인지 확인
-  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests', 'insights'];
-  if (!validSlugs.includes(dbSlug)) {
-    console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
-    notFound();
-  }
-
-  // 세션 먼저 확인 (비로그인 최적화 - getUser 네트워크 호출 방지)
-  const [categoryResult, sessionResult] = await Promise.all([
-    supabase
-      .from("board_categories")
-      .select("id, name, description, slug, is_active")
-      .eq("slug", dbSlug) // ★ dbSlug 사용 (매핑된 실제 DB 슬러그)
-      .eq("is_active", true)
-      .single(),
-    supabase.auth.getSession(),
-  ]);
-
-  const category = categoryResult.data;
-  const session = sessionResult.data.session;
-
-  if (!category) {
-    notFound();
-  }
-
-  // 관리자 여부 확인 (세션이 있을 때만 getUser 호출)
-  let user = null;
-  let isUserAdmin = false;
-  let userProfile: any = null;
-
-  if (session) {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    user = authUser;
-
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, email")
-        .eq("id", user.id)
-        .single();
-      userProfile = profile;
-      isUserAdmin = isAdmin(profile?.role, profile?.email);
-    }
-  }
-
-  // 커뮤니티 ID 및 멤버십 확인 (시스템 게시판 제외)
-  const systemBoards = ['announcement', 'free-board', 'event-requests', 'insights'];
-  const isSystemBoard = systemBoards.includes(dbSlug);
-
-  // 서버 사이드에서 초기 posts 데이터 가져오기 (RLS 문제 방지)
-  const postsResult = await supabase
-    .from("posts")
-    .select(`
-      *,
-      profiles:author_id(full_name, avatar_url),
-      board_categories!inner(name, slug),
-      post_images(id, image_url, sort_order)
-    `, { count: "exact" })
-    .eq("board_categories.slug", dbSlug)
-    .order("created_at", { ascending: false })
-    .range(0, 14);
-
-  // 디버깅 로그 (프로덕션에서도 출력)
-  if (postsResult.error) {
-    console.error('[BoardPage] Posts query error:', postsResult.error);
-  }
-  console.log('[BoardPage] dbSlug:', dbSlug, 'posts count:', postsResult.data?.length || 0);
-
-  const initialPosts = postsResult.data || [];
-  const initialPostsCount = postsResult.count || 0;
-
-  // 댓글 수 조회 (좋아요는 posts.likes_count를 그대로 사용)
-  // ✅ 수정: post_likes 별도 조회 제거 - 익명 좋아요가 posts.likes_count에만 반영되므로
-  let postsWithCounts = initialPosts;
-  if (initialPosts.length > 0) {
-    const postIds = initialPosts.map((post: any) => post.id);
-
-    const commentsResult = await supabase
-      .from("comments")
-      .select("post_id")
-      .in("post_id", postIds);
-
-    const commentsCountMap = new Map<string, number>();
-    (commentsResult.data || []).forEach((comment: any) => {
-      commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1);
-    });
-
-    postsWithCounts = initialPosts.map((post: any) => ({
-      ...post,
-      likes_count: post.likes_count || 0,  // DB 값 그대로 사용
-      comments_count: commentsCountMap.get(post.id) || 0,
-    }));
-  }
-
-  let communityId: string | null = null;
-  let isMember = false;
-  let canEditDescription = false;
-
-  if (!isSystemBoard) {
-    // communities 테이블에서 커뮤니티 ID 및 description 가져오기
-    const { data: community } = await supabase
-      .from("communities")
-      .select("id, created_by, description")
-      .eq("name", category.name)
-      .single();
-
-    communityId = community?.id || null;
-
-    // communities 테이블의 description이 있으면 그것을 사용
-    if (community?.description) {
-      category.description = community.description;
-    }
-
-    // 멤버십 확인
-    if (communityId && user) {
-      const { data: membership } = await supabase
-        .from("community_members")
-        .select("id")
-        .eq("community_id", communityId)
-        .eq("user_id", user.id)
-        .single();
-
-      isMember = !!membership;
-
-      // 소개글 수정 권한 확인: 리더 또는 master
-      const isLeader = community?.created_by === user.id;
-      const isMaster = userProfile?.role === 'master';
-      canEditDescription = isLeader || isMaster;
-    }
-  }
-
-  return (
-    <BoardPageClient
-      slug={slug}
-      dbSlug={dbSlug}
-      category={category}
-      isUserAdmin={isUserAdmin}
-      user={user}
-      communityId={communityId}
-      isMember={isMember}
-      canEditDescription={canEditDescription}
-      initialPosts={postsWithCounts}
-      initialPostsCount={initialPostsCount}
-    />
-  );
-}
-</file>
-
 <file path="app/page.tsx">
 import type { Metadata } from "next"
 import { Suspense } from "react"
@@ -49159,6 +49068,64 @@ export async function SiteHeader({ user, profile }: SiteHeaderProps = {}) {
 }
 </file>
 
+<file path="components/standard-right-sidebar.tsx">
+import { getCachedAnnouncements } from "@/lib/queries/cached"
+import { Separator } from "@/components/ui/separator"
+import { Bell, ChevronRight } from "lucide-react"
+import Link from "next/link"
+
+export async function StandardRightSidebar() {
+  const announcements = await getCachedAnnouncements()
+
+  return (
+    <div className="flex flex-col gap-8 h-full">
+      {/* 공지사항 위젯 */}
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-slate-500" />
+            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">공지사항</h3>
+          </div>
+          <Link href="/community/board/announcements" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+            더보기
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+        {announcements.length > 0 ? (
+          <div className="flex flex-col">
+            {announcements.map((announcement, idx) => (
+              <div key={announcement.id}>
+                <Link
+                  href={`/community/board/announcements/${announcement.id}`}
+                  className="block py-2 px-1 text-sm text-slate-700 hover:text-slate-900 hover:underline truncate"
+                >
+                  {announcement.title}
+                </Link>
+                {idx !== announcements.length - 1 && <Separator className="my-1 bg-slate-100" />}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 px-1">공지사항이 없습니다</p>
+        )}
+      </div>
+
+      <Separator className="bg-slate-100" />
+
+      {/* 푸터 영역 (예시) */}
+      <div className="px-1 text-xs text-slate-400 leading-relaxed space-y-1">
+        <div>© 2024 SFC</div>
+        <div className="flex gap-2">
+          <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
+          <span className="text-slate-300">·</span>
+          <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="components/ui/event-card.tsx">
 "use client"
 
@@ -49540,61 +49507,352 @@ function sanitizePreview(html: string, stripImages = false): string {
 }
 </file>
 
-<file path="components/standard-right-sidebar.tsx">
-import { getCachedAnnouncements } from "@/lib/queries/cached"
-import { Separator } from "@/components/ui/separator"
-import { Bell, ChevronRight } from "lucide-react"
+<file path="components/site-header-client.tsx">
+"use client"
+
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import {
+    Bell,
+    Plus,
+    Settings,
+    LogOut,
+    User,
+    PenSquare,
+    Calendar,
+    Users,
+    Search
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { NotificationsDropdown } from "@/components/notifications-dropdown"
+import { createClient } from "@/lib/supabase/client"
+import { Input } from "@/components/ui/input"
 
-export async function StandardRightSidebar() {
-  const announcements = await getCachedAnnouncements()
+interface SiteHeaderClientProps {
+    user: any
+    profile: any
+    initialNotifications?: any[]
+}
 
-  return (
-    <div className="flex flex-col gap-8 h-full">
-      {/* 공지사항 위젯 */}
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-2 px-1">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-slate-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">공지사항</h3>
-          </div>
-          <Link href="/community/board/announcements" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-            더보기
-            <ChevronRight className="h-3 w-3" />
-          </Link>
+export function SiteHeaderClient({ user, profile, initialNotifications = [] }: SiteHeaderClientProps) {
+    const router = useRouter()
+    const supabase = createClient()
+    const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
+    const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
+    const [mounted, setMounted] = useState(false)
+
+    // 클라이언트 마운트 후에만 user 상태 반영 (hydration 에러 방지)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const handleSignOut = () => {
+        console.log('[SignOut] Clearing cookies and redirecting...')
+        // 쿠키 직접 삭제
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+        })
+        // localStorage 클리어
+        localStorage.clear()
+        // 리디렉션
+        window.location.href = "/"
+    }
+
+    return (
+        <div className="flex flex-1 items-center justify-end gap-4">
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+                {mounted && user ? (
+                    <>
+                        {/* 만들기 버튼 (Dropdown) */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 h-9 rounded-full px-3 hover:bg-slate-100">
+                                    <Plus className="h-5 w-5" />
+                                    <span className="font-medium">만들기</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                sideOffset={10}
+                                className="z-[70] w-52 bg-white shadow-lg border border-slate-200"
+                                onMouseLeave={() => setActiveCreateItem(null)}
+                            >
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/community/new")}
+                                    onMouseEnter={() => setActiveCreateItem("post")}
+                                    className={activeCreateItem === "post" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <PenSquare className={`mr-2 h-4 w-4 ${activeCreateItem === "post" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>새 글 쓰기</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/e/new")}
+                                    onMouseEnter={() => setActiveCreateItem("event")}
+                                    className={activeCreateItem === "event" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <Calendar className={`mr-2 h-4 w-4 ${activeCreateItem === "event" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>새 이벤트</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/communities/new")}
+                                    onMouseEnter={() => setActiveCreateItem("community")}
+                                    className={activeCreateItem === "community" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <Users className={`mr-2 h-4 w-4 ${activeCreateItem === "community" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>새 커뮤니티</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* 모바일용 만들기 아이콘 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full">
+                                    <Plus className="h-6 w-6" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                sideOffset={10}
+                                className="z-[70] bg-white shadow-lg border border-slate-200"
+                            >
+                                <DropdownMenuItem onClick={() => router.push("/community/new")}>
+                                    새 글 쓰기
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("/e/new")}>
+                                    새 이벤트
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("/communities/new")}>
+                                    새 커뮤니티
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* 알림 */}
+                        <NotificationsDropdown
+                            triggerClassName="h-9 w-9 rounded-full"
+                            align="end"
+                            initialUser={user}
+                            initialNotifications={initialNotifications}
+                        />
+
+                        {/* 프로필 드롭다운 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-1 border border-slate-200 overflow-hidden">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || ""} />
+                                        <AvatarFallback className="bg-slate-100 text-slate-600 font-medium">
+                                            {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-56 z-[70] bg-white shadow-lg border border-slate-200"
+                                align="end"
+                                sideOffset={10}
+                                forceMount
+                                onMouseLeave={() => setActiveProfileItem(null)}
+                            >
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{profile?.full_name || "사용자"}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            {user.email}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/community/profile")}
+                                    onMouseEnter={() => setActiveProfileItem("profile")}
+                                    className={activeProfileItem === "profile" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <User className={`mr-2 h-4 w-4 ${activeProfileItem === "profile" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>내 프로필</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/settings")}
+                                    onMouseEnter={() => setActiveProfileItem("settings")}
+                                    className={activeProfileItem === "settings" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <Settings className={`mr-2 h-4 w-4 ${activeProfileItem === "settings" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>설정</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""}`}
+                                    onClick={handleSignOut}
+                                    onMouseEnter={() => setActiveProfileItem("logout")}
+                                >
+                                    <LogOut className={`mr-2 h-4 w-4 ${activeProfileItem === "logout" ? "text-red-600" : "text-slate-500"}`} />
+                                    <span>로그아웃</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <Link href="/auth/login">
+                            <Button
+                                variant="ghost"
+                                className="rounded-full hover:bg-slate-100 hover:text-slate-900"
+                            >
+                                로그인
+                            </Button>
+                        </Link>
+                        <Link href="/auth/login">
+                            <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                                가입하기
+                            </Button>
+                        </Link>
+                    </div>
+                )}
+            </div>
         </div>
-        {announcements.length > 0 ? (
-          <div className="flex flex-col">
-            {announcements.map((announcement, idx) => (
-              <div key={announcement.id}>
-                <Link
-                  href={`/community/board/announcements/${announcement.id}`}
-                  className="block py-2 px-1 text-sm text-slate-700 hover:text-slate-900 hover:underline truncate"
-                >
-                  {announcement.title}
-                </Link>
-                {idx !== announcements.length - 1 && <Separator className="my-1 bg-slate-100" />}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 px-1">공지사항이 없습니다</p>
-        )}
-      </div>
+    )
+}
+</file>
 
-      <Separator className="bg-slate-100" />
+<file path="components/site-header-static.tsx">
+"use client"
 
-      {/* 푸터 영역 (예시) */}
-      <div className="px-1 text-xs text-slate-400 leading-relaxed space-y-1">
-        <div>© 2024 SFC</div>
-        <div className="flex gap-2">
-          <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
-          <span className="text-slate-300">·</span>
-          <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
-        </div>
-      </div>
+import Link from "next/link"
+import Image from "next/image"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { SiteHeaderClient } from "./site-header-client"
+
+export function SiteHeaderStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoaded, setIsLoaded] = useState(false)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function checkAuth() {
+            try {
+                // getSession은 로컬 캐시 우선 → 빠름
+                const { data: { session } } = await supabase.auth.getSession()
+
+                if (!session?.user) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
+
+                setUser(session.user)
+
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("Auth check failed:", error)
+            } finally {
+                setIsLoaded(true)
+            }
+        }
+
+        checkAuth()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    return (
+        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
+            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
+                <div className="ml-1 mr-4 flex items-center">
+                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
+                        <Image
+                            src="/images/logo-text.png"
+                            alt="Seoul Founders Club"
+                            width={580}
+                            height={51}
+                            className="h-8 w-auto max-w-56 object-contain"
+                            priority
+                        />
+                    </Link>
+                </div>
+
+                <SiteHeaderClient
+                    user={isLoaded ? user : null}
+                    profile={isLoaded ? profile : null}
+                    initialNotifications={[]}
+                />
+            </div>
+        </header>
+    )
+}
+</file>
+
+<file path="app/community/profile/page.tsx">
+"use client"
+
+import dynamic from "next/dynamic"
+import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+
+// SSR 완전 비활성화 - hydration 에러 방지
+const ProfileContent = dynamic(() => import("./ProfileContent"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
     </div>
-  )
+  ),
+})
+
+export default function ProfilePage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+      </div>
+    )
+  }
+
+  return <ProfileContent />
 }
 </file>
 
@@ -49637,7 +49895,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      console.log("🔥🔥🔥 [auth/callback] 로그인 성공 & 쿠키 설정 완료");
 
       // [신규 가입 알림 로직]
       try {
@@ -49688,58 +49945,11 @@ export async function GET(request: NextRequest) {
 
       // 3. 쿠키가 담긴 response 반환
       return response;
-    } else {
-      console.error("🔥🔥🔥 [auth/callback] 에러:", error.message);
     }
   }
 
   return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
 }
-</file>
-
-<file path="app/community/profile/page.tsx">
-"use client"
-
-import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
-
-// SSR 완전 비활성화 - hydration 에러 방지
-const ProfileContent = dynamic(() => import("./ProfileContent"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
-      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-    </div>
-  ),
-})
-
-export default function ProfilePage() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-      </div>
-    )
-  }
-
-  return <ProfileContent />
-}
-</file>
-
-<file path="next-env.d.ts">
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-import "./.next/dev/types/routes.d.ts";
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
 </file>
 
 <file path=".claude/settings.local.json">
@@ -50096,6 +50306,15 @@ export default function NotificationsDropdown({
 export { NotificationsDropdown }
 </file>
 
+<file path="next-env.d.ts">
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+</file>
+
 <file path="components/sidebar.tsx">
 "use client"
 
@@ -50321,228 +50540,6 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       </nav>
     </div>
   )
-}
-</file>
-
-<file path="components/site-header-client.tsx">
-"use client"
-
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
-import {
-    Bell,
-    Plus,
-    Settings,
-    LogOut,
-    User,
-    PenSquare,
-    Calendar,
-    Users,
-    Search
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NotificationsDropdown } from "@/components/notifications-dropdown"
-import { createClient } from "@/lib/supabase/client"
-import { Input } from "@/components/ui/input"
-
-interface SiteHeaderClientProps {
-    user: any
-    profile: any
-    initialNotifications?: any[]
-}
-
-export function SiteHeaderClient({ user, profile, initialNotifications = [] }: SiteHeaderClientProps) {
-    const router = useRouter()
-    const supabase = createClient()
-    const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
-    const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
-    const [mounted, setMounted] = useState(false)
-
-    // 클라이언트 마운트 후에만 user 상태 반영 (hydration 에러 방지)
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    const handleSignOut = () => {
-        console.log('[SignOut] Clearing cookies and redirecting...')
-        // 쿠키 직접 삭제
-        document.cookie.split(";").forEach((c) => {
-            document.cookie = c
-                .replace(/^ +/, "")
-                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
-        })
-        // localStorage 클리어
-        localStorage.clear()
-        // 리디렉션
-        window.location.href = "/"
-    }
-
-    return (
-        <div className="flex flex-1 items-center justify-end gap-4">
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-                {mounted && user ? (
-                    <>
-                        {/* 만들기 버튼 (Dropdown) */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 h-9 rounded-full px-3 hover:bg-slate-100">
-                                    <Plus className="h-5 w-5" />
-                                    <span className="font-medium">만들기</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                sideOffset={10}
-                                className="z-[70] w-52 bg-white shadow-lg border border-slate-200"
-                                onMouseLeave={() => setActiveCreateItem(null)}
-                            >
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/community/new")}
-                                    onMouseEnter={() => setActiveCreateItem("post")}
-                                    className={activeCreateItem === "post" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <PenSquare className={`mr-2 h-4 w-4 ${activeCreateItem === "post" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>새 글 쓰기</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/e/new")}
-                                    onMouseEnter={() => setActiveCreateItem("event")}
-                                    className={activeCreateItem === "event" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Calendar className={`mr-2 h-4 w-4 ${activeCreateItem === "event" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>새 이벤트</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/communities/new")}
-                                    onMouseEnter={() => setActiveCreateItem("community")}
-                                    className={activeCreateItem === "community" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Users className={`mr-2 h-4 w-4 ${activeCreateItem === "community" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>새 커뮤니티</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* 모바일용 만들기 아이콘 */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full">
-                                    <Plus className="h-6 w-6" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                sideOffset={10}
-                                className="z-[70] bg-white shadow-lg border border-slate-200"
-                            >
-                                <DropdownMenuItem onClick={() => router.push("/community/new")}>
-                                    새 글 쓰기
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => router.push("/e/new")}>
-                                    새 이벤트
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => router.push("/communities/new")}>
-                                    새 커뮤니티
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* 알림 */}
-                        <NotificationsDropdown
-                            triggerClassName="h-9 w-9 rounded-full"
-                            align="end"
-                            initialUser={user}
-                            initialNotifications={initialNotifications}
-                        />
-
-                        {/* 프로필 드롭다운 */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-1 border border-slate-200 overflow-hidden">
-                                    <Avatar className="h-9 w-9">
-                                        <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || ""} />
-                                        <AvatarFallback className="bg-slate-100 text-slate-600 font-medium">
-                                            {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                className="w-56 z-[70] bg-white shadow-lg border border-slate-200"
-                                align="end"
-                                sideOffset={10}
-                                forceMount
-                                onMouseLeave={() => setActiveProfileItem(null)}
-                            >
-                                <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{profile?.full_name || "사용자"}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            {user.email}
-                                        </p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/community/profile")}
-                                    onMouseEnter={() => setActiveProfileItem("profile")}
-                                    className={activeProfileItem === "profile" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <User className={`mr-2 h-4 w-4 ${activeProfileItem === "profile" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>내 프로필</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/settings")}
-                                    onMouseEnter={() => setActiveProfileItem("settings")}
-                                    className={activeProfileItem === "settings" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Settings className={`mr-2 h-4 w-4 ${activeProfileItem === "settings" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>설정</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""}`}
-                                    onClick={handleSignOut}
-                                    onMouseEnter={() => setActiveProfileItem("logout")}
-                                >
-                                    <LogOut className={`mr-2 h-4 w-4 ${activeProfileItem === "logout" ? "text-red-600" : "text-slate-500"}`} />
-                                    <span>로그아웃</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </>
-                ) : (
-                    <div className="flex items-center gap-2">
-                        <Link href="/auth/login">
-                            <Button
-                                variant="ghost"
-                                className="rounded-full hover:bg-slate-100 hover:text-slate-900"
-                            >
-                                로그인
-                            </Button>
-                        </Link>
-                        <Link href="/auth/login">
-                            <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                                가입하기
-                            </Button>
-                        </Link>
-                    </div>
-                )}
-            </div>
-        </div>
-    )
 }
 </file>
 

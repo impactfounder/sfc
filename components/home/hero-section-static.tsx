@@ -14,8 +14,17 @@ export function HeroSectionStatic() {
 
         async function checkAuth() {
             try {
-                // getSession은 로컬 캐시 우선 → 빠름
-                const { data: { session } } = await supabase.auth.getSession()
+                // 1. 로컬 세션 확인
+                let { data: { session } } = await supabase.auth.getSession()
+
+                // 2. Fallback: 쿠키는 있는데 세션이 안 잡히면 getUser()로 강제 검증
+                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
+                    const { data: { user }, error } = await supabase.auth.getUser()
+                    if (user && !error) {
+                        const sessionResult = await supabase.auth.getSession()
+                        session = sessionResult.data.session
+                    }
+                }
 
                 if (!session?.user) {
                     setUser(null)
@@ -33,7 +42,7 @@ export function HeroSectionStatic() {
 
                 setProfile(profileData)
             } catch (error) {
-                console.error("Auth check failed:", error)
+                console.error("[HeroSection] Auth check failed:", error)
             } finally {
                 setIsLoading(false)
             }

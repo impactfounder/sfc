@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, resetClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 
 interface SiteHeaderClientProps {
@@ -47,16 +47,20 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
     }, [])
 
     const handleSignOut = () => {
-        console.log('[SignOut] Clearing cookies and redirecting...')
-        // 쿠키 직접 삭제
+        // 1. 쿠키 삭제
         document.cookie.split(";").forEach((c) => {
             document.cookie = c
                 .replace(/^ +/, "")
                 .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
         })
-        // localStorage 클리어
+
+        // 2. localStorage 클리어
         localStorage.clear()
-        // 리디렉션
+
+        // 3. Supabase 클라이언트 인스턴스 초기화 (싱글톤 리셋)
+        resetClient()
+
+        // 4. 리디렉션
         window.location.href = "/"
     }
 

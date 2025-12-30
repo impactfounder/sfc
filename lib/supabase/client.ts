@@ -1,8 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// 싱글톤 인스턴스
 let supabaseInstance: SupabaseClient | null = null;
-let lastAuthState: boolean | null = null;
 
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,18 +12,19 @@ export function createClient() {
     throw new Error("Supabase 환경 변수 미설정");
   }
 
+  // 브라우저 환경에서는 싱글톤 인스턴스 재사용
   if (typeof window !== 'undefined') {
-    // 인증 쿠키 유무만 체크 (다른 쿠키 변경에 영향 안 받음)
-    const hasAuthCookie = document.cookie.includes('sb-');
-
-    if (supabaseInstance && lastAuthState === hasAuthCookie) {
-      return supabaseInstance;
+    if (!supabaseInstance) {
+      supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
     }
-
-    lastAuthState = hasAuthCookie;
-    supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
     return supabaseInstance;
   }
 
+  // 서버 환경에서는 매번 새로 생성
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
+}
+
+// 로그아웃 시 인스턴스 초기화용
+export function resetClient() {
+  supabaseInstance = null;
 }

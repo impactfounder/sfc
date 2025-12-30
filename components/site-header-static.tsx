@@ -16,8 +16,19 @@ export function SiteHeaderStatic() {
 
         async function checkAuth() {
             try {
-                // getSession은 로컬 캐시 우선 → 빠름
-                const { data: { session } } = await supabase.auth.getSession()
+                // 1. 빠른 확인: 로컬 세션 먼저 시도
+                let { data: { session } } = await supabase.auth.getSession()
+
+                // 2. Fallback: 세션이 없지만 쿠키는 있는 경우 (새로고침/리다이렉트 직후)
+                // getUser()를 호출하여 서버에서 강제로 세션을 복구
+                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
+                    const { data: { user }, error } = await supabase.auth.getUser()
+                    if (user && !error) {
+                        // 유저가 확인되면 세션 객체도 다시 가져옴
+                        const sessionResult = await supabase.auth.getSession()
+                        session = sessionResult.data.session
+                    }
+                }
 
                 if (!session?.user) {
                     setUser(null)
@@ -35,7 +46,7 @@ export function SiteHeaderStatic() {
 
                 setProfile(profileData)
             } catch (error) {
-                console.error("Auth check failed:", error)
+                console.error("[SiteHeader] Auth check failed:", error)
             } finally {
                 setIsLoaded(true)
             }
