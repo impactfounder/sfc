@@ -17,8 +17,19 @@ export function SiteHeaderStatic() {
         async function checkAuth() {
             try {
                 console.log('[SiteHeader] 1. checkAuth 시작')
+                console.log('[SiteHeader] 1.5. 현재 쿠키:', document.cookie ? document.cookie.substring(0, 100) + '...' : '(없음)')
 
-                const { data: { user: authUser }, error } = await supabase.auth.getUser()
+                // 타임아웃 설정 - 5초 후에도 응답 없으면 에러
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('getUser 타임아웃 (5초)')), 5000)
+                })
+
+                console.log('[SiteHeader] 1.6. getUser 호출 시작...')
+
+                const getUserPromise = supabase.auth.getUser()
+
+                const result = await Promise.race([getUserPromise, timeoutPromise]) as any
+                const { data: { user: authUser }, error } = result
 
                 console.log('[SiteHeader] 2. getUser 결과:', {
                     hasUser: !!authUser,

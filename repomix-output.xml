@@ -1527,6 +1527,159 @@ export default async function ErrorPage({
 }
 </file>
 
+<file path="app/auth/layout.tsx">
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { SiteHeader } from "@/components/site-header"
+import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <DashboardLayout header={<SiteHeader />}>
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
+        {children}
+      </ThreeColumnLayout>
+    </DashboardLayout>
+  )
+}
+</file>
+
+<file path="app/auth/login/page.tsx">
+"use client"
+
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { useState, Suspense } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+import Image from "next/image"
+import { useSearchParams } from "next/navigation"
+
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const next = searchParams.get("next") || "/"
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleGoogleLogin = async () => {
+    const supabase = createClient()
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // 환경 변수 대신 현재 브라우저의 origin을 사용하여
+          // 로컬에서는 localhost로, 배포 환경에서는 도메인으로 이동하도록 수정
+          redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+      if (error) throw error
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "An error occurred")
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-[420px] p-8 border-none shadow-xl rounded-2xl bg-white animate-in fade-in zoom-in-95 duration-500">
+      <CardHeader className="flex flex-col items-center space-y-4 pb-0">
+
+        {/* 로고 영역 (확실하게 키움 w-32) */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-32 h-32 shadow-lg rounded-full overflow-hidden border-[5px] border-white bg-white">
+            <Image
+              src="/images/logo.png"
+              alt="Seoul Founders Club Logo"
+              width={256}
+              height={256}
+              quality={100}
+              className="object-cover w-full h-full"
+              priority
+            />
+          </div>
+          <Image
+            src="/images/logo-text.png"
+            alt="SEOUL FOUNDERS CLUB"
+            width={160}
+            height={28}
+            className="object-contain opacity-90 h-auto"
+            quality={100}
+            priority
+          />
+        </div>
+
+        <div className="text-center space-y-1">
+          <CardTitle className="text-2xl font-bold text-slate-900">
+            환영합니다!
+          </CardTitle>
+          <p className="text-[13px] text-slate-500 leading-relaxed">
+            서울 파운더스 클럽에서<br />
+            함께 성장하고 연결되세요.
+          </p>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-3 mt-2 p-0">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full h-12 text-[15px] bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium relative shadow-sm transition-all hover:shadow-md rounded-xl"
+          onClick={handleGoogleLogin}
+          disabled={isLoading}
+        >
+          <div className="absolute left-4 flex items-center justify-center">
+            <svg className="h-5 w-5" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+            </svg>
+          </div>
+          {isLoading ? "연결 중..." : "Google로 계속하기"}
+        </Button>
+
+        {error && <p className="text-xs text-red-600 text-center bg-red-50 p-2 rounded-lg">{error}</p>}
+
+        <div className="mt-1 text-center">
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            계속 진행함으로써 Seoul Founders Club의{" "}
+            <Link href="/terms" className="underline underline-offset-2 hover:text-slate-600 transition-colors" target="_blank">
+              이용약관
+            </Link>
+            {" "}및{" "}
+            <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-600 transition-colors" target="_blank">
+              개인정보 처리방침
+            </Link>
+            에<br />
+            동의하는 것으로 간주됩니다.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh] py-12">
+      <Suspense fallback={<div>Loading...</div>}>
+        <LoginContent />
+      </Suspense>
+    </div>
+  )
+}
+</file>
+
 <file path="app/auth/sign-up-success/page.tsx">
 import {
   Card,
@@ -35734,159 +35887,6 @@ export async function POST(request: NextRequest) {
 }
 </file>
 
-<file path="app/auth/layout.tsx">
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { SiteHeader } from "@/components/site-header"
-import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <DashboardLayout header={<SiteHeader />}>
-      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
-        {children}
-      </ThreeColumnLayout>
-    </DashboardLayout>
-  )
-}
-</file>
-
-<file path="app/auth/login/page.tsx">
-"use client"
-
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { useState, Suspense } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
-import Image from "next/image"
-import { useSearchParams } from "next/navigation"
-
-function LoginContent() {
-  const searchParams = useSearchParams()
-  const next = searchParams.get("next") || "/"
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleGoogleLogin = async () => {
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          // 환경 변수 대신 현재 브라우저의 origin을 사용하여
-          // 로컬에서는 localhost로, 배포 환경에서는 도메인으로 이동하도록 수정
-          redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      })
-      if (error) throw error
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <Card className="w-full max-w-[420px] p-8 border-none shadow-xl rounded-2xl bg-white animate-in fade-in zoom-in-95 duration-500">
-      <CardHeader className="flex flex-col items-center space-y-4 pb-0">
-
-        {/* 로고 영역 (확실하게 키움 w-32) */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-32 h-32 shadow-lg rounded-full overflow-hidden border-[5px] border-white bg-white">
-            <Image
-              src="/images/logo.png"
-              alt="Seoul Founders Club Logo"
-              width={256}
-              height={256}
-              quality={100}
-              className="object-cover w-full h-full"
-              priority
-            />
-          </div>
-          <Image
-            src="/images/logo-text.png"
-            alt="SEOUL FOUNDERS CLUB"
-            width={160}
-            height={28}
-            className="object-contain opacity-90 h-auto"
-            quality={100}
-            priority
-          />
-        </div>
-
-        <div className="text-center space-y-1">
-          <CardTitle className="text-2xl font-bold text-slate-900">
-            환영합니다!
-          </CardTitle>
-          <p className="text-[13px] text-slate-500 leading-relaxed">
-            서울 파운더스 클럽에서<br />
-            함께 성장하고 연결되세요.
-          </p>
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex flex-col gap-3 mt-2 p-0">
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full h-12 text-[15px] bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium relative shadow-sm transition-all hover:shadow-md rounded-xl"
-          onClick={handleGoogleLogin}
-          disabled={isLoading}
-        >
-          <div className="absolute left-4 flex items-center justify-center">
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-            </svg>
-          </div>
-          {isLoading ? "연결 중..." : "Google로 계속하기"}
-        </Button>
-
-        {error && <p className="text-xs text-red-600 text-center bg-red-50 p-2 rounded-lg">{error}</p>}
-
-        <div className="mt-1 text-center">
-          <p className="text-[10px] text-slate-400 leading-relaxed">
-            계속 진행함으로써 Seoul Founders Club의{" "}
-            <Link href="/terms" className="underline underline-offset-2 hover:text-slate-600 transition-colors" target="_blank">
-              이용약관
-            </Link>
-            {" "}및{" "}
-            <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-600 transition-colors" target="_blank">
-              개인정보 처리방침
-            </Link>
-            에<br />
-            동의하는 것으로 간주됩니다.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh] py-12">
-      <Suspense fallback={<div>Loading...</div>}>
-        <LoginContent />
-      </Suspense>
-    </div>
-  )
-}
-</file>
-
 <file path="app/community/announcements/[id]/page.tsx">
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from 'next/navigation';
@@ -44908,136 +44908,6 @@ export const config = {
 };
 </file>
 
-<file path="app/auth/callback/route.ts">
-import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
-
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
-
-  if (code) {
-    const cookieStore = await cookies();
-
-    // 1. 먼저 어디로 이동할지 결정합니다.
-    // Vercel 배포 환경을 고려하여 URL을 생성합니다.
-    const forwardedHost = request.headers.get("x-forwarded-host"); 
-    const isLocalEnv = process.env.NODE_ENV === "development";
-
-    let redirectUrl: URL;
-    if (isLocalEnv) {
-      redirectUrl = new URL(next, origin);
-    } else if (forwardedHost) {
-      redirectUrl = new URL(next, `https://${forwardedHost}`);
-    } else {
-      redirectUrl = new URL(next, origin);
-    }
-
-    // 2. 리디렉션할 Response 객체를 '미리' 만듭니다.
-    const response = NextResponse.redirect(redirectUrl);
-
-    // 3. Supabase 클라이언트를 만들면서, 위에서 만든 response에 쿠키를 심도록 설정합니다.
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            // ★ 여기가 핵심: 만들어둔 response 객체에 쿠키를 설정합니다.
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options);
-            });
-          },
-        },
-      }
-    );
-
-    // 4. 인증 코드를 세션으로 교환합니다. (이때 setAll이 실행되어 쿠키가 심어짐)
-    console.log("🔥🔥🔥 [auth/callback] 코드 교환 시도:", { code: code?.substring(0, 10) + "...", origin, next });
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (error) {
-      console.error("🔥🔥🔥 [auth/callback] 로그인 실패 원인:", error.message, error);
-      return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(error.message)}`, origin));
-    }
-
-    console.log("🔥🔥🔥 [auth/callback] 로그인 성공:", { userId: data.user?.id, email: data.user?.email });
-
-    // 쿠키 설정 확인 로그
-    const setCookies = response.headers.getSetCookie();
-    console.log("🔥🔥🔥 [auth/callback] 설정된 쿠키 개수:", setCookies.length);
-    console.log("🔥🔥🔥 [auth/callback] 쿠키 목록:", setCookies.map(c => c.split('=')[0]));
-
-    // ISR 캐시 무효화 - 로그인 후 최신 상태 반영
-    revalidatePath("/", "layout");
-    revalidatePath("/", "page");
-    console.log("🔥🔥🔥 [auth/callback] 캐시 무효화 완료");
-
-    // 5. [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // 프로필 정보 조회 (last_login_date 확인)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("last_login_date, full_name, email")
-          .eq("id", user.id)
-          .single();
-
-        // last_login_date가 없으면 '최초 로그인'으로 간주하여 알림 발송
-        if (profile && !profile.last_login_date) {
-          // 마스터 계정 조회
-          const { data: masters } = await supabase
-            .from("profiles")
-            .select("id")
-            .eq("role", "master");
-
-          if (masters && masters.length > 0) {
-            const userName = profile.full_name || profile.email?.split('@')[0] || "알 수 없음";
-            
-            // 알림 데이터 생성
-            const notifications = masters.map(master => ({
-              user_id: master.id,
-              type: "new_member",
-              title: "새로운 멤버 가입",
-              message: `새로운 멤버 '${userName}'님이 가입했습니다. 환영해주세요!`,
-              related_post_id: null,
-              related_event_id: null,
-              actor_id: user.id,
-              is_read: false
-            }));
-
-            // 알림 일괄 전송
-            await supabase.from("notifications").insert(notifications);
-          }
-        }
-
-        // 로그인 시간 업데이트
-        await supabase
-          .from("profiles")
-          .update({ last_login_date: new Date().toISOString() })
-          .eq("id", user.id);
-      }
-    } catch (err) {
-      console.error("[auth/callback] Notification error:", err);
-      // 알림 실패가 로그인 흐름을 방해하지 않도록 예외 무시
-    }
-
-    // 6. 쿠키가 심어진 그 response를 그대로 반환합니다.
-    return response;
-  }
-
-  // code가 없으면 로그인 페이지로 이동
-  return NextResponse.redirect(new URL("/auth/login?error=no_code", origin));
-}
-</file>
-
 <file path="app/e/page.tsx">
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
@@ -49670,51 +49540,6 @@ function sanitizePreview(html: string, stripImages = false): string {
 }
 </file>
 
-<file path="app/community/profile/page.tsx">
-"use client"
-
-import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
-
-// SSR 완전 비활성화 - hydration 에러 방지
-const ProfileContent = dynamic(() => import("./ProfileContent"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
-      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-    </div>
-  ),
-})
-
-export default function ProfilePage() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-      </div>
-    )
-  }
-
-  return <ProfileContent />
-}
-</file>
-
-<file path="next-env.d.ts">
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-import "./.next/dev/types/routes.d.ts";
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
-</file>
-
 <file path="components/standard-right-sidebar.tsx">
 import { getCachedAnnouncements } from "@/lib/queries/cached"
 import { Separator } from "@/components/ui/separator"
@@ -49771,6 +49596,150 @@ export async function StandardRightSidebar() {
     </div>
   )
 }
+</file>
+
+<file path="app/auth/callback/route.ts">
+import { type NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+export async function GET(request: NextRequest) {
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
+  const next = requestUrl.searchParams.get("next") ?? "/";
+
+  // 1. 배포 환경(프로덕션)이면 무조건 https://seoulfounders.club 사용
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const origin = isDevelopment ? requestUrl.origin : "https://seoulfounders.club";
+
+  // 2. 리다이렉트 응답 객체 미리 생성
+  const response = NextResponse.redirect(`${origin}${next}`);
+
+  if (code) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // ✅ 핵심: response 객체에 쿠키 설정 + options 그대로 전달
+              // Supabase가 httpOnly/Secure 등을 자동 관리하므로 덮어쓰지 않음
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error) {
+      console.log("🔥🔥🔥 [auth/callback] 로그인 성공 & 쿠키 설정 완료");
+
+      // [신규 가입 알림 로직]
+      try {
+        const user = data.user;
+        if (user) {
+          const adminSupabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { cookies: { getAll: () => [], setAll: () => {} } }
+          );
+
+          const { data: profile } = await adminSupabase
+            .from("profiles")
+            .select("last_login_date, full_name, email")
+            .eq("id", user.id)
+            .single();
+
+          if (profile && !profile.last_login_date) {
+            const { data: masters } = await adminSupabase
+              .from("profiles")
+              .select("id")
+              .eq("role", "master");
+
+            if (masters && masters.length > 0) {
+              const userName = profile.full_name || profile.email?.split('@')[0] || "알 수 없음";
+              const notifications = masters.map(master => ({
+                user_id: master.id,
+                type: "new_member",
+                title: "새로운 멤버 가입",
+                message: `새로운 멤버 '${userName}'님이 가입했습니다.`,
+                related_post_id: null,
+                related_event_id: null,
+                actor_id: user.id,
+                is_read: false
+              }));
+              await adminSupabase.from("notifications").insert(notifications);
+            }
+          }
+
+          await adminSupabase
+            .from("profiles")
+            .update({ last_login_date: new Date().toISOString() })
+            .eq("id", user.id);
+        }
+      } catch (err) {
+        console.error("[auth/callback] Notification error:", err);
+      }
+
+      // 3. 쿠키가 담긴 response 반환
+      return response;
+    } else {
+      console.error("🔥🔥🔥 [auth/callback] 에러:", error.message);
+    }
+  }
+
+  return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
+}
+</file>
+
+<file path="app/community/profile/page.tsx">
+"use client"
+
+import dynamic from "next/dynamic"
+import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+
+// SSR 완전 비활성화 - hydration 에러 방지
+const ProfileContent = dynamic(() => import("./ProfileContent"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+    </div>
+  ),
+})
+
+export default function ProfilePage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+      </div>
+    )
+  }
+
+  return <ProfileContent />
+}
+</file>
+
+<file path="next-env.d.ts">
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/dev/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
 </file>
 
 <file path=".claude/settings.local.json">
@@ -50127,228 +50096,6 @@ export default function NotificationsDropdown({
 export { NotificationsDropdown }
 </file>
 
-<file path="components/site-header-client.tsx">
-"use client"
-
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
-import {
-    Bell,
-    Plus,
-    Settings,
-    LogOut,
-    User,
-    PenSquare,
-    Calendar,
-    Users,
-    Search
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NotificationsDropdown } from "@/components/notifications-dropdown"
-import { createClient } from "@/lib/supabase/client"
-import { Input } from "@/components/ui/input"
-
-interface SiteHeaderClientProps {
-    user: any
-    profile: any
-    initialNotifications?: any[]
-}
-
-export function SiteHeaderClient({ user, profile, initialNotifications = [] }: SiteHeaderClientProps) {
-    const router = useRouter()
-    const supabase = createClient()
-    const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
-    const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
-    const [mounted, setMounted] = useState(false)
-
-    // 클라이언트 마운트 후에만 user 상태 반영 (hydration 에러 방지)
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    const handleSignOut = () => {
-        console.log('[SignOut] Clearing cookies and redirecting...')
-        // 쿠키 직접 삭제
-        document.cookie.split(";").forEach((c) => {
-            document.cookie = c
-                .replace(/^ +/, "")
-                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
-        })
-        // localStorage 클리어
-        localStorage.clear()
-        // 리디렉션
-        window.location.href = "/"
-    }
-
-    return (
-        <div className="flex flex-1 items-center justify-end gap-4">
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-                {mounted && user ? (
-                    <>
-                        {/* 만들기 버튼 (Dropdown) */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 h-9 rounded-full px-3 hover:bg-slate-100">
-                                    <Plus className="h-5 w-5" />
-                                    <span className="font-medium">만들기</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                sideOffset={10}
-                                className="z-[70] w-52 bg-white shadow-lg border border-slate-200"
-                                onMouseLeave={() => setActiveCreateItem(null)}
-                            >
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/community/new")}
-                                    onMouseEnter={() => setActiveCreateItem("post")}
-                                    className={activeCreateItem === "post" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <PenSquare className={`mr-2 h-4 w-4 ${activeCreateItem === "post" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>새 글 쓰기</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/e/new")}
-                                    onMouseEnter={() => setActiveCreateItem("event")}
-                                    className={activeCreateItem === "event" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Calendar className={`mr-2 h-4 w-4 ${activeCreateItem === "event" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>새 이벤트</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/communities/new")}
-                                    onMouseEnter={() => setActiveCreateItem("community")}
-                                    className={activeCreateItem === "community" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Users className={`mr-2 h-4 w-4 ${activeCreateItem === "community" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>새 커뮤니티</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* 모바일용 만들기 아이콘 */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full">
-                                    <Plus className="h-6 w-6" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                sideOffset={10}
-                                className="z-[70] bg-white shadow-lg border border-slate-200"
-                            >
-                                <DropdownMenuItem onClick={() => router.push("/community/new")}>
-                                    새 글 쓰기
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => router.push("/e/new")}>
-                                    새 이벤트
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => router.push("/communities/new")}>
-                                    새 커뮤니티
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* 알림 */}
-                        <NotificationsDropdown
-                            triggerClassName="h-9 w-9 rounded-full"
-                            align="end"
-                            initialUser={user}
-                            initialNotifications={initialNotifications}
-                        />
-
-                        {/* 프로필 드롭다운 */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-1 border border-slate-200 overflow-hidden">
-                                    <Avatar className="h-9 w-9">
-                                        <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || ""} />
-                                        <AvatarFallback className="bg-slate-100 text-slate-600 font-medium">
-                                            {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                className="w-56 z-[70] bg-white shadow-lg border border-slate-200"
-                                align="end"
-                                sideOffset={10}
-                                forceMount
-                                onMouseLeave={() => setActiveProfileItem(null)}
-                            >
-                                <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{profile?.full_name || "사용자"}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            {user.email}
-                                        </p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/community/profile")}
-                                    onMouseEnter={() => setActiveProfileItem("profile")}
-                                    className={activeProfileItem === "profile" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <User className={`mr-2 h-4 w-4 ${activeProfileItem === "profile" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>내 프로필</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/settings")}
-                                    onMouseEnter={() => setActiveProfileItem("settings")}
-                                    className={activeProfileItem === "settings" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Settings className={`mr-2 h-4 w-4 ${activeProfileItem === "settings" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>설정</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""}`}
-                                    onClick={handleSignOut}
-                                    onMouseEnter={() => setActiveProfileItem("logout")}
-                                >
-                                    <LogOut className={`mr-2 h-4 w-4 ${activeProfileItem === "logout" ? "text-red-600" : "text-slate-500"}`} />
-                                    <span>로그아웃</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </>
-                ) : (
-                    <div className="flex items-center gap-2">
-                        <Link href="/auth/login">
-                            <Button
-                                variant="ghost"
-                                className="rounded-full hover:bg-slate-100 hover:text-slate-900"
-                            >
-                                로그인
-                            </Button>
-                        </Link>
-                        <Link href="/auth/login">
-                            <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                                가입하기
-                            </Button>
-                        </Link>
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-</file>
-
 <file path="components/sidebar.tsx">
 "use client"
 
@@ -50574,6 +50321,228 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       </nav>
     </div>
   )
+}
+</file>
+
+<file path="components/site-header-client.tsx">
+"use client"
+
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import {
+    Bell,
+    Plus,
+    Settings,
+    LogOut,
+    User,
+    PenSquare,
+    Calendar,
+    Users,
+    Search
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { NotificationsDropdown } from "@/components/notifications-dropdown"
+import { createClient } from "@/lib/supabase/client"
+import { Input } from "@/components/ui/input"
+
+interface SiteHeaderClientProps {
+    user: any
+    profile: any
+    initialNotifications?: any[]
+}
+
+export function SiteHeaderClient({ user, profile, initialNotifications = [] }: SiteHeaderClientProps) {
+    const router = useRouter()
+    const supabase = createClient()
+    const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
+    const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
+    const [mounted, setMounted] = useState(false)
+
+    // 클라이언트 마운트 후에만 user 상태 반영 (hydration 에러 방지)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const handleSignOut = () => {
+        console.log('[SignOut] Clearing cookies and redirecting...')
+        // 쿠키 직접 삭제
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+        })
+        // localStorage 클리어
+        localStorage.clear()
+        // 리디렉션
+        window.location.href = "/"
+    }
+
+    return (
+        <div className="flex flex-1 items-center justify-end gap-4">
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+                {mounted && user ? (
+                    <>
+                        {/* 만들기 버튼 (Dropdown) */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 h-9 rounded-full px-3 hover:bg-slate-100">
+                                    <Plus className="h-5 w-5" />
+                                    <span className="font-medium">만들기</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                sideOffset={10}
+                                className="z-[70] w-52 bg-white shadow-lg border border-slate-200"
+                                onMouseLeave={() => setActiveCreateItem(null)}
+                            >
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/community/new")}
+                                    onMouseEnter={() => setActiveCreateItem("post")}
+                                    className={activeCreateItem === "post" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <PenSquare className={`mr-2 h-4 w-4 ${activeCreateItem === "post" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>새 글 쓰기</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/e/new")}
+                                    onMouseEnter={() => setActiveCreateItem("event")}
+                                    className={activeCreateItem === "event" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <Calendar className={`mr-2 h-4 w-4 ${activeCreateItem === "event" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>새 이벤트</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/communities/new")}
+                                    onMouseEnter={() => setActiveCreateItem("community")}
+                                    className={activeCreateItem === "community" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <Users className={`mr-2 h-4 w-4 ${activeCreateItem === "community" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>새 커뮤니티</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* 모바일용 만들기 아이콘 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full">
+                                    <Plus className="h-6 w-6" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                sideOffset={10}
+                                className="z-[70] bg-white shadow-lg border border-slate-200"
+                            >
+                                <DropdownMenuItem onClick={() => router.push("/community/new")}>
+                                    새 글 쓰기
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("/e/new")}>
+                                    새 이벤트
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push("/communities/new")}>
+                                    새 커뮤니티
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* 알림 */}
+                        <NotificationsDropdown
+                            triggerClassName="h-9 w-9 rounded-full"
+                            align="end"
+                            initialUser={user}
+                            initialNotifications={initialNotifications}
+                        />
+
+                        {/* 프로필 드롭다운 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-1 border border-slate-200 overflow-hidden">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage src={profile?.avatar_url || ""} alt={profile?.full_name || ""} />
+                                        <AvatarFallback className="bg-slate-100 text-slate-600 font-medium">
+                                            {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-56 z-[70] bg-white shadow-lg border border-slate-200"
+                                align="end"
+                                sideOffset={10}
+                                forceMount
+                                onMouseLeave={() => setActiveProfileItem(null)}
+                            >
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{profile?.full_name || "사용자"}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            {user.email}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/community/profile")}
+                                    onMouseEnter={() => setActiveProfileItem("profile")}
+                                    className={activeProfileItem === "profile" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <User className={`mr-2 h-4 w-4 ${activeProfileItem === "profile" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>내 프로필</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => router.push("/settings")}
+                                    onMouseEnter={() => setActiveProfileItem("settings")}
+                                    className={activeProfileItem === "settings" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
+                                >
+                                    <Settings className={`mr-2 h-4 w-4 ${activeProfileItem === "settings" ? "text-slate-900" : "text-slate-500"}`} />
+                                    <span>설정</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className={`text-red-600 ${activeProfileItem === "logout" ? "bg-red-50 font-semibold" : ""}`}
+                                    onClick={handleSignOut}
+                                    onMouseEnter={() => setActiveProfileItem("logout")}
+                                >
+                                    <LogOut className={`mr-2 h-4 w-4 ${activeProfileItem === "logout" ? "text-red-600" : "text-slate-500"}`} />
+                                    <span>로그아웃</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <Link href="/auth/login">
+                            <Button
+                                variant="ghost"
+                                className="rounded-full hover:bg-slate-100 hover:text-slate-900"
+                            >
+                                로그인
+                            </Button>
+                        </Link>
+                        <Link href="/auth/login">
+                            <Button className="rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                                가입하기
+                            </Button>
+                        </Link>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
 }
 </file>
 
