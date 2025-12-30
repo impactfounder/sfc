@@ -187,7 +187,6 @@ export default function ProfileContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn("[Profile] 로딩 시간 초과 - 강제 화면 표시")
         setLoading(false)
       }
     }, 5000)
@@ -202,7 +201,6 @@ export default function ProfileContent() {
     // 리스트 데이터 비동기 로딩 (Fire & Forget)
     // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
     const loadListData = (userId: string) => {
-      console.log('[Profile] 3. 리스트 데이터 백그라운드 로딩 시작')
 
       // (1) 만든 이벤트
       supabase
@@ -308,7 +306,6 @@ export default function ProfileContent() {
 
     const initProfile = async () => {
       try {
-        console.log('[Profile] 1. 초기화 시작')
         setLoading(true)
 
         // 1. 세션 확인 (로컬 캐시 확인이라 빠름)
@@ -317,7 +314,6 @@ export default function ProfileContent() {
         if (!isMounted) return
 
         if (!session?.user) {
-          console.log('[Profile] 세션 없음 -> 로그인 이동')
           setLoading(false)
           router.push("/auth/login")
           return
@@ -327,7 +323,6 @@ export default function ProfileContent() {
         setUser(currentUser)
 
         // 2. 프로필 기본 정보만 "동기적"으로 로드 (필수 데이터)
-        console.log('[Profile] 2. 프로필 정보 조회')
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
@@ -367,7 +362,7 @@ export default function ProfileContent() {
         loadListData(currentUser.id)
 
       } catch (error) {
-        console.error('[Profile] 치명적 오류:', error)
+        console.error('Profile init error:', error)
         if (isMounted) setSessionError('데이터를 불러오는 중 오류가 발생했습니다.')
         if (isMounted) setLoading(false)
       }

@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      console.log("🔥🔥🔥 [auth/callback] 로그인 성공 & 쿠키 설정 완료");
 
       // [신규 가입 알림 로직]
       try {
@@ -87,8 +86,6 @@ export async function GET(request: NextRequest) {
 
       // 3. 쿠키가 담긴 response 반환
       return response;
-    } else {
-      console.error("🔥🔥🔥 [auth/callback] 에러:", error.message);
     }
   }
 

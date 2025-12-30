@@ -14,7 +14,6 @@ export function HeroSectionStatic() {
 
         async function checkAuth() {
             try {
-                // getUser()로 서버 쿠키를 확인하여 OAuth 콜백 직후에도 로그인 상태 감지
                 const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
                 if (error || !authUser) {
@@ -25,7 +24,6 @@ export function HeroSectionStatic() {
 
                 setUser(authUser)
 
-                // 프로필 조회 (경량 버전)
                 const { data: profileData } = await supabase
                     .from("profiles")
                     .select("id, full_name, avatar_url, role, points")
@@ -34,7 +32,7 @@ export function HeroSectionStatic() {
 
                 setProfile(profileData)
             } catch (error) {
-                console.error("Auth check error:", error)
+                console.error("Auth check failed:", error)
             } finally {
                 setIsLoading(false)
             }
@@ -42,11 +40,9 @@ export function HeroSectionStatic() {
 
         checkAuth()
 
-        // 인증 상태 변화 구독
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
                 setUser(session.user)
-                // 프로필 다시 조회
                 supabase
                     .from("profiles")
                     .select("id, full_name, avatar_url, role, points")
@@ -62,7 +58,6 @@ export function HeroSectionStatic() {
         return () => subscription.unsubscribe()
     }, [])
 
-    // 로딩 중에는 비로그인 버전 표시 (깜빡임 방지)
     if (isLoading) {
         return <HeroSection user={null} profile={null} loginHref="/auth/login" />
     }

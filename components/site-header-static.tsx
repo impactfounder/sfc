@@ -16,52 +16,25 @@ export function SiteHeaderStatic() {
 
         async function checkAuth() {
             try {
-                console.log('[SiteHeader] 1. checkAuth 시작')
-                console.log('[SiteHeader] 1.5. 현재 쿠키:', document.cookie ? document.cookie.substring(0, 100) + '...' : '(없음)')
-
-                // 타임아웃 설정 - 5초 후에도 응답 없으면 에러
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('getUser 타임아웃 (5초)')), 5000)
-                })
-
-                console.log('[SiteHeader] 1.6. getUser 호출 시작...')
-
-                const getUserPromise = supabase.auth.getUser()
-
-                const result = await Promise.race([getUserPromise, timeoutPromise]) as any
-                const { data: { user: authUser }, error } = result
-
-                console.log('[SiteHeader] 2. getUser 결과:', {
-                    hasUser: !!authUser,
-                    userId: authUser?.id,
-                    error: error?.message
-                })
+                const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
                 if (error || !authUser) {
-                    console.log('[SiteHeader] 3. 인증 실패 - error:', error?.message)
                     setUser(null)
                     setProfile(null)
                     return
                 }
 
-                console.log('[SiteHeader] 4. 인증 성공, 프로필 조회 시작')
                 setUser(authUser)
 
-                // 프로필 조회 (경량 버전)
-                const { data: profileData, error: profileError } = await supabase
+                const { data: profileData } = await supabase
                     .from("profiles")
                     .select("id, full_name, avatar_url, role, points")
                     .eq("id", authUser.id)
                     .single()
 
-                console.log('[SiteHeader] 5. 프로필 결과:', {
-                    hasProfile: !!profileData,
-                    profileError: profileError?.message
-                })
-
                 setProfile(profileData)
             } catch (error) {
-                console.error("[SiteHeader] 치명적 에러:", error)
+                console.error("Auth check failed:", error)
             } finally {
                 setIsLoaded(true)
             }
@@ -69,11 +42,9 @@ export function SiteHeaderStatic() {
 
         checkAuth()
 
-        // 인증 상태 변화 구독
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
                 setUser(session.user)
-                // 프로필 다시 조회
                 supabase
                     .from("profiles")
                     .select("id, full_name, avatar_url, role, points")
@@ -83,6 +54,7 @@ export function SiteHeaderStatic() {
             } else if (event === 'SIGNED_OUT') {
                 setUser(null)
                 setProfile(null)
+                window.location.href = "/"
             }
         })
 
@@ -92,7 +64,6 @@ export function SiteHeaderStatic() {
     return (
         <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
             <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
-                {/* Left: Logo */}
                 <div className="ml-1 mr-4 flex items-center">
                     <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
                         <Image
@@ -106,7 +77,6 @@ export function SiteHeaderStatic() {
                     </Link>
                 </div>
 
-                {/* Client Side Content - 항상 null로 초기 렌더링하여 hydration 일치 */}
                 <SiteHeaderClient
                     user={isLoaded ? user : null}
                     profile={isLoaded ? profile : null}
