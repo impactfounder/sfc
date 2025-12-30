@@ -4,31 +4,14 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 export async function GET(request: NextRequest) {
+  // 현재 요청이 들어온 URL(origin)을 그대로 가져옵니다.
+  // 이렇게 해야 사용자가 'seoulfounders.club'으로 들어왔으면 쿠키도 그 도메인으로 구워집니다.
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
 
   if (code) {
     const cookieStore = await cookies();
-
-    // 1. 먼저 어디로 이동할지 결정합니다.
-    // Vercel 배포 환경을 고려하여 URL을 생성합니다.
-    const forwardedHost = request.headers.get("x-forwarded-host"); 
-    const isLocalEnv = process.env.NODE_ENV === "development";
-
-    let redirectUrl: URL;
-    if (isLocalEnv) {
-      redirectUrl = new URL(next, origin);
-    } else if (forwardedHost) {
-      redirectUrl = new URL(next, `https://${forwardedHost}`);
-    } else {
-      redirectUrl = new URL(next, origin);
-    }
-
-    // 2. 리디렉션할 Response 객체를 '미리' 만듭니다.
-    const response = NextResponse.redirect(redirectUrl);
-
-    // 3. Supabase 클라이언트를 만들면서, 위에서 만든 response에 쿠키를 심도록 설정합니다.
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -38,37 +21,27 @@ export async function GET(request: NextRequest) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            // ★ 여기가 핵심: 만들어둔 response 객체에 쿠키를 설정합니다.
             cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options);
+              cookieStore.set(name, value, options);
             });
           },
         },
       }
     );
 
-    // 4. 인증 코드를 세션으로 교환합니다. (이때 setAll이 실행되어 쿠키가 심어짐)
-    console.log("🔥🔥🔥 [auth/callback] 코드 교환 시도:", { code: code?.substring(0, 10) + "...", origin, next });
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error("🔥🔥🔥 [auth/callback] 로그인 실패 원인:", error.message, error);
-      return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(error.message)}`, origin));
+      console.error("🔥🔥🔥 [auth/callback] 로그인 실패:", error.message);
+      return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(error.message)}`);
     }
 
     console.log("🔥🔥🔥 [auth/callback] 로그인 성공:", { userId: data.user?.id, email: data.user?.email });
 
-    // 쿠키 설정 확인 로그
-    const setCookies = response.headers.getSetCookie();
-    console.log("🔥🔥🔥 [auth/callback] 설정된 쿠키 개수:", setCookies.length);
-    console.log("🔥🔥🔥 [auth/callback] 쿠키 목록:", setCookies.map(c => c.split('=')[0]));
-
-    // ISR 캐시 무효화 - 로그인 후 최신 상태 반영
+    // 로그인 성공 시 캐시 무효화
     revalidatePath("/", "layout");
-    revalidatePath("/", "page");
-    console.log("🔥🔥🔥 [auth/callback] 캐시 무효화 완료");
 
-    // 5. [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
+    // [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -89,7 +62,7 @@ export async function GET(request: NextRequest) {
 
           if (masters && masters.length > 0) {
             const userName = profile.full_name || profile.email?.split('@')[0] || "알 수 없음";
-            
+
             // 알림 데이터 생성
             const notifications = masters.map(master => ({
               user_id: master.id,
@@ -118,10 +91,11 @@ export async function GET(request: NextRequest) {
       // 알림 실패가 로그인 흐름을 방해하지 않도록 예외 무시
     }
 
-    // 6. 쿠키가 심어진 그 response를 그대로 반환합니다.
-    return response;
+    // 중요: 무조건 현재 origin을 사용하여 리디렉션합니다.
+    // x-forwarded-host 로직 제거 -> 도메인 불일치 원인 제거
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
   // code가 없으면 로그인 페이지로 이동
-  return NextResponse.redirect(new URL("/auth/login?error=no_code", origin));
+  return NextResponse.redirect(`${origin}/auth/login?error=no_code`);
 }
