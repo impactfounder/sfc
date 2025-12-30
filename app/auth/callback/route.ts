@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -61,6 +62,11 @@ export async function GET(request: NextRequest) {
     const setCookies = response.headers.getSetCookie();
     console.log("🔥🔥🔥 [auth/callback] 설정된 쿠키 개수:", setCookies.length);
     console.log("🔥🔥🔥 [auth/callback] 쿠키 목록:", setCookies.map(c => c.split('=')[0]));
+
+    // ISR 캐시 무효화 - 로그인 후 최신 상태 반영
+    revalidatePath("/", "layout");
+    revalidatePath("/", "page");
+    console.log("🔥🔥🔥 [auth/callback] 캐시 무효화 완료");
 
     // 5. [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
     try {
