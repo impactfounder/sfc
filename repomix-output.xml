@@ -45798,76 +45798,6 @@ export default async function ShortEventPage({
 }
 </file>
 
-<file path="components/home/hero-section-static.tsx">
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { HeroSection } from "./hero-section"
-
-export function HeroSectionStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                // getSession은 로컬 캐시 우선 → 빠름
-                const { data: { session } } = await supabase.auth.getSession()
-
-                if (!session?.user) {
-                    setUser(null)
-                    setProfile(null)
-                    return
-                }
-
-                setUser(session.user)
-
-                const { data: profileData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-
-                setProfile(profileData)
-            } catch (error) {
-                console.error("Auth check failed:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        checkAuth()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    if (isLoading) {
-        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
-    }
-
-    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
-}
-</file>
-
 <file path="components/mobile-action-bar.tsx">
 "use client"
 
@@ -46528,6 +46458,143 @@ export default async function EventDetailContent({
 }
 </file>
 
+<file path="components/home/hero-section-static.tsx">
+"use client"
+
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { HeroSection } from "./hero-section"
+
+export function HeroSectionStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function checkAuth() {
+            try {
+                // 1. 로컬 세션 확인
+                let { data: { session } } = await supabase.auth.getSession()
+
+                // 2. Fallback: 쿠키는 있는데 세션이 안 잡히면 getUser()로 강제 검증
+                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
+                    const { data: { user }, error } = await supabase.auth.getUser()
+                    if (user && !error) {
+                        const sessionResult = await supabase.auth.getSession()
+                        session = sessionResult.data.session
+                    }
+                }
+
+                if (!session?.user) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
+
+                setUser(session.user)
+
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("[HeroSection] Auth check failed:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        checkAuth()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    if (isLoading) {
+        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
+    }
+
+    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
+}
+</file>
+
+<file path="components/standard-right-sidebar.tsx">
+import { getCachedAnnouncements } from "@/lib/queries/cached"
+import { Separator } from "@/components/ui/separator"
+import { Bell, ChevronRight } from "lucide-react"
+import Link from "next/link"
+
+export async function StandardRightSidebar() {
+  const announcements = await getCachedAnnouncements()
+
+  return (
+    <div className="flex flex-col gap-8 h-full">
+      {/* 공지사항 위젯 */}
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-slate-500" />
+            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">공지사항</h3>
+          </div>
+          <Link href="/community/board/announcements" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+            더보기
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+        {announcements.length > 0 ? (
+          <div className="flex flex-col">
+            {announcements.map((announcement, idx) => (
+              <div key={announcement.id}>
+                <Link
+                  href={`/community/board/announcements/${announcement.id}`}
+                  className="block py-2 px-1 text-sm text-slate-700 hover:text-slate-900 hover:underline truncate"
+                >
+                  {announcement.title}
+                </Link>
+                {idx !== announcements.length - 1 && <Separator className="my-1 bg-slate-100" />}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 px-1">공지사항이 없습니다</p>
+        )}
+      </div>
+
+      <Separator className="bg-slate-100" />
+
+      {/* 푸터 영역 (예시) */}
+      <div className="px-1 text-xs text-slate-400 leading-relaxed space-y-1">
+        <div>© 2024 SFC</div>
+        <div className="flex gap-2">
+          <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
+          <span className="text-slate-300">·</span>
+          <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="components/ui/post-list-item.tsx">
 "use client"
 
@@ -46791,38 +46858,6 @@ export function PostListItem({
       </div>
     </Link>
   )
-}
-</file>
-
-<file path="lib/supabase/client.ts">
-import { createBrowserClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-let supabaseInstance: SupabaseClient | null = null;
-let lastAuthState: boolean | null = null;
-
-export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase 환경 변수 미설정");
-  }
-
-  if (typeof window !== 'undefined') {
-    // 인증 쿠키 유무만 체크 (다른 쿠키 변경에 영향 안 받음)
-    const hasAuthCookie = document.cookie.includes('sb-');
-
-    if (supabaseInstance && lastAuthState === hasAuthCookie) {
-      return supabaseInstance;
-    }
-
-    lastAuthState = hasAuthCookie;
-    supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
-    return supabaseInstance;
-  }
-
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 </file>
 
@@ -49068,64 +49103,6 @@ export async function SiteHeader({ user, profile }: SiteHeaderProps = {}) {
 }
 </file>
 
-<file path="components/standard-right-sidebar.tsx">
-import { getCachedAnnouncements } from "@/lib/queries/cached"
-import { Separator } from "@/components/ui/separator"
-import { Bell, ChevronRight } from "lucide-react"
-import Link from "next/link"
-
-export async function StandardRightSidebar() {
-  const announcements = await getCachedAnnouncements()
-
-  return (
-    <div className="flex flex-col gap-8 h-full">
-      {/* 공지사항 위젯 */}
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-2 px-1">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-slate-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">공지사항</h3>
-          </div>
-          <Link href="/community/board/announcements" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-            더보기
-            <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-        {announcements.length > 0 ? (
-          <div className="flex flex-col">
-            {announcements.map((announcement, idx) => (
-              <div key={announcement.id}>
-                <Link
-                  href={`/community/board/announcements/${announcement.id}`}
-                  className="block py-2 px-1 text-sm text-slate-700 hover:text-slate-900 hover:underline truncate"
-                >
-                  {announcement.title}
-                </Link>
-                {idx !== announcements.length - 1 && <Separator className="my-1 bg-slate-100" />}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 px-1">공지사항이 없습니다</p>
-        )}
-      </div>
-
-      <Separator className="bg-slate-100" />
-
-      {/* 푸터 영역 (예시) */}
-      <div className="px-1 text-xs text-slate-400 leading-relaxed space-y-1">
-        <div>© 2024 SFC</div>
-        <div className="flex gap-2">
-          <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
-          <span className="text-slate-300">·</span>
-          <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="components/ui/event-card.tsx">
 "use client"
 
@@ -49507,6 +49484,39 @@ function sanitizePreview(html: string, stripImages = false): string {
 }
 </file>
 
+<file path="lib/supabase/client.ts">
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// 싱글톤 인스턴스
+let supabaseInstance: SupabaseClient | null = null;
+
+export function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase 환경 변수 미설정");
+  }
+
+  // 브라우저 환경에서는 싱글톤 인스턴스 재사용
+  if (typeof window !== 'undefined') {
+    if (!supabaseInstance) {
+      supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    }
+    return supabaseInstance;
+  }
+
+  // 서버 환경에서는 매번 새로 생성
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+}
+
+// 로그아웃 시 인스턴스 초기화용
+export function resetClient() {
+  supabaseInstance = null;
+}
+</file>
+
 <file path="components/site-header-client.tsx">
 "use client"
 
@@ -49535,7 +49545,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, resetClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 
 interface SiteHeaderClientProps {
@@ -49557,16 +49567,20 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
     }, [])
 
     const handleSignOut = () => {
-        console.log('[SignOut] Clearing cookies and redirecting...')
-        // 쿠키 직접 삭제
+        // 1. 쿠키 삭제
         document.cookie.split(";").forEach((c) => {
             document.cookie = c
                 .replace(/^ +/, "")
                 .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
         })
-        // localStorage 클리어
+
+        // 2. localStorage 클리어
         localStorage.clear()
-        // 리디렉션
+
+        // 3. Supabase 클라이언트 인스턴스 초기화 (싱글톤 리셋)
+        resetClient()
+
+        // 4. 리디렉션
         window.location.href = "/"
     }
 
@@ -49729,6 +49743,42 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
 }
 </file>
 
+<file path="app/community/profile/page.tsx">
+"use client"
+
+import dynamic from "next/dynamic"
+import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+
+// SSR 완전 비활성화 - hydration 에러 방지
+const ProfileContent = dynamic(() => import("./ProfileContent"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+    </div>
+  ),
+})
+
+export default function ProfilePage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+      </div>
+    )
+  }
+
+  return <ProfileContent />
+}
+</file>
+
 <file path="components/site-header-static.tsx">
 "use client"
 
@@ -49748,8 +49798,19 @@ export function SiteHeaderStatic() {
 
         async function checkAuth() {
             try {
-                // getSession은 로컬 캐시 우선 → 빠름
-                const { data: { session } } = await supabase.auth.getSession()
+                // 1. 빠른 확인: 로컬 세션 먼저 시도
+                let { data: { session } } = await supabase.auth.getSession()
+
+                // 2. Fallback: 세션이 없지만 쿠키는 있는 경우 (새로고침/리다이렉트 직후)
+                // getUser()를 호출하여 서버에서 강제로 세션을 복구
+                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
+                    const { data: { user }, error } = await supabase.auth.getUser()
+                    if (user && !error) {
+                        // 유저가 확인되면 세션 객체도 다시 가져옴
+                        const sessionResult = await supabase.auth.getSession()
+                        session = sessionResult.data.session
+                    }
+                }
 
                 if (!session?.user) {
                     setUser(null)
@@ -49767,7 +49828,7 @@ export function SiteHeaderStatic() {
 
                 setProfile(profileData)
             } catch (error) {
-                console.error("Auth check failed:", error)
+                console.error("[SiteHeader] Auth check failed:", error)
             } finally {
                 setIsLoaded(true)
             }
@@ -49820,39 +49881,37 @@ export function SiteHeaderStatic() {
 }
 </file>
 
-<file path="app/community/profile/page.tsx">
-"use client"
-
-import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
-
-// SSR 완전 비활성화 - hydration 에러 방지
-const ProfileContent = dynamic(() => import("./ProfileContent"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
-      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-    </div>
-  ),
-})
-
-export default function ProfilePage() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-      </div>
-    )
+<file path=".claude/settings.local.json">
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(npm run build:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx supabase db query:*)",
+      "Bash(git checkout:*)",
+      "Bash(cat:*)",
+      "Bash(git config:*)",
+      "Bash(git remote:*)",
+      "Bash(curl:*)",
+      "Bash(git diff:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(git reset:*)",
+      "Bash(timeout:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": [],
+    "ask": []
   }
-
-  return <ProfileContent />
 }
 </file>
 
@@ -49949,40 +50008,6 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
-}
-</file>
-
-<file path=".claude/settings.local.json">
-{
-  "permissions": {
-    "allow": [
-      "Bash(rm:*)",
-      "Bash(rmdir:*)",
-      "Bash(npm run build:*)",
-      "Bash(tasklist:*)",
-      "Bash(findstr:*)",
-      "Bash(netstat:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(npx supabase db query:*)",
-      "Bash(git checkout:*)",
-      "Bash(cat:*)",
-      "Bash(git config:*)",
-      "Bash(git remote:*)",
-      "Bash(curl:*)",
-      "Bash(git diff:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npm run dev:*)",
-      "Bash(taskkill:*)",
-      "Bash(git reset:*)",
-      "Bash(timeout:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
 }
 </file>
 
@@ -50306,15 +50331,6 @@ export default function NotificationsDropdown({
 export { NotificationsDropdown }
 </file>
 
-<file path="next-env.d.ts">
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-import "./.next/types/routes.d.ts";
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
-</file>
-
 <file path="components/sidebar.tsx">
 "use client"
 
@@ -50541,6 +50557,15 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
     </div>
   )
 }
+</file>
+
+<file path="next-env.d.ts">
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
 </file>
 
 </files>

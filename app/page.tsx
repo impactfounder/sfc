@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { SiteHeaderStatic } from "@/components/site-header-static"
+import { SiteHeader } from "@/components/site-header"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
 import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <DashboardLayout
-      header={<SiteHeaderStatic />}
+      header={<SiteHeader />}
       sidebar={<Sidebar />}
       mobileHeader={<MobileHeader />}
     >
