@@ -57,6 +57,11 @@ export async function GET(request: NextRequest) {
 
     console.log("🔥🔥🔥 [auth/callback] 로그인 성공:", { userId: data.user?.id, email: data.user?.email });
 
+    // 쿠키 설정 확인 로그
+    const setCookies = response.headers.getSetCookie();
+    console.log("🔥🔥🔥 [auth/callback] 설정된 쿠키 개수:", setCookies.length);
+    console.log("🔥🔥🔥 [auth/callback] 쿠키 목록:", setCookies.map(c => c.split('=')[0]));
+
     // 5. [신규 가입 알림] 새 유저 확인 및 마스터에게 알림 발송
     try {
       const { data: { user } } = await supabase.auth.getUser();
