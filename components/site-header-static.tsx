@@ -16,27 +16,41 @@ export function SiteHeaderStatic() {
 
         async function checkAuth() {
             try {
-                // getUser()로 서버와 통신하여 쿠키 기반의 확실한 인증 상태 확인
+                console.log('[SiteHeader] 1. checkAuth 시작')
+
                 const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
+                console.log('[SiteHeader] 2. getUser 결과:', {
+                    hasUser: !!authUser,
+                    userId: authUser?.id,
+                    error: error?.message
+                })
+
                 if (error || !authUser) {
+                    console.log('[SiteHeader] 3. 인증 실패 - error:', error?.message)
                     setUser(null)
                     setProfile(null)
                     return
                 }
 
+                console.log('[SiteHeader] 4. 인증 성공, 프로필 조회 시작')
                 setUser(authUser)
 
                 // 프로필 조회 (경량 버전)
-                const { data: profileData } = await supabase
+                const { data: profileData, error: profileError } = await supabase
                     .from("profiles")
                     .select("id, full_name, avatar_url, role, points")
                     .eq("id", authUser.id)
                     .single()
 
+                console.log('[SiteHeader] 5. 프로필 결과:', {
+                    hasProfile: !!profileData,
+                    profileError: profileError?.message
+                })
+
                 setProfile(profileData)
             } catch (error) {
-                console.error("Auth check error:", error)
+                console.error("[SiteHeader] 치명적 에러:", error)
             } finally {
                 setIsLoaded(true)
             }
