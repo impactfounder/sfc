@@ -23,7 +23,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
       StarterKit,
       Image.configure({
         HTMLAttributes: {
-          class: "rounded-lg max-w-[80%] max-h-[500px] object-contain mx-auto my-4",
+          class: "rounded-2xl max-w-full h-auto object-cover mx-auto my-6 shadow-sm",
         },
       }),
     ],
@@ -33,8 +33,8 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     },
     editorProps: {
       attributes: {
-        class:
-          "prose prose-slate prose-base max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-normal text-slate-900",
+        // globals.css의 .prose 규칙을 따르도록 간소화
+        class: "prose max-w-none focus:outline-none min-h-[400px] px-8 py-8",
       },
     },
     immediatelyRender: false,
@@ -91,8 +91,8 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white overflow-hidden focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 min-h-[400px]">
-      <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5 flex-wrap">
+    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden focus-within:border-slate-300 focus-within:ring-4 focus-within:ring-slate-100 transition-all duration-200 shadow-sm">
+      <div className="flex items-center gap-1 border-b border-slate-100 bg-slate-50/50 px-3 py-2 flex-wrap">
         {/* 제목 1 */}
         <Button
           type="button"
@@ -116,7 +116,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <Heading2 className="h-4 w-4" />
         </Button>
         
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         <Button
           type="button"
@@ -145,7 +145,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <Italic className="h-4 w-4" />
         </Button>
         
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         <Button
           type="button"
@@ -174,7 +174,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <ListOrdered className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         {/* 인용구 */}
         <Button
@@ -212,7 +212,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <Minus className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         <Button
           type="button"

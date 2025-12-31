@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical, Target } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical, Target, CheckCircle, AlertTriangle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -15,6 +15,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
 import { createEvent, updateEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
+import { CompleteEventButton } from "@/components/complete-event-button"
+import { DeleteEventButton } from "@/components/delete-event-button"
 import { cn } from "@/lib/utils"
 import type { UnsplashImage } from "@/lib/types/unsplash"
 import { useToast } from "@/hooks/use-toast"
@@ -583,10 +585,10 @@ export function NewEventForm({
       {/* 2. 이미지(좌) + 상세정보(우) 그리드 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-        {/* [Left] Image Upload Section (5 cols) */}
+        {/* [Left] Image Upload Section (5 cols) - 1:1 비율 */}
         <div className="lg:col-span-5 space-y-4">
           <div
-            className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-all"
+            className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-all"
             onClick={() => fileInputRef.current?.click()}
           >
             {thumbnailUrl ? (
@@ -709,7 +711,7 @@ export function NewEventForm({
 
         {/* [Right] Event Info Section (7 cols) - 카드 형태 */}
         <div className="lg:col-span-7">
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
             {/* 시작/종료 시간 */}
             <div className="grid grid-cols-[40px_1fr] gap-4 items-start">
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
@@ -772,13 +774,15 @@ export function NewEventForm({
                     onPlaceChanged={() => {
                       if (autocompleteRef.current) {
                         const place = autocompleteRef.current.getPlace()
-                        const address = place.formatted_address || place.name || ""
-                        setLocation(address)
+                        // 장소명(name)이 있으면 우선 사용, 없으면 주소 사용
+                        const locationName = place.name || place.formatted_address || ""
+                        setLocation(locationName)
                       }
                     }}
                     options={{
                       types: ["establishment", "geocode"],
                       componentRestrictions: { country: "kr" },
+                      fields: ["address_components", "geometry", "icon", "name", "formatted_address"],
                     }}
                   >
                     <Input
@@ -872,7 +876,7 @@ export function NewEventForm({
       {/* 상세 내용 에디터 */}
       <div className="space-y-3">
         <Label className="text-lg font-semibold text-slate-900">상세 내용</Label>
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="bg-white border-0 rounded-2xl overflow-hidden">
           <RichTextEditor content={description} onChange={setDescription} />
         </div>
       </div>
@@ -938,6 +942,42 @@ export function NewEventForm({
           </div>
         )}
       </div>
+
+      {/* 수정 모드: 이벤트 관리 섹션 */}
+      {initialData && currentUserId && (
+        <div className="mt-10 pt-10 border-t border-slate-200">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">이벤트 관리</h3>
+          <div className="flex flex-col gap-4">
+            {/* 이벤트 종료 */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-slate-600" />
+                  <span className="font-semibold text-slate-700">이벤트 종료</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-1 ml-7">더 이상 참가 신청을 받지 않고 이벤트를 종료합니다.</p>
+              </div>
+              <CompleteEventButton eventId={initialData.id} userId={currentUserId} />
+            </div>
+
+            {/* 이벤트 삭제 */}
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <span className="font-semibold text-red-700">이벤트 삭제</span>
+                </div>
+                <p className="text-sm text-red-500 mt-1 ml-7">이벤트를 영구적으로 삭제합니다. (복구 불가)</p>
+              </div>
+              <DeleteEventButton
+                eventId={initialData.id}
+                variant="destructive"
+                className="bg-red-600 text-white hover:bg-red-700"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 에러 메시지 */}
       {error && (

@@ -39,17 +39,6 @@ export async function StandardRightSidebar() {
         )}
       </div>
 
-      <Separator className="bg-slate-100" />
-
-      {/* 푸터 영역 (예시) */}
-      <div className="px-1 text-xs text-slate-400 leading-relaxed space-y-1">
-        <div>© 2024 SFC</div>
-        <div className="flex gap-2">
-          <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
-          <span className="text-slate-300">·</span>
-          <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
-        </div>
-      </div>
     </div>
   )
 }

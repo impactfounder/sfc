@@ -10,6 +10,9 @@ export type EventForDisplay = {
   max_participants?: number | null
   current_participants: number
   event_type?: 'networking' | 'class' | 'activity' | null
+  // 호스트 정보
+  host_name?: string | null
+  host_avatar_url?: string | null
 }
 
 /**
@@ -34,7 +37,11 @@ export async function getUpcomingEvents(
       location,
       max_participants,
       event_type,
-      event_registrations (count)
+      event_registrations (count),
+      profiles:created_by (
+        full_name,
+        avatar_url
+      )
     `)
     .gte("event_date", todayStart)
     .order("event_date", { ascending: true })
@@ -47,17 +54,27 @@ export async function getUpcomingEvents(
     return []
   }
 
-  return (data || []).map((event) => ({
-    id: event.id,
-    title: event.title,
-    thumbnail_url: event.thumbnail_url,
-    event_date: event.event_date,
-    // event_time 컬럼이 없는 스키마 대응 (null로 채워서 타입 충족)
-    event_time: null,
-    location: event.location,
-    max_participants: event.max_participants,
-    current_participants: event.event_registrations?.[0]?.count || 0,
-    event_type: event.event_type || 'networking',
-  }))
+  return (data || []).map((event: any) => {
+    // 배열/객체 모두 대응
+    const profile = Array.isArray(event.profiles)
+      ? event.profiles[0]
+      : event.profiles;
+
+    return {
+      id: event.id,
+      title: event.title,
+      thumbnail_url: event.thumbnail_url,
+      event_date: event.event_date,
+      // event_time 컬럼이 없는 스키마 대응 (null로 채워서 타입 충족)
+      event_time: null,
+      location: event.location,
+      max_participants: event.max_participants,
+      current_participants: event.event_registrations?.[0]?.count || 0,
+      event_type: event.event_type || 'networking',
+      // 호스트 정보 매핑
+      host_name: profile?.full_name || null,
+      host_avatar_url: profile?.avatar_url || null,
+    }
+  })
 }
 

@@ -3,9 +3,9 @@ import { PageHeader } from "@/components/page-header"
 
 export default function EventsLoading() {
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="w-full grid grid-cols-1 xl:grid-cols-12 gap-8">
       {/* [LEFT] 메인 콘텐츠 */}
-      <div className="lg:col-span-9 flex flex-col gap-6">
+      <div className="xl:col-span-9 flex flex-col gap-6">
         {/* PageHeader 스켈레톤 */}
         <PageHeader 
           title="이벤트"
@@ -52,8 +52,8 @@ export default function EventsLoading() {
         </div>
       </div>
 
-      {/* [RIGHT] 우측 사이드바 스켈레톤 */}
-      <div className="hidden lg:block lg:col-span-3">
+      {/* [RIGHT] 우측 사이드바 스켈레톤 (xl 이상에서만 표시) */}
+      <div className="hidden xl:block xl:col-span-3">
         <div className="sticky top-8 flex flex-col gap-6 h-fit">
           <Skeleton className="w-full h-64 rounded-xl" />
         </div>

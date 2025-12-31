@@ -89,6 +89,7 @@ app/community/profile/page.tsx
 app/community/profile/ProfileContent.tsx
 app/customer-center/layout.tsx
 app/customer-center/page.tsx
+app/e/[id]/edit/page.tsx
 app/e/[id]/manage/page.tsx
 app/e/[id]/opengraph-image.tsx
 app/e/[id]/page.tsx
@@ -151,10 +152,12 @@ components/daily-login-checker.tsx
 components/dashboard-layout.tsx
 components/delete-event-button.tsx
 components/event-detail-content.tsx
+components/event-detail-hero.tsx
 components/event-post-card.tsx
 components/event-share-button.tsx
 components/export-csv-button.tsx
 components/floating-action-bar.tsx
+components/google-map-embed.tsx
 components/home/announcement-banner.tsx
 components/home/event-request-section.tsx
 components/home/events-section-container.tsx
@@ -2614,13 +2617,105 @@ export default function CustomerCenterPage() {
 }
 </file>
 
+<file path="app/e/[id]/edit/page.tsx">
+import { createClient } from "@/lib/supabase/server"
+import { redirect, notFound } from "next/navigation"
+import { requireAuth } from "@/lib/auth/server"
+import { NewEventForm } from "@/components/new-event-form"
+
+export default async function EditEventPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const { user, supabase } = await requireAuth()
+
+  // 이벤트 정보 조회
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("id, title, description, event_date, end_date, location, price, max_participants, thumbnail_url, event_type, created_by")
+    .eq("id", id)
+    .single()
+
+  if (error || !event) {
+    notFound()
+  }
+
+  // 작성자 확인 (본인이 아니면 홈으로 리다이렉트)
+  if (event.created_by !== user.id) {
+    redirect("/")
+  }
+
+  // 참가자 질문(커스텀 필드) 조회
+  const { data: customFieldsData } = await supabase
+    .from("event_registration_fields")
+    .select("id, field_name, field_type, field_options, is_required, order_index")
+    .eq("event_id", id)
+    .order("order_index", { ascending: true })
+
+  // 질문 데이터를 폼 포맷으로 변환
+  const customFields = (customFieldsData || []).map((field) => {
+    let options: string[] = []
+    if (field.field_options) {
+      if (Array.isArray(field.field_options)) {
+        options = field.field_options
+      } else if (typeof field.field_options === 'string') {
+        try {
+          options = JSON.parse(field.field_options)
+        } catch (e) {
+          console.error('Failed to parse field_options:', e)
+        }
+      }
+    }
+
+    return {
+      id: field.id,
+      label: field.field_name,
+      type: field.field_type as 'text' | 'select',
+      options: options,
+      required: field.is_required || false,
+    }
+  })
+
+  // 초기 데이터 준비
+  const initialData = {
+    id: event.id,
+    title: event.title,
+    description: event.description || "",
+    event_date: event.event_date,
+    end_date: event.end_date,
+    location: event.location,
+    price: event.price,
+    max_participants: event.max_participants,
+    thumbnail_url: event.thumbnail_url,
+    event_type: event.event_type,
+    customFields: customFields,
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">이벤트 수정</h1>
+          <p className="mt-2 text-slate-600">이벤트 정보를 수정할 수 있습니다.</p>
+        </div>
+        <NewEventForm
+          userId={user.id}
+          initialData={initialData}
+        />
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="app/e/[id]/manage/page.tsx">
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Users } from 'lucide-react';
-import { CompleteEventButton } from "@/components/complete-event-button";
 import { AddGuestForm } from "@/components/add-guest-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExportCSVButton } from "@/components/export-csv-button";
@@ -2864,14 +2959,6 @@ export default async function ManageEventPage({
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>액션</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CompleteEventButton eventId={eventId} userId={user.id} />
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
@@ -3163,6 +3250,15 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     ),
     { width: 1200, height: 630 }
   )
+}
+</file>
+
+<file path="app/e/layout.tsx">
+import type { ReactNode } from "react"
+import { StandardLayout } from "@/components/layout/standard-layout"
+
+export default function EventLayout({ children }: { children: ReactNode }) {
+  return <StandardLayout>{children}</StandardLayout>
 }
 </file>
 
@@ -3592,9 +3688,9 @@ import { PageHeader } from "@/components/page-header"
 
 export default function EventsLoading() {
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="w-full grid grid-cols-1 xl:grid-cols-12 gap-8">
       {/* [LEFT] 메인 콘텐츠 */}
-      <div className="lg:col-span-9 flex flex-col gap-6">
+      <div className="xl:col-span-9 flex flex-col gap-6">
         {/* PageHeader 스켈레톤 */}
         <PageHeader 
           title="이벤트"
@@ -3641,8 +3737,8 @@ export default function EventsLoading() {
         </div>
       </div>
 
-      {/* [RIGHT] 우측 사이드바 스켈레톤 */}
-      <div className="hidden lg:block lg:col-span-3">
+      {/* [RIGHT] 우측 사이드바 스켈레톤 (xl 이상에서만 표시) */}
+      <div className="hidden xl:block xl:col-span-3">
         <div className="sticky top-8 flex flex-col gap-6 h-fit">
           <Skeleton className="w-full h-64 rounded-xl" />
         </div>
@@ -8667,10 +8763,11 @@ export function CompleteEventButton({
       size="sm"
     >
       {isLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       ) : (
-        <CheckCircle className="h-4 w-4" />
+        <CheckCircle className="mr-2 h-4 w-4" />
       )}
+      이벤트 종료하기
     </Button>
   );
 }
@@ -8791,6 +8888,239 @@ export function DeleteEventButton({ eventId, className, variant = "outline", siz
         </AlertDialogContent>
       </AlertDialog>
     </>
+  )
+}
+</file>
+
+<file path="components/event-detail-hero.tsx">
+"use client"
+
+import { useRef, useState, useEffect } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Calendar, MapPin, Users, Wallet, ExternalLink, Edit, AlertCircle } from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { EventShareButton } from "@/components/event-share-button"
+import { DeleteEventButton } from "@/components/delete-event-button"
+import { RegisterButton } from "@/components/register-button"
+import Link from "next/link"
+
+type Props = {
+  event: any
+  hostName: string
+  hostAvatar?: string
+  dateStr: string
+  timeStr: string
+  currentCount: number
+  maxCount: number | null
+  isFull: boolean
+  isPastEvent: boolean
+  isCompleted: boolean
+  isCreator: boolean
+  isRegistered: boolean
+  userRegistration: any
+  eventId: string
+  basePath: string
+  userId?: string
+}
+
+function InfoRow({ icon: Icon, value, href }: { icon: any, value: string, href?: string }) {
+  const content = (
+    <div className={`flex items-center gap-3 p-3 rounded-lg border border-slate-100 ${href ? 'hover:bg-slate-50 cursor-pointer group transition-colors' : ''}`}>
+      <Icon className="w-4 h-4 text-slate-400 shrink-0" />
+      <span className="text-sm font-medium text-slate-700 truncate flex-1">{value}</span>
+      {href && <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0" />}
+    </div>
+  )
+  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" className="block">{content}</a>
+  return content
+}
+
+export function EventDetailHero(props: Props) {
+  const {
+    event, hostName, hostAvatar, dateStr, timeStr,
+    currentCount, maxCount, isFull, isPastEvent, isCompleted,
+    isCreator, isRegistered, userRegistration, eventId, basePath, userId
+  } = props
+
+  const imageRef = useRef<HTMLDivElement>(null)
+  const [cardHeight, setCardHeight] = useState<number | null>(null)
+
+  // 이미지 높이 측정 후 카드에 적용
+  useEffect(() => {
+    const updateHeight = () => {
+      if (imageRef.current) {
+        setCardHeight(imageRef.current.offsetHeight)
+      }
+    }
+
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+    return () => window.removeEventListener('resize', updateHeight)
+  }, [])
+
+  const googleMapUrl = event.location
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
+    : undefined
+
+  const priceStr = event.price && event.price > 0
+    ? `${event.price.toLocaleString()}원`
+    : '무료'
+
+  const percent = maxCount ? Math.min(100, (currentCount / maxCount) * 100) : 100
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+
+      {/* 좌측: 이미지 (1:1 고정, 높이 기준) */}
+      <div ref={imageRef} className="w-full">
+        <div className="aspect-square relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+          {event.thumbnail_url ? (
+            <img
+              src={event.thumbnail_url}
+              alt={event.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
+              <Calendar className="w-20 h-20 text-slate-400" />
+            </div>
+          )}
+
+          {/* 상태 뱃지 */}
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
+            {isCompleted ? (
+              <Badge className="bg-slate-900 text-white border-none shadow-md px-2.5 py-1 text-xs">종료됨</Badge>
+            ) : isPastEvent ? (
+              <Badge variant="secondary" className="bg-white/90 text-slate-700 shadow-md backdrop-blur-md px-2.5 py-1 text-xs">종료됨</Badge>
+            ) : isFull ? (
+              <Badge variant="destructive" className="shadow-md px-2.5 py-1 text-xs">마감임박</Badge>
+            ) : (
+              <Badge className="bg-green-600 hover:bg-green-700 text-white border-none shadow-md px-2.5 py-1 text-xs">모집중</Badge>
+            )}
+          </div>
+
+          {/* 인원 뱃지 */}
+          <div className="absolute top-4 right-4 z-10">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-black/60 text-white backdrop-blur-md shadow-md">
+              <Users className="w-3.5 h-3.5" />
+              <span>{currentCount}/{maxCount || '∞'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 우측: 정보 카드 (이미지와 같은 높이) */}
+      <div
+        className="w-full"
+        style={{ height: cardHeight ? `${cardHeight}px` : 'auto' }}
+      >
+        <Card className="h-full border-slate-200 bg-white rounded-2xl shadow-sm flex flex-col">
+          <CardContent className="p-5 lg:p-6 flex flex-col h-full">
+
+            {/* 상단 영역 - flex-1로 남은 공간 차지 */}
+            <div className="flex-1 flex flex-col gap-4">
+
+              {/* 1. 제목 + 공유버튼 */}
+              <div className="flex justify-between items-start gap-3">
+                <h1 className="text-xl lg:text-2xl font-bold text-slate-900 leading-tight">
+                  {event.title}
+                </h1>
+                <EventShareButton
+                  title={event.title}
+                  description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-slate-400 hover:text-slate-900 hover:bg-slate-100 w-9 h-9 rounded-full"
+                />
+              </div>
+
+              {/* 2. 호스트 */}
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
+                  <AvatarImage src={hostAvatar || undefined} />
+                  <AvatarFallback className="bg-slate-100 text-slate-600 font-semibold text-xs">
+                    {hostName[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">호스트</span>
+                  <span className="text-sm font-semibold text-slate-900">{hostName}</span>
+                </div>
+              </div>
+
+              {/* 3. 정보 리스트 */}
+              <div className="flex flex-col gap-2">
+                <InfoRow icon={Calendar} value={`${dateStr} ${timeStr}`} />
+                <InfoRow icon={MapPin} value={event.location || "장소 미정"} href={googleMapUrl} />
+                <InfoRow icon={Wallet} value={priceStr} />
+              </div>
+            </div>
+
+            {/* 하단 영역 */}
+            <div className="pt-4 border-t border-slate-100">
+              {/* 4. 모집 현황 */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="text-slate-500">모집 현황</span>
+                  <span className="font-semibold text-slate-900">{currentCount} / {maxCount || '∞'}</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 5. 버튼 */}
+              {isCreator ? (
+                <div className="flex flex-col gap-2">
+                  {(isPastEvent || isCompleted) && (
+                    <p className="text-xs text-amber-600 text-center py-2 bg-amber-50 rounded-lg border border-amber-100">
+                      종료된 이벤트입니다. 수정하여 다시 활성화할 수 있습니다.
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href={`${basePath}/${eventId}/manage`} className="w-full">
+                      <Button variant="outline" className="w-full h-11 text-sm font-semibold rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700">
+                        <Users className="mr-1.5 h-4 w-4" /> 참석자 관리
+                      </Button>
+                    </Link>
+                    <Link href={`${basePath}/${eventId}/edit`} className="w-full">
+                      <Button className="w-full h-11 text-sm font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white">
+                        <Edit className="mr-1.5 h-4 w-4" /> 수정하기
+                      </Button>
+                    </Link>
+                  </div>
+                  <DeleteEventButton
+                    eventId={eventId}
+                    variant="outline"
+                    className="w-full h-10 text-sm font-medium text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl"
+                    label="이벤트 삭제하기"
+                  />
+                </div>
+              ) : isPastEvent || isCompleted ? (
+                <Button className="w-full h-11 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed" disabled>
+                  <AlertCircle className="mr-1.5 h-4 w-4" /> 이벤트가 종료되었습니다
+                </Button>
+              ) : (
+                <RegisterButton
+                  eventId={event.id}
+                  userId={userId}
+                  isRegistered={isRegistered}
+                  paymentStatus={userRegistration?.payment_status}
+                  isFull={isFull}
+                  price={event.price || 0}
+                />
+              )}
+            </div>
+
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }
 </file>
@@ -9119,6 +9449,44 @@ export function FloatingActionBar({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+</file>
+
+<file path="components/google-map-embed.tsx">
+/**
+ * components/google-map-embed.tsx
+ * 구글 맵 임베드 컴포넌트 (주소를 받아 지도를 표시)
+ */
+"use client";
+
+interface GoogleMapEmbedProps {
+  location: string;
+  apiKey: string;
+}
+
+export function GoogleMapEmbed({ location, apiKey }: GoogleMapEmbedProps) {
+  if (!location) return null;
+
+  // 주소를 URL 인코딩
+  const encodedLocation = encodeURIComponent(location);
+
+  // Google Maps Embed API URL
+  const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedLocation}&language=ko`;
+
+  return (
+    <div className="w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+      <iframe
+        width="100%"
+        height="100%"
+        style={{ border: 0, minHeight: "300px" }}
+        loading="lazy"
+        allowFullScreen
+        referrerPolicy="no-referrer-when-downgrade"
+        src={mapSrc}
+        title="Google Map"
+      />
     </div>
   );
 }
@@ -9973,9 +10341,9 @@ export function HomePageClient({
         ) : undefined
       }
     >
-      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="w-full grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* [LEFT] 메인 콘텐츠 영역 */}
-        <div className="lg:col-span-9 flex flex-col gap-6">
+        <div className="xl:col-span-9 flex flex-col gap-6">
           <HeroSection user={user} profile={profile} onLogin={handleLogin} />
           {children && <div>{children}</div>}
           <div id="events-section">
@@ -9998,8 +10366,8 @@ export function HomePageClient({
           </div>
         </div>
 
-        {/* [RIGHT] 우측 사이드바 영역 */}
-        <div className="hidden lg:block lg:col-span-3">
+        {/* [RIGHT] 우측 사이드바 영역 (xl 이상에서만 표시) */}
+        <div className="hidden xl:block xl:col-span-3">
           <div className="sticky top-8 flex flex-col gap-6 h-fit">
             <StandardRightSidebar />
           </div>
@@ -10152,19 +10520,19 @@ interface ThreeColumnLayoutProps {
 
 /**
  * Home과 동일한 12컬럼 그리드 레이아웃
- * - 사이드바 노출 시점: lg(1024px)부터
+ * - 사이드바 노출 시점: xl(1280px)부터 (좁은 화면 대응)
  * - 최대 폭: 1600px
  */
 export function ThreeColumnLayout({ children, rightSidebar, className }: ThreeColumnLayoutProps) {
   return (
     <div className={cn("w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8", className)}>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        <main className={cn("min-w-0 w-full", rightSidebar ? "lg:col-span-9" : "lg:col-span-12")}>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
+        <main className={cn("min-w-0 w-full", rightSidebar ? "xl:col-span-9" : "xl:col-span-12")}>
           {children}
         </main>
 
         {rightSidebar && (
-          <aside className="hidden lg:block lg:col-span-3">
+          <aside className="hidden xl:block xl:col-span-3">
             <div className="sticky top-24 flex flex-col gap-6">
               {rightSidebar}
             </div>
@@ -13138,7 +13506,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
       StarterKit,
       Image.configure({
         HTMLAttributes: {
-          class: "rounded-lg max-w-[80%] max-h-[500px] object-contain mx-auto my-4",
+          class: "rounded-2xl max-w-full h-auto object-cover mx-auto my-6 shadow-sm",
         },
       }),
     ],
@@ -13148,8 +13516,9 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     },
     editorProps: {
       attributes: {
+        // 상세 페이지(EventDetailContent)와 동일한 Typography 클래스 적용 (WYSIWYG)
         class:
-          "prose prose-slate prose-base max-w-none focus:outline-none min-h-[400px] px-4 py-3 text-[15px] leading-normal text-slate-900",
+          "prose prose-slate max-w-none prose-lg prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900 prose-img:rounded-2xl focus:outline-none min-h-[400px] px-8 py-8",
       },
     },
     immediatelyRender: false,
@@ -13206,8 +13575,8 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white overflow-hidden focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 min-h-[400px]">
-      <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5 flex-wrap">
+    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden focus-within:border-slate-300 focus-within:ring-4 focus-within:ring-slate-100 transition-all duration-200 shadow-sm">
+      <div className="flex items-center gap-1 border-b border-slate-100 bg-slate-50/50 px-3 py-2 flex-wrap">
         {/* 제목 1 */}
         <Button
           type="button"
@@ -13231,7 +13600,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <Heading2 className="h-4 w-4" />
         </Button>
         
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         <Button
           type="button"
@@ -13260,7 +13629,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <Italic className="h-4 w-4" />
         </Button>
         
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         <Button
           type="button"
@@ -13289,7 +13658,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <ListOrdered className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         {/* 인용구 */}
         <Button
@@ -13327,7 +13696,7 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           <Minus className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <div className="w-px h-4 bg-slate-200 mx-1" />
 
         <Button
           type="button"
@@ -23862,6 +24231,9 @@ export type EventForDisplay = {
   max_participants?: number | null
   current_participants: number
   event_type?: 'networking' | 'class' | 'activity' | null
+  // 호스트 정보
+  host_name?: string | null
+  host_avatar_url?: string | null
 }
 
 /**
@@ -23886,7 +24258,11 @@ export async function getUpcomingEvents(
       location,
       max_participants,
       event_type,
-      event_registrations (count)
+      event_registrations (count),
+      profiles:created_by (
+        full_name,
+        avatar_url
+      )
     `)
     .gte("event_date", todayStart)
     .order("event_date", { ascending: true })
@@ -23899,18 +24275,28 @@ export async function getUpcomingEvents(
     return []
   }
 
-  return (data || []).map((event) => ({
-    id: event.id,
-    title: event.title,
-    thumbnail_url: event.thumbnail_url,
-    event_date: event.event_date,
-    // event_time 컬럼이 없는 스키마 대응 (null로 채워서 타입 충족)
-    event_time: null,
-    location: event.location,
-    max_participants: event.max_participants,
-    current_participants: event.event_registrations?.[0]?.count || 0,
-    event_type: event.event_type || 'networking',
-  }))
+  return (data || []).map((event: any) => {
+    // 배열/객체 모두 대응
+    const profile = Array.isArray(event.profiles)
+      ? event.profiles[0]
+      : event.profiles;
+
+    return {
+      id: event.id,
+      title: event.title,
+      thumbnail_url: event.thumbnail_url,
+      event_date: event.event_date,
+      // event_time 컬럼이 없는 스키마 대응 (null로 채워서 타입 충족)
+      event_time: null,
+      location: event.location,
+      max_participants: event.max_participants,
+      current_participants: event.event_registrations?.[0]?.count || 0,
+      event_type: event.event_type || 'networking',
+      // 호스트 정보 매핑
+      host_name: profile?.full_name || null,
+      host_avatar_url: profile?.avatar_url || null,
+    }
+  })
 }
 </file>
 
@@ -35357,6 +35743,32 @@ export default async function AdminEventsPage() {
 }
 </file>
 
+<file path="app/admin/layout.tsx">
+import type React from "react"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { SiteHeader } from "@/components/site-header"
+import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/queries/profiles"
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const supabase = await createClient()
+  const userProfile = await getCurrentUserProfile(supabase)
+  const userRole = userProfile?.profile?.role || null
+
+  return (
+    <DashboardLayout header={<SiteHeader />} userRole={userRole}>
+      <div className="p-6 lg:p-8">
+        {children}
+      </div>
+    </DashboardLayout>
+  )
+}
+</file>
+
 <file path="app/admin/partners/page.tsx">
 import { requireAdmin } from "@/lib/auth/server"
 import { PartnerListTab } from "@/components/admin/partners/partner-list-tab"
@@ -36129,15 +36541,6 @@ export default async function PostDetailPage({
       <CommentSection postId={post.id} userId={user?.id} comments={comments || []} />
     </div>
   )
-}
-</file>
-
-<file path="app/e/layout.tsx">
-import type { ReactNode } from "react"
-import { StandardLayout } from "@/components/layout/standard-layout"
-
-export default function EventLayout({ children }: { children: ReactNode }) {
-  return <StandardLayout>{children}</StandardLayout>
 }
 </file>
 
@@ -41830,32 +42233,6 @@ COMMENT ON VIEW public.event_registrations_public IS
 '이벤트 등록 정보 공개 뷰 - guest_contact 필드가 마스킹됨';
 </file>
 
-<file path="app/admin/layout.tsx">
-import type React from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { SiteHeader } from "@/components/site-header"
-import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/queries/profiles"
-
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const supabase = await createClient()
-  const userProfile = await getCurrentUserProfile(supabase)
-  const userRole = userProfile?.profile?.role || null
-
-  return (
-    <DashboardLayout header={<SiteHeader />} userRole={userRole}>
-      <div className="p-6 lg:p-8">
-        {children}
-      </div>
-    </DashboardLayout>
-  )
-}
-</file>
-
 <file path="app/communities/new/page.tsx">
 import { requireAuth } from "@/lib/auth/server"
 import { NewCommunityForm } from "@/components/new-community-form"
@@ -43791,7 +44168,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical, Target } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, X, MapPin, Calendar, Users, Clock, Ticket, Plus, Trash2, GripVertical, Target, CheckCircle, AlertTriangle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -43799,6 +44176,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { RichTextEditor } from "@/components/rich-text-editor" // 에디터 import
 import { createEvent, updateEvent } from "@/lib/actions/events" // ★ 보안: 서버 액션 사용
+import { CompleteEventButton } from "@/components/complete-event-button"
+import { DeleteEventButton } from "@/components/delete-event-button"
 import { cn } from "@/lib/utils"
 import type { UnsplashImage } from "@/lib/types/unsplash"
 import { useToast } from "@/hooks/use-toast"
@@ -44367,10 +44746,10 @@ export function NewEventForm({
       {/* 2. 이미지(좌) + 상세정보(우) 그리드 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-        {/* [Left] Image Upload Section (5 cols) */}
+        {/* [Left] Image Upload Section (5 cols) - 1:1 비율 */}
         <div className="lg:col-span-5 space-y-4">
           <div
-            className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-all"
+            className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-all"
             onClick={() => fileInputRef.current?.click()}
           >
             {thumbnailUrl ? (
@@ -44493,7 +44872,7 @@ export function NewEventForm({
 
         {/* [Right] Event Info Section (7 cols) - 카드 형태 */}
         <div className="lg:col-span-7">
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
             {/* 시작/종료 시간 */}
             <div className="grid grid-cols-[40px_1fr] gap-4 items-start">
               <div className="p-2 bg-slate-100 rounded-lg text-slate-500 justify-self-center">
@@ -44556,13 +44935,15 @@ export function NewEventForm({
                     onPlaceChanged={() => {
                       if (autocompleteRef.current) {
                         const place = autocompleteRef.current.getPlace()
-                        const address = place.formatted_address || place.name || ""
-                        setLocation(address)
+                        // 장소명(name)이 있으면 우선 사용, 없으면 주소 사용
+                        const locationName = place.name || place.formatted_address || ""
+                        setLocation(locationName)
                       }
                     }}
                     options={{
                       types: ["establishment", "geocode"],
                       componentRestrictions: { country: "kr" },
+                      fields: ["address_components", "geometry", "icon", "name", "formatted_address"],
                     }}
                   >
                     <Input
@@ -44656,7 +45037,7 @@ export function NewEventForm({
       {/* 상세 내용 에디터 */}
       <div className="space-y-3">
         <Label className="text-lg font-semibold text-slate-900">상세 내용</Label>
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="bg-white border-0 rounded-2xl overflow-hidden">
           <RichTextEditor content={description} onChange={setDescription} />
         </div>
       </div>
@@ -44722,6 +45103,42 @@ export function NewEventForm({
           </div>
         )}
       </div>
+
+      {/* 수정 모드: 이벤트 관리 섹션 */}
+      {initialData && currentUserId && (
+        <div className="mt-10 pt-10 border-t border-slate-200">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">이벤트 관리</h3>
+          <div className="flex flex-col gap-4">
+            {/* 이벤트 종료 */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-slate-600" />
+                  <span className="font-semibold text-slate-700">이벤트 종료</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-1 ml-7">더 이상 참가 신청을 받지 않고 이벤트를 종료합니다.</p>
+              </div>
+              <CompleteEventButton eventId={initialData.id} userId={currentUserId} />
+            </div>
+
+            {/* 이벤트 삭제 */}
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <span className="font-semibold text-red-700">이벤트 삭제</span>
+                </div>
+                <p className="text-sm text-red-500 mt-1 ml-7">이벤트를 영구적으로 삭제합니다. (복구 불가)</p>
+              </div>
+              <DeleteEventButton
+                eventId={initialData.id}
+                variant="destructive"
+                className="bg-red-600 text-white hover:bg-red-700"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 에러 메시지 */}
       {error && (
@@ -44889,21 +45306,28 @@ export default async function EventsPage() {
   const pastEvents = pastEventsResult.data
 
   // 데이터 포맷팅 및 짧은 코드 계산 (동기식 - DB 호출 없음)
-  const formattedUpcomingEvents = (upcomingEvents || []).map((event) => ({
-    id: event.id,
-    title: event.title,
-    thumbnail_url: event.thumbnail_url,
-    event_date: event.event_date,
-    event_time: null,
-    location: event.location,
-    max_participants: event.max_participants,
-    current_participants: event.event_registrations?.[0]?.count || 0,
-    host_name: event.profiles?.full_name,
-    host_avatar_url: event.profiles?.avatar_url,
-    host_bio: event.profiles?.bio,
-    event_type: event.event_type || 'networking',
-    shortUrl: getEventShortUrlSync(event.id, event.event_date),
-  }))
+  const formattedUpcomingEvents = (upcomingEvents || []).map((event: any) => {
+    // 배열/객체 모두 대응
+    const profile = Array.isArray(event.profiles)
+      ? event.profiles[0]
+      : event.profiles;
+
+    return {
+      id: event.id,
+      title: event.title,
+      thumbnail_url: event.thumbnail_url,
+      event_date: event.event_date,
+      event_time: null,
+      location: event.location,
+      max_participants: event.max_participants,
+      current_participants: event.event_registrations?.[0]?.count || 0,
+      host_name: profile?.full_name || null,
+      host_avatar_url: profile?.avatar_url || null,
+      host_bio: profile?.bio || null,
+      event_type: event.event_type || 'networking',
+      shortUrl: getEventShortUrlSync(event.id, event.event_date),
+    }
+  })
 
   return (
     <div className="w-full flex flex-col gap-10">
@@ -44925,7 +45349,11 @@ export default async function EventsPage() {
         <div className="mt-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4">지난 이벤트</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-            {pastEvents.map((event) => {
+            {pastEvents.map((event: any) => {
+              // 배열/객체 모두 대응
+              const profile = Array.isArray(event.profiles)
+                ? event.profiles[0]
+                : event.profiles;
               const shortUrl = getEventShortUrlSync(event.id, event.event_date)
               return (
                 <Link key={event.id} href={shortUrl}>
@@ -44939,9 +45367,9 @@ export default async function EventsPage() {
                       location: event.location,
                       max_participants: event.max_participants,
                       current_participants: event.event_registrations?.[0]?.count || 0,
-                      host_name: event.profiles?.full_name,
-                      host_avatar_url: event.profiles?.avatar_url,
-                      host_bio: event.profiles?.bio,
+                      host_name: profile?.full_name || null,
+                      host_avatar_url: profile?.avatar_url || null,
+                      host_bio: profile?.bio || null,
                       event_type: event.event_type || 'networking',
                       shortUrl: shortUrl,
                     }}
@@ -45053,14 +45481,34 @@ export default async function EventsPage() {
   }
 }
 
-/* Rich Text Editor 이미지 스타일 */
+/* Rich Text Editor 이미지 스타일 - 상세 페이지와 동일하게 */
 @layer base {
   .prose img {
-    max-width: 80% !important;
-    max-height: 500px !important;
-    object-fit: contain;
-    margin: 1rem auto;
-    border-radius: 0.5rem;
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: cover;
+    margin: 1.5rem auto;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  /* 상세 페이지 prose 단락 간격 - TipTap 에디터와 동일하게 */
+  .prose p {
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+
+  .prose p:first-child {
+    margin-top: 0;
+  }
+
+  .prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* TipTap 에디터 ProseMirror 스타일과 일치시키기 */
+  .prose p + p {
+    margin-top: 1.5em;
   }
 }
 
@@ -45985,479 +46433,6 @@ export function MobileActionBar() {
 }
 </file>
 
-<file path="components/event-detail-content.tsx">
-/**
- * 이벤트 상세 페이지 공통 렌더링 로직
- * /e/[id]와 /events/[id]에서 공통으로 사용
- */
-
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, ChevronLeft, AlertCircle, Ticket, Edit } from 'lucide-react';
-import { RegisterButton } from "@/components/register-button";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { EventShareButton } from "@/components/event-share-button";
-import { DeleteEventButton } from "@/components/delete-event-button";
-import { FloatingActionBar } from "@/components/floating-action-bar";
-
-import { getReviewsByEvent } from "@/lib/queries/posts";
-import { ReviewWriteButton } from "@/components/reviews/review-modal";
-import { ReviewCard } from "@/components/reviews/review-card";
-
-export default async function EventDetailContent({
-  eventId,
-  basePath = '/events'
-}: {
-  eventId: string;
-  basePath?: string;
-}) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // 이벤트 정보 조회
-  let event;
-  try {
-    const { data, error } = await supabase
-      .from("events")
-      .select(`
-        *,
-        profiles:created_by (
-          id,
-          full_name,
-          avatar_url,
-          email,
-          bio,
-          tagline
-        )
-      `)
-      .eq("id", eventId)
-      .single();
-
-    if (error || !data) {
-      notFound();
-    }
-
-    event = data;
-  } catch (error) {
-    notFound();
-  }
-
-  // 사용자 등록 여부 조회
-  let userRegistration = null;
-  if (user) {
-    const { data: registrationData } = await supabase
-      .from("event_registrations")
-      .select("id, payment_status")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single();
-
-    userRegistration = registrationData;
-  }
-
-  // 참석자 수 조회
-  const { count: attendeesCount } = await supabase
-    .from("event_registrations")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  // 참석자 목록 조회
-  const { data: attendeesData } = await supabase
-    .from("event_registrations")
-    .select(`
-      id,
-      user_id,
-      guest_name,
-      profiles:user_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq("event_id", eventId);
-
-  // 후기 목록 조회
-  const reviews = await getReviewsByEvent(supabase, eventId);
-
-  const attendees = attendeesData || [];
-  const isRegistered = !!userRegistration;
-  const isPastEvent = new Date(event.event_date) < new Date();
-  const isFull = event.max_participants && attendeesCount && attendeesCount >= event.max_participants;
-  const isCreator = user && event.created_by === user.id;
-  const isCompleted = event.status === 'completed';
-
-  // 날짜/시간 포맷팅
-  const eventDate = new Date(event.event_date);
-  const dateStr = eventDate.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const weekdayStr = eventDate.toLocaleDateString("ko-KR", {
-    weekday: "short",
-  });
-  const timeStr = eventDate.toLocaleTimeString("ko-KR", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  const CardHeader = ({ icon: Icon, title, rightElement }: { icon: React.ComponentType<{ className?: string }>, title: string, rightElement?: React.ReactNode }) => (
-    <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-      <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
-          <Icon className="h-4 w-4" />
-        </div>
-        <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
-      </div>
-      {rightElement}
-    </div>
-  );
-
-  return (
-    <div className="w-full">
-      {/* 상단 네비게이션 */}
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/e" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
-          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-            <ChevronLeft className="h-4 w-4" />
-          </div>
-          이벤트 목록
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-8">
-        {/* [ROW 1] - 모바일: 세로 스택, 데스크톱: 가로 그리드 (5:7 비율) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
-          {/* Row 1 - Left: 1:1 이미지 */}
-          <div className="lg:col-span-5">
-            <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-white h-full">
-              <div className="relative aspect-square w-full overflow-hidden">
-                {event.thumbnail_url ? (
-                  <img
-                    src={event.thumbnail_url}
-                    alt={event.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
-                    <Calendar className="w-20 h-20 text-slate-400" />
-                  </div>
-                )}
-                {/* 상태 배지 */}
-                <div className="absolute top-4 left-4 z-10">
-                  {isCompleted ? (
-                    <Badge className="bg-slate-800/90 text-white border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">종료됨</Badge>
-                  ) : isPastEvent ? (
-                    <Badge variant="secondary" className="bg-white/90 text-slate-700 border-none px-3 py-1.5 text-sm font-medium backdrop-blur-sm">기간 만료</Badge>
-                  ) : isFull ? (
-                    <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium backdrop-blur-sm">마감임박</Badge>
-                  ) : (
-                    <Badge className="bg-green-600/90 hover:bg-green-700 text-white border-none px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm">
-                      모집중
-                    </Badge>
-                  )}
-                </div>
-                {/* 인원 배지 */}
-                <div className="absolute top-4 right-4 z-10">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-black/60 text-white backdrop-blur-sm">
-                    <Users className="w-4 h-4" />
-                    <span>{attendeesCount || 0}/{event.max_participants || '∞'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 1 - Right: 제목 + 정보 + 신청 */}
-          <Card id="register-card" className="lg:col-span-7 border-slate-200 shadow-md bg-white flex flex-col">
-            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
-              {/* 제목 */}
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 leading-tight mb-4">
-                {event.title}
-              </h1>
-
-              {/* 호스트 정보 */}
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 mb-5">
-                <Avatar className="h-10 w-10 border-2 border-white shadow-sm shrink-0">
-                  <AvatarImage src={event.profiles?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-slate-900 text-white font-bold text-sm">
-                    {event.profiles?.full_name?.[0] || "H"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-500 font-medium">호스트</p>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {event.profiles?.full_name || "알 수 없음"}
-                  </p>
-                  {event.profiles && (event.profiles as any).tagline && (
-                    <p className="text-xs text-slate-500 truncate">
-                      {(event.profiles as any).tagline}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* 날짜, 시간, 장소, 금액 정보 - 가로 그리드 */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-                {/* 날짜 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-500">날짜</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">{dateStr} ({weekdayStr})</p>
-                </div>
-
-                {/* 시간 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Ticket className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-500">시간</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">{timeStr}</p>
-                </div>
-
-                {/* 장소 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-500">장소</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900 truncate">{event.location || "장소 미정"}</p>
-                </div>
-
-                {/* 금액 */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-slate-400">₩</span>
-                    <span className="text-xs text-slate-500">참가비</span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">
-                    {event.price && event.price > 0 ? `${event.price.toLocaleString()}원` : '무료'}
-                  </p>
-                </div>
-              </div>
-
-              {/* 현재 모집 현황 */}
-              <div className="mb-6">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-sm text-slate-500 font-medium">현재 모집 현황</span>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-slate-900">{attendeesCount || 0}</span>
-                    <span className="text-slate-400 text-sm font-medium ml-1">
-                      / {event.max_participants ? event.max_participants : '∞'}
-                    </span>
-                  </div>
-                </div>
-                {event.max_participants && event.max_participants > 0 ? (
-                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
-                      style={{ width: `${Math.min(100, ((attendeesCount || 0) / event.max_participants) * 100)}%` }}
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col flex-1">
-                <div className="flex flex-col gap-2">
-                  {isPastEvent ? (
-                    <Button className="w-full bg-slate-100 text-slate-500 hover:bg-slate-200 border-0 h-11 text-sm font-medium" disabled>
-                      <AlertCircle className="mr-2 h-4 w-4" />
-                      이벤트가 종료되었습니다
-                    </Button>
-                  ) : isCreator ? (
-                    <>
-                      <Link href={`${basePath}/${eventId}/edit`}>
-                        <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 h-11 text-sm font-medium">
-                          <Edit className="mr-2 h-4 w-4" />
-                          이벤트 수정
-                        </Button>
-                      </Link>
-
-                      <Link href={`${basePath}/${eventId}/manage`}>
-                        <Button variant="outline" className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-50 h-11 text-sm font-medium">
-                          <Users className="mr-2 h-4 w-4" />
-                          참석자 관리
-                        </Button>
-                      </Link>
-
-                      <EventShareButton
-                        title={event.title}
-                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                        variant="outline"
-                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-10 text-sm font-medium transition-all shadow-sm hover:shadow"
-                      >
-                        공유하기
-                      </EventShareButton>
-                    </>
-                  ) : (
-                    <>
-                      <RegisterButton
-                        eventId={event.id}
-                        userId={user?.id}
-                        isRegistered={isRegistered}
-                        paymentStatus={userRegistration?.payment_status}
-                        isFull={!!isFull}
-                        price={event.price || 0}
-                      />
-
-                      <Separator className="my-2 bg-slate-100" />
-
-                      <EventShareButton
-                        title={event.title}
-                        description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                        variant="outline"
-                        className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 h-10 text-sm font-medium transition-all shadow-sm hover:shadow"
-                      >
-                        공유하기
-                      </EventShareButton>
-                    </>
-                  )}
-                </div>
-
-                {isCreator && !isPastEvent && (
-                  <div className="mt-auto pt-4 border-t border-slate-100">
-                    <DeleteEventButton
-                      eventId={eventId}
-                      variant="outline"
-                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11 text-base font-medium"
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* [ROW 2] */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* Row 2 - Left (8) : 상세 내용 */}
-          <Card className="lg:col-span-8 border-slate-200 shadow-sm bg-white">
-            <CardContent className="p-6 sm:p-8">
-              <div
-                className="prose prose-slate max-w-none prose-headings:font-bold prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900"
-                dangerouslySetInnerHTML={{ __html: event.description || "" }}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Row 2 - Right (4) : 참석자 멤버 */}
-          <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white">
-            <CardContent className="p-6">
-              <CardHeader
-                icon={Users}
-                title="참석자 멤버"
-                rightElement={
-                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                    {attendeesCount || 0}명
-                  </span>
-                }
-              />
-
-              {attendees && Array.isArray(attendees) && attendees.length > 0 ? (
-                <div className="flex flex-wrap gap-3 max-h-[400px] overflow-y-auto">
-                  {attendees.map((attendee: any, index: number) => {
-                    const profile = Array.isArray(attendee.profiles)
-                      ? attendee.profiles[0]
-                      : attendee.profiles;
-                    const name = profile?.full_name || attendee.guest_name || "익명";
-                    return (
-                      <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
-                        <Avatar className="h-12 w-12 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200">
-                          <AvatarImage src={profile?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">
-                            {name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900">
-                          {name}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-8 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-slate-500 text-xs">아직 참석자가 없습니다.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-
-        {/* [ROW 3] 후기 섹션 */}
-        <Card className="border-slate-200 shadow-sm bg-white mt-4">
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    참가자 후기
-                    <span className="text-base sm:text-lg text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
-                      {reviews ? reviews.length : 0}
-                    </span>
-                  </h2>
-                  <p className="text-sm sm:text-base text-slate-500 mt-1">
-                    이 모임에 참여한 분들의 생생한 이야기를 확인해보세요.
-                  </p>
-                </div>
-              </div>
-
-              {reviews && reviews.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {reviews.map((review: any) => (
-                    <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 sm:py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 sm:mb-4">
-                    <span className="text-2xl sm:text-3xl">📝</span>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
-                  <p className="text-sm sm:text-base text-slate-500 max-w-sm mx-auto mb-6 px-4">
-                    이 모임의 첫 번째 후기 작성자가 되어주세요!
-                    참여자들에게 큰 도움이 됩니다.
-                  </p>
-                  <ReviewWriteButton
-                    userId={user?.id || ""}
-                    eventId={eventId}
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
-
-      {/* [Mobile Only] 하단 고정 액션 바 */}
-      <FloatingActionBar
-        eventId={eventId}
-        userId={user?.id}
-        isRegistered={isRegistered}
-        paymentStatus={userRegistration?.payment_status}
-        isFull={!!isFull}
-        price={event.price || 0}
-        isPastEvent={isPastEvent}
-        isCreator={!!isCreator}
-        eventTitle={event.title}
-        dateStr={dateStr}
-        timeStr={timeStr}
-        location={event.location}
-      />
-    </div>
-  );
-}
-</file>
-
 <file path="components/home/hero-section-static.tsx">
 "use client"
 
@@ -46579,17 +46554,6 @@ export async function StandardRightSidebar() {
         )}
       </div>
 
-      <Separator className="bg-slate-100" />
-
-      {/* 푸터 영역 (예시) */}
-      <div className="px-1 text-xs text-slate-400 leading-relaxed space-y-1">
-        <div>© 2024 SFC</div>
-        <div className="flex gap-2">
-          <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
-          <span className="text-slate-300">·</span>
-          <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
-        </div>
-      </div>
     </div>
   )
 }
@@ -48714,77 +48678,6 @@ export default function ProfileContent() {
 }
 </file>
 
-<file path="app/page.tsx">
-import type { Metadata } from "next"
-import { Suspense } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { SiteHeaderStatic } from "@/components/site-header-static"
-import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
-import { Sidebar } from "@/components/sidebar"
-import { MobileHeader } from "@/components/mobile-header"
-import { HeroSectionStatic } from "@/components/home/hero-section-static"
-import { EventsSectionContainer } from "@/components/home/events-section-container"
-import { FeedSectionContainer } from "@/components/home/feed-section-container"
-import { EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
-
-// ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
-export const revalidate = 60
-
-export const metadata: Metadata = {
-  title: "Seoul Founders Club",
-  description: "서울 파운더스 클럽",
-  openGraph: {
-    title: "Seoul Founders Club",
-    description: "서울 파운더스 클럽",
-    url: "https://seoulfounders.club",
-    siteName: "Seoul Founders Club",
-    images: [
-      {
-        url: "https://seoulfounders.club/images/logo-circle.png",
-        width: 1200,
-        height: 630,
-        alt: "Seoul Founders Club",
-      },
-    ],
-    locale: "ko_KR",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Seoul Founders Club",
-    description: "서울 파운더스 클럽",
-    images: ["https://seoulfounders.club/images/logo-circle.png"],
-  },
-}
-
-export default function HomePage() {
-  return (
-    <DashboardLayout
-      header={<SiteHeaderStatic />}
-      sidebar={<Sidebar />}
-      mobileHeader={<MobileHeader />}
-    >
-      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
-        <div className="flex flex-col gap-10 w-full">
-          <HeroSectionStatic />
-
-          <Suspense fallback={<EventsSkeleton />}>
-            <EventsSectionContainer />
-          </Suspense>
-
-          <div className="h-px bg-slate-200" />
-
-          <Suspense fallback={<FeedSkeleton />}>
-            <FeedSectionContainer />
-          </Suspense>
-        </div>
-      </ThreeColumnLayout>
-    </DashboardLayout>
-  )
-}
-</file>
-
 <file path="components/dashboard-layout.tsx">
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
@@ -48849,6 +48742,265 @@ export function DashboardLayout({ children, header, rightSidebar, sidebarProfile
       </main>
     </div>
   )
+}
+</file>
+
+<file path="components/event-detail-content.tsx">
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from 'next/navigation';
+import { Card, CardContent } from "@/components/ui/card";
+import { MapPin, ChevronLeft, ExternalLink } from 'lucide-react';
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FloatingActionBar } from "@/components/floating-action-bar";
+import { getReviewsByEvent } from "@/lib/queries/posts";
+import { ReviewModal } from "@/components/reviews/review-modal";
+import { ReviewCard } from "@/components/reviews/review-card";
+import { GoogleMapEmbed } from "@/components/google-map-embed";
+import { EventDetailHero } from "@/components/event-detail-hero";
+
+export default async function EventDetailContent({
+  eventId,
+  basePath = '/events'
+}: {
+  eventId: string;
+  basePath?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 1. 이벤트 정보 조회
+  let event;
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select(`
+        *,
+        profiles:created_by (
+          id,
+          full_name,
+          avatar_url,
+          email,
+          bio,
+          tagline
+        )
+      `)
+      .eq("id", eventId)
+      .single();
+
+    if (error || !data) notFound();
+    event = data;
+  } catch (error) { notFound(); }
+
+  // 2. 관련 정보 조회 (등록 여부, 참석자, 후기)
+  let userRegistration = null;
+  if (user) {
+    const { data } = await supabase
+      .from("event_registrations")
+      .select("id, payment_status")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .single();
+    userRegistration = data;
+  }
+
+  const { count: attendeesCount } = await supabase
+    .from("event_registrations")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", eventId);
+
+  const { data: attendeesData } = await supabase
+    .from("event_registrations")
+    .select(`id, user_id, guest_name, profiles:user_id (id, full_name, avatar_url)`)
+    .eq("event_id", eventId);
+
+  const reviews = await getReviewsByEvent(supabase, eventId);
+
+  // 3. 상태 계산
+  const attendees = attendeesData || [];
+  const isRegistered = !!userRegistration;
+  const currentCount = attendeesCount || 0;
+  const maxCount = event.max_participants;
+  const isFull = maxCount && currentCount >= maxCount;
+  const isCreator = user && event.created_by === user.id;
+
+  // 종료 여부 판단: end_date가 있으면 그것을 기준, 없으면 start_date + 3시간을 종료 시점으로 간주
+  const now = new Date();
+  const eventStartDate = new Date(event.event_date);
+  const eventEndDate = event.end_date
+    ? new Date(event.end_date)
+    : new Date(eventStartDate.getTime() + 3 * 60 * 60 * 1000); // 기본 3시간
+
+  const isPastEvent = eventEndDate < now;
+  const isCompleted = event.status === 'completed'; // 수동 종료 상태
+
+  // 날짜 포맷팅
+  const dateStr = eventStartDate.toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+  const timeStr = eventStartDate.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true });
+
+  // 프로필 처리 (배열/객체 호환)
+  const hostProfile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
+  const hostName = hostProfile?.full_name || "알 수 없음";
+  const hostAvatar = hostProfile?.avatar_url;
+
+  // 구글 맵 URL 및 키
+  const googleMapUrl = event.location
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
+    : undefined;
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
+  return (
+    <div className="w-full">
+      {/* 상단 네비게이션 */}
+      <div className="mb-6 flex items-center justify-between">
+        <Link href="/e" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
+            <ChevronLeft className="h-4 w-4" />
+          </div>
+          이벤트 목록
+        </Link>
+      </div>
+
+      <div className="flex flex-col gap-10">
+        {/* Hero 섹션 - 클라이언트 컴포넌트로 높이 동기화 */}
+        <EventDetailHero
+          event={event}
+          hostName={hostName}
+          hostAvatar={hostAvatar}
+          dateStr={dateStr}
+          timeStr={timeStr}
+          currentCount={currentCount}
+          maxCount={maxCount}
+          isFull={!!isFull}
+          isPastEvent={isPastEvent}
+          isCompleted={isCompleted}
+          isCreator={!!isCreator}
+          isRegistered={isRegistered}
+          userRegistration={userRegistration}
+          eventId={eventId}
+          basePath={basePath}
+          userId={user?.id}
+        />
+
+        {/* 상세 내용 & 참석자 */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-8">
+            <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-3xl mb-8">
+               <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50">
+                 <h2 className="text-xl font-bold text-slate-900">상세 내용</h2>
+               </div>
+              <CardContent className="p-8">
+                <div
+                  className="prose prose-slate max-w-none prose-lg prose-headings:font-bold prose-p:text-slate-600 prose-p:leading-relaxed prose-strong:text-slate-900 prose-img:rounded-2xl"
+                  dangerouslySetInnerHTML={{ __html: event.description || "" }}
+                />
+              </CardContent>
+            </Card>
+
+            {event.location && googleMapsApiKey && (
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-slate-500" />
+                  위치 안내
+                </h3>
+                <GoogleMapEmbed location={event.location} apiKey={googleMapsApiKey} />
+                <div className="mt-2 text-right">
+                  <a
+                    href={googleMapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    Google 지도에서 보기 <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-4 space-y-6">
+             <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-3xl">
+               <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                 <h2 className="text-lg font-bold text-slate-900">참석자 멤버</h2>
+                 <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                    {currentCount}명
+                  </span>
+               </div>
+              <CardContent className="p-6">
+                {attendees.length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {attendees.map((attendee: any, index: number) => {
+                      const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
+                      const name = profile?.full_name || attendee.guest_name || "익명";
+                      return (
+                        <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
+                          <Avatar className="h-14 w-14 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200 ring-1 ring-slate-100">
+                            <AvatarImage src={profile?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">{name[0]}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900 transition-colors">{name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-10 text-center text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    아직 참석자가 없습니다.
+                    <br />첫 번째 멤버가 되어보세요!
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* 후기 섹션 */}
+        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-3xl">
+           <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+             <div>
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  참가자 후기
+                  <span className="text-sm text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                    {reviews ? reviews.length : 0}
+                  </span>
+                </h2>
+             </div>
+              {user && <ReviewModal userId={user.id} eventId={eventId} />}
+           </div>
+          <CardContent className="p-8">
+            {reviews && reviews.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {reviews.map((review: any) => (
+                  <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm hover:shadow-md transition-all" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-3xl">💬</div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">모임이 끝난 후 첫 번째 후기를 남겨주세요!<br/>여러분의 경험 공유가 큰 힘이 됩니다.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <FloatingActionBar
+        eventId={eventId}
+        userId={user?.id}
+        isRegistered={isRegistered}
+        paymentStatus={userRegistration?.payment_status}
+        isFull={!!isFull}
+        price={event.price || 0}
+        isPastEvent={isPastEvent}
+        isCreator={!!isCreator}
+        eventTitle={event.title}
+        dateStr={dateStr}
+        timeStr={timeStr}
+        location={event.location || ""}
+      />
+    </div>
+  );
 }
 </file>
 
@@ -49110,7 +49262,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { MapPin, User, Users, Calendar, Clock } from "lucide-react"
+import { MapPin, User, Calendar } from "lucide-react"
 
 export type EventCardEvent = {
   id: string
@@ -49136,7 +49288,6 @@ type Props = {
 }
 
 export default function EventCard({ event, href, className, layout = "card" }: Props) {
-  // Hydration 에러 방지: 클라이언트 마운트 후에만 날짜/시간 계산
   const [dateInfo, setDateInfo] = useState({ dateStr: '', weekdayStr: '', timeStr: '' })
 
   useEffect(() => {
@@ -49156,12 +49307,12 @@ export default function EventCard({ event, href, className, layout = "card" }: P
   const content = (
     <div
       className={cn(
-        "group relative w-full overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+        "group relative w-full overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
         className
       )}
     >
-      {/* 썸네일 이미지 - 정사각형 */}
-      <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+      {/* 썸네일 이미지 (1:1 정사각형 비율) */}
+      <div className="relative w-full aspect-square overflow-hidden bg-slate-100">
         {event.thumbnail_url ? (
           <Image
             src={event.thumbnail_url}
@@ -49171,14 +49322,14 @@ export default function EventCard({ event, href, className, layout = "card" }: P
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
-            <Calendar className="w-12 h-12 text-slate-400" />
+            <Calendar className="w-16 h-16 text-slate-400" />
           </div>
         )}
 
-        {/* 카테고리 배지 - 좌측 상단 */}
+        {/* 카테고리 배지 */}
         {event.event_type && (
-          <div className="absolute top-3 left-3 z-10">
-            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold text-white bg-black/60 backdrop-blur-sm">
+          <div className="absolute top-4 left-4 z-10">
+            <span className="inline-block px-3 py-1.5 rounded-full text-xs font-bold text-white bg-black/60 backdrop-blur-md shadow-sm">
               {event.event_type === 'networking' && '네트워킹'}
               {event.event_type === 'class' && '클래스'}
               {event.event_type === 'activity' && '액티비티'}
@@ -49186,25 +49337,22 @@ export default function EventCard({ event, href, className, layout = "card" }: P
           </div>
         )}
 
-        {/* 인원 배지 - 우측 상단 */}
-        <div className="absolute top-3 right-3 z-10">
-          <div className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold backdrop-blur-sm",
-            isFull
-              ? "bg-red-500 text-white"
-              : "bg-black/60 text-white"
+        {/* 인원 배지 */}
+        <div className="absolute top-4 right-4 z-10">
+          <span className={cn(
+            "inline-block px-3 py-1.5 rounded-full text-xs font-bold text-white backdrop-blur-md shadow-sm",
+            isFull ? "bg-red-500/90" : "bg-black/60"
           )}>
-            <Users className="w-3 h-3" />
-            <span>{current}/{max || '∞'}</span>
-          </div>
+            {current}/{max || '∞'}
+          </span>
         </div>
       </div>
 
-      {/* 하단 콘텐츠 영역 - 흰색 배경 */}
-      <div className="p-4">
-        {/* 호스트 프로필 */}
-        <div className="flex items-center gap-2 mb-2">
-          <div className="relative h-5 w-5 flex-shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden">
+      {/* 하단 콘텐츠 영역 */}
+      <div className="p-5 flex flex-col">
+        {/* 호스트 정보 (강조) */}
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="relative h-6 w-6 flex-shrink-0 rounded-full border border-slate-100 bg-slate-50 overflow-hidden">
             {event.host_avatar_url ? (
               <Image
                 src={event.host_avatar_url}
@@ -49215,27 +49363,27 @@ export default function EventCard({ event, href, className, layout = "card" }: P
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-slate-400">
-                <User className="w-2.5 h-2.5" />
+                <User className="w-3.5 h-3.5" />
               </div>
             )}
           </div>
-          <span className="font-medium text-xs text-slate-600 truncate">{event.host_name || "호스트"}</span>
+          <span className="font-semibold text-sm text-slate-700 truncate">{event.host_name || "호스트"}</span>
         </div>
 
         {/* 제목 */}
-        <h3 className="text-base font-bold text-slate-900 leading-snug mb-3 line-clamp-2">
+        <h3 className="text-lg md:text-xl font-bold text-slate-900 leading-snug mb-3 line-clamp-2 min-h-[3.5rem]">
           {event.title}
         </h3>
 
-        {/* 날짜/시간 & 장소 */}
-        <div className="flex flex-col gap-1.5 text-slate-500 text-xs">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>{dateStr} ({weekdayStr}) · {timeStr}</span>
+        {/* 주요 정보 */}
+        <div className="space-y-1.5 mb-1">
+          <div className="flex items-center gap-2.5 text-slate-600">
+            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="text-sm font-medium">{dateStr} ({weekdayStr}) · {timeStr}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
-            <span className="truncate">{event.location || "장소 미정"}</span>
+          <div className="flex items-center gap-2.5 text-slate-600">
+            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="text-sm font-medium truncate">{event.location || "장소 미정"}</span>
           </div>
         </div>
       </div>
@@ -49514,6 +49662,77 @@ export function createClient() {
 // 로그아웃 시 인스턴스 초기화용
 export function resetClient() {
   supabaseInstance = null;
+}
+</file>
+
+<file path="app/page.tsx">
+import type { Metadata } from "next"
+import { Suspense } from "react"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
+import { Sidebar } from "@/components/sidebar"
+import { MobileHeader } from "@/components/mobile-header"
+import { HeroSectionStatic } from "@/components/home/hero-section-static"
+import { EventsSectionContainer } from "@/components/home/events-section-container"
+import { FeedSectionContainer } from "@/components/home/feed-section-container"
+import { EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
+
+// ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
+export const revalidate = 60
+
+export const metadata: Metadata = {
+  title: "Seoul Founders Club",
+  description: "서울 파운더스 클럽",
+  openGraph: {
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    url: "https://seoulfounders.club",
+    siteName: "Seoul Founders Club",
+    images: [
+      {
+        url: "https://seoulfounders.club/images/logo-circle.png",
+        width: 1200,
+        height: 630,
+        alt: "Seoul Founders Club",
+      },
+    ],
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    images: ["https://seoulfounders.club/images/logo-circle.png"],
+  },
+}
+
+export default function HomePage() {
+  return (
+    <DashboardLayout
+      header={<SiteHeader />}
+      sidebar={<Sidebar />}
+      mobileHeader={<MobileHeader />}
+    >
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
+        <div className="flex flex-col gap-10 w-full">
+          <HeroSectionStatic />
+
+          <Suspense fallback={<EventsSkeleton />}>
+            <EventsSectionContainer />
+          </Suspense>
+
+          <div className="h-px bg-slate-200" />
+
+          <Suspense fallback={<FeedSkeleton />}>
+            <FeedSectionContainer />
+          </Suspense>
+        </div>
+      </ThreeColumnLayout>
+    </DashboardLayout>
+  )
 }
 </file>
 
@@ -50554,6 +50773,18 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           </div>
         </div>
       </nav>
+
+      {/* 하단 푸터 영역 */}
+      <div className="p-4 border-t border-slate-100 bg-white">
+        <div className="text-[11px] leading-relaxed text-slate-400 font-medium px-2">
+          <p className="mb-1">© 2025 Seoul Founders Club</p>
+          <div className="flex flex-wrap gap-x-2 gap-y-1">
+            <Link href="/terms" className="hover:text-slate-600 transition-colors">이용약관</Link>
+            <span className="text-slate-300">·</span>
+            <Link href="/privacy" className="hover:text-slate-600 transition-colors">개인정보처리방침</Link>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -50562,7 +50793,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 <file path="next-env.d.ts">
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
-import "./.next/types/routes.d.ts";
+import "./.next/dev/types/routes.d.ts";
 
 // NOTE: This file should not be edited
 // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.

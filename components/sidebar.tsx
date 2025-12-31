@@ -220,6 +220,18 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           </div>
         </div>
       </nav>
+
+      {/* 하단 푸터 영역 */}
+      <div className="p-4 border-t border-slate-100 bg-white">
+        <div className="text-[11px] leading-relaxed text-slate-400 font-medium px-2">
+          <p className="mb-1">© 2025 Seoul Founders Club</p>
+          <div className="flex flex-wrap gap-x-2 gap-y-1">
+            <Link href="/terms" className="hover:text-slate-600 transition-colors">이용약관</Link>
+            <span className="text-slate-300">·</span>
+            <Link href="/privacy" className="hover:text-slate-600 transition-colors">개인정보처리방침</Link>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

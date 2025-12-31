@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { MapPin, User, Users, Calendar, Clock } from "lucide-react"
+import { MapPin, User, Calendar } from "lucide-react"
 
 export type EventCardEvent = {
   id: string
@@ -30,7 +30,6 @@ type Props = {
 }
 
 export default function EventCard({ event, href, className, layout = "card" }: Props) {
-  // Hydration 에러 방지: 클라이언트 마운트 후에만 날짜/시간 계산
   const [dateInfo, setDateInfo] = useState({ dateStr: '', weekdayStr: '', timeStr: '' })
 
   useEffect(() => {
@@ -50,12 +49,12 @@ export default function EventCard({ event, href, className, layout = "card" }: P
   const content = (
     <div
       className={cn(
-        "group relative w-full overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+        "group relative w-full overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
         className
       )}
     >
-      {/* 썸네일 이미지 - 정사각형 */}
-      <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+      {/* 썸네일 이미지 (1:1 정사각형 비율) */}
+      <div className="relative w-full aspect-square overflow-hidden bg-slate-100">
         {event.thumbnail_url ? (
           <Image
             src={event.thumbnail_url}
@@ -65,14 +64,14 @@ export default function EventCard({ event, href, className, layout = "card" }: P
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
-            <Calendar className="w-12 h-12 text-slate-400" />
+            <Calendar className="w-16 h-16 text-slate-400" />
           </div>
         )}
 
-        {/* 카테고리 배지 - 좌측 상단 */}
+        {/* 카테고리 배지 */}
         {event.event_type && (
-          <div className="absolute top-3 left-3 z-10">
-            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold text-white bg-black/60 backdrop-blur-sm">
+          <div className="absolute top-4 left-4 z-10">
+            <span className="inline-block px-3 py-1.5 rounded-full text-xs font-bold text-white bg-black/60 backdrop-blur-md shadow-sm">
               {event.event_type === 'networking' && '네트워킹'}
               {event.event_type === 'class' && '클래스'}
               {event.event_type === 'activity' && '액티비티'}
@@ -80,25 +79,22 @@ export default function EventCard({ event, href, className, layout = "card" }: P
           </div>
         )}
 
-        {/* 인원 배지 - 우측 상단 */}
-        <div className="absolute top-3 right-3 z-10">
-          <div className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold backdrop-blur-sm",
-            isFull
-              ? "bg-red-500 text-white"
-              : "bg-black/60 text-white"
+        {/* 인원 배지 */}
+        <div className="absolute top-4 right-4 z-10">
+          <span className={cn(
+            "inline-block px-3 py-1.5 rounded-full text-xs font-bold text-white backdrop-blur-md shadow-sm",
+            isFull ? "bg-red-500/90" : "bg-black/60"
           )}>
-            <Users className="w-3 h-3" />
-            <span>{current}/{max || '∞'}</span>
-          </div>
+            {current}/{max || '∞'}
+          </span>
         </div>
       </div>
 
-      {/* 하단 콘텐츠 영역 - 흰색 배경 */}
-      <div className="p-4">
-        {/* 호스트 프로필 */}
-        <div className="flex items-center gap-2 mb-2">
-          <div className="relative h-5 w-5 flex-shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden">
+      {/* 하단 콘텐츠 영역 */}
+      <div className="p-5 flex flex-col">
+        {/* 호스트 정보 (강조) */}
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="relative h-6 w-6 flex-shrink-0 rounded-full border border-slate-100 bg-slate-50 overflow-hidden">
             {event.host_avatar_url ? (
               <Image
                 src={event.host_avatar_url}
@@ -109,27 +105,27 @@ export default function EventCard({ event, href, className, layout = "card" }: P
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-slate-400">
-                <User className="w-2.5 h-2.5" />
+                <User className="w-3.5 h-3.5" />
               </div>
             )}
           </div>
-          <span className="font-medium text-xs text-slate-600 truncate">{event.host_name || "호스트"}</span>
+          <span className="font-semibold text-sm text-slate-700 truncate">{event.host_name || "호스트"}</span>
         </div>
 
         {/* 제목 */}
-        <h3 className="text-base font-bold text-slate-900 leading-snug mb-3 line-clamp-2">
+        <h3 className="text-lg md:text-xl font-bold text-slate-900 leading-snug mb-3 line-clamp-2 min-h-[3.5rem]">
           {event.title}
         </h3>
 
-        {/* 날짜/시간 & 장소 */}
-        <div className="flex flex-col gap-1.5 text-slate-500 text-xs">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>{dateStr} ({weekdayStr}) · {timeStr}</span>
+        {/* 주요 정보 */}
+        <div className="space-y-1.5 mb-1">
+          <div className="flex items-center gap-2.5 text-slate-600">
+            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="text-sm font-medium">{dateStr} ({weekdayStr}) · {timeStr}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
-            <span className="truncate">{event.location || "장소 미정"}</span>
+          <div className="flex items-center gap-2.5 text-slate-600">
+            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="text-sm font-medium truncate">{event.location || "장소 미정"}</span>
           </div>
         </div>
       </div>

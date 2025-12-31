@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Users } from 'lucide-react';
-import { CompleteEventButton } from "@/components/complete-event-button";
 import { AddGuestForm } from "@/components/add-guest-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExportCSVButton } from "@/components/export-csv-button";
@@ -247,14 +246,6 @@ export default async function ManageEventPage({
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>액션</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CompleteEventButton eventId={eventId} userId={user.id} />
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

@@ -303,9 +303,9 @@ export function HomePageClient({
         ) : undefined
       }
     >
-      <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="w-full grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* [LEFT] 메인 콘텐츠 영역 */}
-        <div className="lg:col-span-9 flex flex-col gap-6">
+        <div className="xl:col-span-9 flex flex-col gap-6">
           <HeroSection user={user} profile={profile} onLogin={handleLogin} />
           {children && <div>{children}</div>}
           <div id="events-section">
@@ -328,8 +328,8 @@ export function HomePageClient({
           </div>
         </div>
 
-        {/* [RIGHT] 우측 사이드바 영역 */}
-        <div className="hidden lg:block lg:col-span-3">
+        {/* [RIGHT] 우측 사이드바 영역 (xl 이상에서만 표시) */}
+        <div className="hidden xl:block xl:col-span-3">
           <div className="sticky top-8 flex flex-col gap-6 h-fit">
             <StandardRightSidebar />
           </div>
