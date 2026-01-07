@@ -4,12 +4,12 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
-import { Sidebar } from "@/components/sidebar"
 import { MobileHeader } from "@/components/mobile-header"
-import { HeroSectionStatic } from "@/components/home/hero-section-static"
+import { HeroSectionContainer } from "@/components/home/hero-section-container"
 import { EventsSectionContainer } from "@/components/home/events-section-container"
 import { FeedSectionContainer } from "@/components/home/feed-section-container"
 import { EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
+import { getCachedUserProfile } from "@/lib/queries/cached"
 
 // ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
 export const revalidate = 60
@@ -41,16 +41,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const userProfile = await getCachedUserProfile()
+  const userRole = userProfile?.profile?.role ?? null
+
   return (
     <DashboardLayout
       header={<SiteHeader />}
-      sidebar={<Sidebar />}
-      mobileHeader={<MobileHeader />}
+      userRole={userRole}
+      mobileHeader={<MobileHeader userRole={userRole} />}
     >
       <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         <div className="flex flex-col gap-10 w-full">
-          <HeroSectionStatic />
+          <HeroSectionContainer />
 
           <Suspense fallback={<EventsSkeleton />}>
             <EventsSectionContainer />

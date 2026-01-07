@@ -42,9 +42,15 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // 핵심: 모든 경로에서 세션을 갱신하여 쿠키 수명을 연장합니다
-  // 이렇게 해야 OAuth 콜백 후 홈페이지에서도 세션이 제대로 인식됩니다
-  const { data: { user } } = await supabase.auth.getUser();
+  // getSession()으로 쿠키 갱신 (DB 호출 없음, 로컬 JWT 검증만)
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // admin 라우트만 getUser()로 실제 DB 검증 (역할 확인 필요)
+  let user = session?.user ?? null;
+  if (pathname.startsWith("/admin")) {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  }
 
   // 관리자 페이지 접근 제어
   if (pathname.startsWith("/admin")) {
