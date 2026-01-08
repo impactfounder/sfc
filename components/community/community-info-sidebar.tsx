@@ -168,53 +168,99 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         return
       }
 
-      // 현재 사용자 확인
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user || null
+      // 현재 사용자 확인 (fetch API 사용)
+      let user = null
+      try {
+        const sessionRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'apikey': supabaseKey!,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        })
+        if (sessionRes.ok) {
+          user = await sessionRes.json()
+        }
+      } catch {
+        // 로그인 안됨
+      }
       setCurrentUserId(user?.id || null)
 
-      // 멤버 수 조회
-      const { count: memberCount } = await supabase
-        .from("community_members")
-        .select("*", { count: "exact", head: true })
-        .eq("community_id", communityData.id)
+      // 멤버 수 조회 (fetch API 사용)
+      let memberCount = 0
+      try {
+        const memberCountRes = await fetch(
+          `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&select=id`,
+          {
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'count=exact',
+            },
+          }
+        )
+        const countHeader = memberCountRes.headers.get('content-range')
+        if (countHeader) {
+          const match = countHeader.match(/\/(\d+)$/)
+          if (match) memberCount = parseInt(match[1], 10)
+        }
+      } catch (err) {
+        console.error("[CommunityInfoSidebar] 멤버 수 조회 오류:", err)
+      }
 
-      // 운영자 목록 조회
-      const { data: moderatorsData } = await supabase
-        .from("community_members")
-        .select(`
-          role,
-          profiles:user_id (
-            id,
-            full_name,
-            avatar_url
+      // 운영자 목록 조회 (fetch API 사용)
+      let moderatorsData: any[] = []
+      try {
+        const modsRes = await fetch(
+          `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&role=in.(owner,admin)&select=role,profiles:user_id(id,full_name,avatar_url)`,
+          {
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+          }
+        )
+        if (modsRes.ok) {
+          moderatorsData = await modsRes.json()
+        }
+      } catch (err) {
+        console.error("[CommunityInfoSidebar] 운영자 조회 오류:", err)
+      }
+
+      // 현재 사용자의 멤버십 상태 확인 (fetch API 사용)
+      if (user?.id) {
+        try {
+          const membershipRes = await fetch(
+            `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${user.id}&select=role`,
+            {
+              headers: {
+                'apikey': supabaseKey!,
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+            }
           )
-        `)
-        .eq("community_id", communityData.id)
-        .in("role", ["owner", "admin"])
-
-      // 현재 사용자의 멤버십 상태 확인
-      if (user) {
-        const { data: membership } = await supabase
-          .from("community_members")
-          .select("role")
-          .eq("community_id", communityData.id)
-          .eq("user_id", user.id)
-          .maybeSingle()
-
-        if (membership) {
-          setMembershipStatus(membership.role as MembershipStatus)
-        } else {
-          // 가입 신청 상태 확인
-          const { data: joinRequest } = await supabase
-            .from("community_join_requests")
-            .select("status")
-            .eq("community_id", communityData.id)
-            .eq("user_id", user.id)
-            .eq("status", "pending")
-            .maybeSingle()
-
-          setMembershipStatus(joinRequest ? "pending" : "none")
+          if (membershipRes.ok) {
+            const membershipData = await membershipRes.json()
+            if (membershipData.length > 0) {
+              setMembershipStatus(membershipData[0].role as MembershipStatus)
+            } else {
+              // 가입 신청 상태 확인
+              const joinReqRes = await fetch(
+                `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${user.id}&status=eq.pending&select=status`,
+                {
+                  headers: {
+                    'apikey': supabaseKey!,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                }
+              )
+              if (joinReqRes.ok) {
+                const joinReqData = await joinReqRes.json()
+                setMembershipStatus(joinReqData.length > 0 ? "pending" : "none")
+              }
+            }
+          }
+        } catch (err) {
+          console.error("[CommunityInfoSidebar] 멤버십 조회 오류:", err)
         }
       }
 
