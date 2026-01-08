@@ -386,139 +386,143 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
   }
 
   return (
-    <div className="space-y-4">
-      {/* 커뮤니티 정보 카드 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg truncate">{community.name}</CardTitle>
-            <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-              <Users className="h-4 w-4" />
-              <span>{community.member_count} members</span>
-              {community.is_private && (
-                <Badge variant="secondary" className="text-xs">
-                  <Lock className="h-3 w-3 mr-1" />
-                  비공개
-                </Badge>
-              )}
-            </div>
+    <div className="space-y-3">
+      {/* 통합 사이드바 카드 */}
+      <Card className="overflow-hidden">
+        {/* 헤더 섹션 */}
+        <div className="p-4 pb-3">
+          <h3 className="font-semibold text-slate-900 truncate">{community.name}</h3>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+            <Users className="h-3.5 w-3.5" />
+            <span>{community.member_count} members</span>
+            {community.is_private && (
+              <Badge variant="secondary" className="text-[10px] ml-1 px-1.5 py-0">
+                <Lock className="h-2.5 w-2.5 mr-0.5" />
+                비공개
+              </Badge>
+            )}
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="pt-0 space-y-4">
-          {/* 소개글 */}
-          {community.description && (
+        {/* 소개글 */}
+        {community.description && (
+          <div className="px-4 pb-3">
             <p className="text-sm text-slate-600 leading-relaxed">
               {community.description}
             </p>
-          )}
+          </div>
+        )}
 
-          {/* 운영자 설정 버튼 */}
-          {canManage && (
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
+        {/* 액션 버튼 */}
+        {(canManage || (currentUserId && !canManage && (membershipStatus === "none" || membershipStatus === "pending"))) && (
+          <div className="px-4 pb-4">
+            {canManage && (
+              <Button
+                className="w-full h-9"
+                variant="outline"
+                size="sm"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings className="h-3.5 w-3.5 mr-1.5" />
+                설정
+              </Button>
+            )}
+            {currentUserId && !canManage && membershipStatus === "none" && (
+              <Button
+                className="w-full h-9"
+                size="sm"
+                onClick={handleJoin}
+                disabled={isJoining}
+              >
+                <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                {community.join_type === "approval" ? "가입 신청" : "가입하기"}
+              </Button>
+            )}
+            {currentUserId && !canManage && membershipStatus === "pending" && (
+              <Button className="w-full h-9" variant="secondary" size="sm" disabled>
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                승인 대기중
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* 운영자 섹션 */}
+        {community.moderators.length > 0 && (
+          <>
+            <div className="border-t border-slate-100" />
+            <div className="p-4">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-3">
+                <Shield className="h-3.5 w-3.5" />
+                <span>운영자</span>
+              </div>
+              <div className="space-y-2">
+                {community.moderators.map((mod) => (
+                  <div
+                    key={mod.id}
+                    className="flex items-center gap-2"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={mod.avatar_url || undefined} />
+                      <AvatarFallback className="text-[10px] bg-slate-100">
+                        {mod.full_name?.charAt(0) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-slate-700 flex-1 truncate">
+                      {mod.full_name || "익명"}
+                    </span>
+                    {mod.role === "owner" && (
+                      <span className="text-[10px] text-slate-400">리더</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 이용수칙 섹션 */}
+        {community.rules && (
+          <>
+            <div className="border-t border-slate-100" />
+            <div className="p-4">
+              <Collapsible open={rulesOpen} onOpenChange={setRulesOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5" />
+                    <span>이용수칙</span>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform",
+                      rulesOpen && "rotate-180"
+                    )}
+                  />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <div className="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap leading-relaxed">
+                    {community.rules}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </>
+        )}
+
+        {/* 탈퇴하기 링크 (하단) */}
+        {currentUserId && !canManage && membershipStatus === "member" && (
+          <>
+            <div className="border-t border-slate-100" />
+            <button
+              onClick={handleLeave}
+              disabled={isJoining}
+              className="w-full text-xs text-slate-400 hover:text-slate-500 hover:bg-slate-50 py-3 transition-colors disabled:opacity-50"
             >
-              <Settings className="h-4 w-4 mr-2" />
-              설정
-            </Button>
-          )}
-
-          {/* 가입 버튼 (탈퇴는 하단으로 이동) */}
-          {currentUserId && !canManage && (
-            <div>
-              {membershipStatus === "none" && (
-                <Button
-                  className="w-full"
-                  onClick={handleJoin}
-                  disabled={isJoining}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  {community.join_type === "approval" ? "가입 신청" : "가입하기"}
-                </Button>
-              )}
-              {membershipStatus === "pending" && (
-                <Button className="w-full" variant="secondary" disabled>
-                  <Clock className="h-4 w-4 mr-2" />
-                  승인 대기중
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* 이용수칙 */}
-          {community.rules && (
-            <Collapsible open={rulesOpen} onOpenChange={setRulesOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-slate-700 hover:text-slate-900">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  <span>이용수칙</span>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform",
-                    rulesOpen && "rotate-180"
-                  )}
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap">
-                  {community.rules}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-        </CardContent>
+              탈퇴하기
+            </button>
+          </>
+        )}
       </Card>
-
-      {/* 운영자 카드 */}
-      {community.moderators.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              운영자
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {community.moderators.map((mod) => (
-                <div
-                  key={mod.id}
-                  className="flex items-center gap-2 py-1"
-                >
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={mod.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">
-                      {mod.full_name?.charAt(0) || "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm text-slate-700 flex-1 truncate">
-                    {mod.full_name || "익명"}
-                  </span>
-                  {mod.role === "owner" && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      리더
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 탈퇴하기 버튼 (하단에 작게 배치) */}
-      {currentUserId && !canManage && membershipStatus === "member" && (
-        <button
-          onClick={handleLeave}
-          disabled={isJoining}
-          className="w-full text-xs text-slate-400 hover:text-slate-500 py-2 transition-colors disabled:opacity-50"
-        >
-          탈퇴하기
-        </button>
-      )}
 
       {/* 설정 모달 */}
       {community && canManage && (

@@ -78,10 +78,13 @@ export default async function CommunityBoardLayout({
   }
 
   // 사이드바 결정
+  // 커뮤니티 페이지: 배너 높이(h-40 = 160px + 정보바 py-5 = ~60px + gap = ~20px = 약 240px)만큼 아래로 내려서 게시글과 정렬
   const rightSidebar = isSystemBoard ? (
     <StandardRightSidebar />
   ) : (
-    <CommunityInfoSidebar communityName={communityName} userId={userId} />
+    <div className="pt-[248px]">
+      <CommunityInfoSidebar communityName={communityName} userId={userId} />
+    </div>
   )
 
   return (
