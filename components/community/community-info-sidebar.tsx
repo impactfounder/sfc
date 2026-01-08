@@ -104,45 +104,43 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
       setIsLoading(true)
       console.log("[CommunityInfoSidebar] fetchCommunityData 시작, communityName:", communityName)
 
-      // communities 테이블에서 name으로 조회 (서버에서 전달받은 communityName 사용)
-      // 외래키 관계 조회 제거 - 단순 쿼리로 변경
-      console.log("[CommunityInfoSidebar] Supabase 쿼리 시작...")
-      console.log("[CommunityInfoSidebar] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-
-      // 타임아웃과 함께 쿼리 실행
-      const queryPromise = supabase
-        .from("communities")
-        .select(`
-          id,
-          name,
-          description,
-          rules,
-          thumbnail_url,
-          is_private,
-          join_type,
-          created_by
-        `)
-        .eq("name", communityName)
-        .maybeSingle()
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("쿼리 타임아웃 (10초)")), 10000)
-      )
+      // communities 테이블에서 name으로 조회 - fetch API 직접 사용
+      console.log("[CommunityInfoSidebar] fetch API로 직접 쿼리 시작...")
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
       let communityData = null
       let communityError = null
 
       try {
-        const result = await Promise.race([queryPromise, timeoutPromise]) as any
-        communityData = result.data
-        communityError = result.error
-      } catch (timeoutErr) {
-        console.error("[CommunityInfoSidebar] 쿼리 타임아웃:", timeoutErr)
-        setIsLoading(false)
-        return
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/communities?name=eq.${encodeURIComponent(communityName)}&select=id,name,description,rules,thumbnail_url,is_private,join_type,created_by`,
+          {
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+
+        console.log("[CommunityInfoSidebar] fetch 응답 상태:", response.status)
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log("[CommunityInfoSidebar] fetch 결과:", data)
+
+        // 배열 결과에서 첫 번째 항목 가져오기
+        communityData = data.length > 0 ? data[0] : null
+      } catch (fetchErr) {
+        console.error("[CommunityInfoSidebar] fetch 오류:", fetchErr)
+        communityError = fetchErr
       }
 
-      console.log("[CommunityInfoSidebar] Supabase 쿼리 완료:", { communityData, communityError })
+      console.log("[CommunityInfoSidebar] 쿼리 완료:", { communityData, communityError })
 
       if (communityError) {
         console.error("[CommunityInfoSidebar] 커뮤니티 조회 오류:", communityError)
