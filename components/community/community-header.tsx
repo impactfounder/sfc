@@ -74,9 +74,9 @@ export function CommunityHeader({
   }
 
   return (
-    <div className="mb-6">
+    <div className="mb-4">
       {/* 배너 이미지 */}
-      <div className="relative h-32 md:h-40 rounded-t-xl overflow-hidden bg-slate-200">
+      <div className="relative h-28 md:h-36 rounded-t-xl overflow-hidden bg-slate-200">
         <Image
           src={bannerUrl}
           alt={`${community.name} 배너`}
