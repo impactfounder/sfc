@@ -78,7 +78,8 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
       if (onSuccess) {
         onSuccess()
       } else if (result.data) {
-        router.push(`/communities/${result.data.id}`)
+        // 서버에서 생성된 slug 사용
+        router.push(`/community/board/${encodeURIComponent(result.data.slug)}`)
       }
       router.refresh()
     } catch (error: any) {

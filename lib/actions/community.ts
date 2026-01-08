@@ -21,6 +21,9 @@ export async function createCommunity(data: {
     return { error: "로그인이 필요합니다.", data: null }
   }
 
+  // slug 생성 (이름 기반)
+  const slug = data.name.trim().toLowerCase().replace(/\s+/g, '-')
+
   // 1. 커뮤니티 생성
   const { data: community, error: communityError } = await supabase
     .from("communities")
@@ -52,9 +55,24 @@ export async function createCommunity(data: {
     return { error: memberError.message, data: null }
   }
 
+  // 3. board_categories에 게시판 등록
+  const { error: boardError } = await supabase
+    .from("board_categories")
+    .insert({
+      name: data.name.trim(),
+      slug: slug,
+      description: data.description?.trim() || null,
+      is_active: true,
+    })
+
+  if (boardError) {
+    console.error("[createCommunity] board_categories 생성 실패:", boardError)
+    // 게시판 생성 실패해도 커뮤니티는 이미 생성됨 - 로그만 남김
+  }
+
   revalidatePath("/community")
   revalidatePath("/communities")
-  return { data: community, error: null }
+  return { data: { ...community, slug }, error: null }
 }
 
 export async function updateCommunityIntro(intro: string) {
