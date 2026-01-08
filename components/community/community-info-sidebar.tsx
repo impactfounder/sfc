@@ -89,6 +89,7 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
   async function fetchCommunityData() {
     try {
       setIsLoading(true)
+      console.log("[CommunityInfoSidebar] fetchCommunityData called with slug:", slug)
 
       // 현재 사용자 확인
       const { data: { user } } = await supabase.auth.getUser()
@@ -118,6 +119,8 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
         .eq("slug", slug)
         .single()
 
+      console.log("[CommunityInfoSidebar] communityBySlug:", communityBySlug, "slugError:", slugError)
+
       if (communityBySlug) {
         communityData = communityBySlug
       } else {
@@ -128,7 +131,10 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
           .eq("slug", slug)
           .single()
 
+        console.log("[CommunityInfoSidebar] boardCategory:", boardCategory)
+
         if (!boardCategory) {
+          console.log("[CommunityInfoSidebar] No boardCategory found, returning null")
           setIsLoading(false)
           return
         }
@@ -156,6 +162,8 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
         communityData = communityByName
         communityError = nameError
 
+        console.log("[CommunityInfoSidebar] communityByName:", communityByName, "nameError:", nameError)
+
         // communities 테이블에 없으면 board_categories 정보 사용
         if (nameError || !communityByName) {
           setCommunity({
@@ -179,9 +187,12 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
 
       // communityData가 null인 경우 종료 (로직상 여기에 도달하면 항상 존재)
       if (!communityData) {
+        console.log("[CommunityInfoSidebar] communityData is null after all attempts")
         setIsLoading(false)
         return
       }
+
+      console.log("[CommunityInfoSidebar] Final communityData:", communityData)
 
       // 멤버 수 조회
       const { count: memberCount } = await supabase
