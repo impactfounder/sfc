@@ -40,7 +40,7 @@ import { CommunitySettingsModal } from "./community-settings-modal"
  */
 
 interface CommunityInfoSidebarProps {
-  slug: string
+  communityName: string | null
 }
 
 interface CommunityData {
@@ -68,7 +68,7 @@ interface CommunityData {
 
 type MembershipStatus = "none" | "member" | "pending" | "admin" | "owner"
 
-export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
+export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProps) {
   const [community, setCommunity] = useState<CommunityData | null>(null)
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>("none")
   const [isLoading, setIsLoading] = useState(true)
@@ -83,20 +83,24 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
   const supabase = createClient()
 
   useEffect(() => {
-    fetchCommunityData()
-  }, [slug])
+    if (communityName) {
+      fetchCommunityData()
+    } else {
+      setIsLoading(false)
+    }
+  }, [communityName])
 
   async function fetchCommunityData() {
+    if (!communityName) {
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
-      console.log("[CommunityInfoSidebar] fetchCommunityData called with slug:", slug)
 
-      // 먼저 communities 테이블에서 slug로 직접 조회 시도
-      console.log("[CommunityInfoSidebar] Querying communities by slug:", slug)
-      let communityData = null
-      let communityError = null
-
-      const { data: communityBySlug, error: slugError } = await supabase
+      // communities 테이블에서 name으로 조회 (서버에서 전달받은 communityName 사용)
+      const { data: communityData, error: communityError } = await supabase
         .from("communities")
         .select(`
           id,
@@ -113,89 +117,38 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
             avatar_url
           )
         `)
-        .eq("slug", slug)
-        .single()
+        .eq("name", communityName)
+        .maybeSingle()
 
-      console.log("[CommunityInfoSidebar] communityBySlug:", communityBySlug, "slugError:", slugError)
-
-      if (communityBySlug) {
-        communityData = communityBySlug
-      } else {
-        // slug로 못 찾으면 board_categories를 통해 name으로 조회
-        const { data: boardCategory } = await supabase
-          .from("board_categories")
-          .select("name, description")
-          .eq("slug", slug)
-          .single()
-
-        console.log("[CommunityInfoSidebar] boardCategory:", boardCategory)
-
-        if (!boardCategory) {
-          console.log("[CommunityInfoSidebar] No boardCategory found, returning null")
-          setIsLoading(false)
-          return
-        }
-
-        const { data: communityByName, error: nameError } = await supabase
-          .from("communities")
-          .select(`
-            id,
-            name,
-            description,
-            rules,
-            thumbnail_url,
-            is_private,
-            join_type,
-            created_by,
-            profiles:created_by (
-              id,
-              full_name,
-              avatar_url
-            )
-          `)
-          .eq("name", boardCategory.name)
-          .single()
-
-        communityData = communityByName
-        communityError = nameError
-
-        console.log("[CommunityInfoSidebar] communityByName:", communityByName, "nameError:", nameError)
-
-        // communities 테이블에 없으면 board_categories 정보 사용
-        if (nameError || !communityByName) {
-          setCommunity({
-            id: slug,
-            name: boardCategory.name,
-            description: boardCategory.description,
-            rules: null,
-            thumbnail_url: null,
-            is_private: false,
-            join_type: "free",
-            created_by: "",
-            member_count: 0,
-            creator: null,
-            moderators: [],
-          })
-          setMembershipStatus("member") // 시스템 보드는 모두 멤버
-          setIsLoading(false)
-          return
-        }
-      }
-
-      // communityData가 null인 경우 종료 (로직상 여기에 도달하면 항상 존재)
-      if (!communityData) {
-        console.log("[CommunityInfoSidebar] communityData is null after all attempts")
+      if (communityError) {
+        console.error("[CommunityInfoSidebar] 커뮤니티 조회 오류:", communityError)
         setIsLoading(false)
         return
       }
 
-      console.log("[CommunityInfoSidebar] Final communityData:", communityData)
+      if (!communityData) {
+        // communities 테이블에 없으면 기본 정보만 표시
+        setCommunity({
+          id: communityName,
+          name: communityName,
+          description: null,
+          rules: null,
+          thumbnail_url: null,
+          is_private: false,
+          join_type: "free",
+          created_by: "",
+          member_count: 0,
+          creator: null,
+          moderators: [],
+        })
+        setMembershipStatus("member")
+        setIsLoading(false)
+        return
+      }
 
       // 현재 사용자 확인
-      console.log("[CommunityInfoSidebar] Getting session...")
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user || null
-      console.log("[CommunityInfoSidebar] User:", user?.id || "not logged in")
       setCurrentUserId(user?.id || null)
 
       // 멤버 수 조회
@@ -225,26 +178,21 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
           .select("role")
           .eq("community_id", communityData.id)
           .eq("user_id", user.id)
-          .single()
+          .maybeSingle()
 
         if (membership) {
           setMembershipStatus(membership.role as MembershipStatus)
         } else {
-          // 가입 신청 상태 확인 (테이블이 없을 수 있음)
-          try {
-            const { data: joinRequest } = await supabase
-              .from("community_join_requests")
-              .select("status")
-              .eq("community_id", communityData.id)
-              .eq("user_id", user.id)
-              .eq("status", "pending")
-              .single()
+          // 가입 신청 상태 확인
+          const { data: joinRequest } = await supabase
+            .from("community_join_requests")
+            .select("status")
+            .eq("community_id", communityData.id)
+            .eq("user_id", user.id)
+            .eq("status", "pending")
+            .maybeSingle()
 
-            setMembershipStatus(joinRequest ? "pending" : "none")
-          } catch {
-            // 테이블이 없으면 none으로 설정
-            setMembershipStatus("none")
-          }
+          setMembershipStatus(joinRequest ? "pending" : "none")
         }
       }
 
@@ -267,7 +215,6 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
     } catch (error) {
       console.error("[CommunityInfoSidebar] 커뮤니티 정보 로드 실패:", error)
     } finally {
-      console.log("[CommunityInfoSidebar] fetchCommunityData finished, setting isLoading to false")
       setIsLoading(false)
     }
   }

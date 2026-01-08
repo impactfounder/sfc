@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { CommunityInfoSidebar } from "@/components/community/community-info-sidebar"
+import { createClient } from "@/lib/supabase/server"
 
 interface CommunityBoardLayoutProps {
   children: ReactNode
@@ -39,11 +40,23 @@ export default async function CommunityBoardLayout({
   // 시스템 게시판 여부 확인
   const isSystemBoard = SYSTEM_BOARDS.includes(dbSlug) || SYSTEM_BOARDS.includes(slug)
 
+  // 커뮤니티 게시판인 경우 board_categories에서 name 조회
+  let communityName: string | null = null
+  if (!isSystemBoard) {
+    const supabase = await createClient()
+    const { data: category } = await supabase
+      .from("board_categories")
+      .select("name")
+      .eq("slug", dbSlug)
+      .single()
+    communityName = category?.name || null
+  }
+
   // 사이드바 결정
   const rightSidebar = isSystemBoard ? (
     <StandardRightSidebar />
   ) : (
-    <CommunityInfoSidebar slug={dbSlug} />
+    <CommunityInfoSidebar communityName={communityName} />
   )
 
   return (
