@@ -176,6 +176,8 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
       setCurrentUserId(currentUser)
       console.log("[CommunityInfoSidebar] 사용자:", currentUser || "비로그인")
 
+      console.log("[CommunityInfoSidebar] === v2 운영자 조회 시작 ===")
+
       // 멤버 수 조회 (fetch API 사용)
       let memberCount = 0
       try {
