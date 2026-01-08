@@ -200,6 +200,7 @@ export default async function BoardPage({
         description,
         rules,
         thumbnail_url,
+        banner_url,
         is_private,
         join_type,
         created_by
@@ -246,6 +247,7 @@ export default async function BoardPage({
         description: community?.description || null,
         rules: community?.rules || null,
         thumbnail_url: community?.thumbnail_url || null,
+        banner_url: community?.banner_url || null,
         is_private: community?.is_private || false,
         join_type: community?.join_type || "free",
         member_count: memberCount || 0,

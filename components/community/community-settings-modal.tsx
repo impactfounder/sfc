@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Loader2, Trash2, AlertTriangle } from "lucide-react"
+import { Loader2, Trash2, AlertTriangle, ImageIcon, RefreshCw } from "lucide-react"
+import { getSuggestedBannerUrls } from "@/lib/utils/unsplash"
+import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
 import { updateCommunitySettings, deleteCommunity } from "@/lib/actions/community"
 import {
@@ -38,6 +40,7 @@ interface CommunitySettingsModalProps {
     is_private: boolean
     rules: string | null
     thumbnail_url: string | null
+    banner_url: string | null
   }
   onSuccess?: () => void
 }
@@ -57,7 +60,12 @@ export function CommunitySettingsModal({
     description: community.description || "",
     is_private: community.is_private,
     rules: community.rules || "",
+    thumbnail_url: community.thumbnail_url || "",
+    banner_url: community.banner_url || "",
   })
+
+  // Unsplash 추천 배너 목록
+  const suggestedBanners = getSuggestedBannerUrls(community.description)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,6 +86,8 @@ export function CommunitySettingsModal({
         description: formData.description.trim() || undefined,
         is_private: formData.is_private,
         rules: formData.rules.trim() || undefined,
+        thumbnail_url: formData.thumbnail_url.trim() || undefined,
+        banner_url: formData.banner_url.trim() || undefined,
       })
 
       if (result.error) {
@@ -171,6 +181,72 @@ export function CommunitySettingsModal({
               rows={3}
               disabled={isLoading}
             />
+          </div>
+
+          {/* 배너 이미지 */}
+          <div className="space-y-3">
+            <Label>배너 이미지</Label>
+            {/* 현재 배너 미리보기 */}
+            {formData.banner_url && (
+              <div className="relative h-24 rounded-lg overflow-hidden bg-slate-100">
+                <Image
+                  src={formData.banner_url}
+                  alt="배너 미리보기"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            )}
+            {/* URL 입력 */}
+            <Input
+              value={formData.banner_url}
+              onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
+              placeholder="배너 이미지 URL (Unsplash 등)"
+              disabled={isLoading}
+            />
+            {/* 추천 배너 */}
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 flex items-center gap-1">
+                <ImageIcon className="h-3 w-3" />
+                추천 배너 (클릭하여 선택)
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {suggestedBanners.map((url, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, banner_url: url })}
+                    className={`relative h-12 rounded-md overflow-hidden border-2 transition-all ${
+                      formData.banner_url === url
+                        ? "border-blue-500 ring-2 ring-blue-200"
+                        : "border-transparent hover:border-slate-300"
+                    }`}
+                  >
+                    <Image
+                      src={url}
+                      alt={`추천 배너 ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 커뮤니티 아이콘 */}
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail_url">커뮤니티 아이콘 URL</Label>
+            <Input
+              id="thumbnail_url"
+              value={formData.thumbnail_url}
+              onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
+              placeholder="아이콘 이미지 URL (선택사항)"
+              disabled={isLoading}
+            />
+            <p className="text-xs text-slate-500">
+              정사각형 이미지를 권장합니다 (예: 200x200px)
+            </p>
           </div>
 
           {/* 공개/비공개 설정 */}

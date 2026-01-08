@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NewPostForm } from "@/components/new-post-form"
 import { CommunityBanner } from "@/components/community-banner"
 import { CommunityMobileBar } from "@/components/community/community-mobile-bar"
+import { CommunityHeader } from "@/components/community/community-header"
 import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
 import { useToast } from "@/hooks/use-toast"
 
@@ -20,6 +21,7 @@ interface CommunityDataForMobile {
   description: string | null
   rules: string | null
   thumbnail_url: string | null
+  banner_url?: string | null
   is_private: boolean
   join_type: "free" | "approval" | "invite"
   member_count: number
@@ -250,47 +252,46 @@ export function BoardPageClient({
       )}
 
       <div className="flex flex-col gap-6">
-        <CommunityBanner
-          title={bannerConfig.title}
-          description={bannerConfig.description}
-          actions={
-            <div className="flex items-center gap-2">
-              {!isSystemBoard && communityId && (
-                <>
-                  {!isMember ? (
-                    <Button
-                      onClick={handleJoin}
-                      disabled={isJoining || !user}
-                      className="rounded-full bg-white/90 border border-white/20 hover:bg-white transition-all text-gray-900 text-sm font-semibold shadow-sm px-4 py-2 h-9 inline-flex items-center gap-2"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      {isJoining ? "처리 중..." : "참여하기"}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleLeave}
-                      disabled={isJoining}
-                      className="rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition-all text-white text-sm font-semibold px-4 py-2 h-9 inline-flex items-center gap-2"
-                    >
-                      <UserCheck className="w-4 h-4" />
-                      참여 중
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {(isSystemBoard || isMember) && shouldShowButton && (
-                <Button
-                  onClick={buttonConfig.onClick}
-                  className="bg-white/90 border border-white/20 shadow-sm hover:bg-white text-gray-900 rounded-full px-4 h-9 inline-flex items-center gap-2 text-sm font-semibold"
-                >
-                  <Plus className="w-4 h-4" />
-                  {buttonConfig.text}
-                </Button>
-              )}
-            </div>
-          }
-        />
+        {/* 시스템 게시판: 기존 CommunityBanner 사용 */}
+        {isSystemBoard ? (
+          <CommunityBanner
+            title={bannerConfig.title}
+            description={bannerConfig.description}
+            actions={
+              <div className="flex items-center gap-2">
+                {shouldShowButton && (
+                  <Button
+                    onClick={buttonConfig.onClick}
+                    className="bg-white/90 border border-white/20 shadow-sm hover:bg-white text-gray-900 rounded-full px-4 h-9 inline-flex items-center gap-2 text-sm font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {buttonConfig.text}
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        ) : (
+          /* 커뮤니티: Reddit 스타일 CommunityHeader 사용 */
+          communityData && (
+            <CommunityHeader
+              community={{
+                id: communityData.id,
+                name: communityData.name,
+                banner_url: communityData.banner_url,
+                thumbnail_url: communityData.thumbnail_url,
+                description: communityData.description,
+              }}
+              isMember={isMember}
+              membershipStatus={membershipStatus}
+              canWrite={isMember || isUserAdmin}
+              isLoading={isJoining}
+              onJoin={handleJoin}
+              onLeave={handleLeave}
+              onNewPost={() => setIsWriteModalOpen(true)}
+            />
+          )
+        )}
 
         <Dialog open={isWriteModalOpen} onOpenChange={setIsWriteModalOpen}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">

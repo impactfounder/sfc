@@ -770,6 +770,7 @@ export async function updateCommunitySettings(
     is_private?: boolean
     rules?: string
     thumbnail_url?: string
+    banner_url?: string
   }
 ) {
   const supabase = await createClient()
