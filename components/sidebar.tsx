@@ -71,11 +71,13 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       console.log("[Sidebar] Loading communities for user:", userId)
 
       try {
+        console.log("[Sidebar] community_members 쿼리 시작...")
         const { data: memberships, error: membershipError } = await supabase
           .from("community_members")
           .select("community_id")
           .eq("user_id", userId)
 
+        console.log("[Sidebar] community_members 쿼리 완료")
         console.log("[Sidebar] Memberships:", memberships, "Error:", membershipError)
 
         if (membershipError || !isMounted) return
