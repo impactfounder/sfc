@@ -387,27 +387,40 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
 
   return (
     <div className="space-y-3">
-      {/* 통합 사이드바 카드 */}
-      <Card className="overflow-hidden">
-        {/* 헤더 섹션 */}
-        <div className="p-4 pb-3">
-          <h3 className="font-semibold text-slate-900 truncate">{community.name}</h3>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
-            <Users className="h-3.5 w-3.5" />
-            <span>{community.member_count} members</span>
-            {community.is_private && (
-              <Badge variant="secondary" className="text-[10px] ml-1 px-1.5 py-0">
-                <Lock className="h-2.5 w-2.5 mr-0.5" />
-                비공개
-              </Badge>
-            )}
+      {/* 통합 사이드바 카드 - 깔끔한 흰색 배경 */}
+      <Card className="overflow-hidden bg-white shadow-sm border-slate-200">
+        {/* 헤더 섹션 - 아이콘과 함께 */}
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            {/* 커뮤니티 아이콘 */}
+            <Avatar className="h-10 w-10 rounded-lg border border-slate-200 flex-shrink-0">
+              {community.thumbnail_url ? (
+                <AvatarImage src={community.thumbnail_url} className="rounded-lg" />
+              ) : (
+                <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                  {community.name.charAt(0)}
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-slate-900 truncate leading-tight">{community.name}</h3>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-slate-500">{community.member_count.toLocaleString()} members</span>
+                {community.is_private && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-100 text-slate-600">
+                    <Lock className="h-2.5 w-2.5 mr-0.5" />
+                    비공개
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 소개글 */}
         {community.description && (
-          <div className="px-4 pb-3">
-            <p className="text-sm text-slate-600 leading-relaxed">
+          <div className="px-4 pb-4">
+            <p className="text-[13px] text-slate-600 leading-relaxed">
               {community.description}
             </p>
           </div>
@@ -418,24 +431,23 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           <div className="px-4 pb-4">
             {canManage && (
               <Button
-                className="w-full h-9"
-                variant="outline"
+                className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white"
                 size="sm"
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings className="h-3.5 w-3.5 mr-1.5" />
-                설정
+                커뮤니티 설정
               </Button>
             )}
             {currentUserId && !canManage && membershipStatus === "none" && (
               <Button
-                className="w-full h-9"
+                className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white"
                 size="sm"
                 onClick={handleJoin}
                 disabled={isJoining}
               >
                 <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                {community.join_type === "approval" ? "가입 신청" : "가입하기"}
+                {community.join_type === "approval" ? "가입 신청" : "커뮤니티 가입"}
               </Button>
             )}
             {currentUserId && !canManage && membershipStatus === "pending" && (
@@ -452,27 +464,29 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           <>
             <div className="border-t border-slate-100" />
             <div className="p-4">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-3">
-                <Shield className="h-3.5 w-3.5" />
-                <span>운영자</span>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2.5">
+                <Shield className="h-3 w-3" />
+                <span>Moderators</span>
               </div>
               <div className="space-y-2">
                 {community.moderators.map((mod) => (
                   <div
                     key={mod.id}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2.5"
                   >
-                    <Avatar className="h-6 w-6">
+                    <Avatar className="h-7 w-7">
                       <AvatarImage src={mod.avatar_url || undefined} />
-                      <AvatarFallback className="text-[10px] bg-slate-100">
+                      <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600">
                         {mod.full_name?.charAt(0) || "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-slate-700 flex-1 truncate">
+                    <span className="text-[13px] text-slate-700 flex-1 truncate">
                       {mod.full_name || "익명"}
                     </span>
                     {mod.role === "owner" && (
-                      <span className="text-[10px] text-slate-400">리더</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-blue-200 text-blue-600 bg-blue-50">
+                        리더
+                      </Badge>
                     )}
                   </div>
                 ))}
@@ -487,20 +501,20 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             <div className="border-t border-slate-100" />
             <div className="p-4">
               <Collapsible open={rulesOpen} onOpenChange={setRulesOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                <CollapsibleTrigger className="flex items-center justify-between w-full text-[11px] font-medium text-slate-400 uppercase tracking-wide hover:text-slate-600 transition-colors">
                   <div className="flex items-center gap-1.5">
-                    <BookOpen className="h-3.5 w-3.5" />
-                    <span>이용수칙</span>
+                    <BookOpen className="h-3 w-3" />
+                    <span>Rules</span>
                   </div>
                   <ChevronDown
                     className={cn(
-                      "h-3.5 w-3.5 transition-transform",
+                      "h-3.5 w-3.5 transition-transform duration-200",
                       rulesOpen && "rotate-180"
                     )}
                   />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3">
-                  <div className="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap leading-relaxed">
+                <CollapsibleContent className="pt-2.5">
+                  <div className="text-[13px] text-slate-600 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap leading-relaxed border border-slate-100">
                     {community.rules}
                   </div>
                 </CollapsibleContent>
@@ -516,9 +530,9 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             <button
               onClick={handleLeave}
               disabled={isJoining}
-              className="w-full text-xs text-slate-400 hover:text-slate-500 hover:bg-slate-50 py-3 transition-colors disabled:opacity-50"
+              className="w-full text-[11px] text-slate-400 hover:text-red-500 hover:bg-red-50 py-2.5 transition-colors disabled:opacity-50"
             >
-              탈퇴하기
+              커뮤니티 탈퇴
             </button>
           </>
         )}
