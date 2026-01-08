@@ -13,9 +13,20 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
+import { Loader2, Trash2, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { updateCommunitySettings } from "@/lib/actions/community"
+import { updateCommunitySettings, deleteCommunity } from "@/lib/actions/community"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface CommunitySettingsModalProps {
   open: boolean
@@ -39,6 +50,8 @@ export function CommunitySettingsModal({
 }: CommunitySettingsModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteConfirmName, setDeleteConfirmName] = useState("")
   const [formData, setFormData] = useState({
     name: community.name,
     description: community.description || "",
@@ -87,6 +100,43 @@ export function CommunitySettingsModal({
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (deleteConfirmName !== community.name) {
+      toast({
+        title: "삭제 실패",
+        description: "커뮤니티 이름이 일치하지 않습니다.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const result = await deleteCommunity(community.id)
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: "삭제 완료",
+        description: "커뮤니티가 삭제되었습니다.",
+      })
+
+      onOpenChange(false)
+      router.push("/community")
+    } catch (error: any) {
+      toast({
+        title: "삭제 실패",
+        description: error.message || "다시 시도해주세요.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+      setDeleteConfirmName("")
     }
   }
 
@@ -178,6 +228,74 @@ export function CommunitySettingsModal({
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               저장
             </Button>
+          </div>
+
+          {/* 위험 영역 - 커뮤니티 삭제 */}
+          <div className="mt-6 pt-6 border-t border-red-100">
+            <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-red-700 mb-1">위험 영역</h4>
+                <p className="text-xs text-red-600 mb-3">
+                  커뮤니티를 삭제하면 모든 게시글, 멤버 정보가 함께 삭제되며 복구할 수 없습니다.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={isLoading || isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      커뮤니티 삭제
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                        <AlertTriangle className="h-5 w-5" />
+                        커뮤니티 삭제
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-left space-y-3">
+                        <p>
+                          <strong className="text-slate-900">{community.name}</strong> 커뮤니티를 정말 삭제하시겠습니까?
+                        </p>
+                        <p className="text-red-600 font-medium">
+                          이 작업은 되돌릴 수 없습니다. 모든 게시글과 멤버 정보가 영구적으로 삭제됩니다.
+                        </p>
+                        <div className="pt-2">
+                          <Label htmlFor="delete-confirm" className="text-xs text-slate-500">
+                            삭제를 확인하려면 커뮤니티 이름을 정확히 입력하세요
+                          </Label>
+                          <Input
+                            id="delete-confirm"
+                            value={deleteConfirmName}
+                            onChange={(e) => setDeleteConfirmName(e.target.value)}
+                            placeholder={community.name}
+                            className="mt-1.5"
+                          />
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setDeleteConfirmName("")}>
+                        취소
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        disabled={isDeleting || deleteConfirmName !== community.name}
+                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                      >
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        삭제
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
           </div>
         </form>
       </DialogContent>

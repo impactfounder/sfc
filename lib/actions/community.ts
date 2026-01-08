@@ -609,6 +609,103 @@ export async function updateCommunityDescription(communityId: string, descriptio
  * 커뮤니티 설정 업데이트 (운영자용)
  * - 이름, 소개글, 공개/비공개, 이용수칙 변경 가능
  */
+/**
+ * 커뮤니티 삭제 (owner만 가능)
+ */
+export async function deleteCommunity(communityId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." }
+  }
+
+  // 해당 커뮤니티 정보 조회
+  const { data: community } = await supabase
+    .from("communities")
+    .select("created_by, name")
+    .eq("id", communityId)
+    .single()
+
+  if (!community) {
+    return { error: "커뮤니티를 찾을 수 없습니다." }
+  }
+
+  // 권한 체크: owner 또는 master만 삭제 가능
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  const { data: ownerMember } = await supabase
+    .from("community_members")
+    .select("role")
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
+    .eq("role", "owner")
+    .single()
+
+  const isOwner = community.created_by === user.id || !!ownerMember
+  const isMaster = profile?.role === 'master'
+
+  if (!isOwner && !isMaster) {
+    return { error: "커뮤니티를 삭제할 권한이 없습니다. 소유자만 삭제할 수 있습니다." }
+  }
+
+  // 1. 관련 게시글 삭제 (board_categories를 통해)
+  // 먼저 board_categories에서 slug 찾기
+  const slug = community.name.trim().toLowerCase().replace(/\s+/g, '-')
+  const { data: boardCategory } = await supabase
+    .from("board_categories")
+    .select("id")
+    .eq("slug", slug)
+    .single()
+
+  if (boardCategory) {
+    // 해당 게시판의 게시글 삭제
+    await supabase
+      .from("posts")
+      .delete()
+      .eq("board_category_id", boardCategory.id)
+
+    // board_categories 삭제
+    await supabase
+      .from("board_categories")
+      .delete()
+      .eq("id", boardCategory.id)
+  }
+
+  // 2. 가입 신청 삭제
+  await supabase
+    .from("community_join_requests")
+    .delete()
+    .eq("community_id", communityId)
+
+  // 3. 멤버십 삭제
+  await supabase
+    .from("community_members")
+    .delete()
+    .eq("community_id", communityId)
+
+  // 4. 커뮤니티 삭제
+  const { error } = await supabase
+    .from("communities")
+    .delete()
+    .eq("id", communityId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/community")
+  revalidatePath("/communities")
+  return { success: true }
+}
+
 export async function updateCommunitySettings(
   communityId: string,
   settings: {

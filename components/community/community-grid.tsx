@@ -59,25 +59,25 @@ export function CommunityGrid({ communities }: CommunityGridProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {communities.map((community) => (
                 <Link key={community.id} href={`/community/board/${community.slug}`} className="group block">
-                    <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all">
+                    <div className="flex gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all h-full">
                         {/* 아이콘 */}
                         <div className="shrink-0">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center group-hover:from-slate-200 group-hover:to-slate-300 transition-colors">
-                                <span className="text-sm font-bold text-slate-600">
+                            <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center group-hover:from-slate-200 group-hover:to-slate-300 transition-colors">
+                                <span className="text-base font-bold text-slate-600">
                                     {community.name.slice(0, 1)}
                                 </span>
                             </div>
                         </div>
 
                         {/* 콘텐츠 */}
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
+                        <div className="flex-1 min-w-0 flex flex-col">
+                            <div className="flex items-center gap-2 mb-1">
                                 <h3 className="text-sm font-semibold text-slate-900 truncate">
                                     {community.name}
                                 </h3>
                                 {getMembershipBadge(community)}
                             </div>
-                            <p className="text-xs text-slate-500 line-clamp-1">
+                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                                 {community.description || "함께 소통하고 성장하는 커뮤니티"}
                             </p>
                         </div>
