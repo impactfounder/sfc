@@ -657,39 +657,73 @@ export async function deleteCommunity(communityId: string) {
   }
 
   // 1. 관련 게시글 삭제 (board_categories를 통해)
-  // 먼저 board_categories에서 slug 찾기
+  // 먼저 board_categories에서 slug 또는 name으로 찾기
   const slug = community.name.trim().toLowerCase().replace(/\s+/g, '-')
-  const { data: boardCategory } = await supabase
+  let boardCategory = null
+
+  // slug로 먼저 시도
+  const { data: boardCatBySlug } = await supabase
     .from("board_categories")
     .select("id")
     .eq("slug", slug)
     .single()
 
+  if (boardCatBySlug) {
+    boardCategory = boardCatBySlug
+  } else {
+    // name으로 시도
+    const { data: boardCatByName } = await supabase
+      .from("board_categories")
+      .select("id")
+      .eq("name", community.name)
+      .single()
+    boardCategory = boardCatByName
+  }
+
+  console.log("[deleteCommunity] boardCategory:", boardCategory, "slug:", slug, "name:", community.name)
+
   if (boardCategory) {
     // 해당 게시판의 게시글 삭제
-    await supabase
+    const { error: postsError } = await supabase
       .from("posts")
       .delete()
       .eq("board_category_id", boardCategory.id)
 
+    if (postsError) {
+      console.error("[deleteCommunity] posts 삭제 실패:", postsError)
+    }
+
     // board_categories 삭제
-    await supabase
+    const { error: boardCatError } = await supabase
       .from("board_categories")
       .delete()
       .eq("id", boardCategory.id)
+
+    if (boardCatError) {
+      console.error("[deleteCommunity] board_categories 삭제 실패:", boardCatError)
+    }
   }
 
   // 2. 가입 신청 삭제
-  await supabase
+  const { error: joinReqError } = await supabase
     .from("community_join_requests")
     .delete()
     .eq("community_id", communityId)
 
+  if (joinReqError) {
+    console.error("[deleteCommunity] join_requests 삭제 실패:", joinReqError)
+  }
+
   // 3. 멤버십 삭제
-  await supabase
+  const { error: membersError } = await supabase
     .from("community_members")
     .delete()
     .eq("community_id", communityId)
+
+  if (membersError) {
+    console.error("[deleteCommunity] members 삭제 실패:", membersError)
+    return { error: "멤버십 삭제에 실패했습니다: " + membersError.message }
+  }
 
   // 4. 커뮤니티 삭제
   const { error } = await supabase
@@ -698,8 +732,11 @@ export async function deleteCommunity(communityId: string) {
     .eq("id", communityId)
 
   if (error) {
+    console.error("[deleteCommunity] community 삭제 실패:", error)
     return { error: error.message }
   }
+
+  console.log("[deleteCommunity] 삭제 완료:", communityId)
 
   revalidatePath("/community")
   revalidatePath("/communities")
