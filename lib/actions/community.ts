@@ -3,6 +3,60 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
+/**
+ * 커뮤니티 생성
+ */
+export async function createCommunity(data: {
+  name: string
+  description?: string
+  thumbnail_url?: string
+}) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "로그인이 필요합니다.", data: null }
+  }
+
+  // 1. 커뮤니티 생성
+  const { data: community, error: communityError } = await supabase
+    .from("communities")
+    .insert({
+      name: data.name.trim(),
+      description: data.description?.trim() || null,
+      thumbnail_url: data.thumbnail_url || null,
+      created_by: user.id,
+      is_private: false,
+    })
+    .select()
+    .single()
+
+  if (communityError) {
+    return { error: communityError.message, data: null }
+  }
+
+  // 2. 생성자를 owner로 자동 등록
+  const { error: memberError } = await supabase
+    .from("community_members")
+    .insert({
+      community_id: community.id,
+      user_id: user.id,
+      role: "owner",
+    })
+
+  if (memberError) {
+    // 커뮤니티는 생성됐지만 멤버 등록 실패 - 롤백은 어렵지만 에러 반환
+    return { error: memberError.message, data: null }
+  }
+
+  revalidatePath("/community")
+  revalidatePath("/communities")
+  return { data: community, error: null }
+}
+
 export async function updateCommunityIntro(intro: string) {
   const supabase = await createClient()
   

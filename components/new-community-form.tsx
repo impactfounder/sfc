@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { createClient } from "@/lib/supabase/client"
 import { Loader2, ImageIcon, Upload, Search } from "lucide-react"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
+import { createCommunity } from "@/lib/actions/community"
 
 export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuccess?: () => void }) {
   const [name, setName] = useState("")
@@ -20,21 +20,9 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
   const [unsplashQuery, setUnsplashQuery] = useState("")
   const [unsplashResults, setUnsplashResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-
-  useEffect(() => {
-    if (!userId) {
-      const fetchUser = async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) setCurrentUserId(user.id)
-      }
-      fetchUser()
-    }
-  }, [userId])
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,44 +58,27 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentUserId) return alert("로그인이 필요합니다.")
     if (!name.trim()) return alert("소모임 이름을 입력해주세요.")
 
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
-      // 1. 소모임 생성
-      const { data: community, error: communityError } = await supabase
-        .from("communities")
-        .insert({
-          name: name.trim(),
-          description: description.trim() || null,
-          thumbnail_url: thumbnailUrl || null,
-          created_by: currentUserId,
-          is_private: false,
-        })
-        .select()
-        .single()
+      // Server Action으로 커뮤니티 생성
+      const result = await createCommunity({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        thumbnail_url: thumbnailUrl || undefined,
+      })
 
-      if (communityError) throw communityError
-
-      // 2. 생성자를 owner로 자동 등록
-      const { error: memberError } = await supabase
-        .from("community_members")
-        .insert({
-          community_id: community.id,
-          user_id: currentUserId,
-          role: "owner",
-        })
-
-      if (memberError) throw memberError
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
       if (onSuccess) {
         onSuccess()
-      } else {
-        router.push(`/communities/${community.id}`)
+      } else if (result.data) {
+        router.push(`/communities/${result.data.id}`)
       }
       router.refresh()
     } catch (error: any) {
