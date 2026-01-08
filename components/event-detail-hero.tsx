@@ -207,8 +207,9 @@ export function EventDetailHero(props: Props) {
                   />
                 </div>
               ) : isPastEvent || isCompleted ? (
-                <Button className="w-full h-11 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed" disabled>
-                  <AlertCircle className="mr-1.5 h-4 w-4" /> 이벤트가 종료되었습니다
+                <Button className="w-full h-11 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
+                  <AlertCircle className="mr-1.5 h-4 w-4 shrink-0" />
+                  <span className="truncate">이벤트가 종료되었습니다</span>
                 </Button>
               ) : (
                 <RegisterButton

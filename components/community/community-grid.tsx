@@ -20,27 +20,18 @@ interface CommunityGridProps {
 }
 
 export function CommunityGrid({ communities }: CommunityGridProps) {
-    const getMembershipButton = (community: Community) => {
+    const getMembershipBadge = (community: Community) => {
         if (!community.isMember) {
             return (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-full px-4 h-8 text-xs font-semibold border-slate-300 text-slate-700 hover:border-slate-800 hover:bg-slate-50 hover:text-slate-900 transition-colors shrink-0 ml-4 z-10 relative active:scale-95"
-                    onClick={(e) => {
-                        e.preventDefault()
-                        // 가입 로직
-                    }}
-                >
-                    가입
-                </Button>
+                <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-slate-500 bg-slate-100 rounded">
+                    가입하기
+                </span>
             )
         }
 
-        // 이미 가입한 경우
         if (community.role === "owner") {
             return (
-                <span className="inline-flex items-center gap-1 px-3 h-8 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full shrink-0 ml-4">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-amber-700 bg-amber-50 rounded">
                     <Crown className="h-3 w-3" />
                     리더
                 </span>
@@ -49,7 +40,7 @@ export function CommunityGrid({ communities }: CommunityGridProps) {
 
         if (community.role === "admin") {
             return (
-                <span className="inline-flex items-center gap-1 px-3 h-8 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full shrink-0 ml-4">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-blue-700 bg-blue-50 rounded">
                     <Shield className="h-3 w-3" />
                     운영진
                 </span>
@@ -57,7 +48,7 @@ export function CommunityGrid({ communities }: CommunityGridProps) {
         }
 
         return (
-            <span className="inline-flex items-center gap-1 px-3 h-8 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full shrink-0 ml-4">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-green-700 bg-green-50 rounded">
                 <Check className="h-3 w-3" />
                 참여중
             </span>
@@ -65,35 +56,32 @@ export function CommunityGrid({ communities }: CommunityGridProps) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {communities.map((community) => (
-                <Link key={community.id} href={`/community/board/${community.slug}`} className="group block h-full">
-                    <Card className="hover:border-slate-400 transition-all duration-200 border-slate-200 bg-white overflow-hidden group-hover:shadow-md h-full">
-                        <CardContent className="p-6 flex items-start gap-4">
-                            {/* Icon / Thumbnail Placeholder */}
-                            <div className="shrink-0">
-                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 group-hover:bg-slate-200 transition-colors">
-                                    <span className="text-lg font-bold text-slate-700">
-                                        {community.name.slice(0, 1)}
-                                    </span>
-                                </div>
+                <Link key={community.id} href={`/community/board/${community.slug}`} className="group block">
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all">
+                        {/* 아이콘 */}
+                        <div className="shrink-0">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center group-hover:from-slate-200 group-hover:to-slate-300 transition-colors">
+                                <span className="text-sm font-bold text-slate-600">
+                                    {community.name.slice(0, 1)}
+                                </span>
                             </div>
+                        </div>
 
-                            {/* Content */}
-                            <div className="flex-1 min-w-0 pt-1">
-                                <div className="flex items-center justify-between mb-1">
-                                    <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-slate-700 transition-colors">
-                                        {community.name}
-                                    </h3>
-                                    {getMembershipButton(community)}
-                                </div>
-
-                                <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
-                                    {community.description || "함께 소통하고 성장하는 커뮤니티입니다."}
-                                </p>
+                        {/* 콘텐츠 */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <h3 className="text-sm font-semibold text-slate-900 truncate">
+                                    {community.name}
+                                </h3>
+                                {getMembershipBadge(community)}
                             </div>
-                        </CardContent>
-                    </Card>
+                            <p className="text-xs text-slate-500 line-clamp-1">
+                                {community.description || "함께 소통하고 성장하는 커뮤니티"}
+                            </p>
+                        </div>
+                    </div>
                 </Link>
             ))}
         </div>

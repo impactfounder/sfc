@@ -107,12 +107,12 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
       </div>
 
       {/* 2. 이미지(좌) + 상세정보(우) 그리드 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
 
-        {/* [Left] Image Upload Section (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        {/* [Left] Image Upload Section */}
+        <div className="flex flex-col gap-4">
           <div
-            className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-all"
+            className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-all"
             onClick={() => fileInputRef.current?.click()}
           >
             {thumbnailUrl ? (
@@ -177,11 +177,11 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
           )}
         </div>
 
-        {/* [Right] Community Info Section (7 cols) - 카드 형태 */}
-        <div className="lg:col-span-7">
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        {/* [Right] Community Info Section - 카드 형태 */}
+        <div className="flex flex-col">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5 flex-1 flex flex-col">
             {/* Description */}
-            <div>
+            <div className="flex-1 flex flex-col">
               <Label htmlFor="description" className="text-sm font-semibold text-slate-700 mb-2 block">
                 한줄 소개
               </Label>
@@ -190,8 +190,7 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
                 placeholder="커뮤니티에 대한 간단한 소개를 입력하세요. 어떤 사람들이 모이는 곳인지, 어떤 활동을 하는지 알려주세요."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="min-h-[140px] resize-none border-slate-200 bg-slate-50 focus-visible:ring-slate-200"
-                rows={6}
+                className="flex-1 min-h-[120px] resize-none border-slate-200 bg-slate-50 focus-visible:ring-slate-200"
               />
               <p className="text-xs text-slate-400 mt-2">
                 매력적인 소개글은 더 많은 멤버를 모읍니다.

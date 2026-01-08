@@ -3,13 +3,19 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Calendar, Shield, Megaphone, MessageSquare, Home, Users, Lightbulb, BookOpen, Ticket, Zap, Headset, Briefcase } from "lucide-react"
+import { Calendar, Shield, Megaphone, MessageSquare, Home, Users, Lightbulb, BookOpen, Ticket, Zap, Headset, Briefcase, Hash } from "lucide-react"
 import { useRef, useEffect, useState } from "react"
 import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
 import { createClient } from "@/lib/supabase/client"
 
 interface SidebarProps {
   userRole?: string | null
+}
+
+interface JoinedCommunity {
+  id: string
+  name: string
+  slug: string
 }
 
 const navigationSections = [
@@ -39,13 +45,12 @@ const navigationSections = [
     groupStyle: "board"
   },
   {
-    title: "커뮤니티",
+    title: null, // 섹션 타이틀 제거
     links: [
       { name: "커뮤니티", href: "/community", icon: Ticket },
-      { name: "반골", href: "/community/board/vangol", icon: Users },
-      { name: "하이토크", href: "/community/board/hightalk", icon: Lightbulb }
     ],
-    groupStyle: "brand"
+    groupStyle: "brand",
+    showJoinedCommunities: true, // 가입한 커뮤니티 표시 플래그
   },
 ]
 
@@ -54,31 +59,71 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
   const prefetch = usePrefetchPosts()
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [userRole, setUserRole] = useState<string | null>(initialUserRole || null)
+  const [joinedCommunities, setJoinedCommunities] = useState<JoinedCommunity[]>([])
 
-  // 클라이언트에서 인증 상태 체크 (ISR 호환)
+  // 클라이언트에서 인증 상태 체크 및 가입한 커뮤니티 로드
   useEffect(() => {
-    if (initialUserRole) return // props로 전달받은 경우 스킵
-
     const supabase = createClient()
 
-    async function checkRole() {
+    async function loadUserData() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single()
+          // 역할 가져오기
+          if (!initialUserRole) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", session.user.id)
+              .single()
+            setUserRole(profile?.role || null)
+          }
 
-          setUserRole(profile?.role || null)
+          // 가입한 커뮤니티 가져오기
+          const { data: memberships } = await supabase
+            .from("community_members")
+            .select(`
+              community_id,
+              communities:community_id (
+                id,
+                name
+              )
+            `)
+            .eq("user_id", session.user.id)
+
+          if (memberships) {
+            // board_categories에서 slug 가져오기
+            const communityNames = memberships
+              .map((m: any) => m.communities?.name)
+              .filter(Boolean)
+
+            if (communityNames.length > 0) {
+              const { data: categories } = await supabase
+                .from("board_categories")
+                .select("name, slug")
+                .in("name", communityNames)
+
+              const communityList: JoinedCommunity[] = memberships
+                .filter((m: any) => m.communities)
+                .map((m: any) => {
+                  const category = categories?.find((c: any) => c.name === m.communities.name)
+                  return {
+                    id: m.communities.id,
+                    name: m.communities.name,
+                    slug: category?.slug || m.communities.name.toLowerCase().replace(/\s+/g, '-'),
+                  }
+                })
+
+              setJoinedCommunities(communityList)
+            }
+          }
         }
       } catch (error) {
-        console.error("Role check error:", error)
+        console.error("User data load error:", error)
       }
     }
 
-    checkRole()
+    loadUserData()
   }, [initialUserRole])
 
   const isAdmin = userRole === "admin" || userRole === "master"
@@ -188,6 +233,32 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
                     </Link>
                   )
                 })}
+
+                {/* 가입한 커뮤니티 목록 (해당 섹션에만 표시) */}
+                {(section as any).showJoinedCommunities && joinedCommunities.length > 0 && (
+                  <>
+                    {joinedCommunities.map((community) => {
+                      const communityHref = `/community/board/${community.slug}`
+                      const isActive = pathname === communityHref || pathname.startsWith(`${communityHref}/`)
+
+                      return (
+                        <Link
+                          key={community.id}
+                          href={communityHref}
+                          prefetch={true}
+                          onMouseEnter={() => prefetch(community.slug)}
+                          className={cn(
+                            "flex items-center gap-2.5 px-5 py-1.5 text-[15px] transition-all rounded-lg",
+                            isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                          )}
+                        >
+                          <Hash className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{community.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </>
+                )}
               </div>
             </div>
           </div>

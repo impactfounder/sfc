@@ -12,46 +12,52 @@ export default async function CommunityDashboardPage() {
   // 현재 사용자 확인
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch board categories
+  // 모든 커뮤니티 가져오기 (공개 커뮤니티 + 비공개이지만 가입한 커뮤니티)
+  const { data: allCommunities } = await supabase
+    .from("communities")
+    .select("id, name, description, is_private, created_at")
+    .order("created_at", { ascending: false })
+
+  // board_categories에서 slug 매핑 가져오기
+  const communityNames = (allCommunities || []).map((c) => c.name)
   const { data: boardCategories } = await supabase
     .from("board_categories")
-    .select("id, name, description, slug")
-    .in("slug", ["vangol", "hightalk"])
-    .order("id")
+    .select("name, slug")
+    .in("name", communityNames)
 
-  // Fetch rich descriptions from communities table
-  let mergedCommunities: any[] = boardCategories || []
-  if (boardCategories && boardCategories.length > 0) {
-    const names = boardCategories.map((c) => c.name)
-    const { data: communityInfos } = await supabase
-      .from("communities")
-      .select("id, name, description")
-      .in("name", names)
+  // 사용자의 멤버십 정보 가져오기
+  let userMemberships: any[] = []
+  if (user && allCommunities && allCommunities.length > 0) {
+    const communityIds = allCommunities.map((c) => c.id)
+    const { data: memberships } = await supabase
+      .from("community_members")
+      .select("community_id, role")
+      .eq("user_id", user.id)
+      .in("community_id", communityIds)
+    userMemberships = memberships || []
+  }
 
-    // 사용자의 멤버십 정보 가져오기
-    let userMemberships: any[] = []
-    if (user && communityInfos && communityInfos.length > 0) {
-      const communityIds = communityInfos.map((c) => c.id)
-      const { data: memberships } = await supabase
-        .from("community_members")
-        .select("community_id, role")
-        .eq("user_id", user.id)
-        .in("community_id", communityIds)
-      userMemberships = memberships || []
-    }
-
-    mergedCommunities = boardCategories.map((cat) => {
-      const info = communityInfos?.find((c) => c.name === cat.name)
-      const membership = userMemberships.find((m) => m.community_id === info?.id)
+  // 커뮤니티 데이터 병합 (공개 커뮤니티 또는 가입한 비공개 커뮤니티만 표시)
+  const mergedCommunities = (allCommunities || [])
+    .filter((community) => {
+      // 공개 커뮤니티는 항상 표시
+      if (!community.is_private) return true
+      // 비공개 커뮤니티는 가입한 경우에만 표시
+      return userMemberships.some((m) => m.community_id === community.id)
+    })
+    .map((community) => {
+      const category = boardCategories?.find((c) => c.name === community.name)
+      const membership = userMemberships.find((m) => m.community_id === community.id)
       return {
-        ...cat,
-        communityId: info?.id,
-        description: info?.description || cat.description,
+        id: community.id,
+        name: community.name,
+        description: community.description,
+        slug: category?.slug || community.name.toLowerCase().replace(/\s+/g, '-'),
+        communityId: community.id,
         isMember: !!membership,
         role: membership?.role || null,
       }
     })
-  }
 
   return (
     <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>

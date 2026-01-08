@@ -315,7 +315,8 @@ export function BoardPageClient({
 
         <div className="flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
           {/* 서버에서 초기 데이터가 있으면 로딩 상태 건너뛰기 */}
-          {(isLoading && posts.length === 0) ? (
+          {/* 단, 서버에서 이미 빈 배열을 전달받은 경우(initialPosts.length === 0이고 page 1)에는 스켈레톤 표시 안함 */}
+          {(isLoading && posts.length === 0 && !(currentPage === 1 && initialPosts.length === 0)) ? (
             [1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="w-full bg-white py-3 px-4 border-b border-slate-200 last:border-b-0">
                 <Skeleton className="h-4 w-1/4 mb-2" />

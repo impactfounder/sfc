@@ -195,10 +195,11 @@ export default async function EventDetailContent({
                       {attendees.map((attendee: any, index: number) => {
                         const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
                         const name = profile?.full_name || attendee.guest_name || "익명";
+                        const avatarUrl = profile?.avatar_url;
                         return (
                           <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
                             <Avatar className="h-14 w-14 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200 ring-1 ring-slate-100">
-                              <AvatarImage src={profile?.avatar_url || undefined} />
+                              {avatarUrl && <AvatarImage src={avatarUrl} />}
                               <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">{name[0]}</AvatarFallback>
                             </Avatar>
                             <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900 transition-colors">{name}</span>
