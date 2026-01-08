@@ -377,7 +377,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 
                 {/* 가입한 커뮤니티 목록 (해당 섹션에만 표시) */}
                 {(section as any).showJoinedCommunities && joinedCommunities.length > 0 && (
-                  <>
+                  <div className="space-y-px ml-4">
                     {joinedCommunities.map((community) => {
                       const communityHref = `/community/board/${community.slug}`
                       const isActive = pathname === communityHref || pathname.startsWith(`${communityHref}/`)
@@ -389,16 +389,16 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
                           prefetch={true}
                           onMouseEnter={() => prefetch(community.slug)}
                           className={cn(
-                            "flex items-center gap-2.5 px-5 py-1.5 text-[15px] transition-all rounded-lg",
-                            isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                            "flex items-center gap-2 px-4 py-1 text-[13px] transition-all rounded-lg",
+                            isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-normal",
                           )}
                         >
-                          <Hash className="h-4 w-4 flex-shrink-0" />
+                          <Hash className="h-3.5 w-3.5 flex-shrink-0" />
                           <span className="truncate">{community.name}</span>
                         </Link>
                       )
                     })}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
