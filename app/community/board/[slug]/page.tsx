@@ -52,8 +52,32 @@ export default async function BoardPage({
     supabase.auth.getSession(),
   ]);
 
-  const category = categoryResult.data;
+  let category = categoryResult.data;
   const session = sessionResult.data.session;
+
+  // board_categories에 없으면 communities 테이블에서 찾기
+  if (!category) {
+    // communities 테이블에서 slug로 역매핑하여 찾기
+    const { data: communities } = await supabase
+      .from("communities")
+      .select("id, name, description")
+
+    const matchedCommunity = communities?.find((c) => {
+      const generatedSlug = c.name.trim().toLowerCase().replace(/\s+/g, '-')
+      return generatedSlug === dbSlug || generatedSlug === slug
+    })
+
+    if (matchedCommunity) {
+      // 가상 카테고리 생성
+      category = {
+        id: matchedCommunity.id,
+        name: matchedCommunity.name,
+        description: matchedCommunity.description,
+        slug: matchedCommunity.name.trim().toLowerCase().replace(/\s+/g, '-'),
+        is_active: true,
+      }
+    }
+  }
 
   if (!category) {
     notFound();
@@ -83,18 +107,51 @@ export default async function BoardPage({
   const systemBoards = ['announcement', 'free-board', 'event-requests', 'insights'];
   const isSystemBoard = systemBoards.includes(dbSlug);
 
+  // board_categories에서 가져온 카테고리인지 확인 (categoryResult.data가 있으면 실제 DB 카테고리)
+  const isRealBoardCategory = !!categoryResult.data;
+
   // 서버 사이드에서 초기 posts 데이터 가져오기 (RLS 문제 방지)
-  const postsResult = await supabase
-    .from("posts")
-    .select(`
-      *,
-      profiles:author_id(full_name, avatar_url),
-      board_categories!inner(name, slug),
-      post_images(id, image_url, sort_order)
-    `, { count: "exact" })
-    .eq("board_categories.slug", dbSlug)
-    .order("created_at", { ascending: false })
-    .range(0, 14);
+  let postsResult;
+
+  if (isRealBoardCategory) {
+    // board_categories에 있는 경우 기존 쿼리 사용
+    postsResult = await supabase
+      .from("posts")
+      .select(`
+        *,
+        profiles:author_id(full_name, avatar_url),
+        board_categories!inner(name, slug),
+        post_images(id, image_url, sort_order)
+      `, { count: "exact" })
+      .eq("board_categories.slug", dbSlug)
+      .order("created_at", { ascending: false })
+      .range(0, 14);
+  } else {
+    // communities에서 가져온 경우 board_category_id로 조회
+    // 먼저 해당 커뮤니티의 board_category가 있는지 확인
+    const { data: boardCat } = await supabase
+      .from("board_categories")
+      .select("id")
+      .eq("name", category.name)
+      .single();
+
+    if (boardCat) {
+      postsResult = await supabase
+        .from("posts")
+        .select(`
+          *,
+          profiles:author_id(full_name, avatar_url),
+          board_categories(name, slug),
+          post_images(id, image_url, sort_order)
+        `, { count: "exact" })
+        .eq("board_category_id", boardCat.id)
+        .order("created_at", { ascending: false })
+        .range(0, 14);
+    } else {
+      // board_category가 없으면 빈 결과
+      postsResult = { data: [], count: 0, error: null };
+    }
+  }
 
   // 디버깅 로그 (프로덕션에서도 출력)
   if (postsResult.error) {

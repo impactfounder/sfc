@@ -56,6 +56,24 @@ export default async function CommunityBoardLayout({
     communityName = categoryResult.data?.name || null
     userId = sessionResult.data.session?.user?.id || null
 
+    // board_categories에 없으면 communities 테이블에서 직접 찾기
+    if (!communityName) {
+      // slug로 communities 테이블에서 이름 찾기 (slug를 name에서 생성했으므로 역추적)
+      const { data: communities } = await supabase
+        .from("communities")
+        .select("name")
+
+      // slug와 일치하는 커뮤니티 찾기
+      const matchedCommunity = communities?.find((c) => {
+        const generatedSlug = c.name.trim().toLowerCase().replace(/\s+/g, '-')
+        return generatedSlug === dbSlug || generatedSlug === slug
+      })
+
+      if (matchedCommunity) {
+        communityName = matchedCommunity.name
+      }
+    }
+
     console.log("[CommunityBoardLayout] slug:", dbSlug, "communityName:", communityName, "userId:", userId)
   }
 
