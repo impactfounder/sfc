@@ -168,15 +168,26 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
       // 현재 사용자 확인 (로컬 스토리지에서 직접 읽기)
       let user: { id: string } | null = null
       try {
-        // Supabase가 저장하는 세션 키 패턴
-        const storageKey = `sb-${new URL(supabaseUrl!).hostname.split('.')[0]}-auth-token`
-        const storedSession = localStorage.getItem(storageKey)
-        console.log("[CommunityInfoSidebar] 세션 스토리지 키:", storageKey, "값 존재:", !!storedSession)
+        // Supabase 세션 키를 찾기 위해 모든 localStorage 키 검색
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
+            const storedSession = localStorage.getItem(key)
+            console.log("[CommunityInfoSidebar] 발견된 세션 키:", key, "값 길이:", storedSession?.length)
 
-        if (storedSession) {
-          const parsed = JSON.parse(storedSession)
-          user = parsed?.user || null
-          console.log("[CommunityInfoSidebar] 파싱된 사용자:", user?.id)
+            if (storedSession) {
+              const parsed = JSON.parse(storedSession)
+              user = parsed?.user || null
+              if (user) {
+                console.log("[CommunityInfoSidebar] 파싱된 사용자:", user?.id)
+                break
+              }
+            }
+          }
+        }
+
+        if (!user) {
+          console.log("[CommunityInfoSidebar] localStorage에서 세션을 찾지 못함")
         }
       } catch (err) {
         console.error("[CommunityInfoSidebar] 세션 읽기 오류:", err)
