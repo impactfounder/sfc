@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 /**
  * FeedPostCard - Reddit 스타일 피드 카드
@@ -13,6 +14,8 @@ import { useToast } from "@/hooks/use-toast"
  * - 작성자 아바타/이름 숨김
  * - 출처 태그(게시판/커뮤니티명)만 표시
  * - 상세 페이지에서 작성자 정보 확인 가능
+ *
+ * showAuthor=true일 경우 작성자 정보 표시 (커뮤니티 세부 페이지용)
  */
 
 type FeedPostCardProps = {
@@ -26,6 +29,11 @@ type FeedPostCardProps = {
   thumbnailUrl?: string | null
   commentsCount?: number
   isLast?: boolean  // 마지막 아이템 여부 (하단 border 제거용)
+  showAuthor?: boolean  // 작성자 정보 표시 여부
+  author?: {
+    name: string | null
+    avatarUrl: string | null
+  } | null
 }
 
 export function FeedPostCard({
@@ -39,6 +47,8 @@ export function FeedPostCard({
   thumbnailUrl,
   commentsCount = 0,
   isLast = false,
+  showAuthor = false,
+  author,
 }: FeedPostCardProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -110,8 +120,23 @@ export function FeedPostCard({
         !isLast && "border-b border-slate-200"
       )}
     >
-      {/* Header - 출처 태그와 시간만 표시 (Reddit 스타일) */}
+      {/* Header - 출처 태그와 시간 표시 (Reddit 스타일) */}
       <div className="pb-1 flex items-center gap-2 text-xs text-slate-500">
+        {/* 작성자 정보 (showAuthor가 true일 때만 표시) */}
+        {showAuthor && author && (
+          <>
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={author.avatarUrl || undefined} />
+              <AvatarFallback className="text-[10px] bg-slate-100">
+                {author.name?.charAt(0) || "?"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium text-slate-700">
+              {author.name || "익명"}
+            </span>
+            <span className="text-slate-400">•</span>
+          </>
+        )}
         <span
           className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
           onClick={(e) => {

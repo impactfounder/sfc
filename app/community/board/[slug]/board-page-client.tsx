@@ -335,6 +335,7 @@ export function BoardPageClient({
               const postHref = `/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`
 
               // Reddit 스타일 FeedPostCard 사용 (피드/리스트 뷰 모두)
+              // 커뮤니티 페이지에서는 작성자 정보 표시
               return (
                 <FeedPostCard
                   key={post.id}
@@ -351,6 +352,11 @@ export function BoardPageClient({
                   thumbnailUrl={post.thumbnail_url ?? undefined}
                   commentsCount={post.comments_count ?? 0}
                   isLast={index === postsWithMembership.length - 1}
+                  showAuthor={!isSystemBoard}
+                  author={post.profiles ? {
+                    name: post.profiles.full_name,
+                    avatarUrl: post.profiles.avatar_url,
+                  } : null}
                 />
               )
             })

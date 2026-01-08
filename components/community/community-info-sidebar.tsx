@@ -390,29 +390,17 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
       {/* 커뮤니티 정보 카드 */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            {community.thumbnail_url ? (
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={community.thumbnail_url} />
-                <AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-            ) : (
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                {community.name.charAt(0)}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg truncate">{community.name}</CardTitle>
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Users className="h-4 w-4" />
-                <span>{community.member_count} members</span>
-                {community.is_private && (
-                  <Badge variant="secondary" className="text-xs">
-                    <Lock className="h-3 w-3 mr-1" />
-                    비공개
-                  </Badge>
-                )}
-              </div>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg truncate">{community.name}</CardTitle>
+            <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+              <Users className="h-4 w-4" />
+              <span>{community.member_count} members</span>
+              {community.is_private && (
+                <Badge variant="secondary" className="text-xs">
+                  <Lock className="h-3 w-3 mr-1" />
+                  비공개
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -437,7 +425,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             </Button>
           )}
 
-          {/* 가입/탈퇴 버튼 */}
+          {/* 가입 버튼 (탈퇴는 하단으로 이동) */}
           {currentUserId && !canManage && (
             <div>
               {membershipStatus === "none" && (
@@ -454,17 +442,6 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
                 <Button className="w-full" variant="secondary" disabled>
                   <Clock className="h-4 w-4 mr-2" />
                   승인 대기중
-                </Button>
-              )}
-              {membershipStatus === "member" && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={handleLeave}
-                  disabled={isJoining}
-                >
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  탈퇴하기
                 </Button>
               )}
             </div>
@@ -530,6 +507,17 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 탈퇴하기 버튼 (하단에 작게 배치) */}
+      {currentUserId && !canManage && membershipStatus === "member" && (
+        <button
+          onClick={handleLeave}
+          disabled={isJoining}
+          className="w-full text-xs text-slate-400 hover:text-slate-500 py-2 transition-colors disabled:opacity-50"
+        >
+          탈퇴하기
+        </button>
       )}
 
       {/* 설정 모달 */}

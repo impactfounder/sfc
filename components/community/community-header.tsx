@@ -89,7 +89,7 @@ export function CommunityHeader({
       </div>
 
       {/* 커뮤니티 정보 바 */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border border-t-0 border-slate-200 rounded-b-xl">
+      <div className="flex items-center justify-between px-4 py-4 md:py-5 bg-white border border-t-0 border-slate-200 rounded-b-xl">
         <div className="flex items-center gap-3">
           {/* 아이콘 (배너 위로 살짝 올라감) */}
           <div className="-mt-10 relative z-10">
