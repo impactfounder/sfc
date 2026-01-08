@@ -40,14 +40,8 @@ export default async function BoardPage({
     dbSlug = 'insights';
   }
 
-  // 매핑 검증: 유효한 슬러그인지 확인
-  const validSlugs = ['announcement', 'free-board', 'vangol', 'hightalk', 'event-requests', 'insights'];
-  if (!validSlugs.includes(dbSlug)) {
-    console.error(`[BoardPage] ❌ 유효하지 않은 슬러그: "${slug}" -> "${dbSlug}"`);
-    notFound();
-  }
-
   // 세션 먼저 확인 (비로그인 최적화 - getUser 네트워크 호출 방지)
+  // 참고: validSlugs 하드코딩 제거 - DB에서 직접 확인
   const [categoryResult, sessionResult] = await Promise.all([
     supabase
       .from("board_categories")

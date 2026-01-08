@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, ImageIcon, Upload, Search } from "lucide-react"
+import { Loader2, ImageIcon, Upload, Search, Globe, Lock } from "lucide-react"
 import { searchUnsplashImages } from "@/app/actions/unsplash"
 import { createCommunity } from "@/lib/actions/community"
 
@@ -20,6 +20,7 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
   const [unsplashQuery, setUnsplashQuery] = useState("")
   const [unsplashResults, setUnsplashResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -69,6 +70,7 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
         name: name.trim(),
         description: description.trim() || undefined,
         thumbnail_url: thumbnailUrl || undefined,
+        is_private: isPrivate,
       })
 
       if (result.error) {
@@ -194,6 +196,45 @@ export function NewCommunityForm({ userId, onSuccess }: { userId?: string; onSuc
               <p className="text-xs text-slate-400 mt-2">
                 매력적인 소개글은 더 많은 멤버를 모읍니다.
               </p>
+            </div>
+
+            {/* 공개/비공개 설정 */}
+            <div>
+              <Label className="text-sm font-semibold text-slate-700 mb-3 block">
+                공개 설정
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPrivate(false)}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    !isPrivate
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  }`}
+                >
+                  <Globe className="h-6 w-6" />
+                  <span className="font-medium text-sm">공개</span>
+                  <span className="text-xs text-center leading-tight opacity-70">
+                    누구나 찾고 가입할 수 있어요
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPrivate(true)}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    isPrivate
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  }`}
+                >
+                  <Lock className="h-6 w-6" />
+                  <span className="font-medium text-sm">비공개</span>
+                  <span className="text-xs text-center leading-tight opacity-70">
+                    초대받은 사람만 가입할 수 있어요
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

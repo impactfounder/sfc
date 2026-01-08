@@ -10,6 +10,7 @@ export async function createCommunity(data: {
   name: string
   description?: string
   thumbnail_url?: string
+  is_private?: boolean
 }) {
   const supabase = await createClient()
 
@@ -32,7 +33,7 @@ export async function createCommunity(data: {
       description: data.description?.trim() || null,
       thumbnail_url: data.thumbnail_url || null,
       created_by: user.id,
-      is_private: false,
+      is_private: data.is_private || false,
     })
     .select()
     .single()
