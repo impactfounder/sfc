@@ -64,92 +64,90 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
   // 클라이언트에서 인증 상태 체크 및 가입한 커뮤니티 로드
   useEffect(() => {
     const supabase = createClient()
+    let isMounted = true
 
-    async function loadUserData() {
-      console.log("[Sidebar] loadUserData 시작")
+    async function loadCommunities(userId: string) {
+      if (!isMounted) return
+      console.log("[Sidebar] Loading communities for user:", userId)
+
       try {
-        console.log("[Sidebar] getSession 호출 전...")
-        const sessionResult = await supabase.auth.getSession()
-        console.log("[Sidebar] getSession 완료, result:", sessionResult)
-        const session = sessionResult.data?.session
-        const sessionError = sessionResult.error
-        console.log("[Sidebar] 세션 확인:", session ? "있음" : "없음", "에러:", sessionError)
-        if (session?.user) {
-          // 역할 가져오기
-          if (!initialUserRole) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", session.user.id)
-              .single()
-            setUserRole(profile?.role || null)
-          }
+        const { data: memberships, error: membershipError } = await supabase
+          .from("community_members")
+          .select("community_id")
+          .eq("user_id", userId)
 
-          // 가입한 커뮤니티 가져오기
-          console.log("[Sidebar] Loading communities for user:", session.user.id)
+        console.log("[Sidebar] Memberships:", memberships, "Error:", membershipError)
 
-          const { data: memberships, error: membershipError } = await supabase
-            .from("community_members")
-            .select("community_id")
-            .eq("user_id", session.user.id)
+        if (membershipError || !isMounted) return
 
-          console.log("[Sidebar] Memberships:", memberships, "Error:", membershipError)
+        if (memberships && memberships.length > 0) {
+          const communityIds = memberships.map((m: any) => m.community_id)
 
-          if (membershipError) {
-            console.error("Membership fetch error:", membershipError)
-            return
-          }
+          const { data: communities, error: communitiesError } = await supabase
+            .from("communities")
+            .select("id, name")
+            .in("id", communityIds)
 
-          if (memberships && memberships.length > 0) {
-            // community_id 목록으로 communities 테이블에서 정보 가져오기
-            const communityIds = memberships.map((m: any) => m.community_id)
-            console.log("[Sidebar] Community IDs:", communityIds)
+          console.log("[Sidebar] Communities:", communities, "Error:", communitiesError)
 
-            const { data: communities, error: communitiesError } = await supabase
-              .from("communities")
-              .select("id, name")
-              .in("id", communityIds)
+          if (communitiesError || !isMounted) return
 
-            console.log("[Sidebar] Communities:", communities, "Error:", communitiesError)
+          if (communities && communities.length > 0) {
+            const communityNames = communities.map((c: any) => c.name)
 
-            if (communitiesError) {
-              console.error("Communities fetch error:", communitiesError)
-              return
-            }
+            const { data: categories } = await supabase
+              .from("board_categories")
+              .select("name, slug")
+              .in("name", communityNames)
 
-            if (communities && communities.length > 0) {
-              // board_categories에서 slug 가져오기
-              const communityNames = communities.map((c: any) => c.name)
+            const communityList: JoinedCommunity[] = communities.map((community: any) => {
+              const category = categories?.find((c: any) => c.name === community.name)
+              return {
+                id: community.id,
+                name: community.name,
+                slug: category?.slug || community.name.toLowerCase().replace(/\s+/g, '-'),
+              }
+            })
 
-              const { data: categories } = await supabase
-                .from("board_categories")
-                .select("name, slug")
-                .in("name", communityNames)
-
-              console.log("[Sidebar] Categories:", categories)
-
-              const communityList: JoinedCommunity[] = communities.map((community: any) => {
-                const category = categories?.find((c: any) => c.name === community.name)
-                return {
-                  id: community.id,
-                  name: community.name,
-                  slug: category?.slug || community.name.toLowerCase().replace(/\s+/g, '-'),
-                }
-              })
-
-              console.log("[Sidebar] Final community list:", communityList)
+            console.log("[Sidebar] Final community list:", communityList)
+            if (isMounted) {
               setJoinedCommunities(communityList)
             }
-          } else {
-            console.log("[Sidebar] No memberships found")
           }
+        } else {
+          console.log("[Sidebar] No memberships found")
         }
       } catch (error) {
-        console.error("User data load error:", error)
+        console.error("[Sidebar] loadCommunities error:", error)
       }
     }
 
-    loadUserData()
+    // onAuthStateChange 사용 (getSession 대신)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[Sidebar] Auth state changed:", event, session?.user?.id)
+
+      if (session?.user) {
+        // 역할 가져오기
+        if (!initialUserRole) {
+          supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single()
+            .then(({ data: profile }) => {
+              if (isMounted) setUserRole(profile?.role || null)
+            })
+        }
+
+        // 커뮤니티 로드
+        loadCommunities(session.user.id)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [initialUserRole])
 
   const isAdmin = userRole === "admin" || userRole === "master"
