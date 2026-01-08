@@ -105,6 +105,7 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
       console.log("[CommunityInfoSidebar] fetchCommunityData 시작, communityName:", communityName)
 
       // communities 테이블에서 name으로 조회 (서버에서 전달받은 communityName 사용)
+      // 외래키 관계 조회 제거 - 단순 쿼리로 변경
       console.log("[CommunityInfoSidebar] Supabase 쿼리 시작...")
       const { data: communityData, error: communityError } = await supabase
         .from("communities")
@@ -116,12 +117,7 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
           thumbnail_url,
           is_private,
           join_type,
-          created_by,
-          profiles:created_by (
-            id,
-            full_name,
-            avatar_url
-          )
+          created_by
         `)
         .eq("name", communityName)
         .maybeSingle()
@@ -214,7 +210,7 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         join_type: communityData.join_type || "free",
         created_by: communityData.created_by,
         member_count: memberCount || 0,
-        creator: communityData.profiles as any,
+        creator: null, // 외래키 관계 조회 제거로 인해 null
         moderators: (moderatorsData || []).map((m: any) => ({
           ...m.profiles,
           role: m.role,
