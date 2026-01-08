@@ -24,7 +24,7 @@ export async function fetchFeedPosts(page: number = 1, sort: SortOption = "lates
         thumbnail_url,
         board_categories!inner(name, slug),
         profiles:author_id(id, full_name, avatar_url),
-        communities(name)
+        communities(name, is_private)
       `
     )
     .neq("board_categories.slug", "announcement")
@@ -43,7 +43,16 @@ export async function fetchFeedPosts(page: number = 1, sort: SortOption = "lates
     return []
   }
 
-  return data.map((post: any) => {
+  // 비공개 커뮤니티 글 필터링
+  const filteredData = data.filter((post: any) => {
+    // 커뮤니티가 없는 글 (일반 게시판)은 항상 표시
+    if (!post.communities) return true
+    // 커뮤니티가 있는 경우, 공개 커뮤니티만 표시
+    const community = Array.isArray(post.communities) ? post.communities[0] : post.communities
+    return !community?.is_private
+  })
+
+  return filteredData.map((post: any) => {
     const boardCategory = Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories
     const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
     return {

@@ -75,6 +75,7 @@ export default async function PartnerServiceDetailPage({
               src={service.thumbnail_url}
               alt={service.title}
               fill
+              sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover"
             />
           ) : (

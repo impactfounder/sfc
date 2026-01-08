@@ -483,7 +483,7 @@ export async function getPendingJoinRequests(communityId: string) {
 
 export async function updateCommunityDescription(communityId: string, description: string) {
   const supabase = await createClient()
-  
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -529,5 +529,82 @@ export async function updateCommunityDescription(communityId: string, descriptio
 
   revalidatePath("/community")
   revalidatePath("/community/board/*")
+  return { success: true }
+}
+
+/**
+ * 커뮤니티 설정 업데이트 (운영자용)
+ * - 이름, 소개글, 공개/비공개, 이용수칙 변경 가능
+ */
+export async function updateCommunitySettings(
+  communityId: string,
+  settings: {
+    name?: string
+    description?: string
+    is_private?: boolean
+    rules?: string
+    thumbnail_url?: string
+  }
+) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." }
+  }
+
+  // 해당 커뮤니티 정보 조회
+  const { data: community } = await supabase
+    .from("communities")
+    .select("created_by")
+    .eq("id", communityId)
+    .single()
+
+  if (!community) {
+    return { error: "커뮤니티를 찾을 수 없습니다." }
+  }
+
+  // 권한 체크: owner, admin, 또는 master
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  const { data: adminMember } = await supabase
+    .from("community_members")
+    .select("role")
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
+    .in("role", ["owner", "admin"])
+    .single()
+
+  const isOwner = community.created_by === user.id
+  const isMaster = profile?.role === 'master'
+  const isAdmin = !!adminMember
+
+  if (!isOwner && !isMaster && !isAdmin) {
+    return { error: "설정을 변경할 권한이 없습니다." }
+  }
+
+  // 설정 업데이트
+  const { error } = await supabase
+    .from("communities")
+    .update({
+      ...settings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", communityId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/community")
+  revalidatePath("/community/board/*")
+  revalidatePath(`/communities/${communityId}`)
   return { success: true }
 }

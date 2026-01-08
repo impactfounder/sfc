@@ -89,6 +89,7 @@ export default async function AdminEventsPage() {
                             src={event.thumbnail_url}
                             alt={event.title}
                             fill
+                            sizes="96px"
                             className="object-cover"
                           />
                         ) : (

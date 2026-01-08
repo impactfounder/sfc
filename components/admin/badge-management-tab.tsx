@@ -1435,6 +1435,7 @@ export function BadgeManagementTab({ badges, pendingBadges, badgeCategories: bad
                       src={viewingEvidence.url}
                       alt="증빙 이미지"
                       fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-contain"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">

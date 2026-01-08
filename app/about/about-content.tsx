@@ -122,6 +122,7 @@ export default function AboutContent({ badges, badgeCategories = [], isLoggedIn 
               src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop"
               alt="Background"
               fill
+              sizes="100vw"
               className="object-cover opacity-20"
               priority
             />

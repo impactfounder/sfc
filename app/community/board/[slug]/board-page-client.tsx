@@ -3,9 +3,8 @@
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { PostCard } from "@/components/ui/post-card"
-import { PostListItem } from "@/components/ui/post-list-item"
-import { Plus, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
+import { FeedPostCard } from "@/components/ui/feed-post-card"
+import { Plus, UserPlus, UserCheck } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -14,7 +13,6 @@ import { CommunityBanner } from "@/components/community-banner"
 import { CommunityMobileBar } from "@/components/community/community-mobile-bar"
 import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
 
 interface CommunityDataForMobile {
   id: string
@@ -46,7 +44,6 @@ interface BoardPageClientProps {
   communityId: string | null
   isMember: boolean
   membershipStatus: "none" | "member" | "pending" | "admin" | "owner"
-  canEditDescription: boolean
   initialPosts?: any[]
   initialPostsCount?: number
   communityData?: CommunityDataForMobile | null
@@ -62,7 +59,6 @@ export function BoardPageClient({
   communityId,
   isMember: initialIsMember,
   membershipStatus: initialMembershipStatus,
-  canEditDescription,
   initialPosts = [],
   initialPostsCount = 0,
   communityData,
@@ -77,9 +73,6 @@ export function BoardPageClient({
   const [membershipStatus, setMembershipStatus] = useState(initialMembershipStatus)
   const [isJoining, setIsJoining] = useState(false)
 
-  // 뷰 모드 상태 (기본값: 공지사항은 list, 자유게시판과 나머지는 feed)
-  const defaultViewMode = (slug === "announcement" || slug === "announcements") ? "list" : "feed"
-  const [viewMode, setViewMode] = useState<"feed" | "list">(defaultViewMode)
 
   // 서버에서 전달받은 초기 데이터가 있으면 사용, 없거나 페이지 변경 시 클라이언트에서 fetch
   const { data, isLoading, isError } = usePosts(dbSlug, currentPage)
@@ -214,13 +207,13 @@ export function BoardPageClient({
   // 배너 타이틀 및 설명 결정
   const getBannerConfig = () => {
     if (slug === "insights") {
-      return { title: "인사이트", description: "비즈니스 인사이트를 공유합니다.", canEdit: false }
+      return { title: "인사이트", description: "비즈니스 인사이트를 공유합니다." }
     } else if (isAnnouncement) {
-      return { title: "공지사항", description: "SFC의 새로운 소식을 알려드립니다.", canEdit: false }
+      return { title: "공지사항", description: "SFC의 새로운 소식을 알려드립니다." }
     } else if (slug === "free" || dbSlug === "free-board") {
-      return { title: "자유게시판", description: "자유롭게 이야기를 나누세요.", canEdit: false }
+      return { title: "자유게시판", description: "자유롭게 이야기를 나누세요." }
     } else {
-      return { title: category.name, description: category.description || undefined, canEdit: true }
+      return { title: category.name, description: category.description || undefined }
     }
   }
 
@@ -260,79 +253,44 @@ export function BoardPageClient({
         <CommunityBanner
           title={bannerConfig.title}
           description={bannerConfig.description}
-          communityId={communityId}
-          canEdit={bannerConfig.canEdit && canEditDescription}
-          slug={dbSlug}
-        />
+          actions={
+            <div className="flex items-center gap-2">
+              {!isSystemBoard && communityId && (
+                <>
+                  {!isMember ? (
+                    <Button
+                      onClick={handleJoin}
+                      disabled={isJoining || !user}
+                      className="rounded-full bg-white/90 border border-white/20 hover:bg-white transition-all text-gray-900 text-sm font-semibold shadow-sm px-4 py-2 h-9 inline-flex items-center gap-2"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {isJoining ? "처리 중..." : "참여하기"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleLeave}
+                      disabled={isJoining}
+                      className="rounded-full bg-white/20 border border-white/30 hover:bg-white/30 transition-all text-white text-sm font-semibold px-4 py-2 h-9 inline-flex items-center gap-2"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      참여 중
+                    </Button>
+                  )}
+                </>
+              )}
 
-        <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-          {slug !== "insights" ? (
-            <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl">
-              <button
-                onClick={() => setViewMode("feed")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-                  viewMode === "feed"
-                    ? "bg-white text-slate-900 shadow-sm font-bold"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">피드형</span>
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-                  viewMode === "list"
-                    ? "bg-white text-slate-900 shadow-sm font-bold"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-              >
-                <List className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">리스트형</span>
-              </button>
+              {(isSystemBoard || isMember) && shouldShowButton && (
+                <Button
+                  onClick={buttonConfig.onClick}
+                  className="bg-white/90 border border-white/20 shadow-sm hover:bg-white text-gray-900 rounded-full px-4 h-9 inline-flex items-center gap-2 text-sm font-semibold"
+                >
+                  <Plus className="w-4 h-4" />
+                  {buttonConfig.text}
+                </Button>
+              )}
             </div>
-          ) : (
-            <div></div>
-          )}
-          
-          <div className="flex items-center gap-2">
-            {!isSystemBoard && communityId && (
-              <>
-                {!isMember ? (
-                  <Button
-                    onClick={handleJoin}
-                    disabled={isJoining || !user}
-                    className="rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-900 text-sm font-semibold shadow-sm px-4 py-2 h-10 inline-flex items-center gap-2"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    {isJoining ? "처리 중..." : "참여하기"}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleLeave}
-                    disabled={isJoining}
-                    className="rounded-full bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-700 text-sm font-semibold shadow-sm px-4 py-2 h-10 inline-flex items-center gap-2"
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    참여 중
-                  </Button>
-                )}
-              </>
-            )}
-
-            {(isSystemBoard || isMember) && shouldShowButton && (
-              <Button
-                onClick={buttonConfig.onClick}
-                className="bg-white border border-gray-200 shadow-sm hover:bg-gray-50 text-black rounded-full px-4 h-10 inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {buttonConfig.text}
-              </Button>
-            )}
-          </div>
-        </div>
+          }
+        />
 
         <Dialog open={isWriteModalOpen} onOpenChange={setIsWriteModalOpen}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -355,19 +313,15 @@ export function BoardPageClient({
           </DialogContent>
         </Dialog>
 
-        <div className={cn(
-          "flex flex-col",
-          viewMode === "feed" ? "gap-4" : "gap-0 border-t border-slate-100"
-        )}>
+        <div className="flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
           {/* 서버에서 초기 데이터가 있으면 로딩 상태 건너뛰기 */}
           {(isLoading && posts.length === 0) ? (
             [1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className={cn(
-                "w-full bg-white",
-                viewMode === "feed" ? "h-24 rounded-xl border border-gray-200 p-4" : "h-16 border-b border-gray-100 px-4 py-3"
-              )}>
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-3 w-1/4" />
+              <div key={i} className="w-full bg-white py-3 px-4 border-b border-slate-200 last:border-b-0">
+                <Skeleton className="h-4 w-1/4 mb-2" />
+                <Skeleton className="h-5 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-full mb-1" />
+                <Skeleton className="h-3 w-2/3" />
               </div>
             ))
           ) : posts.length === 0 ? (
@@ -375,42 +329,26 @@ export function BoardPageClient({
               아직 게시글이 없습니다. 첫 번째 글을 작성해보세요!
             </div>
           ) : (
-            postsWithMembership.map((post) => {
+            postsWithMembership.map((post, index) => {
               const postHref = `/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`
 
-              // 리스트형 뷰
-              if (viewMode === "list") {
-                return (
-                  <PostListItem
-                    key={post.id}
-                    post={post}
-                    href={postHref}
-                    isMember={true}
-                    viewMode="list"
-                    hideCategory={true}
-                  />
-                )
-              }
-
-              // 피드형 뷰 (기본)
+              // Reddit 스타일 FeedPostCard 사용 (피드/리스트 뷰 모두)
               return (
-                <PostCard
+                <FeedPostCard
                   key={post.id}
                   postId={post.id}
                   href={postHref}
-                  community={{
+                  source={{
                     name: post.board_categories?.name ?? "커뮤니티",
                     href: `/community/board/${post.board_categories?.slug ?? "community"}`,
-                    iconUrl: post.thumbnail_url ?? undefined,
                   }}
-                  author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
                   createdAt={post.created_at}
                   title={post.title}
                   content={post.content ?? undefined}
                   contentRaw={(post as any).content ?? undefined}
                   thumbnailUrl={post.thumbnail_url ?? undefined}
                   commentsCount={post.comments_count ?? 0}
-                  hideCategory={true}
+                  isLast={index === postsWithMembership.length - 1}
                 />
               )
             })

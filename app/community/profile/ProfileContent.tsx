@@ -113,7 +113,7 @@ function EventListItem({ event }: { event: EventListItem }) {
         <Link key={event.id} href={`/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
             <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
                 {event.thumbnail_url ? (
-                    <Image src={event.thumbnail_url} alt="" fill className="object-cover" />
+                    <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-300"><Ticket className="h-6 w-6" /></div>
                 )}

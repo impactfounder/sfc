@@ -60,6 +60,7 @@ export default function EventCard({ event, href, className, layout = "card" }: P
             src={event.thumbnail_url}
             alt={event.title}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover h-full w-full transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
@@ -100,6 +101,7 @@ export default function EventCard({ event, href, className, layout = "card" }: P
                 src={event.host_avatar_url}
                 alt={event.host_name || "Host"}
                 fill
+                sizes="24px"
                 className="object-cover"
                 unoptimized
               />

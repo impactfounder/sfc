@@ -136,7 +136,6 @@ export default async function BoardPage({
 
   let communityId: string | null = null;
   let isMember = false;
-  let canEditDescription = false;
   let communityData: any = null;
   let membershipStatus: "none" | "member" | "pending" | "admin" | "owner" = "none";
 
@@ -233,10 +232,6 @@ export default async function BoardPage({
           membershipStatus = joinRequest ? "pending" : "none";
         }
 
-        // 소개글 수정 권한 확인: 리더 또는 master
-        const isLeader = community?.created_by === user.id;
-        const isMaster = userProfile?.role === 'master';
-        canEditDescription = isLeader || isMaster;
       }
     }
   }
@@ -251,7 +246,6 @@ export default async function BoardPage({
       communityId={communityId}
       isMember={isMember}
       membershipStatus={membershipStatus}
-      canEditDescription={canEditDescription}
       initialPosts={postsWithCounts}
       initialPostsCount={initialPostsCount}
       communityData={communityData}

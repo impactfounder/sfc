@@ -21,10 +21,12 @@ import {
   UserMinus,
   Clock,
   Lock,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
+import { CommunitySettingsModal } from "./community-settings-modal"
 
 /**
  * CommunityInfoSidebar - 커뮤니티 정보 사이드바
@@ -73,6 +75,10 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
   const [isJoining, setIsJoining] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // 운영자 여부 확인 (owner, admin, master)
+  const canManage = membershipStatus === "owner" || membershipStatus === "admin"
 
   const supabase = createClient()
 
@@ -88,28 +94,20 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id || null)
 
-      // 먼저 board_categories에서 커뮤니티 이름 찾기
-      const { data: boardCategory } = await supabase
-        .from("board_categories")
-        .select("name, description")
-        .eq("slug", slug)
-        .single()
+      // 먼저 communities 테이블에서 slug로 직접 조회 시도
+      let communityData = null
+      let communityError = null
 
-      if (!boardCategory) {
-        setIsLoading(false)
-        return
-      }
-
-      // communities 테이블에서 name으로 커뮤니티 정보 조회
-      // (slug 컬럼은 마이그레이션 후에만 존재할 수 있음)
-      const { data: communityData, error: communityError } = await supabase
+      const { data: communityBySlug, error: slugError } = await supabase
         .from("communities")
         .select(`
           id,
           name,
           description,
+          rules,
           thumbnail_url,
           is_private,
+          join_type,
           created_by,
           profiles:created_by (
             id,
@@ -117,25 +115,70 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
             avatar_url
           )
         `)
-        .eq("name", boardCategory.name)
+        .eq("slug", slug)
         .single()
 
-      if (communityError || !communityData) {
+      if (communityBySlug) {
+        communityData = communityBySlug
+      } else {
+        // slug로 못 찾으면 board_categories를 통해 name으로 조회
+        const { data: boardCategory } = await supabase
+          .from("board_categories")
+          .select("name, description")
+          .eq("slug", slug)
+          .single()
+
+        if (!boardCategory) {
+          setIsLoading(false)
+          return
+        }
+
+        const { data: communityByName, error: nameError } = await supabase
+          .from("communities")
+          .select(`
+            id,
+            name,
+            description,
+            rules,
+            thumbnail_url,
+            is_private,
+            join_type,
+            created_by,
+            profiles:created_by (
+              id,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq("name", boardCategory.name)
+          .single()
+
+        communityData = communityByName
+        communityError = nameError
+
         // communities 테이블에 없으면 board_categories 정보 사용
-        setCommunity({
-          id: slug,
-          name: boardCategory.name,
-          description: boardCategory.description,
-          rules: null,
-          thumbnail_url: null,
-          is_private: false,
-          join_type: "free",
-          created_by: "",
-          member_count: 0,
-          creator: null,
-          moderators: [],
-        })
-        setMembershipStatus("member") // 시스템 보드는 모두 멤버
+        if (nameError || !communityByName) {
+          setCommunity({
+            id: slug,
+            name: boardCategory.name,
+            description: boardCategory.description,
+            rules: null,
+            thumbnail_url: null,
+            is_private: false,
+            join_type: "free",
+            created_by: "",
+            member_count: 0,
+            creator: null,
+            moderators: [],
+          })
+          setMembershipStatus("member") // 시스템 보드는 모두 멤버
+          setIsLoading(false)
+          return
+        }
+      }
+
+      // communityData가 null인 경우 종료 (로직상 여기에 도달하면 항상 존재)
+      if (!communityData) {
         setIsLoading(false)
         return
       }
@@ -194,10 +237,10 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
         id: communityData.id,
         name: communityData.name,
         description: communityData.description,
-        rules: (communityData as any).rules || null, // 마이그레이션 전에는 없을 수 있음
+        rules: communityData.rules || null,
         thumbnail_url: communityData.thumbnail_url,
         is_private: communityData.is_private,
-        join_type: (communityData as any).join_type || "free", // 마이그레이션 전에는 없을 수 있음
+        join_type: communityData.join_type || "free",
         created_by: communityData.created_by,
         member_count: memberCount || 0,
         creator: communityData.profiles as any,
@@ -332,8 +375,20 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
             </p>
           )}
 
-          {/* 가입 버튼 */}
-          {currentUserId && membershipStatus !== "owner" && membershipStatus !== "admin" && (
+          {/* 운영자 설정 버튼 */}
+          {canManage && (
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              설정
+            </Button>
+          )}
+
+          {/* 가입/탈퇴 버튼 */}
+          {currentUserId && !canManage && (
             <div>
               {membershipStatus === "none" && (
                 <Button
@@ -425,6 +480,23 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 설정 모달 */}
+      {community && canManage && (
+        <CommunitySettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          community={{
+            id: community.id,
+            name: community.name,
+            description: community.description,
+            is_private: community.is_private,
+            rules: community.rules,
+            thumbnail_url: community.thumbnail_url,
+          }}
+          onSuccess={fetchCommunityData}
+        />
       )}
     </div>
   )

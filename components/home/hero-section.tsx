@@ -64,6 +64,7 @@ export function HeroSection({ user, profile, loginHref = "/auth/login", onLogin 
           src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2613&auto=format&fit=crop"
           alt="Seoul Founders Club"
           fill
+          sizes="100vw"
           className="object-cover opacity-20"
           priority
         />
