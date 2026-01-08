@@ -40,24 +40,30 @@ export default async function CommunityBoardLayout({
   // 시스템 게시판 여부 확인
   const isSystemBoard = SYSTEM_BOARDS.includes(dbSlug) || SYSTEM_BOARDS.includes(slug)
 
-  // 커뮤니티 게시판인 경우 board_categories에서 name 조회
+  // 커뮤니티 게시판인 경우 데이터 조회
   let communityName: string | null = null
+  let userId: string | null = null
+
   if (!isSystemBoard) {
     const supabase = await createClient()
-    const { data: category, error } = await supabase
-      .from("board_categories")
-      .select("name")
-      .eq("slug", dbSlug)
-      .single()
-    communityName = category?.name || null
-    console.log("[CommunityBoardLayout] slug:", dbSlug, "category:", category, "error:", error, "communityName:", communityName)
+
+    // 병렬로 카테고리와 세션 조회
+    const [categoryResult, sessionResult] = await Promise.all([
+      supabase.from("board_categories").select("name").eq("slug", dbSlug).single(),
+      supabase.auth.getSession(),
+    ])
+
+    communityName = categoryResult.data?.name || null
+    userId = sessionResult.data.session?.user?.id || null
+
+    console.log("[CommunityBoardLayout] slug:", dbSlug, "communityName:", communityName, "userId:", userId)
   }
 
   // 사이드바 결정
   const rightSidebar = isSystemBoard ? (
     <StandardRightSidebar />
   ) : (
-    <CommunityInfoSidebar communityName={communityName} />
+    <CommunityInfoSidebar communityName={communityName} userId={userId} />
   )
 
   return (

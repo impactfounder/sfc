@@ -40,6 +40,7 @@ import { CommunitySettingsModal } from "./community-settings-modal"
 
 interface CommunityInfoSidebarProps {
   communityName: string | null
+  userId?: string | null
 }
 
 interface CommunityData {
@@ -67,19 +68,19 @@ interface CommunityData {
 
 type MembershipStatus = "none" | "member" | "pending" | "admin" | "owner"
 
-export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProps) {
+export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSidebarProps) {
   const [community, setCommunity] = useState<CommunityData | null>(null)
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>("none")
   const [isLoading, setIsLoading] = useState(true)
   const [isJoining, setIsJoining] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // 운영자 여부 확인 (owner, admin, master)
   const canManage = membershipStatus === "owner" || membershipStatus === "admin"
 
-  console.log("[CommunityInfoSidebar] 렌더링됨, communityName:", communityName, "canManage:", canManage, "membershipStatus:", membershipStatus)
+  console.log("[CommunityInfoSidebar] 렌더링됨, communityName:", communityName, "userId:", userId, "canManage:", canManage, "membershipStatus:", membershipStatus)
 
   useEffect(() => {
     console.log("[CommunityInfoSidebar] useEffect 실행, communityName:", communityName)
@@ -165,35 +166,10 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         return
       }
 
-      // 현재 사용자 확인 (로컬 스토리지에서 직접 읽기)
-      let user: { id: string } | null = null
-      try {
-        // Supabase 세션 키를 찾기 위해 모든 localStorage 키 검색
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
-            const storedSession = localStorage.getItem(key)
-            console.log("[CommunityInfoSidebar] 발견된 세션 키:", key, "값 길이:", storedSession?.length)
-
-            if (storedSession) {
-              const parsed = JSON.parse(storedSession)
-              user = parsed?.user || null
-              if (user) {
-                console.log("[CommunityInfoSidebar] 파싱된 사용자:", user?.id)
-                break
-              }
-            }
-          }
-        }
-
-        if (!user) {
-          console.log("[CommunityInfoSidebar] localStorage에서 세션을 찾지 못함")
-        }
-      } catch (err) {
-        console.error("[CommunityInfoSidebar] 세션 읽기 오류:", err)
-      }
-      setCurrentUserId(user?.id || null)
-      console.log("[CommunityInfoSidebar] 사용자:", user?.id || "비로그인")
+      // 현재 사용자 확인 (서버에서 전달받은 userId 사용)
+      const currentUser = userId || null
+      setCurrentUserId(currentUser)
+      console.log("[CommunityInfoSidebar] 사용자:", currentUser || "비로그인")
 
       // 멤버 수 조회 (fetch API 사용)
       let memberCount = 0
@@ -237,15 +213,15 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
       }
 
       // 현재 사용자의 멤버십 상태 확인 (fetch API 사용)
-      if (user?.id) {
+      if (currentUser) {
         // 커뮤니티 생성자인 경우 바로 owner로 설정
-        if (communityData.created_by === user.id) {
+        if (communityData.created_by === currentUser) {
           console.log("[CommunityInfoSidebar] 커뮤니티 생성자 확인됨, owner로 설정")
           setMembershipStatus("owner")
         } else {
           try {
             const membershipRes = await fetch(
-              `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${user.id}&select=role`,
+              `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${currentUser}&select=role`,
               {
                 headers: {
                   'apikey': supabaseKey!,
@@ -269,7 +245,7 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
               } else {
                 // 가입 신청 상태 확인
                 const joinReqRes = await fetch(
-                  `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${user.id}&status=eq.pending&select=status`,
+                  `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${currentUser}&status=eq.pending&select=status`,
                   {
                     headers: {
                       'apikey': supabaseKey!,
