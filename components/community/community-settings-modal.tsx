@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Loader2, Trash2, AlertTriangle, ImageIcon, RefreshCw } from "lucide-react"
-import { getSuggestedBannerUrls } from "@/lib/utils/unsplash"
+import { Loader2, Trash2, AlertTriangle, ImageIcon, Search, X } from "lucide-react"
+import { searchUnsplashImages, getAllUnsplashImages } from "@/lib/utils/unsplash"
 import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
 import { updateCommunitySettings, deleteCommunity } from "@/lib/actions/community"
@@ -64,8 +64,24 @@ export function CommunitySettingsModal({
     banner_url: community.banner_url || "",
   })
 
-  // Unsplash 추천 배너 목록
-  const suggestedBanners = getSuggestedBannerUrls(community.description)
+  // Unsplash 검색어 상태
+  const [bannerSearch, setBannerSearch] = useState("")
+  const [iconSearch, setIconSearch] = useState("")
+
+  // 검색 결과 (메모이제이션)
+  const bannerImages = useMemo(() => {
+    if (bannerSearch.trim()) {
+      return searchUnsplashImages(bannerSearch, 'banner')
+    }
+    return getAllUnsplashImages('banner')
+  }, [bannerSearch])
+
+  const iconImages = useMemo(() => {
+    if (iconSearch.trim()) {
+      return searchUnsplashImages(iconSearch, 'icon')
+    }
+    return getAllUnsplashImages('icon')
+  }, [iconSearch])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -195,36 +211,47 @@ export function CommunitySettingsModal({
                   fill
                   className="object-cover"
                 />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, banner_url: "" })}
+                  className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                >
+                  <X className="h-3 w-3 text-white" />
+                </button>
               </div>
             )}
-            {/* URL 입력 */}
-            <Input
-              value={formData.banner_url}
-              onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
-              placeholder="배너 이미지 URL (Unsplash 등)"
-              disabled={isLoading}
-            />
-            {/* 추천 배너 */}
+            {/* 검색 입력 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                value={bannerSearch}
+                onChange={(e) => setBannerSearch(e.target.value)}
+                placeholder="배너 이미지 검색 (예: tech, business, community)"
+                className="pl-9"
+                disabled={isLoading}
+              />
+            </div>
+            {/* 이미지 선택 그리드 */}
             <div className="space-y-2">
               <p className="text-xs text-slate-500 flex items-center gap-1">
                 <ImageIcon className="h-3 w-3" />
-                추천 배너 (클릭하여 선택)
+                {bannerSearch ? `"${bannerSearch}" 검색 결과` : "추천 배너"} (클릭하여 선택)
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {suggestedBanners.map((url, idx) => (
+                {bannerImages.map((url, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setFormData({ ...formData, banner_url: url })}
-                    className={`relative h-12 rounded-md overflow-hidden border-2 transition-all ${
+                    className={`relative h-14 rounded-md overflow-hidden border-2 transition-all ${
                       formData.banner_url === url
                         ? "border-blue-500 ring-2 ring-blue-200"
-                        : "border-transparent hover:border-slate-300"
+                        : "border-slate-200 hover:border-slate-300"
                     }`}
                   >
                     <Image
                       src={url}
-                      alt={`추천 배너 ${idx + 1}`}
+                      alt={`배너 ${idx + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -235,18 +262,65 @@ export function CommunitySettingsModal({
           </div>
 
           {/* 커뮤니티 아이콘 */}
-          <div className="space-y-2">
-            <Label htmlFor="thumbnail_url">커뮤니티 아이콘 URL</Label>
-            <Input
-              id="thumbnail_url"
-              value={formData.thumbnail_url}
-              onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
-              placeholder="아이콘 이미지 URL (선택사항)"
-              disabled={isLoading}
-            />
-            <p className="text-xs text-slate-500">
-              정사각형 이미지를 권장합니다 (예: 200x200px)
-            </p>
+          <div className="space-y-3">
+            <Label>커뮤니티 아이콘</Label>
+            {/* 현재 아이콘 미리보기 */}
+            {formData.thumbnail_url && (
+              <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-slate-100">
+                <Image
+                  src={formData.thumbnail_url}
+                  alt="아이콘 미리보기"
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, thumbnail_url: "" })}
+                  className="absolute top-1 right-1 p-0.5 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                >
+                  <X className="h-2.5 w-2.5 text-white" />
+                </button>
+              </div>
+            )}
+            {/* 검색 입력 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                value={iconSearch}
+                onChange={(e) => setIconSearch(e.target.value)}
+                placeholder="아이콘 이미지 검색 (예: tech, startup)"
+                className="pl-9"
+                disabled={isLoading}
+              />
+            </div>
+            {/* 이미지 선택 그리드 */}
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 flex items-center gap-1">
+                <ImageIcon className="h-3 w-3" />
+                {iconSearch ? `"${iconSearch}" 검색 결과` : "추천 아이콘"} (클릭하여 선택)
+              </p>
+              <div className="grid grid-cols-6 gap-2">
+                {iconImages.map((url, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, thumbnail_url: url })}
+                    className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
+                      formData.thumbnail_url === url
+                        ? "border-blue-500 ring-2 ring-blue-200"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <Image
+                      src={url}
+                      alt={`아이콘 ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* 공개/비공개 설정 */}

@@ -163,3 +163,125 @@ export function isValidUnsplashUrl(url: string): boolean {
   return url.startsWith('https://images.unsplash.com/') ||
          url.startsWith('https://source.unsplash.com/')
 }
+
+// 아이콘용 이미지 (정사각형)
+const UNSPLASH_ICON_IMAGES: Record<string, string[]> = {
+  'technology': [
+    'photo-1518770660439-4636190af475',
+    'photo-1550751827-4bd374c3f58b',
+    'photo-1531297484001-80022131f5a1',
+    'photo-1485827404703-89b55fcc595e', // robot
+    'photo-1526374965328-7f61d4dc18c5', // matrix code
+  ],
+  'business': [
+    'photo-1507003211169-0a1dd7228f2d',
+    'photo-1522071820081-009f0129c71c',
+    'photo-1486406146926-c627a92ad1ab', // building
+    'photo-1454165804606-c3d57bc86b40', // desk
+  ],
+  'startup': [
+    'photo-1559136555-9303baea8ebd',
+    'photo-1497215842964-222b430dc094',
+    'photo-1553484771-371a605b060b', // lightbulb
+  ],
+  'community': [
+    'photo-1529156069898-49953e39b3ac',
+    'photo-1517486808906-6ca8b3f04846',
+    'photo-1491438590914-bc09fcaaf77a',
+    'photo-1582213782179-e0d53f98f2ca', // hands together
+  ],
+  'default': [
+    'photo-1521737711867-e3b97375f902',
+    'photo-1522071820081-009f0129c71c',
+    'photo-1517245386807-bb43f82c33c4',
+    'photo-1552664730-d307ca884978',
+  ]
+}
+
+/**
+ * 카테고리별 추천 아이콘 URL 목록 반환
+ */
+export function getSuggestedIconUrls(description?: string | null): string[] {
+  const category = extractCategory(description || '')
+  const images = UNSPLASH_ICON_IMAGES[category] || UNSPLASH_ICON_IMAGES['default']
+
+  return images.map(imageId =>
+    `https://images.unsplash.com/${imageId}?w=200&h=200&fit=crop&crop=center`
+  )
+}
+
+/**
+ * 검색어로 Unsplash 이미지 검색 (정적 매핑 기반)
+ * @param query 검색어
+ * @param type 'banner' | 'icon'
+ * @returns 이미지 URL 배열
+ */
+export function searchUnsplashImages(query: string, type: 'banner' | 'icon' = 'banner'): string[] {
+  const lowerQuery = query.toLowerCase()
+  const results: string[] = []
+
+  // 모든 카테고리에서 검색어와 관련된 이미지 찾기
+  const imageMap = type === 'icon' ? UNSPLASH_ICON_IMAGES : UNSPLASH_IMAGES
+  const size = type === 'icon' ? 'w=200&h=200' : 'w=1200&h=300'
+
+  // 키워드 매핑 확인
+  for (const [keyword, searchTerms] of Object.entries(UNSPLASH_KEYWORDS)) {
+    if (keyword.toLowerCase().includes(lowerQuery) ||
+        lowerQuery.includes(keyword.toLowerCase()) ||
+        searchTerms.toLowerCase().includes(lowerQuery)) {
+      // 해당 카테고리의 이미지 추가
+      let category = 'default'
+      if (['기술', '개발', '코딩', 'ai', 'tech', 'code', 'programming'].some(k =>
+        keyword.toLowerCase().includes(k) || lowerQuery.includes(k))) {
+        category = 'technology'
+      } else if (['비즈니스', '사업', '투자', '마케팅', 'business', 'marketing'].some(k =>
+        keyword.toLowerCase().includes(k) || lowerQuery.includes(k))) {
+        category = 'business'
+      } else if (['창업', '스타트업', 'startup'].some(k =>
+        keyword.toLowerCase().includes(k) || lowerQuery.includes(k))) {
+        category = 'startup'
+      } else if (['네트워킹', '모임', '토론', 'community', 'team'].some(k =>
+        keyword.toLowerCase().includes(k) || lowerQuery.includes(k))) {
+        category = 'community'
+      }
+
+      const images = imageMap[category] || imageMap['default']
+      images.forEach(imageId => {
+        const url = `https://images.unsplash.com/${imageId}?${size}&fit=crop&crop=center`
+        if (!results.includes(url)) {
+          results.push(url)
+        }
+      })
+    }
+  }
+
+  // 결과가 없으면 기본 이미지 반환
+  if (results.length === 0) {
+    const defaultImages = imageMap['default']
+    defaultImages.forEach(imageId => {
+      results.push(`https://images.unsplash.com/${imageId}?${size}&fit=crop&crop=center`)
+    })
+  }
+
+  return results.slice(0, 6) // 최대 6개
+}
+
+/**
+ * 모든 카테고리의 이미지 반환 (검색어 없을 때)
+ */
+export function getAllUnsplashImages(type: 'banner' | 'icon' = 'banner'): string[] {
+  const imageMap = type === 'icon' ? UNSPLASH_ICON_IMAGES : UNSPLASH_IMAGES
+  const size = type === 'icon' ? 'w=200&h=200' : 'w=1200&h=300'
+  const results: string[] = []
+
+  for (const images of Object.values(imageMap)) {
+    images.forEach(imageId => {
+      const url = `https://images.unsplash.com/${imageId}?${size}&fit=crop&crop=center`
+      if (!results.includes(url)) {
+        results.push(url)
+      }
+    })
+  }
+
+  return results.slice(0, 9) // 최대 9개
+}
