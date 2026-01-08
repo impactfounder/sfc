@@ -80,10 +80,14 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           }
 
           // 가입한 커뮤니티 가져오기
+          console.log("[Sidebar] Loading communities for user:", session.user.id)
+
           const { data: memberships, error: membershipError } = await supabase
             .from("community_members")
             .select("community_id")
             .eq("user_id", session.user.id)
+
+          console.log("[Sidebar] Memberships:", memberships, "Error:", membershipError)
 
           if (membershipError) {
             console.error("Membership fetch error:", membershipError)
@@ -93,11 +97,14 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           if (memberships && memberships.length > 0) {
             // community_id 목록으로 communities 테이블에서 정보 가져오기
             const communityIds = memberships.map((m: any) => m.community_id)
+            console.log("[Sidebar] Community IDs:", communityIds)
 
             const { data: communities, error: communitiesError } = await supabase
               .from("communities")
               .select("id, name")
               .in("id", communityIds)
+
+            console.log("[Sidebar] Communities:", communities, "Error:", communitiesError)
 
             if (communitiesError) {
               console.error("Communities fetch error:", communitiesError)
@@ -113,6 +120,8 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
                 .select("name, slug")
                 .in("name", communityNames)
 
+              console.log("[Sidebar] Categories:", categories)
+
               const communityList: JoinedCommunity[] = communities.map((community: any) => {
                 const category = categories?.find((c: any) => c.name === community.name)
                 return {
@@ -122,8 +131,11 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
                 }
               })
 
+              console.log("[Sidebar] Final community list:", communityList)
               setJoinedCommunities(communityList)
             }
+          } else {
+            console.log("[Sidebar] No memberships found")
           }
         }
       } catch (error) {

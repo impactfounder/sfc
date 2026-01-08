@@ -715,10 +715,14 @@ export async function deleteCommunity(communityId: string) {
   }
 
   // 3. 멤버십 삭제
-  const { error: membersError } = await supabase
+  console.log("[deleteCommunity] 멤버십 삭제 시도, communityId:", communityId)
+  const { error: membersError, count: membersCount } = await supabase
     .from("community_members")
     .delete()
     .eq("community_id", communityId)
+    .select("*", { count: "exact", head: true })
+
+  console.log("[deleteCommunity] 멤버십 삭제 결과, error:", membersError, "count:", membersCount)
 
   if (membersError) {
     console.error("[deleteCommunity] members 삭제 실패:", membersError)
@@ -726,14 +730,30 @@ export async function deleteCommunity(communityId: string) {
   }
 
   // 4. 커뮤니티 삭제
-  const { error } = await supabase
+  console.log("[deleteCommunity] 커뮤니티 삭제 시도, id:", communityId)
+  const { error, data: deletedData } = await supabase
     .from("communities")
     .delete()
     .eq("id", communityId)
+    .select()
+
+  console.log("[deleteCommunity] 커뮤니티 삭제 결과, error:", error, "deletedData:", deletedData)
 
   if (error) {
     console.error("[deleteCommunity] community 삭제 실패:", error)
     return { error: error.message }
+  }
+
+  // 삭제가 실제로 되었는지 확인
+  const { data: checkDeleted } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("id", communityId)
+    .single()
+
+  if (checkDeleted) {
+    console.error("[deleteCommunity] 커뮤니티가 여전히 존재함! RLS 정책 확인 필요")
+    return { error: "삭제가 실패했습니다. 권한을 확인해주세요." }
   }
 
   console.log("[deleteCommunity] 삭제 완료:", communityId)
