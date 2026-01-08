@@ -122,7 +122,7 @@ export function CommunityMobileBar({
   }
 
   return (
-    <div className="xl:hidden sticky top-14 z-30 bg-white border-b border-slate-200 shadow-sm">
+    <div className="lg:hidden sticky top-14 z-30 bg-white border-b border-slate-200 shadow-sm">
       {/* 접힌 상태 - 항상 표시 */}
       <button
         onClick={() => setExpanded(!expanded)}
