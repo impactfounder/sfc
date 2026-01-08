@@ -107,7 +107,10 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
       // communities 테이블에서 name으로 조회 (서버에서 전달받은 communityName 사용)
       // 외래키 관계 조회 제거 - 단순 쿼리로 변경
       console.log("[CommunityInfoSidebar] Supabase 쿼리 시작...")
-      const { data: communityData, error: communityError } = await supabase
+      console.log("[CommunityInfoSidebar] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+
+      // 타임아웃과 함께 쿼리 실행
+      const queryPromise = supabase
         .from("communities")
         .select(`
           id,
@@ -121,6 +124,23 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         `)
         .eq("name", communityName)
         .maybeSingle()
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("쿼리 타임아웃 (10초)")), 10000)
+      )
+
+      let communityData = null
+      let communityError = null
+
+      try {
+        const result = await Promise.race([queryPromise, timeoutPromise]) as any
+        communityData = result.data
+        communityError = result.error
+      } catch (timeoutErr) {
+        console.error("[CommunityInfoSidebar] 쿼리 타임아웃:", timeoutErr)
+        setIsLoading(false)
+        return
+      }
 
       console.log("[CommunityInfoSidebar] Supabase 쿼리 완료:", { communityData, communityError })
 
