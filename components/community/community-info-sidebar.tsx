@@ -91,13 +91,6 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
       setIsLoading(true)
       console.log("[CommunityInfoSidebar] fetchCommunityData called with slug:", slug)
 
-      // 현재 사용자 확인
-      console.log("[CommunityInfoSidebar] Getting session...")
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user || null
-      console.log("[CommunityInfoSidebar] User:", user?.id || "not logged in")
-      setCurrentUserId(user?.id || null)
-
       // 먼저 communities 테이블에서 slug로 직접 조회 시도
       console.log("[CommunityInfoSidebar] Querying communities by slug:", slug)
       let communityData = null
@@ -197,6 +190,13 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
       }
 
       console.log("[CommunityInfoSidebar] Final communityData:", communityData)
+
+      // 현재 사용자 확인
+      console.log("[CommunityInfoSidebar] Getting session...")
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user || null
+      console.log("[CommunityInfoSidebar] User:", user?.id || "not logged in")
+      setCurrentUserId(user?.id || null)
 
       // 멤버 수 조회
       const { count: memberCount } = await supabase
