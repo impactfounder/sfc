@@ -68,7 +68,11 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
     async function loadUserData() {
       console.log("[Sidebar] loadUserData 시작")
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log("[Sidebar] getSession 호출 전...")
+        const sessionResult = await supabase.auth.getSession()
+        console.log("[Sidebar] getSession 완료, result:", sessionResult)
+        const session = sessionResult.data?.session
+        const sessionError = sessionResult.error
         console.log("[Sidebar] 세션 확인:", session ? "있음" : "없음", "에러:", sessionError)
         if (session?.user) {
           // 역할 가져오기
