@@ -95,14 +95,10 @@ export function FeedPostCard({
     <article
       role="link"
       tabIndex={0}
-      onClick={() => {
-        window.scrollTo(0, 0)
-        router.push(href)
-      }}
+      onClick={() => router.push(href)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
-          window.scrollTo(0, 0)
           router.push(href)
         }
       }}
@@ -166,7 +162,6 @@ export function FeedPostCard({
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            window.scrollTo(0, 0)
             router.push(href)
           }}
         >
