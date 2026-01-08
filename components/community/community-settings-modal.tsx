@@ -252,30 +252,32 @@ export function CommunitySettingsModal({
                       커뮤니티 삭제
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="bg-white">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="flex items-center gap-2 text-red-600">
                         <AlertTriangle className="h-5 w-5" />
                         커뮤니티 삭제
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-left space-y-3">
-                        <p>
-                          <strong className="text-slate-900">{community.name}</strong> 커뮤니티를 정말 삭제하시겠습니까?
-                        </p>
-                        <p className="text-red-600 font-medium">
-                          이 작업은 되돌릴 수 없습니다. 모든 게시글과 멤버 정보가 영구적으로 삭제됩니다.
-                        </p>
-                        <div className="pt-2">
-                          <Label htmlFor="delete-confirm" className="text-xs text-slate-500">
-                            삭제를 확인하려면 커뮤니티 이름을 정확히 입력하세요
-                          </Label>
-                          <Input
-                            id="delete-confirm"
-                            value={deleteConfirmName}
-                            onChange={(e) => setDeleteConfirmName(e.target.value)}
-                            placeholder={community.name}
-                            className="mt-1.5"
-                          />
+                      <AlertDialogDescription asChild>
+                        <div className="text-left space-y-3">
+                          <p className="text-slate-600">
+                            <strong className="text-slate-900">{community.name}</strong> 커뮤니티를 정말 삭제하시겠습니까?
+                          </p>
+                          <p className="text-red-600 font-medium">
+                            이 작업은 되돌릴 수 없습니다. 모든 게시글과 멤버 정보가 영구적으로 삭제됩니다.
+                          </p>
+                          <div className="pt-2">
+                            <Label htmlFor="delete-confirm" className="text-xs text-slate-500">
+                              삭제를 확인하려면 커뮤니티 이름을 정확히 입력하세요
+                            </Label>
+                            <Input
+                              id="delete-confirm"
+                              value={deleteConfirmName}
+                              onChange={(e) => setDeleteConfirmName(e.target.value)}
+                              placeholder={community.name}
+                              className="mt-1.5 bg-white"
+                            />
+                          </div>
                         </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>

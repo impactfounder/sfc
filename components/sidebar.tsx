@@ -80,39 +80,47 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           }
 
           // 가입한 커뮤니티 가져오기
-          const { data: memberships } = await supabase
+          const { data: memberships, error: membershipError } = await supabase
             .from("community_members")
-            .select(`
-              community_id,
-              communities:community_id (
-                id,
-                name
-              )
-            `)
+            .select("community_id")
             .eq("user_id", session.user.id)
 
-          if (memberships) {
-            // board_categories에서 slug 가져오기
-            const communityNames = memberships
-              .map((m: any) => m.communities?.name)
-              .filter(Boolean)
+          if (membershipError) {
+            console.error("Membership fetch error:", membershipError)
+            return
+          }
 
-            if (communityNames.length > 0) {
+          if (memberships && memberships.length > 0) {
+            // community_id 목록으로 communities 테이블에서 정보 가져오기
+            const communityIds = memberships.map((m: any) => m.community_id)
+
+            const { data: communities, error: communitiesError } = await supabase
+              .from("communities")
+              .select("id, name")
+              .in("id", communityIds)
+
+            if (communitiesError) {
+              console.error("Communities fetch error:", communitiesError)
+              return
+            }
+
+            if (communities && communities.length > 0) {
+              // board_categories에서 slug 가져오기
+              const communityNames = communities.map((c: any) => c.name)
+
               const { data: categories } = await supabase
                 .from("board_categories")
                 .select("name, slug")
                 .in("name", communityNames)
 
-              const communityList: JoinedCommunity[] = memberships
-                .filter((m: any) => m.communities)
-                .map((m: any) => {
-                  const category = categories?.find((c: any) => c.name === m.communities.name)
-                  return {
-                    id: m.communities.id,
-                    name: m.communities.name,
-                    slug: category?.slug || m.communities.name.toLowerCase().replace(/\s+/g, '-'),
-                  }
-                })
+              const communityList: JoinedCommunity[] = communities.map((community: any) => {
+                const category = categories?.find((c: any) => c.name === community.name)
+                return {
+                  id: community.id,
+                  name: community.name,
+                  slug: category?.slug || community.name.toLowerCase().replace(/\s+/g, '-'),
+                }
+              })
 
               setJoinedCommunities(communityList)
             }
