@@ -25,6 +25,7 @@ type FeedPostCardProps = {
   contentRaw?: string | null
   thumbnailUrl?: string | null
   commentsCount?: number
+  isLast?: boolean  // 마지막 아이템 여부 (하단 border 제거용)
 }
 
 export function FeedPostCard({
@@ -37,6 +38,7 @@ export function FeedPostCard({
   contentRaw,
   thumbnailUrl,
   commentsCount = 0,
+  isLast = false,
 }: FeedPostCardProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -103,12 +105,13 @@ export function FeedPostCard({
         }
       }}
       className={cn(
-        "bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors mb-4",
-        "cursor-pointer overflow-hidden shadow-sm hover:shadow-md"
+        "bg-white hover:bg-slate-50/50 transition-colors py-3 px-4",
+        "cursor-pointer",
+        !isLast && "border-b border-slate-200"
       )}
     >
       {/* Header - 출처 태그와 시간만 표시 (Reddit 스타일) */}
-      <div className="p-3 pb-1 flex items-center gap-2 text-xs text-slate-500">
+      <div className="pb-1 flex items-center gap-2 text-xs text-slate-500">
         <span
           className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
           onClick={(e) => {
@@ -127,14 +130,14 @@ export function FeedPostCard({
       </div>
 
       {/* Title */}
-      <div className="px-3 py-1">
+      <div className="py-1">
         <h3 className="text-lg font-bold text-slate-900 leading-snug">
           {title}
         </h3>
       </div>
 
       {/* Content Preview + Image */}
-      <div className="px-3 pb-2">
+      <div className="pb-2">
         {(contentRaw || content) && (
           <div
             className="prose prose-slate max-w-none text-sm leading-relaxed line-clamp-4"
@@ -142,7 +145,7 @@ export function FeedPostCard({
           />
         )}
         {derivedThumb && (
-          <div className="mt-3 w-full h-[300px] rounded-md bg-slate-100 overflow-hidden">
+          <div className="mt-3 w-full h-[280px] rounded bg-slate-100 overflow-hidden">
             <img
               src={derivedThumb}
               alt={title}
@@ -154,7 +157,7 @@ export function FeedPostCard({
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-2 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1 text-xs text-slate-600">
+      <div className="pt-2 flex items-center gap-1 text-xs text-slate-500">
         {/* 댓글 버튼 */}
         <button
           type="button"

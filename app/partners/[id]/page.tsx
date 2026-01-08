@@ -1,13 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
-import { getCurrentUserProfile } from "@/lib/queries/profiles"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import SidebarProfile from "@/components/sidebar-profile"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, ArrowRight, ExternalLink } from "lucide-react"
+import { CheckCircle2, ExternalLink } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -35,8 +31,6 @@ export default async function PartnerServiceDetailPage({
   params: { id: string }
 }) {
   const supabase = await createClient()
-  const userProfile = await getCurrentUserProfile(supabase)
-  const userRole = userProfile?.profile?.role || null
 
   // 파트너 카테고리 가져오기
   const { data: partnerCategories } = await supabase
@@ -73,8 +67,7 @@ export default async function PartnerServiceDetailPage({
   }
 
   return (
-    <DashboardLayout header={<SiteHeader />} sidebarProfile={<SidebarProfile />} userRole={userRole}>
-      <div className="w-full flex flex-col gap-8">
+    <div className="w-full flex flex-col gap-8">
         {/* 썸네일 이미지 */}
         <div className="relative aspect-video w-full rounded-xl overflow-hidden">
           {service.thumbnail_url ? (
@@ -209,7 +202,6 @@ export default async function PartnerServiceDetailPage({
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
 
@@ -234,7 +226,7 @@ export default async function PartnerServiceDetailPage({
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </div>
   )
 }
 

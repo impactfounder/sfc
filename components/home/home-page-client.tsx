@@ -12,7 +12,6 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/comp
 import { HeroSection } from "@/components/home/hero-section"
 import { EventsSection } from "@/components/home/events-section"
 import { PostsSection } from "@/components/home/posts-section"
-import { EventRequestSection } from "@/components/home/event-request-section"
 import { ReviewsSection } from "@/components/home/reviews-section"
 import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 import { EventCardEvent } from "@/components/ui/event-card"
@@ -32,7 +31,6 @@ type HomePageClientProps = {
   sidebarProfile?: ReactNode
   initialEvents?: EventCardEvent[]
   initialPosts?: Post[]
-  initialEventRequests?: Post[]
   initialReviews?: ReviewForDisplay[]
   initialBoardCategories?: BoardCategory[]
   initialUser?: User | null
@@ -44,19 +42,14 @@ export function HomePageClient({
   sidebarProfile,
   initialEvents = [],
   initialPosts = [],
-  initialEventRequests = [],
   initialReviews = [],
   initialBoardCategories = [],
   initialUser = null,
   initialProfile = null,
 }: HomePageClientProps) {
-  // '열어주세요(EventRequestSection)' 섹션 표시 여부 제어
-  // 나중에 다시 사용할 때는 이 값을 true로 변경하면 됩니다.
-  const SHOW_EVENT_REQUESTS = false;
   const [selectedBoard, setSelectedBoard] = useState<string>("all")
   const [events, setEvents] = useState<EventCardEvent[]>(initialEvents)
   const [posts, setPosts] = useState<Post[]>(initialPosts)
-  const [eventRequests, setEventRequests] = useState<Post[]>(initialEventRequests)
   const [reviews, setReviews] = useState<ReviewForDisplay[]>(initialReviews)
   const [boardCategories, setBoardCategories] = useState<BoardCategory[]>(initialBoardCategories)
   const [user, setUser] = useState<User | null>(initialUser || null)
@@ -93,7 +86,6 @@ export function HomePageClient({
       let categoriesData: BoardCategory[] = []
       let eventsData: EventCardEvent[] = []
       let postsData: Post[] = []
-      let eventRequestsData: PostForDisplay[] = []
       let reviewsData: ReviewForDisplay[] = []
 
       // 1. 카테고리
@@ -219,16 +211,7 @@ export function HomePageClient({
         postsData = []
       }
 
-      // 4. 열어주세요(Event Requests)
-      try {
-        const requestsData = await getLatestPosts(supabase, 6, 'event-requests')
-        eventRequestsData = requestsData || []
-      } catch (error) {
-        console.error('열어주세요 로드 오류:', error)
-        eventRequestsData = []
-      }
-
-      // 5. 후기 (Reviews)
+      // 4. 후기 (Reviews)
       try {
         const reviewsResult = await getLatestReviews(supabase, 10)
         reviewsData = reviewsResult || []
@@ -245,9 +228,6 @@ export function HomePageClient({
 
       // 게시글 처리 (이미 뱃지가 포함된 상태)
       setPosts(postsData)
-
-      // 열어주세요 처리
-      setEventRequests(eventRequestsData as Post[])
 
       // 후기 처리
       setReviews(reviewsData)
@@ -311,9 +291,6 @@ export function HomePageClient({
           <div id="events-section">
             <EventsSection events={events} onCreateEvent={handleCreateEvent} isLoading={isLoading} />
           </div>
-          {SHOW_EVENT_REQUESTS && (
-            <EventRequestSection posts={eventRequests} isLoading={isLoading} user={user} />
-          )}
           <div className="mt-12">
             <ReviewsSection reviews={reviews} isLoading={isLoading} />
           </div>

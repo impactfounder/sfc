@@ -14,7 +14,7 @@ interface SidebarProps {
 
 const navigationSections = [
   {
-    title: "소개",
+    title: null, // 소개 섹션은 타이틀 없음
     links: [
       { name: "SEOUL FOUNDERS CLUB", href: "/about", icon: BookOpen },
       { name: "멤버", href: "/member", icon: Users }
@@ -118,7 +118,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
     <div className="flex h-full w-full flex-col bg-white border-r border-slate-100 shadow-sm overflow-hidden">
       <nav
         ref={sidebarRef}
-        className="flex-1 px-2 py-4 overflow-y-auto overflow-x-hidden no-scrollbar"
+        className="flex-1 px-3 py-4 overflow-y-auto overflow-x-hidden no-scrollbar"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -130,76 +130,88 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
             href="/"
             prefetch={true}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-[27px] py-1.5 text-[15px] font-medium transition-all",
-              isLinkActive("/") ? "bg-slate-100 text-slate-900 font-bold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+              "flex items-center gap-2.5 rounded-lg px-5 py-1.5 text-[15px] transition-all",
+              isLinkActive("/") ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
             )}
           >
-            <Home className="h-5 w-5 flex-shrink-0" />
+            <Home className="h-4 w-4 flex-shrink-0" />
             <span>홈</span>
           </Link>
         </div>
 
         {/* 2. 구조화된 메뉴 섹션 */}
-        {navigationSections.map((section) => (
-          <div key={section.title} className="mt-6 mb-2">
-            <div className="px-[27px] mb-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                {section.title}
-              </span>
-            </div>
+        {navigationSections.map((section, sectionIndex) => (
+          <div key={section.title || sectionIndex}>
+            {/* 섹션 구분선 (첫 번째 섹션 제외) */}
+            {sectionIndex > 0 && (
+              <div className="my-2 mx-5 border-t border-slate-200" />
+            )}
 
-            <div className="space-y-0.5">
-              {section.links.map((item) => {
-                const useExactMatch = item.href === "/community"
-                const isActive = isLinkActive(item.href, !useExactMatch)
-                const Icon = item.icon
-                const isBoardLink = item.href.startsWith("/community/board/")
-                const boardSlug = isBoardLink ? item.href.split("/").pop() : null
-                let dbSlug = boardSlug
-                if (boardSlug === 'free') dbSlug = 'free-board'
-                if (boardSlug === 'announcements') dbSlug = 'announcement'
+            <div className="py-1">
+              {/* 타이틀이 있는 경우에만 표시 */}
+              {section.title && (
+                <div className="px-5 mb-1.5">
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {section.title}
+                  </span>
+                </div>
+              )}
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    prefetch={true}
-                    onMouseEnter={() => {
-                      if (isBoardLink && dbSlug) {
-                        prefetch(dbSlug)
-                      }
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
-                      isActive ? "bg-slate-100 text-slate-900 font-bold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
-                    )}
-                  >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.name}</span>
-                  </Link>
-                )
-              })}
+              <div className="space-y-0.5">
+                {section.links.map((item) => {
+                  const useExactMatch = item.href === "/community"
+                  const isActive = isLinkActive(item.href, !useExactMatch)
+                  const Icon = item.icon
+                  const isBoardLink = item.href.startsWith("/community/board/")
+                  const boardSlug = isBoardLink ? item.href.split("/").pop() : null
+                  let dbSlug = boardSlug
+                  if (boardSlug === 'free') dbSlug = 'free-board'
+                  if (boardSlug === 'announcements') dbSlug = 'announcement'
+
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      prefetch={true}
+                      onMouseEnter={() => {
+                        if (isBoardLink && dbSlug) {
+                          prefetch(dbSlug)
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center gap-2.5 px-5 py-1.5 text-[15px] transition-all rounded-lg",
+                        isActive ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
+                      )}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <span>{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </div>
         ))}
 
         {/* 3. 기타 및 관리자 섹션 */}
-        <div className="mt-6 mb-2">
-          <div className="px-[27px] mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">기타</span>
-          </div>
+        <div>
+          <div className="my-2 mx-5 border-t border-slate-200" />
+          <div className="py-1">
+            <div className="px-5 mb-1.5">
+              <span className="text-[11px] font-medium text-slate-500">기타</span>
+            </div>
           <div className="space-y-0.5">
             <Link
               href="/customer-center"
               prefetch={true}
               className={cn(
-                "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
+                "flex items-center gap-2.5 px-5 py-1.5 text-[15px] transition-all rounded-lg",
                 isLinkActive("/customer-center", true)
-                  ? "bg-slate-100 text-slate-900 font-bold"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
+                  ? "bg-slate-100 text-slate-900 font-medium"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
               )}
             >
-              <Headset className="h-5 w-5 flex-shrink-0" />
+              <Headset className="h-4 w-4 flex-shrink-0" />
               <span>고객센터</span>
             </Link>
             {showAdminMenu && (
@@ -207,16 +219,17 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
                 href="/admin"
                 prefetch={true}
                 className={cn(
-                  "flex items-center gap-3 px-[27px] py-1.5 text-[15px] transition-all rounded-xl",
+                  "flex items-center gap-2.5 px-5 py-1.5 text-[15px] transition-all rounded-lg",
                   isLinkActive("/admin", true)
-                    ? "bg-slate-100 text-slate-900 font-bold"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium",
+                    ? "bg-slate-100 text-slate-900 font-medium"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-normal",
                 )}
               >
-                <Shield className="h-5 w-5 flex-shrink-0" />
+                <Shield className="h-4 w-4 flex-shrink-0" />
                 <span>관리자</span>
               </Link>
             )}
+          </div>
           </div>
         </div>
       </nav>

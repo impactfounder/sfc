@@ -59,7 +59,7 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
   const posts = data?.pages.flat() ?? []
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 w-full">
       <Tabs value={sort} onValueChange={(v) => setSort(v as SortOption)} className="w-full">
         <TabsList>
           <TabsTrigger value="latest">최신</TabsTrigger>
@@ -67,30 +67,33 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-col gap-4">
-        {isLoading && posts.length === 0 ? (
-          [...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 rounded-lg border border-slate-200 bg-white" />
-          ))
-        ) : (
-          posts.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              postId={post.id}
-              href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
-              source={{
-                name: post.board_categories?.name ?? "커뮤니티",
-                href: `/community/board/${post.board_categories?.slug ?? "community"}`,
-              }}
-              createdAt={post.created_at}
-              title={post.title}
-              content={post.content ?? undefined}
-              contentRaw={(post as any).content ?? undefined}
-              thumbnailUrl={post.thumbnail_url ?? undefined}
-              commentsCount={post.comments_count ?? 0}
-            />
-          ))
-        )}
+      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+        <div className="flex flex-col">
+          {isLoading && posts.length === 0 ? (
+            [...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 border-b border-slate-200 last:border-b-0" />
+            ))
+          ) : (
+            posts.map((post, index) => (
+              <FeedPostCard
+                key={post.id}
+                postId={post.id}
+                href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
+                source={{
+                  name: post.board_categories?.name ?? "커뮤니티",
+                  href: `/community/board/${post.board_categories?.slug ?? "community"}`,
+                }}
+                createdAt={post.created_at}
+                title={post.title}
+                content={post.content ?? undefined}
+                contentRaw={(post as any).content ?? undefined}
+                thumbnailUrl={post.thumbnail_url ?? undefined}
+                commentsCount={post.comments_count ?? 0}
+                isLast={index === posts.length - 1}
+              />
+            ))
+          )}
+        </div>
       </div>
 
       <div ref={loadMoreRef} className="h-10" aria-hidden />

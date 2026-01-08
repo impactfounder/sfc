@@ -19,15 +19,15 @@ export async function SiteHeader({ user, profile }: SiteHeaderProps = {}) {
     return (
         <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
             <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
-                {/* Left: Logo */}
-                <div className="ml-1 mr-4 flex items-center">
+                {/* Left: Logo - 사이드바 너비(240px)에 맞춰 중앙 정렬 */}
+                <div className="w-[240px] flex items-center justify-center flex-shrink-0">
                     <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
                         <Image
                             src="/images/logo-text.png"
                             alt="Seoul Founders Club"
                             width={580}
                             height={51}
-                            className="h-8 w-auto max-w-56 object-contain"
+                            className="h-6 w-auto max-w-44 object-contain"
                             priority
                         />
                     </Link>

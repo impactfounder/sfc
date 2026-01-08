@@ -14,7 +14,6 @@ const SYSTEM_BOARDS = [
   "announcements",
   "free",
   "free-board",
-  "event-requests",
   "insights",
   "reviews",
 ]
