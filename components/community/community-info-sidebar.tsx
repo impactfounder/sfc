@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -80,9 +79,7 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
   // 운영자 여부 확인 (owner, admin, master)
   const canManage = membershipStatus === "owner" || membershipStatus === "admin"
 
-  const supabase = createClient()
-
-  console.log("[CommunityInfoSidebar] 렌더링됨, communityName:", communityName)
+  console.log("[CommunityInfoSidebar] 렌더링됨, communityName:", communityName, "canManage:", canManage, "membershipStatus:", membershipStatus)
 
   useEffect(() => {
     console.log("[CommunityInfoSidebar] useEffect 실행, communityName:", communityName)
@@ -168,13 +165,21 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         return
       }
 
-      // 현재 사용자 확인 (Supabase auth는 작동함)
-      let user = null
+      // 현재 사용자 확인 (로컬 스토리지에서 직접 읽기)
+      let user: { id: string } | null = null
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        user = session?.user || null
-      } catch {
-        // 로그인 안됨
+        // Supabase가 저장하는 세션 키 패턴
+        const storageKey = `sb-${new URL(supabaseUrl!).hostname.split('.')[0]}-auth-token`
+        const storedSession = localStorage.getItem(storageKey)
+        console.log("[CommunityInfoSidebar] 세션 스토리지 키:", storageKey, "값 존재:", !!storedSession)
+
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession)
+          user = parsed?.user || null
+          console.log("[CommunityInfoSidebar] 파싱된 사용자:", user?.id)
+        }
+      } catch (err) {
+        console.error("[CommunityInfoSidebar] 세션 읽기 오류:", err)
       }
       setCurrentUserId(user?.id || null)
       console.log("[CommunityInfoSidebar] 사용자:", user?.id || "비로그인")
@@ -302,15 +307,30 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
     setIsJoining(true)
     try {
       if (community.join_type === "approval") {
-        // 승인제: 가입 신청
-        const { error } = await supabase
-          .from("community_join_requests")
-          .insert({
-            community_id: community.id,
-            user_id: currentUserId,
-          })
+        // 승인제: 가입 신청 (fetch API 사용)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-        if (error) throw error
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/community_join_requests`,
+          {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              community_id: community.id,
+              user_id: currentUserId,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error('가입 신청에 실패했습니다.')
+        }
 
         setMembershipStatus("pending")
         toast({ description: "가입 신청이 완료되었습니다. 운영자 승인을 기다려주세요." })
