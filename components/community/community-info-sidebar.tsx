@@ -212,9 +212,43 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
         )
         if (modsRes.ok) {
           moderatorsData = await modsRes.json()
+          console.log("[CommunityInfoSidebar] 운영자 데이터:", moderatorsData)
         }
       } catch (err) {
         console.error("[CommunityInfoSidebar] 운영자 조회 오류:", err)
+      }
+
+      // 커뮤니티 생성자가 운영자 목록에 없으면 추가
+      if (communityData.created_by) {
+        const creatorInList = moderatorsData.some(
+          (m: any) => m.profiles?.id === communityData.created_by
+        )
+        if (!creatorInList) {
+          // 생성자 정보 조회
+          try {
+            const creatorRes = await fetch(
+              `${supabaseUrl}/rest/v1/profiles?id=eq.${communityData.created_by}&select=id,full_name,avatar_url`,
+              {
+                headers: {
+                  'apikey': supabaseKey!,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+              }
+            )
+            if (creatorRes.ok) {
+              const creatorData = await creatorRes.json()
+              if (creatorData.length > 0) {
+                moderatorsData.unshift({
+                  role: 'owner',
+                  profiles: creatorData[0]
+                })
+                console.log("[CommunityInfoSidebar] 생성자 추가됨:", creatorData[0])
+              }
+            }
+          } catch (err) {
+            console.error("[CommunityInfoSidebar] 생성자 조회 오류:", err)
+          }
+        }
       }
 
       // 현재 사용자의 멤버십 상태 확인 (fetch API 사용)
@@ -270,6 +304,18 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
         }
       }
 
+      // moderators 매핑 시 profiles가 null인 경우 필터링
+      const validModerators = (moderatorsData || [])
+        .filter((m: any) => m.profiles && m.profiles.id)
+        .map((m: any) => ({
+          id: m.profiles.id,
+          full_name: m.profiles.full_name,
+          avatar_url: m.profiles.avatar_url,
+          role: m.role,
+        }))
+
+      console.log("[CommunityInfoSidebar] 최종 운영자 목록:", validModerators)
+
       setCommunity({
         id: communityData.id,
         name: communityData.name,
@@ -281,11 +327,8 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
         join_type: communityData.join_type || "free",
         created_by: communityData.created_by,
         member_count: memberCount || 0,
-        creator: null, // 외래키 관계 조회 제거로 인해 null
-        moderators: (moderatorsData || []).map((m: any) => ({
-          ...m.profiles,
-          role: m.role,
-        })),
+        creator: null,
+        moderators: validModerators,
       })
     } catch (error) {
       console.error("[CommunityInfoSidebar] 커뮤니티 정보 로드 실패:", error)
