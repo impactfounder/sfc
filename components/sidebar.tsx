@@ -54,12 +54,41 @@ const navigationSections = [
   },
 ]
 
+// sessionStorage 키
+const COMMUNITIES_CACHE_KEY = 'sidebar_joined_communities'
+
+// 캐시에서 커뮤니티 목록 가져오기
+function getCachedCommunities(): JoinedCommunity[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const cached = sessionStorage.getItem(COMMUNITIES_CACHE_KEY)
+    if (cached) {
+      return JSON.parse(cached)
+    }
+  } catch (e) {
+    console.error("[Sidebar] Cache read error:", e)
+  }
+  return []
+}
+
+// 커뮤니티 목록 캐시에 저장
+function setCachedCommunities(communities: JoinedCommunity[]) {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(COMMUNITIES_CACHE_KEY, JSON.stringify(communities))
+  } catch (e) {
+    console.error("[Sidebar] Cache write error:", e)
+  }
+}
+
 export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
   const pathname = usePathname()
   const prefetch = usePrefetchPosts()
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [userRole, setUserRole] = useState<string | null>(initialUserRole || null)
-  const [joinedCommunities, setJoinedCommunities] = useState<JoinedCommunity[]>([])
+  // 초기값으로 캐시된 커뮤니티 사용
+  const [joinedCommunities, setJoinedCommunities] = useState<JoinedCommunity[]>(() => getCachedCommunities())
+  const loadingRef = useRef(false)
 
   // 클라이언트에서 인증 상태 체크 및 가입한 커뮤니티 로드
   useEffect(() => {
@@ -153,6 +182,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
             console.log("[Sidebar] Final community list:", communityList)
             if (isMounted) {
               setJoinedCommunities(communityList)
+              setCachedCommunities(communityList) // 캐시에 저장
             }
           }
         } else {
@@ -163,9 +193,48 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       }
     }
 
-    // onAuthStateChange 사용 (getSession 대신)
+    // 초기 로드 시 세션 확인 (클라이언트 네비게이션에도 동작)
+    async function initLoad() {
+      // 이미 로딩 중이면 스킵
+      if (loadingRef.current) {
+        console.log("[Sidebar] Already loading, skipping")
+        return
+      }
+      loadingRef.current = true
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log("[Sidebar] Initial session check:", session?.user?.id)
+
+        if (session?.user && isMounted) {
+          // 역할 가져오기
+          if (!initialUserRole) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", session.user.id)
+              .single()
+            if (isMounted) setUserRole(profile?.role || null)
+          }
+
+          // 커뮤니티 로드
+          await loadCommunities(session.user.id)
+        }
+      } catch (error) {
+        console.error("[Sidebar] initLoad error:", error)
+      } finally {
+        loadingRef.current = false
+      }
+    }
+
+    initLoad()
+
+    // 인증 상태 변경 감지 (로그인/로그아웃)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[Sidebar] Auth state changed:", event, session?.user?.id)
+
+      // INITIAL_SESSION은 initLoad에서 처리하므로 무시
+      if (event === 'INITIAL_SESSION') return
 
       if (session?.user) {
         // 역할 가져오기
@@ -182,6 +251,13 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 
         // 커뮤니티 로드
         loadCommunities(session.user.id)
+      } else {
+        // 로그아웃 시 커뮤니티 목록 초기화
+        if (isMounted) {
+          setJoinedCommunities([])
+          setCachedCommunities([]) // 캐시도 초기화
+          setUserRole(null)
+        }
       }
     })
 
