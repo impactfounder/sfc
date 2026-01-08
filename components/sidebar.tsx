@@ -66,8 +66,10 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
     const supabase = createClient()
 
     async function loadUserData() {
+      console.log("[Sidebar] loadUserData 시작")
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log("[Sidebar] 세션 확인:", session ? "있음" : "없음", "에러:", sessionError)
         if (session?.user) {
           // 역할 가져오기
           if (!initialUserRole) {
