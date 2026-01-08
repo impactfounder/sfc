@@ -3,12 +3,16 @@
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Check, Crown, Shield } from "lucide-react"
 
 interface Community {
     id: string
     name: string
     description: string | null
     slug: string
+    communityId?: string
+    isMember?: boolean
+    role?: string | null
 }
 
 interface CommunityGridProps {
@@ -16,6 +20,50 @@ interface CommunityGridProps {
 }
 
 export function CommunityGrid({ communities }: CommunityGridProps) {
+    const getMembershipButton = (community: Community) => {
+        if (!community.isMember) {
+            return (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-4 h-8 text-xs font-semibold border-slate-300 text-slate-700 hover:border-slate-800 hover:bg-slate-50 hover:text-slate-900 transition-colors shrink-0 ml-4 z-10 relative active:scale-95"
+                    onClick={(e) => {
+                        e.preventDefault()
+                        // 가입 로직
+                    }}
+                >
+                    가입
+                </Button>
+            )
+        }
+
+        // 이미 가입한 경우
+        if (community.role === "owner") {
+            return (
+                <span className="inline-flex items-center gap-1 px-3 h-8 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full shrink-0 ml-4">
+                    <Crown className="h-3 w-3" />
+                    리더
+                </span>
+            )
+        }
+
+        if (community.role === "admin") {
+            return (
+                <span className="inline-flex items-center gap-1 px-3 h-8 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full shrink-0 ml-4">
+                    <Shield className="h-3 w-3" />
+                    운영진
+                </span>
+            )
+        }
+
+        return (
+            <span className="inline-flex items-center gap-1 px-3 h-8 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full shrink-0 ml-4">
+                <Check className="h-3 w-3" />
+                참여중
+            </span>
+        )
+    }
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {communities.map((community) => (
@@ -37,16 +85,7 @@ export function CommunityGrid({ communities }: CommunityGridProps) {
                                     <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-slate-700 transition-colors">
                                         {community.name}
                                     </h3>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="rounded-full px-4 h-8 text-xs font-semibold border-slate-300 text-slate-700 hover:border-slate-800 hover:bg-slate-50 hover:text-slate-900 transition-colors shrink-0 ml-4 z-10 relative active:scale-95"
-                                        onClick={(e) => {
-                                            // Button click logic if needed
-                                        }}
-                                    >
-                                        가입
-                                    </Button>
+                                    {getMembershipButton(community)}
                                 </div>
 
                                 <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">

@@ -9,6 +9,9 @@ import { StandardRightSidebar } from "@/components/standard-right-sidebar"
 export default async function CommunityDashboardPage() {
   const supabase = await createClient()
 
+  // 현재 사용자 확인
+  const { data: { user } } = await supabase.auth.getUser()
+
   // Fetch board categories
   const { data: boardCategories } = await supabase
     .from("board_categories")
@@ -17,19 +20,35 @@ export default async function CommunityDashboardPage() {
     .order("id")
 
   // Fetch rich descriptions from communities table
-  let mergedCommunities = boardCategories || []
+  let mergedCommunities: any[] = boardCategories || []
   if (boardCategories && boardCategories.length > 0) {
     const names = boardCategories.map((c) => c.name)
     const { data: communityInfos } = await supabase
       .from("communities")
-      .select("name, description")
+      .select("id, name, description")
       .in("name", names)
+
+    // 사용자의 멤버십 정보 가져오기
+    let userMemberships: any[] = []
+    if (user && communityInfos && communityInfos.length > 0) {
+      const communityIds = communityInfos.map((c) => c.id)
+      const { data: memberships } = await supabase
+        .from("community_members")
+        .select("community_id, role")
+        .eq("user_id", user.id)
+        .in("community_id", communityIds)
+      userMemberships = memberships || []
+    }
 
     mergedCommunities = boardCategories.map((cat) => {
       const info = communityInfos?.find((c) => c.name === cat.name)
+      const membership = userMemberships.find((m) => m.community_id === info?.id)
       return {
         ...cat,
+        communityId: info?.id,
         description: info?.description || cat.description,
+        isMember: !!membership,
+        role: membership?.role || null,
       }
     })
   }
