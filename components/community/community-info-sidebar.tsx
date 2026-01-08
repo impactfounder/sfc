@@ -49,6 +49,7 @@ interface CommunityData {
   description: string | null
   rules: string | null
   thumbnail_url: string | null
+  banner_url: string | null
   is_private: boolean
   join_type: "free" | "approval" | "invite"
   created_by: string
@@ -112,7 +113,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
 
       try {
         const response = await fetch(
-          `${supabaseUrl}/rest/v1/communities?name=eq.${encodeURIComponent(communityName)}&select=id,name,description,rules,thumbnail_url,is_private,join_type,created_by`,
+          `${supabaseUrl}/rest/v1/communities?name=eq.${encodeURIComponent(communityName)}&select=id,name,description,rules,thumbnail_url,banner_url,is_private,join_type,created_by`,
           {
             headers: {
               'apikey': supabaseKey!,
@@ -154,6 +155,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           description: null,
           rules: null,
           thumbnail_url: null,
+          banner_url: null,
           is_private: false,
           join_type: "free",
           created_by: "",
@@ -271,6 +273,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
         description: communityData.description,
         rules: communityData.rules || null,
         thumbnail_url: communityData.thumbnail_url,
+        banner_url: communityData.banner_url || null,
         is_private: communityData.is_private,
         join_type: communityData.join_type || "free",
         created_by: communityData.created_by,
@@ -541,6 +544,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             is_private: community.is_private,
             rules: community.rules,
             thumbnail_url: community.thumbnail_url,
+            banner_url: community.banner_url,
           }}
           onSuccess={fetchCommunityData}
         />
