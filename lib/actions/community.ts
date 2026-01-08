@@ -716,13 +716,12 @@ export async function deleteCommunity(communityId: string) {
 
   // 3. 멤버십 삭제
   console.log("[deleteCommunity] 멤버십 삭제 시도, communityId:", communityId)
-  const { error: membersError, count: membersCount } = await supabase
+  const { error: membersError } = await supabase
     .from("community_members")
     .delete()
     .eq("community_id", communityId)
-    .select("*", { count: "exact", head: true })
 
-  console.log("[deleteCommunity] 멤버십 삭제 결과, error:", membersError, "count:", membersCount)
+  console.log("[deleteCommunity] 멤버십 삭제 결과, error:", membersError)
 
   if (membersError) {
     console.error("[deleteCommunity] members 삭제 실패:", membersError)
