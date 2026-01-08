@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PostCard } from "@/components/ui/post-card"
+import { FeedPostCard } from "@/components/ui/feed-post-card"
 import { fetchFeedPosts } from "@/lib/actions/feed"
 import type { PostForDisplay } from "@/lib/types/posts"
 
@@ -74,16 +74,14 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
           ))
         ) : (
           posts.map((post) => (
-            <PostCard
+            <FeedPostCard
               key={post.id}
               postId={post.id}
               href={`/community/board/${post.board_categories?.slug ?? "community"}/${post.id}`}
-              community={{
+              source={{
                 name: post.board_categories?.name ?? "커뮤니티",
                 href: `/community/board/${post.board_categories?.slug ?? "community"}`,
-                iconUrl: post.thumbnail_url ?? undefined,
               }}
-              author={{ name: post.profiles?.full_name ?? "익명", avatarUrl: post.profiles?.avatar_url }}
               createdAt={post.created_at}
               title={post.title}
               content={post.content ?? undefined}

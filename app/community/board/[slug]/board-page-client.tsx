@@ -5,16 +5,33 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PostCard } from "@/components/ui/post-card"
 import { PostListItem } from "@/components/ui/post-list-item"
-import Link from "next/link"
-import { Plus, Pencil, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
+import { Plus, UserPlus, UserCheck, LayoutGrid, List } from 'lucide-react'
 import { usePosts } from "@/lib/hooks/usePosts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { NewPostForm } from "@/components/new-post-form"
 import { CommunityBanner } from "@/components/community-banner"
+import { CommunityMobileBar } from "@/components/community/community-mobile-bar"
 import { joinCommunity, leaveCommunity } from "@/lib/actions/community"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+
+interface CommunityDataForMobile {
+  id: string
+  name: string
+  description: string | null
+  rules: string | null
+  thumbnail_url: string | null
+  is_private: boolean
+  join_type: "free" | "approval" | "invite"
+  member_count: number
+  moderators: Array<{
+    id: string
+    full_name: string | null
+    avatar_url: string | null
+    role: string
+  }>
+}
 
 interface BoardPageClientProps {
   slug: string
@@ -28,9 +45,12 @@ interface BoardPageClientProps {
   user: any
   communityId: string | null
   isMember: boolean
+  membershipStatus: "none" | "member" | "pending" | "admin" | "owner"
   canEditDescription: boolean
   initialPosts?: any[]
   initialPostsCount?: number
+  communityData?: CommunityDataForMobile | null
+  isSystemBoard?: boolean
 }
 
 export function BoardPageClient({
@@ -41,9 +61,12 @@ export function BoardPageClient({
   user,
   communityId,
   isMember: initialIsMember,
+  membershipStatus: initialMembershipStatus,
   canEditDescription,
   initialPosts = [],
-  initialPostsCount = 0
+  initialPostsCount = 0,
+  communityData,
+  isSystemBoard: isSystemBoardProp,
 }: BoardPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -51,6 +74,7 @@ export function BoardPageClient({
   const currentPage = Number(searchParams.get("page")) || 1
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false)
   const [isMember, setIsMember] = useState(initialIsMember)
+  const [membershipStatus, setMembershipStatus] = useState(initialMembershipStatus)
   const [isJoining, setIsJoining] = useState(false)
 
   // 뷰 모드 상태 (기본값: 공지사항은 list, 자유게시판과 나머지는 feed)
@@ -70,7 +94,7 @@ export function BoardPageClient({
 
   // 시스템 게시판 목록 (기존 사이드바 사용)
   const systemBoards = ['announcement', 'announcements', 'free', 'free-board', 'event-requests', 'insights', 'reviews']
-  const isSystemBoard = systemBoards.includes(dbSlug)
+  const isSystemBoard = isSystemBoardProp ?? systemBoards.includes(dbSlug)
 
   // 커뮤니티 가입 핸들러
   const handleJoin = async () => {
@@ -97,6 +121,7 @@ export function BoardPageClient({
     try {
       await joinCommunity(communityId)
       setIsMember(true)
+      setMembershipStatus("member")
       toast({
         title: "참여 완료",
         description: "커뮤니티에 참여했습니다.",
@@ -126,6 +151,7 @@ export function BoardPageClient({
     try {
       await leaveCommunity(communityId)
       setIsMember(false)
+      setMembershipStatus("none")
       toast({
         title: "탈퇴 완료",
         description: "커뮤니티에서 탈퇴했습니다.",
@@ -213,8 +239,23 @@ export function BoardPageClient({
 
   const bannerConfig = getBannerConfig()
 
+  // 멤버십 변경 핸들러 (모바일 바용)
+  const handleMembershipChange = () => {
+    router.refresh()
+  }
+
   return (
     <div className="w-full flex flex-col gap-8">
+      {/* 커뮤니티 모바일 바 (시스템 게시판이 아닐 때만 표시) */}
+      {!isSystemBoard && communityData && (
+        <CommunityMobileBar
+          community={communityData}
+          membershipStatus={membershipStatus}
+          currentUserId={user?.id || null}
+          onMembershipChange={handleMembershipChange}
+        />
+      )}
+
       <div className="flex flex-col gap-6">
         <CommunityBanner
           title={bannerConfig.title}

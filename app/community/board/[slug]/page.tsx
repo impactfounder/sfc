@@ -137,12 +137,23 @@ export default async function BoardPage({
   let communityId: string | null = null;
   let isMember = false;
   let canEditDescription = false;
+  let communityData: any = null;
+  let membershipStatus: "none" | "member" | "pending" | "admin" | "owner" = "none";
 
   if (!isSystemBoard) {
-    // communities 테이블에서 커뮤니티 ID 및 description 가져오기
+    // communities 테이블에서 커뮤니티 정보 가져오기 (모바일 바용 확장)
     const { data: community } = await supabase
       .from("communities")
-      .select("id, created_by, description")
+      .select(`
+        id,
+        name,
+        description,
+        rules,
+        thumbnail_url,
+        is_private,
+        join_type,
+        created_by
+      `)
       .eq("name", category.name)
       .single();
 
@@ -153,21 +164,80 @@ export default async function BoardPage({
       category.description = community.description;
     }
 
-    // 멤버십 확인
-    if (communityId && user) {
-      const { data: membership } = await supabase
+    if (communityId) {
+      // 멤버 수 조회
+      const { count: memberCount } = await supabase
         .from("community_members")
-        .select("id")
+        .select("*", { count: "exact", head: true })
+        .eq("community_id", communityId);
+
+      // 운영자 목록 조회
+      const { data: moderatorsData } = await supabase
+        .from("community_members")
+        .select(`
+          role,
+          profiles:user_id (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
         .eq("community_id", communityId)
-        .eq("user_id", user.id)
-        .single();
+        .in("role", ["owner", "admin"]);
 
-      isMember = !!membership;
+      const moderators = (moderatorsData || []).map((m: any) => ({
+        ...m.profiles,
+        role: m.role,
+      }));
 
-      // 소개글 수정 권한 확인: 리더 또는 master
-      const isLeader = community?.created_by === user.id;
-      const isMaster = userProfile?.role === 'master';
-      canEditDescription = isLeader || isMaster;
+      communityData = {
+        id: communityId,
+        name: community?.name || category.name,
+        description: community?.description || null,
+        rules: community?.rules || null,
+        thumbnail_url: community?.thumbnail_url || null,
+        is_private: community?.is_private || false,
+        join_type: community?.join_type || "free",
+        member_count: memberCount || 0,
+        moderators,
+      };
+
+      // 멤버십 확인
+      if (user) {
+        const { data: membership } = await supabase
+          .from("community_members")
+          .select("id, role")
+          .eq("community_id", communityId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (membership) {
+          isMember = true;
+          if (membership.role === "owner" || community?.created_by === user.id) {
+            membershipStatus = "owner";
+          } else if (membership.role === "admin") {
+            membershipStatus = "admin";
+          } else {
+            membershipStatus = "member";
+          }
+        } else {
+          // 가입 신청 상태 확인
+          const { data: joinRequest } = await supabase
+            .from("community_join_requests")
+            .select("status")
+            .eq("community_id", communityId)
+            .eq("user_id", user.id)
+            .eq("status", "pending")
+            .single();
+
+          membershipStatus = joinRequest ? "pending" : "none";
+        }
+
+        // 소개글 수정 권한 확인: 리더 또는 master
+        const isLeader = community?.created_by === user.id;
+        const isMaster = userProfile?.role === 'master';
+        canEditDescription = isLeader || isMaster;
+      }
     }
   }
 
@@ -180,9 +250,12 @@ export default async function BoardPage({
       user={user}
       communityId={communityId}
       isMember={isMember}
+      membershipStatus={membershipStatus}
       canEditDescription={canEditDescription}
       initialPosts={postsWithCounts}
       initialPostsCount={initialPostsCount}
+      communityData={communityData}
+      isSystemBoard={isSystemBoard}
     />
   );
 }
