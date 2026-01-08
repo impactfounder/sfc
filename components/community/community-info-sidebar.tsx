@@ -459,23 +459,32 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           </div>
         )}
 
-        {/* 운영자 섹션 - 프로필 사진 제거, 리더 배지 스타일 변경 */}
+        {/* 운영자 섹션 - 리더 배지 + 프로필 사진 표시 */}
         {community.moderators.length > 0 && (
           <>
             <div className="border-t border-slate-100" />
             <div className="p-4">
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {community.moderators.map((mod) => (
                   <div
                     key={mod.id}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2.5"
                   >
-                    {mod.role === "owner" && (
+                    {/* 프로필 사진 */}
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={mod.avatar_url || undefined} />
+                      <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600">
+                        {mod.full_name?.charAt(0) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* 리더 배지 (owner 또는 admin) */}
+                    {(mod.role === "owner" || mod.role === "admin") && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-amber-700 bg-amber-50 rounded">
                         <Crown className="h-3 w-3" />
                         리더
                       </span>
                     )}
+                    {/* 이름 */}
                     <span className="text-[13px] text-slate-700 truncate">
                       {mod.full_name || "익명"}
                     </span>
