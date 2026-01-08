@@ -92,8 +92,9 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
       console.log("[CommunityInfoSidebar] fetchCommunityData called with slug:", slug)
 
       // 현재 사용자 확인
-      console.log("[CommunityInfoSidebar] Getting user...")
-      const { data: { user } } = await supabase.auth.getUser()
+      console.log("[CommunityInfoSidebar] Getting session...")
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user || null
       console.log("[CommunityInfoSidebar] User:", user?.id || "not logged in")
       setCurrentUserId(user?.id || null)
 
@@ -264,8 +265,9 @@ export function CommunityInfoSidebar({ slug }: CommunityInfoSidebarProps) {
         })),
       })
     } catch (error) {
-      console.error("커뮤니티 정보 로드 실패:", error)
+      console.error("[CommunityInfoSidebar] 커뮤니티 정보 로드 실패:", error)
     } finally {
+      console.log("[CommunityInfoSidebar] fetchCommunityData finished, setting isLoading to false")
       setIsLoading(false)
     }
   }

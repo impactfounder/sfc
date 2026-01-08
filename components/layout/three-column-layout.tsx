@@ -22,7 +22,7 @@ export function ThreeColumnLayout({ children, rightSidebar, className }: ThreeCo
         </main>
 
         {rightSidebar && (
-          <aside className="hidden xl:block w-[312px] flex-shrink-0">
+          <aside className="hidden lg:block w-[312px] flex-shrink-0">
             <div className="sticky top-24 flex flex-col gap-4">
               {rightSidebar}
             </div>
