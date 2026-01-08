@@ -75,13 +75,21 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-        console.log("[Sidebar] Fetching memberships via REST API...")
+        console.log("[Sidebar] Environment check - URL:", supabaseUrl ? "설정됨" : "없음", "Key:", supabaseKey ? "설정됨" : "없음")
+
+        if (!supabaseUrl || !supabaseKey) {
+          console.error("[Sidebar] Missing environment variables!")
+          return
+        }
+
+        const fetchUrl = `${supabaseUrl}/rest/v1/community_members?select=community_id&user_id=eq.${userId}`
+        console.log("[Sidebar] Fetching:", fetchUrl)
 
         const membershipsRes = await fetch(
-          `${supabaseUrl}/rest/v1/community_members?select=community_id&user_id=eq.${userId}`,
+          fetchUrl,
           {
             headers: {
-              'apikey': supabaseKey!,
+              'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`,
             },
           }
