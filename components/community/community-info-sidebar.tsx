@@ -168,22 +168,16 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         return
       }
 
-      // 현재 사용자 확인 (fetch API 사용)
+      // 현재 사용자 확인 (Supabase auth는 작동함)
       let user = null
       try {
-        const sessionRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: {
-            'apikey': supabaseKey!,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        })
-        if (sessionRes.ok) {
-          user = await sessionRes.json()
-        }
+        const { data: { session } } = await supabase.auth.getSession()
+        user = session?.user || null
       } catch {
         // 로그인 안됨
       }
       setCurrentUserId(user?.id || null)
+      console.log("[CommunityInfoSidebar] 사용자:", user?.id || "비로그인")
 
       // 멤버 수 조회 (fetch API 사용)
       let memberCount = 0
@@ -228,39 +222,54 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
 
       // 현재 사용자의 멤버십 상태 확인 (fetch API 사용)
       if (user?.id) {
-        try {
-          const membershipRes = await fetch(
-            `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${user.id}&select=role`,
-            {
-              headers: {
-                'apikey': supabaseKey!,
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-            }
-          )
-          if (membershipRes.ok) {
-            const membershipData = await membershipRes.json()
-            if (membershipData.length > 0) {
-              setMembershipStatus(membershipData[0].role as MembershipStatus)
-            } else {
-              // 가입 신청 상태 확인
-              const joinReqRes = await fetch(
-                `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${user.id}&status=eq.pending&select=status`,
-                {
-                  headers: {
-                    'apikey': supabaseKey!,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                  },
+        // 커뮤니티 생성자인 경우 바로 owner로 설정
+        if (communityData.created_by === user.id) {
+          console.log("[CommunityInfoSidebar] 커뮤니티 생성자 확인됨, owner로 설정")
+          setMembershipStatus("owner")
+        } else {
+          try {
+            const membershipRes = await fetch(
+              `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${user.id}&select=role`,
+              {
+                headers: {
+                  'apikey': supabaseKey!,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+              }
+            )
+            console.log("[CommunityInfoSidebar] 멤버십 조회 응답:", membershipRes.status)
+            if (membershipRes.ok) {
+              const membershipData = await membershipRes.json()
+              console.log("[CommunityInfoSidebar] 멤버십 데이터:", membershipData)
+              if (membershipData.length > 0) {
+                const role = membershipData[0].role as MembershipStatus
+                console.log("[CommunityInfoSidebar] 멤버십 role 설정:", role)
+                // member role은 "member"로 유지
+                if (role === "owner" || role === "admin") {
+                  setMembershipStatus(role)
+                } else {
+                  setMembershipStatus("member")
                 }
-              )
-              if (joinReqRes.ok) {
-                const joinReqData = await joinReqRes.json()
-                setMembershipStatus(joinReqData.length > 0 ? "pending" : "none")
+              } else {
+                // 가입 신청 상태 확인
+                const joinReqRes = await fetch(
+                  `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${user.id}&status=eq.pending&select=status`,
+                  {
+                    headers: {
+                      'apikey': supabaseKey!,
+                      'Authorization': `Bearer ${supabaseKey}`,
+                    },
+                  }
+                )
+                if (joinReqRes.ok) {
+                  const joinReqData = await joinReqRes.json()
+                  setMembershipStatus(joinReqData.length > 0 ? "pending" : "none")
+                }
               }
             }
+          } catch (err) {
+            console.error("[CommunityInfoSidebar] 멤버십 조회 오류:", err)
           }
-        } catch (err) {
-          console.error("[CommunityInfoSidebar] 멤버십 조회 오류:", err)
         }
       }
 
