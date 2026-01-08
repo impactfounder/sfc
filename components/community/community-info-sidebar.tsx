@@ -82,10 +82,14 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
 
   const supabase = createClient()
 
+  console.log("[CommunityInfoSidebar] 렌더링됨, communityName:", communityName)
+
   useEffect(() => {
+    console.log("[CommunityInfoSidebar] useEffect 실행, communityName:", communityName)
     if (communityName) {
       fetchCommunityData()
     } else {
+      console.log("[CommunityInfoSidebar] communityName이 null이므로 로딩 중지")
       setIsLoading(false)
     }
   }, [communityName])
@@ -98,8 +102,10 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
 
     try {
       setIsLoading(true)
+      console.log("[CommunityInfoSidebar] fetchCommunityData 시작, communityName:", communityName)
 
       // communities 테이블에서 name으로 조회 (서버에서 전달받은 communityName 사용)
+      console.log("[CommunityInfoSidebar] Supabase 쿼리 시작...")
       const { data: communityData, error: communityError } = await supabase
         .from("communities")
         .select(`
@@ -119,6 +125,8 @@ export function CommunityInfoSidebar({ communityName }: CommunityInfoSidebarProp
         `)
         .eq("name", communityName)
         .maybeSingle()
+
+      console.log("[CommunityInfoSidebar] Supabase 쿼리 완료:", { communityData, communityError })
 
       if (communityError) {
         console.error("[CommunityInfoSidebar] 커뮤니티 조회 오류:", communityError)

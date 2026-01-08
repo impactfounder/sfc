@@ -44,12 +44,13 @@ export default async function CommunityBoardLayout({
   let communityName: string | null = null
   if (!isSystemBoard) {
     const supabase = await createClient()
-    const { data: category } = await supabase
+    const { data: category, error } = await supabase
       .from("board_categories")
       .select("name")
       .eq("slug", dbSlug)
       .single()
     communityName = category?.name || null
+    console.log("[CommunityBoardLayout] slug:", dbSlug, "category:", category, "error:", error, "communityName:", communityName)
   }
 
   // 사이드바 결정
