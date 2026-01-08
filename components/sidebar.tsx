@@ -71,36 +71,67 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       console.log("[Sidebar] Loading communities for user:", userId)
 
       try {
-        console.log("[Sidebar] community_members 쿼리 시작...")
-        const { data: memberships, error: membershipError } = await supabase
-          .from("community_members")
-          .select("community_id")
-          .eq("user_id", userId)
+        // 직접 fetch API 사용 (Supabase 클라이언트 hang 문제 우회)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-        console.log("[Sidebar] community_members 쿼리 완료")
-        console.log("[Sidebar] Memberships:", memberships, "Error:", membershipError)
+        console.log("[Sidebar] Fetching memberships via REST API...")
 
-        if (membershipError || !isMounted) return
+        const membershipsRes = await fetch(
+          `${supabaseUrl}/rest/v1/community_members?select=community_id&user_id=eq.${userId}`,
+          {
+            headers: {
+              'apikey': supabaseKey!,
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+          }
+        )
+
+        if (!membershipsRes.ok) {
+          console.error("[Sidebar] Memberships fetch failed:", membershipsRes.status)
+          return
+        }
+
+        const memberships = await membershipsRes.json()
+        console.log("[Sidebar] Memberships:", memberships)
+
+        if (!isMounted) return
 
         if (memberships && memberships.length > 0) {
           const communityIds = memberships.map((m: any) => m.community_id)
 
-          const { data: communities, error: communitiesError } = await supabase
-            .from("communities")
-            .select("id, name")
-            .in("id", communityIds)
+          // communities 조회
+          const communitiesRes = await fetch(
+            `${supabaseUrl}/rest/v1/communities?select=id,name&id=in.(${communityIds.join(',')})`,
+            {
+              headers: {
+                'apikey': supabaseKey!,
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+            }
+          )
 
-          console.log("[Sidebar] Communities:", communities, "Error:", communitiesError)
+          const communities = await communitiesRes.json()
+          console.log("[Sidebar] Communities:", communities)
 
-          if (communitiesError || !isMounted) return
+          if (!isMounted) return
 
           if (communities && communities.length > 0) {
             const communityNames = communities.map((c: any) => c.name)
 
-            const { data: categories } = await supabase
-              .from("board_categories")
-              .select("name, slug")
-              .in("name", communityNames)
+            // board_categories 조회
+            const categoriesRes = await fetch(
+              `${supabaseUrl}/rest/v1/board_categories?select=name,slug&name=in.(${communityNames.map((n: string) => `"${n}"`).join(',')})`,
+              {
+                headers: {
+                  'apikey': supabaseKey!,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+              }
+            )
+
+            const categories = await categoriesRes.json()
+            console.log("[Sidebar] Categories:", categories)
 
             const communityList: JoinedCommunity[] = communities.map((community: any) => {
               const category = categories?.find((c: any) => c.name === community.name)
