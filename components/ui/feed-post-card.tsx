@@ -121,37 +121,38 @@ export function FeedPostCard({
       )}
     >
       {/* Header - 출처 태그와 시간 표시 (Reddit 스타일) */}
-      <div className="pb-1 flex items-center gap-2 text-xs text-slate-500">
-        {/* 작성자 정보 (showAuthor가 true일 때만 표시) */}
-        {showAuthor && author && (
-          <>
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={author.avatarUrl || undefined} />
-              <AvatarFallback className="text-[10px] bg-slate-100">
-                {author.name?.charAt(0) || "?"}
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-medium text-slate-700">
-              {author.name || "익명"}
-            </span>
-            <span className="text-slate-400">•</span>
-          </>
-        )}
-        <span
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
-          onClick={(e) => {
-            if (source.href) {
-              e.preventDefault()
-              e.stopPropagation()
-              router.push(source.href)
-            }
-          }}
-        >
-          <Tag className="h-3 w-3" />
-          {source.name}
-        </span>
-        <span className="text-slate-400">•</span>
-        <span className="text-slate-400">{timeLabel}</span>
+      <div className="pb-1 flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center gap-2">
+          {/* 작성자 정보 (showAuthor가 true일 때만 표시) */}
+          {showAuthor && author && (
+            <>
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={author.avatarUrl || undefined} />
+                <AvatarFallback className="text-[10px] bg-slate-100">
+                  {author.name?.charAt(0) || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-slate-700">
+                {author.name || "익명"}
+              </span>
+              <span className="text-slate-400">•</span>
+            </>
+          )}
+          <span
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full hover:bg-slate-200 transition-colors"
+            onClick={(e) => {
+              if (source.href) {
+                e.preventDefault()
+                e.stopPropagation()
+                router.push(source.href)
+              }
+            }}
+          >
+            <Tag className="h-3 w-3" />
+            {source.name}
+          </span>
+        </div>
+        <span className="text-slate-400 shrink-0">{timeLabel}</span>
       </div>
 
       {/* Title */}

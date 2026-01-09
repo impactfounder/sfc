@@ -40,7 +40,7 @@ export function CommunityGrid({ communities }: CommunityGridProps) {
 
         if (community.role === "admin") {
             return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-blue-700 bg-blue-50 rounded">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-slate-600 bg-slate-100 rounded">
                     <Shield className="h-3 w-3" />
                     운영진
                 </span>

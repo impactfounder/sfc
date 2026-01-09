@@ -11,6 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { isMasterAdmin, isAdmin } from "@/lib/utils"
 import { getComments } from "@/lib/actions/comments"
 
+// ISR 캐싱: 60초마다 재검증
+export const revalidate = 60
+
 // 공개 게시판 slug 목록
 const PUBLIC_BOARDS = ["free", "vangol", "hightalk", "insights", "reviews"]
 
@@ -26,8 +29,8 @@ export default async function BoardPostDetailPage({
   if (slug === "free") dbSlug = "free-board"
   if (slug === "announcements") dbSlug = "announcement"
 
-  // 데이터 병렬 조회
-  const [userResult, postResult, categoryResult] = await Promise.all([
+  // Phase 1: 유저 + 게시물 병렬 조회
+  const [userResult, postResult] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("posts")
@@ -38,21 +41,17 @@ export default async function BoardPostDetailPage({
       `)
       .eq("id", id)
       .single(),
-    slug !== "announcements"
-      ? supabase.from("board_categories").select("name, description").eq("slug", dbSlug).single()
-      : Promise.resolve({ data: null }),
   ])
 
   const {
     data: { user },
   } = userResult
   const { data: post } = postResult
-  const { data: category } = categoryResult
 
   if (!post) notFound()
 
-  // 추가 데이터 조회
-  const [commentsResult, badgesResult] = await Promise.all([
+  // Phase 2: 댓글, 뱃지, 유저 권한 모두 병렬 조회
+  const [commentsResult, badgesResult, profileResult] = await Promise.all([
     getComments(id),
     post.author_id
       ? supabase
@@ -61,20 +60,19 @@ export default async function BoardPostDetailPage({
           .eq("user_id", post.author_id)
           .eq("is_visible", true)
       : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("profiles")
+          .select("role, email")
+          .eq("id", user.id)
+          .single()
+      : Promise.resolve({ data: null }),
   ])
 
   // 권한 확인
-  let isMaster = false
-  let isUserAdmin = false
-  if (user) {
-    const { data: currentUserProfile } = await supabase
-      .from("profiles")
-      .select("role, email")
-      .eq("id", user.id)
-      .single()
-    isMaster = isMasterAdmin(currentUserProfile?.role, currentUserProfile?.email)
-    isUserAdmin = isAdmin(currentUserProfile?.role, currentUserProfile?.email)
-  }
+  const currentUserProfile = profileResult?.data
+  const isMaster = user ? isMasterAdmin(currentUserProfile?.role, currentUserProfile?.email) : false
+  const isUserAdmin = user ? isAdmin(currentUserProfile?.role, currentUserProfile?.email) : false
 
   const isAuthor = Boolean(user && post.author_id === user.id)
   const boardName = post.board_categories?.name || (slug === "announcements" ? "공지사항" : "게시판")

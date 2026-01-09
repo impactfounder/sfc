@@ -57,15 +57,17 @@ export default async function BoardPage({
 
   // board_categories에 없으면 communities 테이블에서 찾기
   if (!category) {
-    // communities 테이블에서 slug로 역매핑하여 찾기
+    // communities 테이블에서 name 기반 slug 매칭
+    // name을 slug로 변환: "Weekly Vibe" -> "weekly-vibe"
     const { data: communities } = await supabase
       .from("communities")
       .select("id, name, description")
+      .limit(50); // 최대 50개만 조회 (성능 최적화)
 
     const matchedCommunity = communities?.find((c) => {
-      const generatedSlug = c.name.trim().toLowerCase().replace(/\s+/g, '-')
-      return generatedSlug === dbSlug || generatedSlug === slug
-    })
+      const generatedSlug = c.name.trim().toLowerCase().replace(/\s+/g, '-');
+      return generatedSlug === dbSlug || generatedSlug === slug;
+    });
 
     if (matchedCommunity) {
       // 가상 카테고리 생성
@@ -114,14 +116,15 @@ export default async function BoardPage({
   let postsResult;
 
   if (isRealBoardCategory) {
-    // board_categories에 있는 경우 기존 쿼리 사용
+    // board_categories에 있는 경우 - 댓글 수를 JOIN으로 가져옴
     postsResult = await supabase
       .from("posts")
       .select(`
         *,
         profiles:author_id(full_name, avatar_url),
         board_categories!inner(name, slug),
-        post_images(id, image_url, sort_order)
+        post_images(id, image_url, sort_order),
+        comments(count)
       `, { count: "exact" })
       .eq("board_categories.slug", dbSlug)
       .order("created_at", { ascending: false })
@@ -142,7 +145,8 @@ export default async function BoardPage({
           *,
           profiles:author_id(full_name, avatar_url),
           board_categories(name, slug),
-          post_images(id, image_url, sort_order)
+          post_images(id, image_url, sort_order),
+          comments(count)
         `, { count: "exact" })
         .eq("board_category_id", boardCat.id)
         .order("created_at", { ascending: false })
@@ -153,37 +157,24 @@ export default async function BoardPage({
     }
   }
 
-  // 디버깅 로그 (프로덕션에서도 출력)
-  if (postsResult.error) {
-    console.error('[BoardPage] Posts query error:', postsResult.error);
+  // 디버깅 로그 (개발 환경에서만 출력)
+  if (process.env.NODE_ENV === 'development') {
+    if (postsResult.error) {
+      console.error('[BoardPage] Posts query error:', postsResult.error);
+    }
+    console.log('[BoardPage] dbSlug:', dbSlug, 'posts count:', postsResult.data?.length || 0);
   }
-  console.log('[BoardPage] dbSlug:', dbSlug, 'posts count:', postsResult.data?.length || 0);
 
   const initialPosts = postsResult.data || [];
   const initialPostsCount = postsResult.count || 0;
 
-  // 댓글 수 조회 (좋아요는 posts.likes_count를 그대로 사용)
-  // ✅ 수정: post_likes 별도 조회 제거 - 익명 좋아요가 posts.likes_count에만 반영되므로
-  let postsWithCounts = initialPosts;
-  if (initialPosts.length > 0) {
-    const postIds = initialPosts.map((post: any) => post.id);
-
-    const commentsResult = await supabase
-      .from("comments")
-      .select("post_id")
-      .in("post_id", postIds);
-
-    const commentsCountMap = new Map<string, number>();
-    (commentsResult.data || []).forEach((comment: any) => {
-      commentsCountMap.set(comment.post_id, (commentsCountMap.get(comment.post_id) || 0) + 1);
-    });
-
-    postsWithCounts = initialPosts.map((post: any) => ({
-      ...post,
-      likes_count: post.likes_count || 0,  // DB 값 그대로 사용
-      comments_count: commentsCountMap.get(post.id) || 0,
-    }));
-  }
+  // 댓글 수는 posts 쿼리에서 JOIN으로 가져옴 (별도 쿼리 불필요)
+  // comments(count) 결과를 comments_count로 변환
+  const postsWithCounts = initialPosts.map((post: any) => ({
+    ...post,
+    likes_count: post.likes_count || 0,
+    comments_count: post.comments?.[0]?.count || 0,
+  }));
 
   let communityId: string | null = null;
   let isMember = false;
@@ -216,30 +207,72 @@ export default async function BoardPage({
     }
 
     if (communityId) {
-      // 멤버 수 조회
-      const { count: memberCount } = await supabase
-        .from("community_members")
-        .select("*", { count: "exact", head: true })
-        .eq("community_id", communityId);
+      // 멤버 수, 운영자, 멤버십을 병렬로 조회
+      const [memberCountResult, moderatorsResult, membershipResult, joinRequestResult] = await Promise.all([
+        // 멤버 수 조회
+        supabase
+          .from("community_members")
+          .select("*", { count: "exact", head: true })
+          .eq("community_id", communityId),
+        // 운영자 목록 조회
+        supabase
+          .from("community_members")
+          .select(`
+            role,
+            profiles:user_id (
+              id,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq("community_id", communityId)
+          .in("role", ["owner", "admin"]),
+        // 멤버십 확인 (user가 있을 때만)
+        user
+          ? supabase
+              .from("community_members")
+              .select("id, role")
+              .eq("community_id", communityId)
+              .eq("user_id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        // 가입 신청 상태 확인 (user가 있을 때만)
+        user
+          ? supabase
+              .from("community_join_requests")
+              .select("status")
+              .eq("community_id", communityId)
+              .eq("user_id", user.id)
+              .eq("status", "pending")
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
 
-      // 운영자 목록 조회
-      const { data: moderatorsData } = await supabase
-        .from("community_members")
-        .select(`
-          role,
-          profiles:user_id (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq("community_id", communityId)
-        .in("role", ["owner", "admin"]);
+      const memberCount = memberCountResult.count;
 
-      const moderators = (moderatorsData || []).map((m: any) => ({
+      // 운영자 목록 매핑
+      let moderators = (moderatorsResult.data || []).map((m: any) => ({
         ...m.profiles,
         role: m.role,
       }));
+
+      // 커뮤니티 생성자(created_by)가 moderators에 없으면 리더로 추가
+      if (community?.created_by) {
+        const creatorInModerators = moderators.some((m: any) => m.id === community.created_by);
+        if (!creatorInModerators) {
+          // 생성자 프로필 조회
+          const { data: creatorProfile } = await supabase
+            .from("profiles")
+            .select("id, full_name, avatar_url")
+            .eq("id", community.created_by)
+            .single();
+
+          if (creatorProfile) {
+            // 생성자를 리더로 맨 앞에 추가
+            moderators = [{ ...creatorProfile, role: "owner" }, ...moderators];
+          }
+        }
+      }
 
       communityData = {
         id: communityId,
@@ -254,15 +287,9 @@ export default async function BoardPage({
         moderators,
       };
 
-      // 멤버십 확인
+      // 멤버십 상태 결정
       if (user) {
-        const { data: membership } = await supabase
-          .from("community_members")
-          .select("id, role")
-          .eq("community_id", communityId)
-          .eq("user_id", user.id)
-          .single();
-
+        const membership = membershipResult.data;
         if (membership) {
           isMember = true;
           if (membership.role === "owner" || community?.created_by === user.id) {
@@ -272,19 +299,9 @@ export default async function BoardPage({
           } else {
             membershipStatus = "member";
           }
-        } else {
-          // 가입 신청 상태 확인
-          const { data: joinRequest } = await supabase
-            .from("community_join_requests")
-            .select("status")
-            .eq("community_id", communityId)
-            .eq("user_id", user.id)
-            .eq("status", "pending")
-            .single();
-
-          membershipStatus = joinRequest ? "pending" : "none";
+        } else if (joinRequestResult.data) {
+          membershipStatus = "pending";
         }
-
       }
     }
   }

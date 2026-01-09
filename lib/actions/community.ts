@@ -180,6 +180,164 @@ export async function setCommunityLeader(communityId: string, targetUserId: stri
   return { success: true }
 }
 
+/**
+ * 운영진 임명 (리더만 가능)
+ */
+export async function promoteMemberToAdmin(communityId: string, targetUserId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." }
+  }
+
+  // 커뮤니티 정보 조회
+  const { data: community } = await supabase
+    .from("communities")
+    .select("created_by")
+    .eq("id", communityId)
+    .single()
+
+  if (!community) {
+    return { error: "커뮤니티를 찾을 수 없습니다." }
+  }
+
+  // 권한 체크: owner(리더) 또는 master만 운영진 임명 가능
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  const { data: requesterMembership } = await supabase
+    .from("community_members")
+    .select("role")
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
+    .single()
+
+  const isOwner = community.created_by === user.id || requesterMembership?.role === "owner"
+  const isMaster = profile?.role === "master"
+
+  if (!isOwner && !isMaster) {
+    return { error: "운영진 임명은 리더만 할 수 있습니다." }
+  }
+
+  // 대상 유저가 해당 커뮤니티의 멤버인지 확인
+  const { data: targetMembership } = await supabase
+    .from("community_members")
+    .select("id, role")
+    .eq("community_id", communityId)
+    .eq("user_id", targetUserId)
+    .single()
+
+  if (!targetMembership) {
+    return { error: "해당 유저는 커뮤니티 멤버가 아닙니다." }
+  }
+
+  if (targetMembership.role === "owner") {
+    return { error: "리더는 운영진으로 변경할 수 없습니다." }
+  }
+
+  if (targetMembership.role === "admin") {
+    return { error: "이미 운영진입니다." }
+  }
+
+  // 운영진으로 승격
+  const { error } = await supabase
+    .from("community_members")
+    .update({ role: "admin" })
+    .eq("id", targetMembership.id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/community")
+  revalidatePath(`/community/board/*`)
+  return { success: true }
+}
+
+/**
+ * 운영진 해제 (리더만 가능)
+ */
+export async function demoteAdminToMember(communityId: string, targetUserId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." }
+  }
+
+  // 커뮤니티 정보 조회
+  const { data: community } = await supabase
+    .from("communities")
+    .select("created_by")
+    .eq("id", communityId)
+    .single()
+
+  if (!community) {
+    return { error: "커뮤니티를 찾을 수 없습니다." }
+  }
+
+  // 권한 체크: owner(리더) 또는 master만 운영진 해제 가능
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  const { data: requesterMembership } = await supabase
+    .from("community_members")
+    .select("role")
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
+    .single()
+
+  const isOwner = community.created_by === user.id || requesterMembership?.role === "owner"
+  const isMaster = profile?.role === "master"
+
+  if (!isOwner && !isMaster) {
+    return { error: "운영진 해제는 리더만 할 수 있습니다." }
+  }
+
+  // 대상 유저 멤버십 확인
+  const { data: targetMembership } = await supabase
+    .from("community_members")
+    .select("id, role")
+    .eq("community_id", communityId)
+    .eq("user_id", targetUserId)
+    .single()
+
+  if (!targetMembership) {
+    return { error: "해당 유저는 커뮤니티 멤버가 아닙니다." }
+  }
+
+  if (targetMembership.role !== "admin") {
+    return { error: "해당 유저는 운영진이 아닙니다." }
+  }
+
+  // 일반 멤버로 변경
+  const { error } = await supabase
+    .from("community_members")
+    .update({ role: "member" })
+    .eq("id", targetMembership.id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/community")
+  revalidatePath(`/community/board/*`)
+  return { success: true }
+}
+
 export async function joinCommunity(communityId: string) {
   const supabase = await createClient()
 
@@ -809,12 +967,18 @@ export async function updateCommunitySettings(
     .in("role", ["owner", "admin"])
     .single()
 
-  const isOwner = community.created_by === user.id
+  const isOwnerMember = adminMember?.role === "owner"
+  const isOwner = community.created_by === user.id || isOwnerMember
   const isMaster = profile?.role === 'master'
   const isAdmin = !!adminMember
 
   if (!isOwner && !isMaster && !isAdmin) {
     return { error: "설정을 변경할 권한이 없습니다." }
+  }
+
+  // 이름 변경은 리더(owner)와 마스터만 가능
+  if (settings.name && !isOwner && !isMaster) {
+    return { error: "커뮤니티 이름은 리더만 변경할 수 있습니다." }
   }
 
   // 설정 업데이트

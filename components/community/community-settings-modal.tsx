@@ -42,6 +42,7 @@ interface CommunitySettingsModalProps {
     thumbnail_url: string | null
     banner_url: string | null
   }
+  isOwner?: boolean // 리더(owner)인지 여부 - 이름 수정, 삭제 권한
   onSuccess?: () => void
 }
 
@@ -49,6 +50,7 @@ export function CommunitySettingsModal({
   open,
   onOpenChange,
   community,
+  isOwner = false,
   onSuccess,
 }: CommunitySettingsModalProps) {
   const router = useRouter()
@@ -174,7 +176,7 @@ export function CommunitySettingsModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 커뮤니티 이름 */}
+          {/* 커뮤니티 이름 - 리더만 수정 가능 */}
           <div className="space-y-2">
             <Label htmlFor="name">커뮤니티 이름</Label>
             <Input
@@ -182,8 +184,13 @@ export function CommunitySettingsModal({
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="커뮤니티 이름을 입력하세요"
-              disabled={isLoading}
+              disabled={isLoading || !isOwner}
             />
+            {!isOwner && (
+              <p className="text-xs text-slate-500">
+                커뮤니티 이름은 리더만 수정할 수 있습니다
+              </p>
+            )}
           </div>
 
           {/* 소개글 */}
@@ -380,7 +387,8 @@ export function CommunitySettingsModal({
             </Button>
           </div>
 
-          {/* 위험 영역 - 커뮤니티 삭제 */}
+          {/* 위험 영역 - 커뮤니티 삭제 (리더만 가능) */}
+          {isOwner && (
           <div className="mt-6 pt-6 border-t border-red-100">
             <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
@@ -449,6 +457,7 @@ export function CommunitySettingsModal({
               </div>
             </div>
           </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

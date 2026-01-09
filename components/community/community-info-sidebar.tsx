@@ -486,7 +486,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             )}
             {currentUserId && !canManage && membershipStatus === "none" && (
               <Button
-                className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white"
                 size="sm"
                 onClick={handleJoin}
                 disabled={isJoining}
@@ -504,38 +504,58 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           </div>
         )}
 
-        {/* 운영자 섹션 - 리더 배지 + 프로필 사진 표시 */}
+        {/* 리더 & 운영진 섹션 */}
         {community.moderators.length > 0 && (
           <>
             <div className="border-t border-slate-100" />
-            <div className="p-4">
-              <div className="space-y-2.5">
-                {community.moderators.map((mod) => (
-                  <div
-                    key={mod.id}
-                    className="flex items-center gap-2.5"
-                  >
-                    {/* 프로필 사진 */}
-                    <Avatar className="h-7 w-7">
-                      <AvatarImage src={mod.avatar_url || undefined} />
-                      <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600">
-                        {mod.full_name?.charAt(0) || "?"}
+            <div className="p-4 space-y-3">
+              {/* 리더 (owner) - 카드 스타일로 강조 */}
+              {community.moderators.filter(m => m.role === "owner").slice(0, 1).map((leader) => (
+                <div key={leader.id}>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Crown className="h-3 w-3 text-amber-500" />
+                    <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">리더</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-100/50">
+                    <Avatar className="h-10 w-10 shrink-0 ring-2 ring-white shadow-sm">
+                      <AvatarImage src={leader.avatar_url || undefined} />
+                      <AvatarFallback className="text-sm font-medium bg-amber-100 text-amber-700">
+                        {leader.full_name?.charAt(0) || "?"}
                       </AvatarFallback>
                     </Avatar>
-                    {/* 리더 배지 (owner 또는 admin) */}
-                    {(mod.role === "owner" || mod.role === "admin") && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-amber-700 bg-amber-50 rounded">
-                        <Crown className="h-3 w-3" />
-                        리더
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[13px] font-semibold text-slate-800 block truncate">
+                        {leader.full_name || "익명"}
                       </span>
-                    )}
-                    {/* 이름 */}
-                    <span className="text-[13px] text-slate-700 truncate">
-                      {mod.full_name || "익명"}
-                    </span>
+                      <span className="text-[11px] text-amber-600/80">Community Leader</span>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+              {/* 운영진 (admin) - 컴팩트 리스트 */}
+              {community.moderators.filter(m => m.role === "admin").length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Shield className="h-3 w-3 text-slate-400" />
+                    <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">운영진</span>
+                  </div>
+                  <div className="space-y-1">
+                    {community.moderators.filter(m => m.role === "admin").map((admin) => (
+                      <div key={admin.id} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <Avatar className="h-7 w-7 shrink-0">
+                          <AvatarImage src={admin.avatar_url || undefined} />
+                          <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600">
+                            {admin.full_name?.charAt(0) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-[13px] text-slate-700 truncate">
+                          {admin.full_name || "익명"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -594,6 +614,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
             thumbnail_url: community.thumbnail_url,
             banner_url: community.banner_url,
           }}
+          isOwner={membershipStatus === "owner"}
           onSuccess={fetchCommunityData}
         />
       )}
