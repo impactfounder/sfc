@@ -86,33 +86,35 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
   const prefetch = usePrefetchPosts()
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [userRole, setUserRole] = useState<string | null>(initialUserRole || null)
-  // 초기값으로 캐시된 커뮤니티 사용
-  const [joinedCommunities, setJoinedCommunities] = useState<JoinedCommunity[]>(() => getCachedCommunities())
+  // 서버/클라이언트 일관성을 위해 빈 배열로 초기화 (캐시는 useEffect에서 로드)
+  const [joinedCommunities, setJoinedCommunities] = useState<JoinedCommunity[]>([])
   const loadingRef = useRef(false)
+  const cacheLoadedRef = useRef(false)
 
   // 클라이언트에서 인증 상태 체크 및 가입한 커뮤니티 로드
   useEffect(() => {
+    // 캐시에서 먼저 로드 (hydration 이후)
+    if (!cacheLoadedRef.current) {
+      cacheLoadedRef.current = true
+      const cached = getCachedCommunities()
+      if (cached.length > 0) {
+        setJoinedCommunities(cached)
+      }
+    }
+
     const supabase = createClient()
     let isMounted = true
 
     async function loadCommunities(userId: string) {
       if (!isMounted) return
-      console.log("[Sidebar] Loading communities for user:", userId)
 
       try {
-        // 직접 fetch API 사용 (Supabase 클라이언트 hang 문제 우회)
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-        console.log("[Sidebar] Environment check - URL:", supabaseUrl ? "설정됨" : "없음", "Key:", supabaseKey ? "설정됨" : "없음")
-
-        if (!supabaseUrl || !supabaseKey) {
-          console.error("[Sidebar] Missing environment variables!")
-          return
-        }
+        if (!supabaseUrl || !supabaseKey) return
 
         const fetchUrl = `${supabaseUrl}/rest/v1/community_members?select=community_id&user_id=eq.${userId}`
-        console.log("[Sidebar] Fetching:", fetchUrl)
 
         const membershipsRes = await fetch(
           fetchUrl,
@@ -124,13 +126,9 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           }
         )
 
-        if (!membershipsRes.ok) {
-          console.error("[Sidebar] Memberships fetch failed:", membershipsRes.status)
-          return
-        }
+        if (!membershipsRes.ok) return
 
         const memberships = await membershipsRes.json()
-        console.log("[Sidebar] Memberships:", memberships)
 
         if (!isMounted) return
 
@@ -149,7 +147,6 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           )
 
           const communities = await communitiesRes.json()
-          console.log("[Sidebar] Communities:", communities)
 
           if (!isMounted) return
 
@@ -168,7 +165,6 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
             )
 
             const categories = await categoriesRes.json()
-            console.log("[Sidebar] Categories:", categories)
 
             const communityList: JoinedCommunity[] = communities.map((community: any) => {
               const category = categories?.find((c: any) => c.name === community.name)
@@ -179,32 +175,23 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
               }
             })
 
-            console.log("[Sidebar] Final community list:", communityList)
             if (isMounted) {
               setJoinedCommunities(communityList)
               setCachedCommunities(communityList) // 캐시에 저장
             }
           }
-        } else {
-          console.log("[Sidebar] No memberships found")
         }
       } catch (error) {
-        console.error("[Sidebar] loadCommunities error:", error)
+        // Silent fail
       }
     }
 
-    // 초기 로드 시 세션 확인 (클라이언트 네비게이션에도 동작)
     async function initLoad() {
-      // 이미 로딩 중이면 스킵
-      if (loadingRef.current) {
-        console.log("[Sidebar] Already loading, skipping")
-        return
-      }
+      if (loadingRef.current) return
       loadingRef.current = true
 
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        console.log("[Sidebar] Initial session check:", session?.user?.id)
 
         if (session?.user && isMounted) {
           // 역할 가져오기
@@ -221,7 +208,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           await loadCommunities(session.user.id)
         }
       } catch (error) {
-        console.error("[Sidebar] initLoad error:", error)
+        // Silent fail
       } finally {
         loadingRef.current = false
       }
@@ -229,11 +216,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 
     initLoad()
 
-    // 인증 상태 변경 감지 (로그인/로그아웃)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[Sidebar] Auth state changed:", event, session?.user?.id)
-
-      // INITIAL_SESSION은 initLoad에서 처리하므로 무시
       if (event === 'INITIAL_SESSION') return
 
       if (session?.user) {

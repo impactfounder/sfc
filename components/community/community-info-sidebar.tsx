@@ -81,17 +81,12 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  // 운영자 여부 확인 (owner, admin, master)
   const canManage = membershipStatus === "owner" || membershipStatus === "admin"
 
-  console.log("[CommunityInfoSidebar] 렌더링됨, communityName:", communityName, "userId:", userId, "canManage:", canManage, "membershipStatus:", membershipStatus)
-
   useEffect(() => {
-    console.log("[CommunityInfoSidebar] useEffect 실행, communityName:", communityName)
     if (communityName) {
       fetchCommunityData()
     } else {
-      console.log("[CommunityInfoSidebar] communityName이 null이므로 로딩 중지")
       setIsLoading(false)
     }
   }, [communityName])
@@ -104,10 +99,6 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
 
     try {
       setIsLoading(true)
-      console.log("[CommunityInfoSidebar] fetchCommunityData 시작, communityName:", communityName)
-
-      // communities 테이블에서 name으로 조회 - fetch API 직접 사용
-      console.log("[CommunityInfoSidebar] fetch API로 직접 쿼리 시작...")
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -126,26 +117,17 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           }
         )
 
-        console.log("[CommunityInfoSidebar] fetch 응답 상태:", response.status)
-
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
 
         const data = await response.json()
-        console.log("[CommunityInfoSidebar] fetch 결과:", data)
-
-        // 배열 결과에서 첫 번째 항목 가져오기
         communityData = data.length > 0 ? data[0] : null
       } catch (fetchErr) {
-        console.error("[CommunityInfoSidebar] fetch 오류:", fetchErr)
         communityError = fetchErr
       }
 
-      console.log("[CommunityInfoSidebar] 쿼리 완료:", { communityData, communityError })
-
       if (communityError) {
-        console.error("[CommunityInfoSidebar] 커뮤니티 조회 오류:", communityError)
         setIsLoading(false)
         return
       }
@@ -171,12 +153,8 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
         return
       }
 
-      // 현재 사용자 확인 (서버에서 전달받은 userId 사용)
       const currentUser = userId || null
       setCurrentUserId(currentUser)
-      console.log("[CommunityInfoSidebar] 사용자:", currentUser || "비로그인")
-
-      console.log("[CommunityInfoSidebar] === v2 운영자 조회 시작 ===")
 
       // 멤버 수 조회 (fetch API 사용)
       let memberCount = 0
@@ -197,7 +175,7 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           if (match) memberCount = parseInt(match[1], 10)
         }
       } catch (err) {
-        console.error("[CommunityInfoSidebar] 멤버 수 조회 오류:", err)
+        // Silent fail
       }
 
       // 운영자 목록 조회 (fetch API 사용)
@@ -214,10 +192,9 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
         )
         if (modsRes.ok) {
           moderatorsData = await modsRes.json()
-          console.log("[CommunityInfoSidebar] 운영자 데이터:", moderatorsData)
         }
       } catch (err) {
-        console.error("[CommunityInfoSidebar] 운영자 조회 오류:", err)
+        // Silent fail
       }
 
       // 커뮤니티 생성자가 운영자 목록에 없으면 추가
@@ -244,20 +221,16 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
                   role: 'owner',
                   profiles: creatorData[0]
                 })
-                console.log("[CommunityInfoSidebar] 생성자 추가됨:", creatorData[0])
               }
             }
           } catch (err) {
-            console.error("[CommunityInfoSidebar] 생성자 조회 오류:", err)
+            // Silent fail
           }
         }
       }
 
-      // 현재 사용자의 멤버십 상태 확인 (fetch API 사용)
       if (currentUser) {
-        // 커뮤니티 생성자인 경우 바로 owner로 설정
         if (communityData.created_by === currentUser) {
-          console.log("[CommunityInfoSidebar] 커뮤니티 생성자 확인됨, owner로 설정")
           setMembershipStatus("owner")
         } else {
           try {
@@ -270,13 +243,10 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
                 },
               }
             )
-            console.log("[CommunityInfoSidebar] 멤버십 조회 응답:", membershipRes.status)
             if (membershipRes.ok) {
               const membershipData = await membershipRes.json()
-              console.log("[CommunityInfoSidebar] 멤버십 데이터:", membershipData)
               if (membershipData.length > 0) {
                 const role = membershipData[0].role as MembershipStatus
-                console.log("[CommunityInfoSidebar] 멤버십 role 설정:", role)
                 // member role은 "member"로 유지
                 if (role === "owner" || role === "admin") {
                   setMembershipStatus(role)
@@ -301,12 +271,11 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
               }
             }
           } catch (err) {
-            console.error("[CommunityInfoSidebar] 멤버십 조회 오류:", err)
+            // Silent fail
           }
         }
       }
 
-      // moderators 매핑 시 profiles가 null인 경우 필터링
       const validModerators = (moderatorsData || [])
         .filter((m: any) => m.profiles && m.profiles.id)
         .map((m: any) => ({
@@ -315,8 +284,6 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
           avatar_url: m.profiles.avatar_url,
           role: m.role,
         }))
-
-      console.log("[CommunityInfoSidebar] 최종 운영자 목록:", validModerators)
 
       setCommunity({
         id: communityData.id,

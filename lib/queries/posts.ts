@@ -65,10 +65,6 @@ export async function getLatestPosts(
       categorySlug = 'announcement';
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[getLatestPosts] Fetching for slug: ${categorySlug || 'all'}`);
-    }
-
     // 1. 기본 쿼리 작성 (Select + Join)
     // Left Join을 사용하여 RLS 정책 충돌 방지
     // profiles 조인 시 id 필드를 반드시 포함하여 N+1 문제 예방
@@ -162,10 +158,6 @@ export async function getLatestReviews(
   limit: number = 10
 ): Promise<ReviewForDisplay[]> {
   try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[getLatestReviews] Fetching latest reviews (no-join)`);
-    }
-
     // 1. Reviews 조회 (관계 조인 없이 순수 데이터만)
     const { data: reviews, error } = await supabase
       .from("reviews")
