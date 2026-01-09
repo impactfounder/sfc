@@ -37,7 +37,6 @@ export function MobileActionBar() {
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<{ avatar_url?: string; full_name?: string } | null>(null)
-  const supabase = createClient()
 
   // Hydration 안전을 위해 마운트 확인
   useEffect(() => {
@@ -45,6 +44,15 @@ export function MobileActionBar() {
   }, [])
 
   useEffect(() => {
+    // 클라이언트 사이드에서만 Supabase 클라이언트 생성
+    let supabase: ReturnType<typeof createClient>
+    try {
+      supabase = createClient()
+    } catch {
+      // 환경 변수가 없으면 조용히 종료
+      return
+    }
+
     const loadUserAndProfile = async () => {
       const {
         data: { user },
@@ -80,7 +88,7 @@ export function MobileActionBar() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   // 현재 경로에 따라 활성 탭 결정
   const getActiveTab = () => {

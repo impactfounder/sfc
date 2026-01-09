@@ -90,7 +90,7 @@ export async function createEvent(data: {
     }
   }
 
-  revalidatePath("/events")
+  revalidatePath("/e")
   revalidatePath("/")
   return { success: true, eventId: event.id }
 }
@@ -142,7 +142,7 @@ export async function deleteEvent(eventId: string) {
   }
 
   revalidatePath("/admin/events")
-  revalidatePath("/events")
+  revalidatePath("/e")
   revalidatePath("/")
   return { success: true }
 }
@@ -263,8 +263,8 @@ export async function updateEvent(eventId: string, data: {
     }
   }
 
-  revalidatePath(`/events/${eventId}`)
-  revalidatePath("/events")
+  revalidatePath(`/e/${eventId}`)
+  revalidatePath("/e")
   revalidatePath("/")
   return { success: true }
 }
@@ -324,7 +324,7 @@ export async function addGuestParticipant(eventId: string, guestName: string, gu
     throw new Error(error.message)
   }
 
-  revalidatePath(`/events/${eventId}/manage`)
-  revalidatePath(`/events/${eventId}`)
+  revalidatePath(`/e/${eventId}/manage`)
+  revalidatePath(`/e/${eventId}`)
   return { success: true }
 }

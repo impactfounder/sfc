@@ -39,12 +39,6 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
     const supabase = createClient()
     const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
     const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
-    const [mounted, setMounted] = useState(false)
-
-    // 클라이언트 마운트 후에만 user 상태 반영 (hydration 에러 방지)
-    useEffect(() => {
-        setMounted(true)
-    }, [])
 
     const handleSignOut = () => {
         // 1. 쿠키 삭제
@@ -69,7 +63,7 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
-                {mounted && user ? (
+                {user ? (
                     <>
                         {/* 만들기 버튼 (Dropdown) */}
                         <DropdownMenu>

@@ -44,34 +44,34 @@ export default async function EventDetailContent({
     event = data;
   } catch (error) { notFound(); }
 
-  // 2. 관련 정보 조회 (등록 여부, 참석자, 후기)
-  let userRegistration = null;
-  if (user) {
-    const { data } = await supabase
+  // 2. 관련 정보 병렬 조회 (등록 여부, 참석자, 후기)
+  const [userRegResult, attendeesResult, reviewsResult] = await Promise.all([
+    // 사용자 등록 여부 (로그인한 경우에만)
+    user
+      ? supabase
+          .from("event_registrations")
+          .select("id, payment_status")
+          .eq("event_id", eventId)
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    // 참석자 목록
+    supabase
       .from("event_registrations")
-      .select("id, payment_status")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single();
-    userRegistration = data;
-  }
+      .select(`id, user_id, guest_name, profiles:user_id (id, full_name, avatar_url)`)
+      .eq("event_id", eventId),
+    // 후기 목록
+    getReviewsByEvent(supabase, eventId),
+  ]);
 
-  const { count: attendeesCount } = await supabase
-    .from("event_registrations")
-    .select("*", { count: "exact", head: true })
-    .eq("event_id", eventId);
-
-  const { data: attendeesData } = await supabase
-    .from("event_registrations")
-    .select(`id, user_id, guest_name, profiles:user_id (id, full_name, avatar_url)`)
-    .eq("event_id", eventId);
-
-  const reviews = await getReviewsByEvent(supabase, eventId);
+  const userRegistration = userRegResult.data;
+  const attendeesData = attendeesResult.data;
+  const reviews = reviewsResult;
 
   // 3. 상태 계산
   const attendees = attendeesData || [];
   const isRegistered = !!userRegistration;
-  const currentCount = attendeesCount || 0;
+  const currentCount = attendees.length; // 배열 길이로 참석자 수 계산 (추가 쿼리 불필요)
   const maxCount = event.max_participants;
   const isFull = maxCount && currentCount >= maxCount;
   const isCreator = user && event.created_by === user.id;
@@ -144,7 +144,7 @@ export default async function EventDetailContent({
                 <FileText className="w-5 h-5 text-slate-500" />
                 상세 내용
               </h3>
-              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-3xl">
+              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
                 <CardContent className="p-8">
                   <div
                     className="prose max-w-none"
@@ -188,7 +188,7 @@ export default async function EventDetailContent({
                   {currentCount}명
                 </span>
               </div>
-              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-3xl">
+              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
                 <CardContent className="p-6">
                   {attendees.length > 0 ? (
                     <div className="flex flex-wrap gap-3">
@@ -220,7 +220,7 @@ export default async function EventDetailContent({
         </div>
 
         {/* 후기 섹션 */}
-        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-3xl">
+        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
              <div>
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">

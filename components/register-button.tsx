@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { TossPaymentWidget } from "@/components/payment/toss-payment-widget";
 import { registerGuestForEvent, registerUserForEvent } from "@/lib/actions/event-registrations";
 
 type CustomField = {
@@ -21,20 +20,11 @@ type CustomField = {
   is_required: boolean;
 };
 
-// [추가] 짧고 유니크한 주문 ID 생성 함수 (64자 제한 준수)
-function generateOrderId() {
-  const timestamp = Date.now().toString(36); // 타임스탬프를 36진수로 변환 (짧아짐)
-  const random = Math.random().toString(36).substring(2, 9); // 랜덤 문자열
-  return `ORD-${timestamp}-${random}`.toUpperCase();
-}
-
 export function RegisterButton({
   eventId,
   userId,
   isRegistered: initialRegistered,
   isFull,
-  price = 0,
-  paymentStatus = 'pending',
 }: {
   eventId: string;
   userId?: string;
@@ -50,15 +40,14 @@ export function RegisterButton({
 
   // 모달 상태
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentOrderId, setPaymentOrderId] = useState("");
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isLoadingFields, setIsLoadingFields] = useState(false);
 
   // 사용자 정보
   const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string } | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestContact, setGuestContact] = useState("");
-  
+
   // 커스텀 필드
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [fieldResponses, setFieldResponses] = useState<Record<string, string>>({});
@@ -80,13 +69,13 @@ export function RegisterButton({
   const loadCustomFields = async () => {
     const supabase = createClient();
     setIsLoadingFields(true);
-    
+
     // 타임아웃 설정 (10초)
     const timeoutId = setTimeout(() => {
       console.warn("[RegisterButton] Custom fields loading timeout");
       setIsLoadingFields(false);
     }, 10000);
-    
+
     try {
       const { data, error } = await supabase
         .from("event_registration_fields")
@@ -105,10 +94,8 @@ export function RegisterButton({
     } catch (error) {
       clearTimeout(timeoutId);
       console.error("[RegisterButton] Error loading custom fields:", error);
-      // 에러 발생 시에도 빈 배열 반환하여 폼이 계속 작동하도록 함
       return [];
     } finally {
-      // 항상 로딩 상태 해제
       clearTimeout(timeoutId);
       setIsLoadingFields(false);
     }
@@ -116,28 +103,25 @@ export function RegisterButton({
 
   // 버튼 클릭 핸들러 (항상 모달 열기)
   const handleOpenDialog = async () => {
-    // 먼저 모달을 열고 기본값 설정
     setIsDialogOpen(true);
     setCustomFields([]);
     setFieldResponses({});
-    
-    // 사용자 정보 로드 (비동기로 실행, 블로킹하지 않음)
+
     if (userId) {
       const supabase = createClient();
-      // 타임아웃 설정 (5초)
       const timeoutId = setTimeout(() => {
         console.warn("[RegisterButton] User profile loading timeout");
       }, 5000);
-      
+
       try {
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name, email")
           .eq("id", userId)
           .single();
-        
+
         clearTimeout(timeoutId);
-        
+
         if (profile) {
           setUserProfile(profile);
           setGuestName(profile.full_name || "");
@@ -146,24 +130,21 @@ export function RegisterButton({
       } catch (error) {
         clearTimeout(timeoutId);
         console.error("[RegisterButton] Failed to load user profile:", error);
-        // 에러 발생해도 계속 진행
       }
     }
-    
-    // 커스텀 필드 로드 (비동기로 실행)
+
     loadCustomFields().then((fields) => {
       setCustomFields(fields);
       setFieldResponses({});
     }).catch((error) => {
       console.error("[RegisterButton] Failed to load custom fields in handleOpenDialog:", error);
-      // 에러 발생 시에도 빈 배열로 설정하여 폼이 계속 작동하도록 함
       setCustomFields([]);
       setFieldResponses({});
     });
   };
 
   // 로그인 사용자 신청
-  const handleUserRegister = async (payNow: boolean) => {
+  const handleUserRegister = async () => {
     if (!userId) return;
 
     if (!guestName.trim() || !guestContact.trim()) {
@@ -186,13 +167,12 @@ export function RegisterButton({
     setIsLoading(true);
 
     try {
-      // 서버 액션 사용 (안드로이드 네트워크 문제 해결)
       await registerUserForEvent(
         eventId,
         userId,
         guestName.trim() || null,
         guestContact.trim() || null,
-        (price ?? 0) > 0 ? 'pending' : null,
+        null,
         fieldResponses
       );
 
@@ -200,20 +180,18 @@ export function RegisterButton({
       setIsDialogOpen(false);
       router.refresh();
 
-      // [결제하기]를 선택했고 유료인 경우 결제창 오픈
-      if (payNow && price && price > 0) {
-        const newOrderId = generateOrderId();
-        setPaymentOrderId(newOrderId);
-        setShowPayment(true);
-      }
+      toast({
+        title: "신청 완료",
+        description: "이벤트 참가 신청이 완료되었습니다.",
+      });
 
     } catch (error: any) {
       console.error("[RegisterButton] Registration Error:", error);
       const errorMessage = error?.message || error?.toString() || "신청에 실패했습니다. 다시 시도해주세요.";
-      
-      toast({ 
-        variant: "destructive", 
-        title: "신청 실패", 
+
+      toast({
+        variant: "destructive",
+        title: "신청 실패",
         description: errorMessage,
         duration: 5000,
       });
@@ -223,7 +201,7 @@ export function RegisterButton({
   };
 
   // 게스트 신청
-  const handleGuestRegister = async (payNow: boolean) => {
+  const handleGuestRegister = async () => {
     if (!guestName.trim() || !guestContact.trim()) {
       toast({ variant: "destructive", title: "입력 필요", description: "이름과 연락처를 모두 입력해주세요" });
       return;
@@ -244,12 +222,11 @@ export function RegisterButton({
     setIsLoading(true);
 
     try {
-      // 서버 액션 사용 (안드로이드 네트워크 문제 해결)
       await registerGuestForEvent(
         eventId,
         guestName.trim(),
         guestContact.trim(),
-        (price ?? 0) > 0 ? 'pending' : null,
+        null,
         fieldResponses
       );
 
@@ -257,20 +234,18 @@ export function RegisterButton({
       setIsDialogOpen(false);
       router.refresh();
 
-      // [결제하기]를 선택했고 유료인 경우 결제창 오픈
-      if (payNow && price && price > 0) {
-        const newOrderId = generateOrderId();
-        setPaymentOrderId(newOrderId);
-        setShowPayment(true);
-      }
+      toast({
+        title: "신청 완료",
+        description: "이벤트 참가 신청이 완료되었습니다.",
+      });
 
     } catch (error: any) {
       console.error("[RegisterButton] Guest Registration Error:", error);
       const errorMessage = error?.message || error?.toString() || "참가 신청에 실패했습니다. 다시 시도해주세요.";
-      
-      toast({ 
-        variant: "destructive", 
-        title: "신청 실패", 
+
+      toast({
+        variant: "destructive",
+        title: "신청 실패",
         description: errorMessage,
         duration: 5000,
       });
@@ -288,6 +263,10 @@ export function RegisterButton({
       await supabase.from("event_registrations").delete().eq("event_id", eventId).eq("user_id", userId);
       setIsRegistered(false);
       router.refresh();
+      toast({
+        title: "취소 완료",
+        description: "참가 신청이 취소되었습니다.",
+      });
     } catch (error) {
       console.error(error);
       toast({
@@ -304,19 +283,70 @@ export function RegisterButton({
   // 렌더링
   // ------------------------------------------------------------
 
-  // 1. 결제 완료 상태
-  const isPaid = paymentStatus === 'paid';
-  if (initialRegistered && isPaid) {
+  // 1. 신청 완료 상태
+  if (initialRegistered) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 border border-slate-200 text-slate-700">
-        <CheckCircle className="h-5 w-5 text-green-600" />
-        <span className="font-semibold text-sm">신청 및 결제가 완료되었습니다</span>
-      </div>
+      <>
+        <button
+          type="button"
+          onClick={() => {
+            if (userId) {
+              setShowCancelDialog(true);
+            }
+          }}
+          disabled={!userId}
+          className={`w-full flex items-center justify-center gap-2 rounded-xl bg-slate-50 p-4 border border-slate-200 text-slate-700 transition-colors ${
+            userId ? 'hover:bg-slate-100 cursor-pointer' : 'cursor-default'
+          }`}
+        >
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <span className="font-semibold text-sm">참가 신청이 완료되었습니다</span>
+        </button>
+
+        {/* 취소 확인 다이얼로그 */}
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>참가 취소</DialogTitle>
+              <DialogDescription>
+                정말 참가를 취소하시겠습니까?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 pt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleCancel();
+                  setShowCancelDialog(false);
+                }}
+                disabled={isLoading}
+                className="w-full h-11 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    취소 중...
+                  </span>
+                ) : (
+                  "참가 취소하기"
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCancelDialog(false)}
+                className="w-full h-11 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-colors"
+              >
+                돌아가기
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
   // 2. 마감 상태
-  if (isFull && !initialRegistered) {
+  if (isFull) {
     return <div className="rounded-lg bg-slate-100 p-4 text-center text-slate-500 text-sm font-medium">모집이 마감되었습니다</div>;
   }
 
@@ -324,47 +354,23 @@ export function RegisterButton({
   return (
     <>
       <div className="space-y-3">
-        {/* Case A: 신청 완료했으나 미결제 상태 */}
-        {initialRegistered && (price ?? 0) > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 border border-amber-200 text-amber-800 mb-2">
-              <div className="shrink-0 animate-pulse w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-sm font-medium">신청 완료! 결제가 대기 중입니다.</span>
-            </div>
-            <Button
-              onClick={() => {
-                const newOrderId = generateOrderId(); // [수정] 짧은 ID 사용
-                setPaymentOrderId(newOrderId);
-                setShowPayment(true);
-              }}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
-            >
-              지금 결제하기
-            </Button>
-            <Button variant="outline" onClick={handleCancel} className="w-full h-11 text-slate-500">
-              신청 취소하기
-            </Button>
-          </div>
-        ) : (
-          /* Case B: 미신청 상태 -> 버튼 하나로 통합 */
-          <Button
-            onClick={handleOpenDialog}
-            disabled={isLoading}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
-          >
-            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "참가 신청하기"}
-          </Button>
-        )}
+        <Button
+          onClick={handleOpenDialog}
+          disabled={isLoading}
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base h-12 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
+        >
+          {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "참가 신청하기"}
+        </Button>
       </div>
 
-      {/* 1. 신청 정보 입력 모달 */}
+      {/* 신청 정보 입력 모달 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] md:max-h-[85vh] overflow-y-auto overscroll-contain">
           <DialogHeader>
             <DialogTitle>참가 신청서</DialogTitle>
             <DialogDescription>이벤트 참가 신청을 위해 아래 정보를 입력해주세요.</DialogDescription>
           </DialogHeader>
-          
+
           {isLoadingFields ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-slate-400 mb-2" />
@@ -398,7 +404,6 @@ export function RegisterButton({
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     onFocus={(e) => {
-                      // 모바일에서 입력 필드에 포커스가 갈 때 스크롤
                       setTimeout(() => {
                         e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }, 300);
@@ -414,7 +419,6 @@ export function RegisterButton({
                     value={guestContact}
                     onChange={(e) => setGuestContact(e.target.value)}
                     onFocus={(e) => {
-                      // 모바일에서 입력 필드에 포커스가 갈 때 스크롤
                       setTimeout(() => {
                         e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }, 300);
@@ -435,7 +439,7 @@ export function RegisterButton({
                         {field.field_name}
                         {field.is_required && <span className="text-red-500 ml-1">*</span>}
                       </Label>
-                      
+
                       {field.field_type === 'text' ? (
                         <Input
                           placeholder="답변을 입력해주세요"
@@ -447,7 +451,6 @@ export function RegisterButton({
                             });
                           }}
                           onFocus={(e) => {
-                            // 모바일에서 입력 필드에 포커스가 갈 때 스크롤
                             setTimeout(() => {
                               e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             }, 300);
@@ -471,7 +474,6 @@ export function RegisterButton({
                           </SelectTrigger>
                           <SelectContent className="z-[9999] bg-white">
                             {(() => {
-                              // field_options가 JSONB이므로 안전하게 파싱
                               let options: string[] = [];
                               if (field.field_options) {
                                 if (Array.isArray(field.field_options)) {
@@ -498,45 +500,18 @@ export function RegisterButton({
                 </div>
               )}
 
-              {/* 커스텀 필드가 없을 때 확인 메시지 (로그인 사용자만) */}
-              {userId && customFields.length === 0 && (
-                <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-center">
-                  <p className="text-sm text-slate-700">신청하시겠습니까?</p>
-                </div>
-              )}
-
-              {/* 하단 액션 버튼 (분기 처리) */}
+              {/* 하단 액션 버튼 */}
               <div className="flex flex-col gap-3 pt-6 border-t mt-6 pb-2">
-                {(price ?? 0) > 0 ? (
-                  <>
-                    <Button
-                      onClick={() => userId ? handleUserRegister(true) : handleGuestRegister(true)}
-                      disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
-                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 text-base"
-                    >
-                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "결제하고 신청 완료"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => userId ? handleUserRegister(false) : handleGuestRegister(false)}
-                      disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
-                      className="w-full h-12 text-slate-600 border-slate-300 hover:bg-slate-50"
-                    >
-                      일단 신청하고 나중에 결제하기
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    onClick={() => userId ? handleUserRegister(false) : handleGuestRegister(false)}
-                    disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
-                  >
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "신청 완료"}
-                  </Button>
-                )}
-                
+                <Button
+                  onClick={() => userId ? handleUserRegister() : handleGuestRegister()}
+                  disabled={isLoading || (!guestName.trim() || !guestContact.trim())}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
+                >
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "신청 완료"}
+                </Button>
+
                 <div className="text-center mt-2">
-                  <button 
+                  <button
                     onClick={() => setIsDialogOpen(false)}
                     className="text-xs text-slate-400 hover:text-slate-600 underline underline-offset-4"
                   >
@@ -545,34 +520,6 @@ export function RegisterButton({
                 </div>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* 2. 결제 위젯 모달 */}
-      <Dialog open={showPayment} onOpenChange={(open) => {
-        setShowPayment(open);
-        if (!open) {
-          // 모달이 닫힐 때 orderId 초기화
-          setPaymentOrderId("");
-        }
-      }}>
-        <DialogContent className="max-w-2xl bg-white p-6">
-          <DialogHeader>
-            <DialogTitle>결제하기</DialogTitle>
-            <DialogDescription>결제를 진행하여 이벤트 신청을 완료합니다.</DialogDescription>
-          </DialogHeader>
-          
-          {paymentOrderId && (
-            <TossPaymentWidget
-              amount={price || 0}
-              orderId={paymentOrderId}
-              orderName="SFC 이벤트 참가"
-              customerName={userProfile?.full_name || guestName || "Guest"}
-              customerEmail={userProfile?.email || guestContact || "guest@example.com"}
-              successUrl="/payment/success"
-              failUrl="/payment/fail"
-            />
           )}
         </DialogContent>
       </Dialog>

@@ -17,54 +17,45 @@ async function findEventId(shortCode: string, supabase: any): Promise<string | n
     const idSuffix = shortCode.substring(4, 6).toLowerCase()
     const orderNumber = parseInt(idSuffix, 10) // 혹시 모를 순서번호 방식 대비
 
-    console.log(`🔍 검색: ${targetMonth}월 ${targetDay}일, ID: ${idSuffix}...`)
+    // 3. 여러 연도에서 해당 날짜의 이벤트만 조회 (DB 필터링으로 최적화)
+    const currentYear = new Date().getFullYear()
+    const yearsToCheck = [currentYear, currentYear - 1, currentYear + 1] // 올해, 작년, 내년
 
-    // 3. 핵심: 조건 없이 모든 이벤트를 가져옵니다. (DB 필터링 오류 배제)
-    const { data: allEvents } = await supabase
-      .from("events")
-      .select("id, event_date")
-      .order("created_at", { ascending: true })
+    let allDateEvents: any[] = []
 
-    if (!allEvents) return null
+    for (const year of yearsToCheck) {
+      const monthStr = String(targetMonth).padStart(2, '0')
+      const dayStr = String(targetDay).padStart(2, '0')
+      const startDate = `${year}-${monthStr}-${dayStr}T00:00:00`
+      const endDate = `${year}-${monthStr}-${dayStr}T23:59:59`
 
-    // 4. 자바스크립트로 직접 하나씩 비교 (가장 정확함)
-    const matchedEvent = allEvents.find((event: any) => {
-      const date = new Date(event.event_date)
+      const { data: yearEvents } = await supabase
+        .from("events")
+        .select("id, event_date")
+        .gte("event_date", startDate)
+        .lte("event_date", endDate)
+        .order("created_at", { ascending: true })
 
-      // UTC 기준 날짜 확인
-      const utcMonth = date.getUTCMonth() + 1
-      const utcDay = date.getUTCDate()
+      if (yearEvents && yearEvents.length > 0) {
+        allDateEvents.push(...yearEvents)
+      }
+    }
 
-      // KST 기준 날짜 확인 (UTC+9)
-      const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000)
-      const kstMonth = kstDate.getUTCMonth() + 1
-      const kstDay = kstDate.getUTCDate()
+    if (allDateEvents.length === 0) return null
 
-      // 날짜가 맞는지 확인 (UTC나 KST 둘 중 하나라도 맞으면 OK)
-      const isDateMatch = (utcMonth === targetMonth && utcDay === targetDay) ||
-        (kstMonth === targetMonth && kstDay === targetDay)
-
-      if (!isDateMatch) return false
-
-      // 5. ID 앞 2자리가 일치하는지 확인 (94...)
+    // 4. ID 앞 2자리가 일치하는 이벤트 찾기
+    const matchedEvent = allDateEvents.find((event: any) => {
       const eventIdPrefix = event.id.substring(0, 2).toLowerCase()
       return eventIdPrefix === idSuffix
     })
 
     if (matchedEvent) {
-      console.log(`✅ 찾음! ID: ${matchedEvent.id}`)
       return matchedEvent.id
     }
 
-    // 6. 못 찾았다면 '순서번호' 방식(구버전 URL)으로 한 번 더 찾기
-    const dateEvents = allEvents.filter((event: any) => {
-      const date = new Date(event.event_date)
-      const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000)
-      return kstDate.getUTCMonth() + 1 === targetMonth && kstDate.getUTCDate() === targetDay
-    })
-
-    if (dateEvents.length >= orderNumber) {
-      return dateEvents[orderNumber - 1].id
+    // 5. 못 찾았다면 '순서번호' 방식(구버전 URL)으로 한 번 더 찾기
+    if (allDateEvents.length >= orderNumber) {
+      return allDateEvents[orderNumber - 1].id
     }
 
     return null

@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { EventShareButton } from "@/components/event-share-button"
-import { DeleteEventButton } from "@/components/delete-event-button"
 import { RegisterButton } from "@/components/register-button"
 import Link from "next/link"
 
@@ -32,7 +31,7 @@ type Props = {
 
 function InfoRow({ icon: Icon, value, href }: { icon: any, value: string, href?: string }) {
   const content = (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border border-slate-100 ${href ? 'hover:bg-slate-50 cursor-pointer group transition-colors' : ''}`}>
+    <div className={`flex items-center gap-2.5 py-2.5 px-3 rounded-lg bg-slate-50/50 ${href ? 'hover:bg-slate-100 cursor-pointer group transition-colors' : ''}`}>
       <Icon className="w-4 h-4 text-slate-400 shrink-0" />
       <span className="text-sm font-medium text-slate-700 truncate flex-1">{value}</span>
       {href && <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0" />}
@@ -49,20 +48,35 @@ export function EventDetailHero(props: Props) {
     isCreator, isRegistered, userRegistration, eventId, basePath, userId
   } = props
 
-  const imageRef = useRef<HTMLDivElement>(null)
-  const [cardHeight, setCardHeight] = useState<number | null>(null)
+  const imageContainerRef = useRef<HTMLDivElement>(null)
+  const [imageHeight, setImageHeight] = useState<number | null>(null)
 
-  // 이미지 높이 측정 후 카드에 적용
+  // 이미지 컨테이너 높이를 측정하여 카드에 적용 (데스크탑에서만)
   useEffect(() => {
     const updateHeight = () => {
-      if (imageRef.current) {
-        setCardHeight(imageRef.current.offsetHeight)
+      const isDesktop = window.innerWidth >= 1024
+      if (imageContainerRef.current && isDesktop) {
+        // 이미지 컨테이너의 실제 높이 측정
+        setImageHeight(imageContainerRef.current.offsetHeight)
+      } else {
+        setImageHeight(null)
       }
     }
 
+    // 초기 실행 + 이미지 로드 후 실행
     updateHeight()
+
+    // ResizeObserver로 더 정확하게 감지
+    const resizeObserver = new ResizeObserver(updateHeight)
+    if (imageContainerRef.current) {
+      resizeObserver.observe(imageContainerRef.current)
+    }
+
     window.addEventListener('resize', updateHeight)
-    return () => window.removeEventListener('resize', updateHeight)
+    return () => {
+      window.removeEventListener('resize', updateHeight)
+      resizeObserver.disconnect()
+    }
   }, [])
 
   const googleMapUrl = event.location
@@ -76,11 +90,13 @@ export function EventDetailHero(props: Props) {
   const percent = maxCount ? Math.min(100, (currentCount / maxCount) * 100) : 100
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+    <div className="flex flex-col gap-6">
+      {/* 상단: 이미지 + 카드 그리드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
 
-      {/* 좌측: 이미지 (1:1 고정, 높이 기준) */}
-      <div ref={imageRef} className="w-full">
-        <div className="aspect-square relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+        {/* 좌측: 이미지 (1:1 비율 고정) */}
+        <div ref={imageContainerRef} className="w-full">
+          <div className="aspect-square relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
           {event.thumbnail_url ? (
             <img
               src={event.thumbnail_url}
@@ -106,126 +122,123 @@ export function EventDetailHero(props: Props) {
             )}
           </div>
 
-          {/* 인원 뱃지 */}
-          <div className="absolute top-4 right-4 z-10">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-black/60 text-white backdrop-blur-md shadow-md">
-              <Users className="w-3.5 h-3.5" />
-              <span>{currentCount}/{maxCount || '∞'}</span>
+            {/* 인원 뱃지 */}
+            <div className="absolute top-4 right-4 z-10">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-black/60 text-white backdrop-blur-md shadow-md">
+                <Users className="w-3.5 h-3.5" />
+                <span>{currentCount}/{maxCount || '∞'}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 우측: 정보 카드 (이미지와 같은 높이) */}
-      <div
-        className="w-full"
-        style={{ height: cardHeight ? `${cardHeight}px` : 'auto' }}
-      >
-        <Card className="h-full border-slate-200 bg-white rounded-2xl shadow-sm flex flex-col">
-          <CardContent className="p-5 lg:p-6 flex flex-col h-full">
+        {/* 우측: 정보 카드 (이미지와 동일한 높이) */}
+        <div
+          className="w-full lg:aspect-square"
+          style={imageHeight ? { height: `${imageHeight}px`, aspectRatio: 'unset' } : undefined}
+        >
+          <Card className="h-full border-slate-200 bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden">
+            <CardContent className="p-5 lg:p-6 flex flex-col h-full justify-between">
 
-            {/* 상단 영역 - flex-1로 남은 공간 차지 */}
-            <div className="flex-1 flex flex-col gap-4">
+              {/* 상단 영역 */}
+              <div className="flex flex-col gap-3">
 
-              {/* 1. 제목 + 공유버튼 */}
-              <div className="flex justify-between items-start gap-3">
-                <h1 className="text-xl lg:text-2xl font-bold text-slate-900 leading-tight">
-                  {event.title}
-                </h1>
-                <EventShareButton
-                  title={event.title}
-                  description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-slate-400 hover:text-slate-900 hover:bg-slate-100 w-9 h-9 rounded-full"
-                />
-              </div>
-
-              {/* 2. 호스트 */}
-              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
-                  <AvatarImage src={hostAvatar || undefined} />
-                  <AvatarFallback className="bg-slate-100 text-slate-600 font-semibold text-xs">
-                    {hostName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">호스트</span>
-                  <span className="text-sm font-semibold text-slate-900">{hostName}</span>
-                </div>
-              </div>
-
-              {/* 3. 정보 리스트 */}
-              <div className="flex flex-col gap-2">
-                <InfoRow icon={Calendar} value={`${dateStr} ${timeStr}`} />
-                <InfoRow icon={MapPin} value={event.location || "장소 미정"} href={googleMapUrl} />
-                <InfoRow icon={Wallet} value={priceStr} />
-              </div>
-            </div>
-
-            {/* 하단 영역 */}
-            <div className="pt-4 border-t border-slate-100">
-              {/* 4. 모집 현황 */}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="text-slate-500">모집 현황</span>
-                  <span className="font-semibold text-slate-900">{currentCount} / {maxCount || '∞'}</span>
-                </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
-                    style={{ width: `${percent}%` }}
+                {/* 1. 제목 + 공유버튼 */}
+                <div className="flex justify-between items-start gap-2">
+                  <h1 className="text-lg lg:text-xl font-bold text-slate-900 leading-tight line-clamp-2">
+                    {event.title}
+                  </h1>
+                  <EventShareButton
+                    title={event.title}
+                    description={event.description?.replace(/<[^>]*>/g, "").substring(0, 100) || event.title}
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-slate-400 hover:text-slate-900 hover:bg-slate-100 w-8 h-8 rounded-full"
                   />
                 </div>
+
+                {/* 2. 정보 리스트 */}
+                <div className="flex flex-col gap-1.5">
+                  <InfoRow icon={Calendar} value={`${dateStr} ${timeStr}`} />
+                  <InfoRow icon={MapPin} value={event.location || "장소 미정"} href={googleMapUrl} />
+                  <InfoRow icon={Wallet} value={priceStr} />
+                </div>
               </div>
 
-              {/* 5. 버튼 */}
-              {isCreator ? (
-                <div className="flex flex-col gap-2">
-                  {(isPastEvent || isCompleted) && (
-                    <p className="text-xs text-amber-600 text-center py-2 bg-amber-50 rounded-lg border border-amber-100">
-                      종료된 이벤트입니다. 수정하여 다시 활성화할 수 있습니다.
-                    </p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href={`${basePath}/${eventId}/manage`} className="w-full">
-                      <Button variant="outline" className="w-full h-11 text-sm font-semibold rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700">
-                        <Users className="mr-1.5 h-4 w-4" /> 참석자 관리
-                      </Button>
-                    </Link>
-                    <Link href={`${basePath}/${eventId}/edit`} className="w-full">
-                      <Button className="w-full h-11 text-sm font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white">
-                        <Edit className="mr-1.5 h-4 w-4" /> 수정하기
-                      </Button>
-                    </Link>
+              {/* 하단 영역 */}
+              <div className="pt-3 border-t border-slate-100">
+                {/* 모집 현황 */}
+                <div className="mb-3">
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-slate-500">모집 현황</span>
+                    <span className="font-semibold text-slate-900">{currentCount} / {maxCount || '∞'}</span>
                   </div>
-                  <DeleteEventButton
-                    eventId={eventId}
-                    variant="outline"
-                    className="w-full h-10 text-sm font-medium text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl"
-                    label="이벤트 삭제하기"
-                  />
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${isFull ? 'bg-red-500' : 'bg-slate-900'}`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
                 </div>
-              ) : isPastEvent || isCompleted ? (
-                <Button className="w-full h-11 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
-                  <AlertCircle className="mr-1.5 h-4 w-4 shrink-0" />
-                  <span className="truncate">이벤트가 종료되었습니다</span>
-                </Button>
-              ) : (
-                <RegisterButton
-                  eventId={event.id}
-                  userId={userId}
-                  isRegistered={isRegistered}
-                  paymentStatus={userRegistration?.payment_status}
-                  isFull={isFull}
-                  price={event.price || 0}
-                />
-              )}
-            </div>
 
-          </CardContent>
-        </Card>
+                {/* 버튼 */}
+                {isCreator ? (
+                  <div className="flex flex-col gap-2">
+                    {(isPastEvent || isCompleted) && (
+                      <p className="text-xs text-amber-600 text-center py-2 bg-amber-50 rounded-lg border border-amber-100">
+                        종료된 이벤트입니다. 수정하여 다시 활성화할 수 있습니다.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href={`${basePath}/${eventId}/manage`} className="w-full">
+                        <Button variant="outline" className="w-full h-10 text-sm font-semibold rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700">
+                          <Users className="mr-1.5 h-4 w-4" /> 참석자 관리
+                        </Button>
+                      </Link>
+                      <Link href={`${basePath}/${eventId}/edit`} className="w-full">
+                        <Button className="w-full h-10 text-sm font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white">
+                          <Edit className="mr-1.5 h-4 w-4" /> 수정하기
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ) : isPastEvent || isCompleted ? (
+                  <Button className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
+                    <AlertCircle className="mr-1.5 h-4 w-4 shrink-0" />
+                    <span className="truncate">이벤트가 종료되었습니다</span>
+                  </Button>
+                ) : (
+                  <RegisterButton
+                    eventId={event.id}
+                    userId={userId}
+                    isRegistered={isRegistered}
+                    paymentStatus={userRegistration?.payment_status}
+                    isFull={isFull}
+                    price={event.price || 0}
+                  />
+                )}
+              </div>
+
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* 하단: 호스트 정보 */}
+      <Card className="border-slate-200 shadow-sm bg-white rounded-2xl">
+        <CardContent className="p-4 flex items-center gap-3">
+          <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+            <AvatarImage src={hostAvatar || undefined} />
+            <AvatarFallback className="bg-slate-100 text-slate-600 font-semibold">
+              {hostName[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-slate-500">호스트</span>
+            <span className="text-base font-bold text-slate-900">{hostName}</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
