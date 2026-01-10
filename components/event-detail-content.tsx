@@ -49,11 +49,11 @@ export default async function EventDetailContent({
     // 사용자 등록 여부 (로그인한 경우에만)
     user
       ? supabase
-          .from("event_registrations")
-          .select("id, payment_status")
-          .eq("event_id", eventId)
-          .eq("user_id", user.id)
-          .maybeSingle()
+        .from("event_registrations")
+        .select("id, payment_status")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .maybeSingle()
       : Promise.resolve({ data: null }),
     // 참석자 목록
     supabase
@@ -88,8 +88,8 @@ export default async function EventDetailContent({
   const isCompleted = event.status === 'completed'; // 수동 종료 상태
 
   // 날짜 포맷팅
-  const dateStr = eventStartDate.toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
-  const timeStr = eventStartDate.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true });
+  const dateStr = eventStartDate.toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' });
+  const timeStr = eventStartDate.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: 'Asia/Seoul' });
 
   // 프로필 처리 (배열/객체 호환)
   const hostProfile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
@@ -224,17 +224,17 @@ export default async function EventDetailContent({
 
         {/* 후기 섹션 */}
         <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
-           <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-             <div>
-                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  참가자 후기
-                  <span className="text-sm text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">
-                    {reviews ? reviews.length : 0}
-                  </span>
-                </h2>
-             </div>
-              {user && <ReviewModal userId={user.id} eventId={eventId} />}
-           </div>
+          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                참가자 후기
+                <span className="text-sm text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                  {reviews ? reviews.length : 0}
+                </span>
+              </h2>
+            </div>
+            {user && <ReviewModal userId={user.id} eventId={eventId} />}
+          </div>
           <CardContent className="p-8">
             {reviews && reviews.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -246,7 +246,7 @@ export default async function EventDetailContent({
               <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-3xl">💬</div>
                 <h3 className="text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">모임이 끝난 후 첫 번째 후기를 남겨주세요!<br/>여러분의 경험 공유가 큰 힘이 됩니다.</p>
+                <p className="text-slate-500 max-w-sm mx-auto">모임이 끝난 후 첫 번째 후기를 남겨주세요!<br />여러분의 경험 공유가 큰 힘이 됩니다.</p>
               </div>
             )}
           </CardContent>
