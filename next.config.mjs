@@ -16,6 +16,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'c6a6mkohft8ir4os.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
     qualities: [75, 100],
   },
