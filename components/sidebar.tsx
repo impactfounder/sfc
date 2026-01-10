@@ -90,111 +90,73 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
   // 서버/클라이언트 일관성을 위해 빈 배열로 초기화 (캐시는 useEffect에서 로드)
   const [joinedCommunities, setJoinedCommunities] = useState<JoinedCommunity[]>([])
   const loadingRef = useRef(false)
-  const cacheLoadedRef = useRef(false)
 
-  // 클라이언트에서 인증 상태 체크 및 가입한 커뮤니티 로드
+  // 1단계: 캐시에서 즉시 로드 (마운트 직후)
+  useEffect(() => {
+    const cached = getCachedCommunities()
+    if (cached.length > 0) {
+      setJoinedCommunities(cached)
+    }
+  }, [])
+
+  // 2단계: 서버에서 최신 데이터 로드
   useEffect(() => {
     const supabase = createClient()
     let isMounted = true
 
-    async function loadCommunities() {
-      if (!isMounted) return
-
-      console.log("[Sidebar] loadCommunities 시작 (서버 액션 사용)")
-
-      try {
-        // 서버 액션을 사용하여 가입한 커뮤니티 조회
-        const result = await getJoinedCommunities()
-
-        console.log("[Sidebar] 서버 액션 결과:", result)
-
-        if (!isMounted) return
-
-        if (result.success && result.data.length > 0) {
-          setJoinedCommunities(result.data)
-          setCachedCommunities(result.data)
-          console.log("[Sidebar] state 업데이트 완료")
-        } else if (!result.success) {
-          console.error("[Sidebar] 서버 액션 에러:", result.error)
-        } else {
-          console.log("[Sidebar] 가입한 커뮤니티 없음")
-        }
-      } catch (error) {
-        console.error("[Sidebar] loadCommunities error:", error)
-      }
-    }
-
-    async function initLoad() {
+    async function loadFromServer() {
       if (loadingRef.current) return
       loadingRef.current = true
 
-      console.log("[Sidebar] initLoad 시작")
-
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        console.log("[Sidebar] session:", session?.user?.id)
+        // 서버 액션과 역할 조회를 병렬로 실행
+        const [communitiesResult, sessionResult] = await Promise.all([
+          getJoinedCommunities(),
+          initialUserRole ? Promise.resolve(null) : supabase.auth.getSession()
+        ])
 
-        if (session?.user && isMounted) {
-          // 로그인 상태에서만 캐시 로드 (hydration 이후)
-          if (!cacheLoadedRef.current) {
-            cacheLoadedRef.current = true
-            const cached = getCachedCommunities()
-            if (cached.length > 0) {
-              setJoinedCommunities(cached)
-            }
-          }
+        if (!isMounted) return
 
-          // 역할 가져오기
-          if (!initialUserRole) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", session.user.id)
-              .single()
-            if (isMounted) setUserRole(profile?.role || null)
-          }
+        // 커뮤니티 업데이트
+        if (communitiesResult.success && communitiesResult.data.length > 0) {
+          setJoinedCommunities(communitiesResult.data)
+          setCachedCommunities(communitiesResult.data)
+        } else if (communitiesResult.success && communitiesResult.data.length === 0) {
+          setJoinedCommunities([])
+          setCachedCommunities([])
+        }
 
-          // 커뮤니티 로드
-          await loadCommunities()
-        } else {
-          // 로그인하지 않은 경우 캐시와 커뮤니티 목록 초기화
-          if (isMounted) {
-            setJoinedCommunities([])
-            setCachedCommunities([])
-          }
+        // 역할 업데이트 (필요한 경우)
+        if (!initialUserRole && sessionResult?.data?.session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", sessionResult.data.session.user.id)
+            .single()
+          if (isMounted) setUserRole(profile?.role || null)
         }
       } catch (error) {
-        // Silent fail
+        console.error("[Sidebar] loadFromServer error:", error)
       } finally {
         loadingRef.current = false
       }
     }
 
-    initLoad()
+    loadFromServer()
 
+    // 로그인/로그아웃 이벤트 처리
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'INITIAL_SESSION') return
 
-      if (session?.user) {
-        // 역할 가져오기
-        if (!initialUserRole) {
-          supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single()
-            .then(({ data: profile }) => {
-              if (isMounted) setUserRole(profile?.role || null)
-            })
-        }
-
-        // 커뮤니티 로드
-        loadCommunities()
-      } else {
-        // 로그아웃 시 커뮤니티 목록 초기화
+      if (event === 'SIGNED_IN' && session?.user) {
+        // 로그인 시 커뮤니티 다시 로드
+        loadingRef.current = false
+        loadFromServer()
+      } else if (event === 'SIGNED_OUT') {
+        // 로그아웃 시 초기화
         if (isMounted) {
           setJoinedCommunities([])
-          setCachedCommunities([]) // 캐시도 초기화
+          setCachedCommunities([])
           setUserRole(null)
         }
       }
