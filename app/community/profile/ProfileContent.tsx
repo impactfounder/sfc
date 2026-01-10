@@ -186,13 +186,17 @@ export default function ProfileContent() {
 
   // 통합된 인증 및 데이터 로딩 로직
   useEffect(() => {
-    const supabase = createClient()
     let isMounted = true
 
-    // 리스트 데이터 비동기 로딩 (Fire & Forget)
-    // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
-    const loadListData = (userId: string) => {
+    // ★ 싱글톤 우회 - 새 클라이언트 직접 생성
+    const { createBrowserClient } = require("@supabase/ssr")
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
+    // 리스트 데이터 비동기 로딩 (Fire & Forget)
+    const loadListData = (userId: string) => {
       // (1) 만든 이벤트
       supabase
         .from("events")
@@ -200,12 +204,12 @@ export default function ProfileContent() {
         .eq("created_by", userId)
         .order("created_at", { ascending: false })
         .limit(20)
-        .then(({ data, error }) => {
+        .then(({ data, error }: any) => {
           if (!isMounted) return
           if (error) console.error(`Events error: ${error.message}`)
 
           if (!error && data) {
-            setCreatedEvents(data.map((event) => ({
+            setCreatedEvents(data.map((event: any) => ({
               id: event.id,
               title: event.title,
               thumbnail_url: event.thumbnail_url,
@@ -223,12 +227,12 @@ export default function ProfileContent() {
         .eq("author_id", userId)
         .order("created_at", { ascending: false })
         .limit(20)
-        .then(({ data, error }) => {
+        .then(({ data, error }: any) => {
           if (!isMounted) return
           if (error) console.error(`Posts error: ${error.message}`)
 
           if (!error && data) {
-            setUserPosts(data.map((post) => ({
+            setUserPosts(data.map((post: any) => ({
               id: post.id,
               title: post.title,
               created_at: post.created_at,
@@ -251,7 +255,7 @@ export default function ProfileContent() {
         .eq("user_id", userId)
         .order("registered_at", { ascending: false })
         .limit(20)
-        .then(({ data, error }) => {
+        .then(({ data, error }: any) => {
           if (error) console.error(`Registrations error: ${error.message}`)
           else if (isMounted && data) {
             const flattened: EventListItem[] = data
@@ -275,9 +279,8 @@ export default function ProfileContent() {
         .select(`badges:badge_id (icon, name, is_active)`)
         .eq("user_id", userId)
         .eq("is_visible", true)
-        .eq("is_visible", true)
         .limit(10)
-        .then(({ data, error }) => {
+        .then(({ data, error }: any) => {
           if (error) console.error(`Badges error: ${error.message}`)
           else if (isMounted && data) {
             const mappedBadges = data
@@ -299,12 +302,12 @@ export default function ProfileContent() {
         `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .then(({ data }) => {
+        .then(({ data }: any) => {
           if (data && isMounted) setUserBadges(data as any)
         })
     }
 
-    // 통합된 인증 및 데이터 로딩 로직 (try-finally로 로딩 상태 안전 관리)
+    // 유저 데이터 로딩 (try-finally로 로딩 상태 안전 관리)
     const loadUserData = async (currentUser: User) => {
       try {
         if (!isMounted) return
@@ -347,61 +350,36 @@ export default function ProfileContent() {
       }
     }
 
-    // ★ 핵심 수정: Promise.race로 타임아웃 강제 적용 (hanging 방지)
+    // ★ 인증 확인 (싱글톤 우회로 타임아웃 불필요)
     const initAuth = async () => {
       console.log('[Profile] 인증 확인 시작...')
 
-      // 타임아웃 Promise 생성 함수
-      const createTimeout = (ms: number) => new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('TIMEOUT')), ms)
-      })
-
       try {
-        // 1. getSession 시도 (5초 타임아웃)
-        let sessionUser = null
-        try {
-          console.log('[Profile] getSession 호출 중...')
-          const result = await Promise.race([
-            supabase.auth.getSession(),
-            createTimeout(5000)
-          ])
-          sessionUser = result.data.session?.user
-          console.log('[Profile] getSession 완료:', !!sessionUser)
-        } catch (e: any) {
-          console.warn('[Profile] getSession 타임아웃/에러:', e.message)
-        }
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[Profile] getSession 완료:', !!session?.user)
 
-        if (sessionUser && isMounted) {
-          await loadUserData(sessionUser)
+        if (session?.user && isMounted) {
+          await loadUserData(session.user)
           return
         }
 
-        // 2. getUser 시도 (3초 타임아웃)
-        console.log('[Profile] getUser 시도 중...')
-        try {
-          const result = await Promise.race([
-            supabase.auth.getUser(),
-            createTimeout(3000)
-          ])
+        const { data: { user } } = await supabase.auth.getUser()
+        console.log('[Profile] getUser 완료:', !!user)
 
-          if (result.data.user && isMounted) {
-            console.log('[Profile] getUser 성공')
-            await loadUserData(result.data.user)
-            return
-          }
-        } catch (e: any) {
-          console.warn('[Profile] getUser 타임아웃/에러:', e.message)
+        if (user && isMounted) {
+          await loadUserData(user)
+          return
         }
 
-        // 3. 둘 다 실패 - 로그인으로
-        console.log('[Profile] 인증 실패, 로그인으로 리다이렉트')
+        // 유저 없음 - 로그인으로 리다이렉트
+        console.log('[Profile] 인증된 유저 없음, 로그인으로 리다이렉트')
         if (isMounted) {
           setLoading(false)
-          router.replace("/auth/login")
+          router.replace("/auth/login?redirect=/community/profile")
         }
 
-      } catch (error) {
-        console.error('[Profile] 치명적 에러:', error)
+      } catch (error: any) {
+        console.error('[Profile] 인증 에러:', error)
         if (isMounted) {
           setSessionError("인증 확인 중 오류가 발생했습니다.")
           setLoading(false)
