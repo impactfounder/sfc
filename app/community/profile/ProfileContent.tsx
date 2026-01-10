@@ -185,16 +185,6 @@ export default function ProfileContent() {
     setMounted(true)
   }, [])
 
-  // 로딩 상태 안전장치: 15초가 지나면 에러 메시지 표시 (시간 연장)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loading && !user) {
-        setSessionError('로딩 시간이 너무 오래 걸립니다.')
-        setLoading(false)
-      }
-    }, 15000)
-    return () => clearTimeout(timer)
-  }, [loading, user])
 
   // 통합된 인증 및 데이터 로딩 로직
   useEffect(() => {
@@ -359,55 +349,53 @@ export default function ProfileContent() {
       loadListData(currentUser.id)
     }
 
-    // ------------------------------------------------------------------
-    // ROBUST AUTH INITIALIZATION (NO SINGLETON, EXPLICIT TIMEOUT)
-    // ------------------------------------------------------------------
+    // ★ 핵심 수정: Promise.race 및 타임아웃 제거, onAuthStateChange 활용
     const initAuth = async () => {
-      // 1. Use Singleton Client
-      const authClient = createClient()
-
-      // 2. Race Condition implementation
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Auth check timed out")), 15000)
-      )
-
       try {
-        // Race!
-        // getSession() 대신 getUser() 사용: 서버에 직접 검증 요청하여 로컬 스토리지 행(hang) 이슈 회피
-        const result = await Promise.race([
-          authClient.auth.getUser(),
-          timeoutPromise
-        ]) as { data: { user: User | null }, error: any }
+        // 1. 현재 세션 상태 확인 (가장 빠름)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-        const { data: { user }, error } = result
-
-        if (!isMounted) return
-
-        if (error || !user) {
-          console.log("No valid user. Redirecting to login.")
-          setLoading(false)
-          router.push("/auth/login")
-          return
+        if (sessionError) {
+          throw sessionError
         }
 
-        // 성공!
-        await loadUserData(user)
-
-      } catch (e) {
-        // 타임아웃 또는 기타 에러
-        console.error("Auth Exception:", e)
-
+        if (session?.user) {
+          // 세션이 유효하면 바로 데이터 로드
+          await loadUserData(session.user)
+        } else {
+          // 세션이 없으면 로그인 페이지로 이동
+          if (isMounted) {
+            router.replace("/auth/login")
+          }
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error)
         if (isMounted) {
-          setSessionError("인증 정보를 확인하는 데 실패했습니다. 다시 시도해주세요.")
+          setSessionError("인증 정보를 불러오는 중 오류가 발생했습니다.")
           setLoading(false)
         }
       }
     }
 
+    // 초기화 실행
     initAuth()
+
+    // 2. 인증 상태 변경 감지 (세션 만료 등 대응)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserData(session.user)
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
+        router.replace("/auth/login")
+      }
+    })
 
     return () => {
       isMounted = false
+      subscription.unsubscribe()
     }
   }, [router])
 
