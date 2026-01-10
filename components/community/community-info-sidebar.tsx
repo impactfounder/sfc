@@ -156,122 +156,106 @@ export function CommunityInfoSidebar({ communityName, userId }: CommunityInfoSid
       const currentUser = userId || null
       setCurrentUserId(currentUser)
 
-      // 멤버 수 조회 (fetch API 사용)
-      let memberCount = 0
-      try {
-        const memberCountRes = await fetch(
+      // 병렬로 모든 데이터 조회 (성능 최적화)
+      const fetchHeaders = {
+        'apikey': supabaseKey!,
+        'Authorization': `Bearer ${supabaseKey}`,
+      }
+
+      // 기본 병렬 요청 배열
+      const parallelRequests: Promise<any>[] = [
+        // 1. 멤버 수 조회
+        fetch(
           `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&select=id`,
-          {
-            headers: {
-              'apikey': supabaseKey!,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'count=exact',
-            },
-          }
+          { headers: { ...fetchHeaders, 'Prefer': 'count=exact' } }
+        ),
+        // 2. 운영자 목록 조회
+        fetch(
+          `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&role=in.(owner,admin)&select=role,profiles:user_id(id,full_name,avatar_url)`,
+          { headers: fetchHeaders }
+        ),
+        // 3. 생성자 정보 조회 (항상 조회, 나중에 필요 여부 판단)
+        communityData.created_by
+          ? fetch(
+              `${supabaseUrl}/rest/v1/profiles?id=eq.${communityData.created_by}&select=id,full_name,avatar_url`,
+              { headers: fetchHeaders }
+            )
+          : Promise.resolve(null),
+      ]
+
+      // 4. 현재 유저의 멤버십 상태 조회 (로그인한 경우)
+      if (currentUser && communityData.created_by !== currentUser) {
+        parallelRequests.push(
+          fetch(
+            `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${currentUser}&select=role`,
+            { headers: fetchHeaders }
+          )
         )
+      }
+
+      // 모든 요청 병렬 실행
+      const results = await Promise.all(parallelRequests)
+      const [memberCountRes, modsRes, creatorRes, membershipRes] = results
+
+      // 멤버 수 파싱
+      let memberCount = 0
+      if (memberCountRes) {
         const countHeader = memberCountRes.headers.get('content-range')
         if (countHeader) {
           const match = countHeader.match(/\/(\d+)$/)
           if (match) memberCount = parseInt(match[1], 10)
         }
-      } catch (err) {
-        // Silent fail
       }
 
-      // 운영자 목록 조회 (fetch API 사용)
+      // 운영자 목록 파싱
       let moderatorsData: any[] = []
-      try {
-        const modsRes = await fetch(
-          `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&role=in.(owner,admin)&select=role,profiles:user_id(id,full_name,avatar_url)`,
-          {
-            headers: {
-              'apikey': supabaseKey!,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
-        )
-        if (modsRes.ok) {
-          moderatorsData = await modsRes.json()
-        }
-      } catch (err) {
-        // Silent fail
+      if (modsRes?.ok) {
+        moderatorsData = await modsRes.json()
       }
 
-      // 커뮤니티 생성자가 운영자 목록에 없으면 추가
-      if (communityData.created_by) {
+      // 생성자가 운영자 목록에 없으면 추가
+      if (communityData.created_by && creatorRes?.ok) {
         const creatorInList = moderatorsData.some(
           (m: any) => m.profiles?.id === communityData.created_by
         )
         if (!creatorInList) {
-          // 생성자 정보 조회
-          try {
-            const creatorRes = await fetch(
-              `${supabaseUrl}/rest/v1/profiles?id=eq.${communityData.created_by}&select=id,full_name,avatar_url`,
-              {
-                headers: {
-                  'apikey': supabaseKey!,
-                  'Authorization': `Bearer ${supabaseKey}`,
-                },
-              }
-            )
-            if (creatorRes.ok) {
-              const creatorData = await creatorRes.json()
-              if (creatorData.length > 0) {
-                moderatorsData.unshift({
-                  role: 'owner',
-                  profiles: creatorData[0]
-                })
-              }
-            }
-          } catch (err) {
-            // Silent fail
+          const creatorData = await creatorRes.json()
+          if (creatorData.length > 0) {
+            moderatorsData.unshift({
+              role: 'owner',
+              profiles: creatorData[0]
+            })
           }
         }
       }
 
+      // 멤버십 상태 결정
       if (currentUser) {
         if (communityData.created_by === currentUser) {
           setMembershipStatus("owner")
-        } else {
-          try {
-            const membershipRes = await fetch(
-              `${supabaseUrl}/rest/v1/community_members?community_id=eq.${communityData.id}&user_id=eq.${currentUser}&select=role`,
-              {
-                headers: {
-                  'apikey': supabaseKey!,
-                  'Authorization': `Bearer ${supabaseKey}`,
-                },
-              }
-            )
-            if (membershipRes.ok) {
-              const membershipData = await membershipRes.json()
-              if (membershipData.length > 0) {
-                const role = membershipData[0].role as MembershipStatus
-                // member role은 "member"로 유지
-                if (role === "owner" || role === "admin") {
-                  setMembershipStatus(role)
-                } else {
-                  setMembershipStatus("member")
-                }
-              } else {
-                // 가입 신청 상태 확인
-                const joinReqRes = await fetch(
-                  `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${currentUser}&status=eq.pending&select=status`,
-                  {
-                    headers: {
-                      'apikey': supabaseKey!,
-                      'Authorization': `Bearer ${supabaseKey}`,
-                    },
-                  }
-                )
-                if (joinReqRes.ok) {
-                  const joinReqData = await joinReqRes.json()
-                  setMembershipStatus(joinReqData.length > 0 ? "pending" : "none")
-                }
-              }
+        } else if (membershipRes?.ok) {
+          const membershipData = await membershipRes.json()
+          if (membershipData.length > 0) {
+            const role = membershipData[0].role as MembershipStatus
+            if (role === "owner" || role === "admin") {
+              setMembershipStatus(role)
+            } else {
+              setMembershipStatus("member")
             }
-          } catch (err) {
-            // Silent fail
+          } else {
+            // 멤버가 아닌 경우: 가입 신청 상태 확인 (추가 요청 필요)
+            try {
+              const joinReqRes = await fetch(
+                `${supabaseUrl}/rest/v1/community_join_requests?community_id=eq.${communityData.id}&user_id=eq.${currentUser}&status=eq.pending&select=status`,
+                { headers: fetchHeaders }
+              )
+              if (joinReqRes.ok) {
+                const joinReqData = await joinReqRes.json()
+                setMembershipStatus(joinReqData.length > 0 ? "pending" : "none")
+              }
+            } catch (err) {
+              setMembershipStatus("none")
+            }
           }
         }
       }

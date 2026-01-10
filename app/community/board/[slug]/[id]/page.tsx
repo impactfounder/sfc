@@ -83,32 +83,29 @@ export default async function BoardPostDetailPage({
   const actualCommentsCount = countTree(comments)
 
   return (
-    <div className="w-full flex flex-col gap-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/community/board/${slug}`}
-          className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-            <ChevronLeft className="h-4 w-4" />
-          </div>
-          {boardName} 목록
-        </Link>
-        {(isAuthor || isUserAdmin) && (
-          <PostActions
-            postId={post.id}
-            isAuthor={isAuthor}
-            isAdmin={isUserAdmin}
-            isMaster={isMaster}
-            slug={slug}
-            redirectUrl={`/community/board/${slug}`}
-          />
-        )}
-      </div>
-
+    <div className="w-full">
       <Card className="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden">
-        <CardContent className="p-6 md:p-8">
+        <CardContent className="px-6 md:px-8 pt-3 pb-6 md:pb-8">
+          {/* 헤더 - 뒤로가기 + 액션 버튼 */}
+          <div className="flex items-center justify-between mb-6">
+            <Link
+              href={`/community/board/${slug}`}
+              className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {boardName} 목록
+            </Link>
+            {(isAuthor || isUserAdmin) && (
+              <PostActions
+                postId={post.id}
+                isAuthor={isAuthor}
+                isAdmin={isUserAdmin}
+                isMaster={isMaster}
+                slug={slug}
+                redirectUrl={`/community/board/${slug}`}
+              />
+            )}
+          </div>
           {/* 게시판 태그 (자유게시판, 반골, 하이토크 제외) */}
           {dbSlug !== "free-board" && dbSlug !== "vangol" && dbSlug !== "hightalk" && (
             <div className="mb-4">
@@ -119,7 +116,7 @@ export default async function BoardPostDetailPage({
           )}
 
           {/* 작성자 정보 */}
-          <div className="mb-6 flex items-center gap-3">
+          <div className="mb-5 flex items-center gap-3">
             <Avatar className="h-10 w-10 border border-slate-100">
               <AvatarImage src={post.profiles?.avatar_url || undefined} />
               <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">

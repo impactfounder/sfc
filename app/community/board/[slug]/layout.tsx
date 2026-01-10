@@ -56,21 +56,31 @@ export default async function CommunityBoardLayout({
     communityName = categoryResult.data?.name || null
     userId = sessionResult.data.session?.user?.id || null
 
-    // board_categories에 없으면 communities 테이블에서 직접 찾기
+    // board_categories에 없으면 communities 테이블에서 slug로 직접 찾기
     if (!communityName) {
-      // slug로 communities 테이블에서 이름 찾기 (slug를 name에서 생성했으므로 역추적)
-      const { data: communities } = await supabase
+      // slug 컬럼이 있으면 직접 조회, 없으면 name으로 조회
+      const { data: communityBySlug } = await supabase
         .from("communities")
         .select("name")
+        .or(`slug.eq.${dbSlug},slug.eq.${slug}`)
+        .limit(1)
+        .maybeSingle()
 
-      // slug와 일치하는 커뮤니티 찾기
-      const matchedCommunity = communities?.find((c) => {
-        const generatedSlug = c.name.trim().toLowerCase().replace(/\s+/g, '-')
-        return generatedSlug === dbSlug || generatedSlug === slug
-      })
+      if (communityBySlug) {
+        communityName = communityBySlug.name
+      } else {
+        // slug 컬럼이 없는 경우: name을 slug화해서 비교 (ilike 사용)
+        // 예: "반골" -> slug "반골", "Weekly Vibe" -> slug "weekly-vibe"
+        const { data: communityByName } = await supabase
+          .from("communities")
+          .select("name")
+          .ilike("name", dbSlug.replace(/-/g, ' '))
+          .limit(1)
+          .maybeSingle()
 
-      if (matchedCommunity) {
-        communityName = matchedCommunity.name
+        if (communityByName) {
+          communityName = communityByName.name
+        }
       }
     }
 
