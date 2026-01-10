@@ -25,6 +25,7 @@ import type { VisibleBadge, Badge as BadgeType, UserBadgeWithBadge } from "@/lib
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { MapPin } from "lucide-react"
+import { createBrowserClient } from "@supabase/ssr"
 
 type TabType = "posts" | "created_events" | "participated_events"
 
@@ -372,19 +373,24 @@ export default function ProfileContent() {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+      // 배포 환경 디버깅용 (민감 정보 마스킹)
+      const maskedUrl = supabaseUrl ? `${supabaseUrl.slice(0, 10)}...` : 'undefined'
+      const maskedKey = supabaseKey ? `${supabaseKey.slice(0, 5)}...` : 'undefined'
+      console.log(`Debug Auth: URL=${maskedUrl}, Key=${maskedKey}`)
+
       if (!supabaseUrl || !supabaseKey) {
+        console.error("CRITICAL: Missing Supabase Env Vars")
         setSessionError("환경 변수 설정 오류")
         setLoading(false)
         return
       }
 
-      // 동적 import로 순환 참조 회피 및 fresh instance 생성
-      const { createBrowserClient } = await import("@supabase/ssr")
+      // 정적 import 사용으로 변경 (번들링 이슈 방지)
       const freshSupabase = createBrowserClient(supabaseUrl, supabaseKey)
 
       // 2. Race Condition implementation
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Auth check timed out")), 7000)
+        setTimeout(() => reject(new Error("Auth check timed out")), 15000)
       )
 
       try {
