@@ -99,12 +99,16 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
     async function loadCommunities(userId: string) {
       if (!isMounted) return
 
+      console.log("[Sidebar] loadCommunities 시작, userId:", userId)
+
       try {
         // Supabase 클라이언트를 사용하여 직접 쿼리
         const { data: memberships, error: membershipsError } = await supabase
           .from("community_members")
           .select("community_id")
           .eq("user_id", userId)
+
+        console.log("[Sidebar] memberships 결과:", memberships, "에러:", membershipsError)
 
         if (membershipsError) {
           console.error("[Sidebar] memberships error:", membershipsError)
@@ -115,6 +119,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 
         if (memberships && memberships.length > 0) {
           const communityIds = memberships.map((m) => m.community_id)
+          console.log("[Sidebar] communityIds:", communityIds)
 
           // communities 조회
           const { data: communities, error: communitiesError } = await supabase
@@ -151,11 +156,16 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
               }
             })
 
+            console.log("[Sidebar] 최종 communityList:", communityList)
+
             if (isMounted) {
               setJoinedCommunities(communityList)
               setCachedCommunities(communityList) // 캐시에 저장
+              console.log("[Sidebar] state 업데이트 완료")
             }
           }
+        } else {
+          console.log("[Sidebar] 가입한 커뮤니티 없음")
         }
       } catch (error) {
         console.error("[Sidebar] loadCommunities error:", error)
@@ -166,8 +176,11 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       if (loadingRef.current) return
       loadingRef.current = true
 
+      console.log("[Sidebar] initLoad 시작")
+
       try {
         const { data: { session } } = await supabase.auth.getSession()
+        console.log("[Sidebar] session:", session?.user?.id)
 
         if (session?.user && isMounted) {
           // 로그인 상태에서만 캐시 로드 (hydration 이후)
