@@ -449,6 +449,24 @@ export default function ProfileContent() {
     }
   }
 
+  // 강력 초기화 함수 (배포 환경 디버깅용)
+  const handleResetAuth = () => {
+    if (confirm("로그인 정보를 초기화하고 다시 로그인하시겠습니까?")) {
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+        // 쿠키도 가능한 범위에서 삭제 시도
+        document.cookie.split(";").forEach(function (c) {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        window.location.href = "/auth/login"
+      } catch (e) {
+        console.error("Reset failed", e)
+        window.location.href = "/auth/login"
+      }
+    }
+  }
+
   // 서버/클라이언트 hydration 일치를 위해 mounted 전에는 로딩 UI 표시
   if (!mounted || loading) {
     return (
@@ -476,6 +494,12 @@ export default function ProfileContent() {
               className="bg-slate-900 hover:bg-slate-800 text-white"
             >
               다시 시도
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleResetAuth}
+            >
+              초기화 및 재로그인
             </Button>
             <Button
               variant="outline"
