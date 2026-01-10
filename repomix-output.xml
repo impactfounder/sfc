@@ -48365,6 +48365,46 @@ export function HeroSectionStatic() {
 }
 </file>
 
+<file path=".claude/settings.local.json">
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(npm run build:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx supabase db query:*)",
+      "Bash(git checkout:*)",
+      "Bash(cat:*)",
+      "Bash(git config:*)",
+      "Bash(git remote:*)",
+      "Bash(curl:*)",
+      "Bash(git diff:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(git reset:*)",
+      "Bash(timeout:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git -C c:/Users/USER-PC/sfc status:*)",
+      "Bash(git -C c:/Users/USER-PC/sfc add app/layout.tsx app/page.tsx middleware.ts)",
+      "Bash(git -C c:/Users/USER-PC/sfc commit -m \"$\\(cat <<''EOF''\nperf: optimize page load performance\n\n- Change GTM script strategy from beforeInteractive to afterInteractive\n- Replace HeroSectionStatic with HeroSectionContainer \\(server-side auth\\)\n- Optimize middleware to use getSession\\(\\) instead of getUser\\(\\) for public routes\n- Pass userRole from server to DashboardLayout for immediate admin menu display\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C c:/Users/USER-PC/sfc push)",
+      "Bash(npx supabase secrets unset:*)",
+      "Bash(npx supabase:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
+</file>
+
 <file path="app/e/[id]/manage/page.tsx">
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from 'next/navigation';
@@ -49098,46 +49138,6 @@ export function createClient() {
 // 로그아웃 시 인스턴스 초기화용
 export function resetClient() {
   supabaseInstance = null;
-}
-</file>
-
-<file path=".claude/settings.local.json">
-{
-  "permissions": {
-    "allow": [
-      "Bash(rm:*)",
-      "Bash(rmdir:*)",
-      "Bash(npm run build:*)",
-      "Bash(tasklist:*)",
-      "Bash(findstr:*)",
-      "Bash(netstat:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(npx supabase db query:*)",
-      "Bash(git checkout:*)",
-      "Bash(cat:*)",
-      "Bash(git config:*)",
-      "Bash(git remote:*)",
-      "Bash(curl:*)",
-      "Bash(git diff:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npm run dev:*)",
-      "Bash(taskkill:*)",
-      "Bash(git reset:*)",
-      "Bash(timeout:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(git -C c:/Users/USER-PC/sfc status:*)",
-      "Bash(git -C c:/Users/USER-PC/sfc add app/layout.tsx app/page.tsx middleware.ts)",
-      "Bash(git -C c:/Users/USER-PC/sfc commit -m \"$\\(cat <<''EOF''\nperf: optimize page load performance\n\n- Change GTM script strategy from beforeInteractive to afterInteractive\n- Replace HeroSectionStatic with HeroSectionContainer \\(server-side auth\\)\n- Optimize middleware to use getSession\\(\\) instead of getUser\\(\\) for public routes\n- Pass userRole from server to DashboardLayout for immediate admin menu display\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git -C c:/Users/USER-PC/sfc push)",
-      "Bash(npx supabase secrets unset:*)",
-      "Bash(npx supabase:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
 }
 </file>
 
@@ -50081,6 +50081,102 @@ function sanitizePreview(html: string, stripImages = false): string {
     safe = safe.replace(/<img[^>]*>/gi, "")
   }
   return safe
+}
+</file>
+
+<file path="app/auth/callback/route.ts">
+import { type NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+export async function GET(request: NextRequest) {
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
+  const next = requestUrl.searchParams.get("next") ?? "/";
+
+  // 1. 배포 환경(프로덕션)이면 무조건 https://seoulfounders.club 사용
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const origin = isDevelopment ? requestUrl.origin : "https://seoulfounders.club";
+
+  // 2. 리다이렉트 응답 객체 미리 생성
+  const response = NextResponse.redirect(`${origin}${next}`);
+
+  if (code) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // ✅ 핵심: response 객체에 쿠키 설정 + options 그대로 전달
+              // Supabase가 httpOnly/Secure 등을 자동 관리하므로 덮어쓰지 않음
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error) {
+
+      // [신규 가입 알림 로직]
+      try {
+        const user = data.user;
+        if (user) {
+          const adminSupabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { cookies: { getAll: () => [], setAll: () => {} } }
+          );
+
+          const { data: profile } = await adminSupabase
+            .from("profiles")
+            .select("last_login_date, full_name, email")
+            .eq("id", user.id)
+            .single();
+
+          if (profile && !profile.last_login_date) {
+            const { data: masters } = await adminSupabase
+              .from("profiles")
+              .select("id")
+              .eq("role", "master");
+
+            if (masters && masters.length > 0) {
+              const userName = profile.full_name || profile.email?.split('@')[0] || "알 수 없음";
+              const notifications = masters.map(master => ({
+                user_id: master.id,
+                type: "new_member",
+                title: "새로운 멤버 가입",
+                message: `새로운 멤버 '${userName}'님이 가입했습니다.`,
+                related_post_id: null,
+                related_event_id: null,
+                actor_id: user.id,
+                is_read: false
+              }));
+              await adminSupabase.from("notifications").insert(notifications);
+            }
+          }
+
+          await adminSupabase
+            .from("profiles")
+            .update({ last_login_date: new Date().toISOString() })
+            .eq("id", user.id);
+        }
+      } catch (err) {
+        console.error("[auth/callback] Notification error:", err);
+      }
+
+      // 3. 쿠키가 담긴 response 반환
+      return response;
+    }
+  }
+
+  return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
 }
 </file>
 
@@ -51255,102 +51351,6 @@ export function EventDetailHero(props: Props) {
       </Card>
     </div>
   )
-}
-</file>
-
-<file path="app/auth/callback/route.ts">
-import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-
-export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/";
-
-  // 1. 배포 환경(프로덕션)이면 무조건 https://seoulfounders.club 사용
-  const isDevelopment = process.env.NODE_ENV === "development";
-  const origin = isDevelopment ? requestUrl.origin : "https://seoulfounders.club";
-
-  // 2. 리다이렉트 응답 객체 미리 생성
-  const response = NextResponse.redirect(`${origin}${next}`);
-
-  if (code) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              // ✅ 핵심: response 객체에 쿠키 설정 + options 그대로 전달
-              // Supabase가 httpOnly/Secure 등을 자동 관리하므로 덮어쓰지 않음
-              response.cookies.set(name, value, options);
-            });
-          },
-        },
-      }
-    );
-
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-
-      // [신규 가입 알림 로직]
-      try {
-        const user = data.user;
-        if (user) {
-          const adminSupabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            { cookies: { getAll: () => [], setAll: () => {} } }
-          );
-
-          const { data: profile } = await adminSupabase
-            .from("profiles")
-            .select("last_login_date, full_name, email")
-            .eq("id", user.id)
-            .single();
-
-          if (profile && !profile.last_login_date) {
-            const { data: masters } = await adminSupabase
-              .from("profiles")
-              .select("id")
-              .eq("role", "master");
-
-            if (masters && masters.length > 0) {
-              const userName = profile.full_name || profile.email?.split('@')[0] || "알 수 없음";
-              const notifications = masters.map(master => ({
-                user_id: master.id,
-                type: "new_member",
-                title: "새로운 멤버 가입",
-                message: `새로운 멤버 '${userName}'님이 가입했습니다.`,
-                related_post_id: null,
-                related_event_id: null,
-                actor_id: user.id,
-                is_read: false
-              }));
-              await adminSupabase.from("notifications").insert(notifications);
-            }
-          }
-
-          await adminSupabase
-            .from("profiles")
-            .update({ last_login_date: new Date().toISOString() })
-            .eq("id", user.id);
-        }
-      } catch (err) {
-        console.error("[auth/callback] Notification error:", err);
-      }
-
-      // 3. 쿠키가 담긴 response 반환
-      return response;
-    }
-  }
-
-  return NextResponse.redirect(`${origin}/auth/login?error=auth_code_error`);
 }
 </file>
 
@@ -53216,7 +53216,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip, Info } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -53390,7 +53390,8 @@ export default function ProfileContent() {
     is_profile_public: false,
   })
 
-
+  // 중복 데이터 로딩 방지용 ref
+  const hasLoadedRef = useRef(false)
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -53402,6 +53403,15 @@ export default function ProfileContent() {
   useEffect(() => {
     const supabase = createClient()
     let isMounted = true
+
+    // [안전장치] 10초 후에도 로딩 중이면 강제 종료
+    const safetyTimerRef = { current: true }
+    const safetyTimer = setTimeout(() => {
+      if (safetyTimerRef.current && isMounted) {
+        console.warn("Safety timer triggered - forcing loading to false")
+        setLoading(false)
+      }
+    }, 10000)
 
     // 리스트 데이터 비동기 로딩 (Fire & Forget)
     // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
@@ -53523,6 +53533,8 @@ export default function ProfileContent() {
       try {
         if (!isMounted) return
 
+        hasLoadedRef.current = true
+        safetyTimerRef.current = false // 정상 로드 시작되면 안전장치 비활성화
         setUser(currentUser)
 
         // 프로필 로드
@@ -53599,18 +53611,20 @@ export default function ProfileContent() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'SIGNED_IN' && session?.user && !hasLoadedRef.current) {
         setLoading(true)
         await loadUserData(session.user)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
+        hasLoadedRef.current = false
         router.replace("/auth/login")
       }
     })
 
     return () => {
       isMounted = false
+      clearTimeout(safetyTimer)
       subscription.unsubscribe()
     }
   }, [router])

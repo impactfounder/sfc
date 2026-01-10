@@ -196,7 +196,8 @@ export default function ProfileContent() {
     const safetyTimerRef = { current: true }
     const safetyTimer = setTimeout(() => {
       if (safetyTimerRef.current && isMounted) {
-        console.warn("Safety timer triggered - forcing loading to false")
+        console.warn("[Profile] 안전장치 타이머 발동 - 10초 초과")
+        setSessionError("연결 시간이 초과되었습니다. 새로고침을 시도해주세요.")
         setLoading(false)
       }
     }, 10000)
@@ -364,27 +365,45 @@ export default function ProfileContent() {
     // ★ 핵심 수정: Promise.race 및 타임아웃 제거, getSession + getUser fallback
     const initAuth = async () => {
       try {
+        console.log('[Profile] 인증 확인 시작...')
+
         // 1. 현재 세션 상태 확인 (가장 빠름)
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log('[Profile] getSession 결과:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          error: sessionError?.message
+        })
 
         if (session?.user) {
-          // 세션이 유효하면 바로 데이터 로드
+          console.log('[Profile] 세션에서 유저 발견, 데이터 로드 시작')
           await loadUserData(session.user)
-        } else {
-          // 2. 세션이 없으면 getUser로 재확인 (fallback)
-          const { data: { user }, error } = await supabase.auth.getUser()
-
-          if (error || !user) {
-            console.log("No authenticated user, redirecting...")
-            if (isMounted) {
-              router.replace("/auth/login")
-            }
-          } else {
-            await loadUserData(user)
-          }
+          return
         }
+
+        // 2. 세션이 없으면 getUser로 재확인 (fallback)
+        console.log('[Profile] 세션 없음, getUser 시도...')
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        console.log('[Profile] getUser 결과:', {
+          hasUser: !!user,
+          error: userError?.message
+        })
+
+        if (user) {
+          console.log('[Profile] getUser에서 유저 발견, 데이터 로드 시작')
+          await loadUserData(user)
+          return
+        }
+
+        // 3. 둘 다 실패 - 로그인 필요
+        console.log('[Profile] 인증 실패, 로그인 페이지로 이동')
+        if (isMounted) {
+          setLoading(false) // 리다이렉트 전에 로딩 해제
+          router.replace("/auth/login")
+        }
+
       } catch (error) {
-        console.error("Auth initialization error:", error)
+        console.error("[Profile] Auth 초기화 에러:", error)
         if (isMounted) {
           setSessionError("인증 확인 중 오류가 발생했습니다.")
           setLoading(false)
