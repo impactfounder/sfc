@@ -309,8 +309,23 @@ export default function ProfileContent() {
       try {
         setLoading(true)
 
-        // 1. 세션 확인 (로컬 캐시 확인이라 빠름)
-        const { data: { session } } = await supabase.auth.getSession()
+        // 1. 세션 확인 - 타임아웃 추가 (5초)
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((_, reject) =>
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        )
+
+        let session = null
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise])
+          session = result.data.session
+        } catch (e) {
+          // 타임아웃 시 로그인 페이지로
+          if (!isMounted) return
+          setLoading(false)
+          router.push("/auth/login")
+          return
+        }
 
         if (!isMounted) return
 
