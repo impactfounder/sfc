@@ -1150,7 +1150,7 @@ export function ProfileClient({
                         if (isSelected) {
                           setEditForm({
                             ...editForm,
-                            member_type: editForm.member_type.filter(t => t !== type)
+                            member_type: editForm.member_type.filter((t: string) => t !== type)
                           })
                         } else if (canSelect) {
                           setEditForm({
