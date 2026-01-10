@@ -183,15 +183,16 @@ export default function ProfileContent() {
     setMounted(true)
   }, [])
 
-  // 로딩 상태 안전장치: 5초가 지나면 강제로 로딩을 끝냄
+  // 로딩 상태 안전장치: 10초가 지나면 에러 메시지 표시
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (loading) {
+      if (loading && !user) {
+        setSessionError('로딩 시간이 너무 오래 걸립니다. 페이지를 새로고침해주세요.')
         setLoading(false)
       }
-    }, 5000)
+    }, 10000)
     return () => clearTimeout(timer)
-  }, [loading])
+  }, [loading, user])
 
   // 통합된 인증 및 데이터 로딩 로직
   useEffect(() => {
@@ -309,11 +310,14 @@ export default function ProfileContent() {
         setLoading(true)
 
         // 1. 세션 확인 (로컬 캐시 확인이라 빠름)
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        console.log('[Profile] Session check:', { session: !!session, user: session?.user?.email, error: sessionError })
 
         if (!isMounted) return
 
         if (!session?.user) {
+          console.log('[Profile] No session, redirecting to login')
           setLoading(false)
           router.push("/auth/login")
           return
