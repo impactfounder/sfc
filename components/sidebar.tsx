@@ -7,6 +7,7 @@ import { Calendar, Shield, Megaphone, MessageSquare, Home, Users, Lightbulb, Boo
 import { useRef, useEffect, useState } from "react"
 import { usePrefetchPosts } from "@/lib/hooks/usePrefetchPosts"
 import { createClient } from "@/lib/supabase/client"
+import { getJoinedCommunities } from "@/lib/actions/user"
 
 interface SidebarProps {
   userRole?: string | null
@@ -96,74 +97,25 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
     const supabase = createClient()
     let isMounted = true
 
-    async function loadCommunities(userId: string) {
+    async function loadCommunities() {
       if (!isMounted) return
 
-      console.log("[Sidebar] loadCommunities 시작, userId:", userId)
+      console.log("[Sidebar] loadCommunities 시작 (서버 액션 사용)")
 
       try {
-        // Supabase 클라이언트를 사용하여 직접 쿼리
-        const { data: memberships, error: membershipsError } = await supabase
-          .from("community_members")
-          .select("community_id")
-          .eq("user_id", userId)
+        // 서버 액션을 사용하여 가입한 커뮤니티 조회
+        const result = await getJoinedCommunities()
 
-        console.log("[Sidebar] memberships 결과:", memberships, "에러:", membershipsError)
-
-        if (membershipsError) {
-          console.error("[Sidebar] memberships error:", membershipsError)
-          return
-        }
+        console.log("[Sidebar] 서버 액션 결과:", result)
 
         if (!isMounted) return
 
-        if (memberships && memberships.length > 0) {
-          const communityIds = memberships.map((m) => m.community_id)
-          console.log("[Sidebar] communityIds:", communityIds)
-
-          // communities 조회
-          const { data: communities, error: communitiesError } = await supabase
-            .from("communities")
-            .select("id, name")
-            .in("id", communityIds)
-
-          if (communitiesError) {
-            console.error("[Sidebar] communities error:", communitiesError)
-            return
-          }
-
-          if (!isMounted) return
-
-          if (communities && communities.length > 0) {
-            const communityNames = communities.map((c) => c.name)
-
-            // board_categories 조회
-            const { data: categories, error: categoriesError } = await supabase
-              .from("board_categories")
-              .select("name, slug")
-              .in("name", communityNames)
-
-            if (categoriesError) {
-              console.error("[Sidebar] categories error:", categoriesError)
-            }
-
-            const communityList: JoinedCommunity[] = communities.map((community) => {
-              const category = categories?.find((c) => c.name === community.name)
-              return {
-                id: community.id,
-                name: community.name,
-                slug: category?.slug || community.name.toLowerCase().replace(/\s+/g, '-'),
-              }
-            })
-
-            console.log("[Sidebar] 최종 communityList:", communityList)
-
-            if (isMounted) {
-              setJoinedCommunities(communityList)
-              setCachedCommunities(communityList) // 캐시에 저장
-              console.log("[Sidebar] state 업데이트 완료")
-            }
-          }
+        if (result.success && result.data.length > 0) {
+          setJoinedCommunities(result.data)
+          setCachedCommunities(result.data)
+          console.log("[Sidebar] state 업데이트 완료")
+        } else if (!result.success) {
+          console.error("[Sidebar] 서버 액션 에러:", result.error)
         } else {
           console.log("[Sidebar] 가입한 커뮤니티 없음")
         }
@@ -203,7 +155,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           }
 
           // 커뮤니티 로드
-          await loadCommunities(session.user.id)
+          await loadCommunities()
         } else {
           // 로그인하지 않은 경우 캐시와 커뮤니티 목록 초기화
           if (isMounted) {
@@ -237,7 +189,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
         }
 
         // 커뮤니티 로드
-        loadCommunities(session.user.id)
+        loadCommunities()
       } else {
         // 로그아웃 시 커뮤니티 목록 초기화
         if (isMounted) {

@@ -33,6 +33,77 @@ export async function checkDailyLoginPoints() {
   }
 }
 
+/**
+ * 사용자가 가입한 커뮤니티 목록 조회 (서버 액션)
+ */
+export async function getJoinedCommunities() {
+  try {
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, data: [], error: "Unauthorized" }
+    }
+
+    // 멤버십 조회
+    const { data: memberships, error: membershipsError } = await supabase
+      .from("community_members")
+      .select("community_id")
+      .eq("user_id", user.id)
+
+    if (membershipsError) {
+      console.error("[getJoinedCommunities] memberships error:", membershipsError)
+      return { success: false, data: [], error: membershipsError.message }
+    }
+
+    if (!memberships || memberships.length === 0) {
+      return { success: true, data: [] }
+    }
+
+    const communityIds = memberships.map((m) => m.community_id)
+
+    // 커뮤니티 정보 조회
+    const { data: communities, error: communitiesError } = await supabase
+      .from("communities")
+      .select("id, name")
+      .in("id", communityIds)
+
+    if (communitiesError) {
+      console.error("[getJoinedCommunities] communities error:", communitiesError)
+      return { success: false, data: [], error: communitiesError.message }
+    }
+
+    if (!communities || communities.length === 0) {
+      return { success: true, data: [] }
+    }
+
+    const communityNames = communities.map((c) => c.name)
+
+    // board_categories에서 slug 조회
+    const { data: categories } = await supabase
+      .from("board_categories")
+      .select("name, slug")
+      .in("name", communityNames)
+
+    const result = communities.map((community) => {
+      const category = categories?.find((c) => c.name === community.name)
+      return {
+        id: community.id,
+        name: community.name,
+        slug: category?.slug || community.name.toLowerCase().replace(/\s+/g, '-'),
+      }
+    })
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error("[getJoinedCommunities] error:", error)
+    return { success: false, data: [], error: "Failed to get joined communities" }
+  }
+}
+
 export async function updateProfileAvatar(avatarUrl: string) {
   const supabase = await createClient()
 
