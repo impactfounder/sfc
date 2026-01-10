@@ -7,9 +7,9 @@ import { PostActions } from "@/components/post-actions"
 import { EventShareButton } from "@/components/event-share-button"
 import Link from "next/link"
 import { UserBadges } from "@/components/user-badges"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { isMasterAdmin, isAdmin } from "@/lib/utils"
 import { getComments } from "@/lib/actions/comments"
+import { ClickableAvatar } from "@/components/ui/clickable-avatar"
 
 // ISR 캐싱: 60초마다 재검증
 export const revalidate = 60
@@ -117,12 +117,7 @@ export default async function BoardPostDetailPage({
 
           {/* 작성자 정보 */}
           <div className="mb-5 flex items-center gap-3">
-            <Avatar className="h-10 w-10 border border-slate-100">
-              <AvatarImage src={post.profiles?.avatar_url || undefined} />
-              <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
-                {post.profiles?.full_name?.[0] || "U"}
-              </AvatarFallback>
-            </Avatar>
+            <ClickableAvatar profile={post.profiles} badges={authorVisibleBadges} size="md" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-900 text-sm">

@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, ChevronLeft, ExternalLink, FileText, Users } from 'lucide-react';
 import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FloatingActionBar } from "@/components/floating-action-bar";
 import { getReviewsByEvent } from "@/lib/queries/posts";
 import { ReviewModal } from "@/components/reviews/review-modal";
 import { ReviewCard } from "@/components/reviews/review-card";
 import { GoogleMapEmbed } from "@/components/google-map-embed";
 import { EventDetailHero } from "@/components/event-detail-hero";
+import { ClickableAvatar } from "@/components/ui/clickable-avatar";
 
 export default async function EventDetailContent({
   eventId,
@@ -119,6 +119,7 @@ export default async function EventDetailContent({
           event={event}
           hostName={hostName}
           hostAvatar={hostAvatar}
+          hostProfile={hostProfile}
           dateStr={dateStr}
           timeStr={timeStr}
           currentCount={currentCount}
@@ -195,14 +196,15 @@ export default async function EventDetailContent({
                       {attendees.map((attendee: any, index: number) => {
                         const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
                         const name = profile?.full_name || attendee.guest_name || "익명";
-                        const avatarUrl = profile?.avatar_url;
                         return (
-                          <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14 group cursor-default">
-                            <Avatar className="h-14 w-14 border-2 border-white shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:border-slate-200 ring-1 ring-slate-100">
-                              {avatarUrl && <AvatarImage src={avatarUrl} />}
-                              <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">{name[0]}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-xs text-slate-600 truncate w-full text-center font-medium group-hover:text-slate-900 transition-colors">{name}</span>
+                          <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14">
+                            <ClickableAvatar
+                              profile={profile ? { ...profile, full_name: name } : null}
+                              size="xl"
+                              showName
+                              className="flex-col"
+                              nameClassName="text-xs text-slate-600 truncate w-full text-center font-medium"
+                            />
                           </div>
                         );
                       })}

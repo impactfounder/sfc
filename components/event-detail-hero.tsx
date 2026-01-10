@@ -4,16 +4,28 @@ import { useRef, useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Calendar, MapPin, Users, Wallet, ExternalLink, Edit, AlertCircle } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { EventShareButton } from "@/components/event-share-button"
 import { RegisterButton } from "@/components/register-button"
+import { ProfilePopover } from "@/components/ui/profile-popover"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
+
+type HostProfile = {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  bio?: string | null
+  company?: string | null
+  position?: string | null
+  tagline?: string | null
+}
 
 type Props = {
   event: any
   hostName: string
   hostAvatar?: string
+  hostProfile?: HostProfile | null
   dateStr: string
   timeStr: string
   currentCount: number
@@ -43,7 +55,7 @@ function InfoRow({ icon: Icon, value, href }: { icon: any, value: string, href?:
 
 export function EventDetailHero(props: Props) {
   const {
-    event, hostName, hostAvatar, dateStr, timeStr,
+    event, hostName, hostAvatar, hostProfile, dateStr, timeStr,
     currentCount, maxCount, isFull, isPastEvent, isCompleted,
     isCreator, isRegistered, userRegistration, eventId, basePath, userId
   } = props
@@ -227,16 +239,35 @@ export function EventDetailHero(props: Props) {
       {/* 하단: 호스트 정보 */}
       <Card className="border-slate-200 shadow-sm bg-white rounded-2xl">
         <CardContent className="p-4 flex items-center gap-3">
-          <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-            <AvatarImage src={hostAvatar || undefined} />
-            <AvatarFallback className="bg-slate-100 text-slate-600 font-semibold">
-              {hostName[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-slate-500">호스트</span>
-            <span className="text-base font-bold text-slate-900">{hostName}</span>
-          </div>
+          {hostProfile?.id ? (
+            <ProfilePopover profile={hostProfile}>
+              <button className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" type="button">
+                <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                  <AvatarImage src={hostAvatar || undefined} />
+                  <AvatarFallback className="bg-slate-100 text-slate-600 font-semibold">
+                    {hostName[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-medium text-slate-500">호스트</span>
+                  <span className="text-base font-bold text-slate-900 hover:underline">{hostName}</span>
+                </div>
+              </button>
+            </ProfilePopover>
+          ) : (
+            <>
+              <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                <AvatarImage src={hostAvatar || undefined} />
+                <AvatarFallback className="bg-slate-100 text-slate-600 font-semibold">
+                  {hostName[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-slate-500">호스트</span>
+                <span className="text-base font-bold text-slate-900">{hostName}</span>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { CommentNode, createComment, deleteComment } from "@/lib/actions/comments"
 import { cn } from "@/lib/utils"
 import { Trash2 } from "lucide-react"
+import { ProfilePopover } from "@/components/ui/profile-popover"
 
 type ThreadedCommentsProps = {
   postId: string
@@ -69,18 +70,38 @@ function CommentItem({ comment, depth, onReply, userId, onDelete }: { comment: C
   const [showReply, setShowReply] = useState(false)
   const isAuthor = userId && comment.author_id === userId
 
+  const avatarContent = (
+    <Avatar className="h-8 w-8">
+      <AvatarImage src={comment.profiles?.avatar_url || undefined} />
+      <AvatarFallback className="bg-slate-100 text-slate-500 text-xs font-semibold">
+        {comment.profiles?.full_name?.[0] || "U"}
+      </AvatarFallback>
+    </Avatar>
+  )
+
   return (
     <div className={cn("space-y-2", depth > 0 && "border-l border-slate-200 pl-4")}>
       <div className="flex items-start gap-3">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={comment.profiles?.avatar_url || undefined} />
-          <AvatarFallback className="bg-slate-100 text-slate-500 text-xs font-semibold">
-            {comment.profiles?.full_name?.[0] || "U"}
-          </AvatarFallback>
-        </Avatar>
+        {comment.profiles?.id ? (
+          <ProfilePopover profile={comment.profiles}>
+            <button type="button" className="cursor-pointer hover:opacity-80 transition-opacity">
+              {avatarContent}
+            </button>
+          </ProfilePopover>
+        ) : (
+          avatarContent
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="font-semibold text-slate-900 text-sm">{comment.profiles?.full_name || "익명"}</span>
+            {comment.profiles?.id ? (
+              <ProfilePopover profile={comment.profiles}>
+                <button type="button" className="font-semibold text-slate-900 text-sm hover:underline cursor-pointer">
+                  {comment.profiles?.full_name || "익명"}
+                </button>
+              </ProfilePopover>
+            ) : (
+              <span className="font-semibold text-slate-900 text-sm">{comment.profiles?.full_name || "익명"}</span>
+            )}
             <span>{new Date(comment.created_at).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
           </div>
           <p className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">{comment.content}</p>

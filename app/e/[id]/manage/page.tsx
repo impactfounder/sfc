@@ -21,44 +21,50 @@ export default async function ManageEventPage({
   // 짧은 코드인 경우 UUID로 변환
   let eventId = id;
   if (id.length === 6) {
-    const { buildEventQueryFromShortCode } = await import("@/lib/utils/event-url");
-    const query = buildEventQueryFromShortCode(id);
-    if (!query) {
-      notFound();
-    }
+    // URL 파싱 (예: 010194 -> 1월 1일, 접두사 94)
+    const targetMonth = parseInt(id.substring(0, 2), 10);
+    const targetDay = parseInt(id.substring(2, 4), 10);
+    const idSuffix = id.substring(4, 6).toLowerCase();
+    const orderNumber = parseInt(idSuffix, 10); // 순서번호 방식 대비
 
-    const { month, day, orderNumber } = query;
+    // 여러 연도에서 해당 날짜의 이벤트만 조회
     const currentYear = new Date().getFullYear();
-    let allMatchingEvents: any[] = [];
+    const yearsToCheck = [currentYear, currentYear - 1, currentYear + 1];
+    let allDateEvents: any[] = [];
 
-    for (let yearOffset = 0; yearOffset < 10; yearOffset++) {
-      const searchYear = currentYear - yearOffset;
-      const searchDate = new Date(searchYear, month - 1, day);
-      const startOfDay = new Date(searchDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(searchDate);
-      endOfDay.setHours(23, 59, 59, 999);
+    for (const year of yearsToCheck) {
+      const monthStr = String(targetMonth).padStart(2, '0');
+      const dayStr = String(targetDay).padStart(2, '0');
+      const startDate = `${year}-${monthStr}-${dayStr}T00:00:00`;
+      const endDate = `${year}-${monthStr}-${dayStr}T23:59:59`;
 
       const { data: yearEvents } = await supabase
         .from("events")
-        .select("id, event_date, created_at")
-        .gte("event_date", startOfDay.toISOString())
-        .lte("event_date", endOfDay.toISOString())
+        .select("id, event_date")
+        .gte("event_date", startDate)
+        .lte("event_date", endDate)
         .order("created_at", { ascending: true });
 
       if (yearEvents && yearEvents.length > 0) {
-        allMatchingEvents.push(...yearEvents);
+        allDateEvents.push(...yearEvents);
       }
     }
 
-    allMatchingEvents.sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      return dateA - dateB;
+    if (allDateEvents.length === 0) {
+      notFound();
+    }
+
+    // ID 앞 2자리가 일치하는 이벤트 찾기 (우선)
+    const matchedEvent = allDateEvents.find((event: any) => {
+      const eventIdPrefix = event.id.substring(0, 2).toLowerCase();
+      return eventIdPrefix === idSuffix;
     });
 
-    if (allMatchingEvents.length >= orderNumber) {
-      eventId = allMatchingEvents[orderNumber - 1].id;
+    if (matchedEvent) {
+      eventId = matchedEvent.id;
+    } else if (allDateEvents.length >= orderNumber) {
+      // 못 찾았다면 '순서번호' 방식(구버전 URL)으로 한 번 더 찾기
+      eventId = allDateEvents[orderNumber - 1].id;
     } else {
       notFound();
     }
