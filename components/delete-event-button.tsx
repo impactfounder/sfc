@@ -33,12 +33,12 @@ export function DeleteEventButton({ eventId, className, variant = "outline", siz
     setIsDeleting(true)
     try {
       await deleteEvent(eventId)
-      router.push("/e")
-      router.refresh()
+      // 삭제 성공 후 목록 페이지로 이동 (replace로 히스토리에서 현재 페이지 제거)
+      // replace를 사용하면 뒤로가기 시 삭제된 이벤트 페이지로 돌아가지 않음
+      router.replace("/e")
     } catch (error) {
       console.error("Failed to delete event:", error)
       alert("이벤트 삭제에 실패했습니다.")
-    } finally {
       setIsDeleting(false)
       setShowDeleteDialog(false)
     }

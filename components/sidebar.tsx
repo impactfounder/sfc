@@ -93,15 +93,6 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 
   // 클라이언트에서 인증 상태 체크 및 가입한 커뮤니티 로드
   useEffect(() => {
-    // 캐시에서 먼저 로드 (hydration 이후)
-    if (!cacheLoadedRef.current) {
-      cacheLoadedRef.current = true
-      const cached = getCachedCommunities()
-      if (cached.length > 0) {
-        setJoinedCommunities(cached)
-      }
-    }
-
     const supabase = createClient()
     let isMounted = true
 
@@ -194,6 +185,15 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session?.user && isMounted) {
+          // 로그인 상태에서만 캐시 로드 (hydration 이후)
+          if (!cacheLoadedRef.current) {
+            cacheLoadedRef.current = true
+            const cached = getCachedCommunities()
+            if (cached.length > 0) {
+              setJoinedCommunities(cached)
+            }
+          }
+
           // 역할 가져오기
           if (!initialUserRole) {
             const { data: profile } = await supabase
@@ -206,6 +206,12 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
 
           // 커뮤니티 로드
           await loadCommunities(session.user.id)
+        } else {
+          // 로그인하지 않은 경우 캐시와 커뮤니티 목록 초기화
+          if (isMounted) {
+            setJoinedCommunities([])
+            setCachedCommunities([])
+          }
         }
       } catch (error) {
         // Silent fail
