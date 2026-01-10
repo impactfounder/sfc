@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip, Info } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -178,9 +178,6 @@ export default function ProfileContent() {
     is_profile_public: false,
   })
 
-  // 중복 데이터 로딩 방지용 ref
-  const hasLoadedRef = useRef(false)
-
   // 클라이언트 마운트 확인
   useEffect(() => {
     setMounted(true)
@@ -191,16 +188,6 @@ export default function ProfileContent() {
   useEffect(() => {
     const supabase = createClient()
     let isMounted = true
-
-    // [안전장치] 10초 후에도 로딩 중이면 강제 종료
-    const safetyTimerRef = { current: true }
-    const safetyTimer = setTimeout(() => {
-      if (safetyTimerRef.current && isMounted) {
-        console.warn("[Profile] 안전장치 타이머 발동 - 10초 초과")
-        setSessionError("연결 시간이 초과되었습니다. 새로고침을 시도해주세요.")
-        setLoading(false)
-      }
-    }, 10000)
 
     // 리스트 데이터 비동기 로딩 (Fire & Forget)
     // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
@@ -322,8 +309,6 @@ export default function ProfileContent() {
       try {
         if (!isMounted) return
 
-        hasLoadedRef.current = true
-        safetyTimerRef.current = false // 정상 로드 시작되면 안전장치 비활성화
         setUser(currentUser)
 
         // 프로필 로드
@@ -362,48 +347,61 @@ export default function ProfileContent() {
       }
     }
 
-    // ★ 핵심 수정: Promise.race 및 타임아웃 제거, getSession + getUser fallback
+    // ★ 핵심 수정: Promise.race로 타임아웃 강제 적용 (hanging 방지)
     const initAuth = async () => {
+      console.log('[Profile] 인증 확인 시작...')
+
+      // 타임아웃 Promise 생성 함수
+      const createTimeout = (ms: number) => new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT')), ms)
+      })
+
       try {
-        console.log('[Profile] 인증 확인 시작...')
+        // 1. getSession 시도 (5초 타임아웃)
+        let sessionUser = null
+        try {
+          console.log('[Profile] getSession 호출 중...')
+          const result = await Promise.race([
+            supabase.auth.getSession(),
+            createTimeout(5000)
+          ])
+          sessionUser = result.data.session?.user
+          console.log('[Profile] getSession 완료:', !!sessionUser)
+        } catch (e: any) {
+          console.warn('[Profile] getSession 타임아웃/에러:', e.message)
+        }
 
-        // 1. 현재 세션 상태 확인 (가장 빠름)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        console.log('[Profile] getSession 결과:', {
-          hasSession: !!session,
-          hasUser: !!session?.user,
-          error: sessionError?.message
-        })
-
-        if (session?.user) {
-          console.log('[Profile] 세션에서 유저 발견, 데이터 로드 시작')
-          await loadUserData(session.user)
+        if (sessionUser && isMounted) {
+          await loadUserData(sessionUser)
           return
         }
 
-        // 2. 세션이 없으면 getUser로 재확인 (fallback)
-        console.log('[Profile] 세션 없음, getUser 시도...')
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        console.log('[Profile] getUser 결과:', {
-          hasUser: !!user,
-          error: userError?.message
-        })
+        // 2. getUser 시도 (3초 타임아웃)
+        console.log('[Profile] getUser 시도 중...')
+        try {
+          const result = await Promise.race([
+            supabase.auth.getUser(),
+            createTimeout(3000)
+          ])
 
-        if (user) {
-          console.log('[Profile] getUser에서 유저 발견, 데이터 로드 시작')
-          await loadUserData(user)
-          return
+          if (result.data.user && isMounted) {
+            console.log('[Profile] getUser 성공')
+            await loadUserData(result.data.user)
+            return
+          }
+        } catch (e: any) {
+          console.warn('[Profile] getUser 타임아웃/에러:', e.message)
         }
 
-        // 3. 둘 다 실패 - 로그인 필요
-        console.log('[Profile] 인증 실패, 로그인 페이지로 이동')
+        // 3. 둘 다 실패 - 로그인으로
+        console.log('[Profile] 인증 실패, 로그인으로 리다이렉트')
         if (isMounted) {
-          setLoading(false) // 리다이렉트 전에 로딩 해제
+          setLoading(false)
           router.replace("/auth/login")
         }
 
       } catch (error) {
-        console.error("[Profile] Auth 초기화 에러:", error)
+        console.error('[Profile] 치명적 에러:', error)
         if (isMounted) {
           setSessionError("인증 확인 중 오류가 발생했습니다.")
           setLoading(false)
@@ -414,25 +412,8 @@ export default function ProfileContent() {
     // 초기화 실행
     initAuth()
 
-    // 2. 인증 상태 변경 감지 (세션 만료 등 대응)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return
-
-      if (event === 'SIGNED_IN' && session?.user && !hasLoadedRef.current) {
-        setLoading(true)
-        await loadUserData(session.user)
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setProfile(null)
-        hasLoadedRef.current = false
-        router.replace("/auth/login")
-      }
-    })
-
     return () => {
       isMounted = false
-      clearTimeout(safetyTimer)
-      subscription.unsubscribe()
     }
   }, [router])
 
