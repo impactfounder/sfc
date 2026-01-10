@@ -17,15 +17,11 @@ const ProfileContent = dynamic(() => import("./ProfileContent"), {
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false)
 
-  console.log('[ProfilePage] render, mounted:', mounted)
-
   useEffect(() => {
-    console.log('[ProfilePage] useEffect - setting mounted true')
     setMounted(true)
   }, [])
 
   if (!mounted) {
-    console.log('[ProfilePage] returning loading spinner')
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
@@ -33,6 +29,5 @@ export default function ProfilePage() {
     )
   }
 
-  console.log('[ProfilePage] returning ProfileContent')
   return <ProfileContent />
 }

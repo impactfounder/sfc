@@ -310,14 +310,11 @@ export default function ProfileContent() {
         setLoading(true)
 
         // 1. 세션 확인 (로컬 캐시 확인이라 빠름)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-        console.log('[Profile] Session check:', { session: !!session, user: session?.user?.email, error: sessionError })
+        const { data: { session } } = await supabase.auth.getSession()
 
         if (!isMounted) return
 
         if (!session?.user) {
-          console.log('[Profile] No session, redirecting to login')
           setLoading(false)
           router.push("/auth/login")
           return
