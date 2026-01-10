@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, Calendar, Edit3, CalendarDays, Ticket, Medal, Camera, LogOut, FileText, X, Loader2, Paperclip, Info } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -178,7 +178,8 @@ export default function ProfileContent() {
     is_profile_public: false,
   })
 
-
+  // 중복 데이터 로딩 방지용 ref
+  const hasLoadedRef = useRef(false)
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -190,6 +191,15 @@ export default function ProfileContent() {
   useEffect(() => {
     const supabase = createClient()
     let isMounted = true
+
+    // [안전장치] 10초 후에도 로딩 중이면 강제 종료
+    const safetyTimerRef = { current: true }
+    const safetyTimer = setTimeout(() => {
+      if (safetyTimerRef.current && isMounted) {
+        console.warn("Safety timer triggered - forcing loading to false")
+        setLoading(false)
+      }
+    }, 10000)
 
     // 리스트 데이터 비동기 로딩 (Fire & Forget)
     // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
@@ -311,6 +321,8 @@ export default function ProfileContent() {
       try {
         if (!isMounted) return
 
+        hasLoadedRef.current = true
+        safetyTimerRef.current = false // 정상 로드 시작되면 안전장치 비활성화
         setUser(currentUser)
 
         // 프로필 로드
@@ -387,18 +399,20 @@ export default function ProfileContent() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'SIGNED_IN' && session?.user && !hasLoadedRef.current) {
         setLoading(true)
         await loadUserData(session.user)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
+        hasLoadedRef.current = false
         router.replace("/auth/login")
       }
     })
 
     return () => {
       isMounted = false
+      clearTimeout(safetyTimer)
       subscription.unsubscribe()
     }
   }, [router])
