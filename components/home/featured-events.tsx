@@ -10,7 +10,7 @@ type FeaturedEventsProps = {
 
 export function FeaturedEvents({ events }: FeaturedEventsProps) {
   return (
-    <section id="events-section" className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-6 sm:px-6 sm:py-8 space-y-4">
+    <section id="events-section" className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-6 sm:px-6 sm:py-8 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg sm:text-xl font-bold text-slate-900">🔥 다가오는 이벤트</h2>
         <a

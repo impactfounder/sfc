@@ -283,7 +283,7 @@ export default async function EventDetailPage({
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
                   <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
                     <span className="text-3xl">📝</span>
                   </div>
@@ -302,7 +302,7 @@ export default async function EventDetailPage({
         {/* [ROW 1] */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Row 1 - Left (8) */}
-          <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
+          <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full">
             <div className="relative aspect-video w-full bg-slate-100">
               <img
                 src={event.thumbnail_url || "/placeholder.svg"}
@@ -331,7 +331,7 @@ export default async function EventDetailPage({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {/* 날짜 - 모바일에서 한 줄 */}
-                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-xl bg-slate-50 border border-slate-100">
                   <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-white text-slate-900 shadow-sm border border-slate-100">
                     <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
@@ -341,7 +341,7 @@ export default async function EventDetailPage({
                 </div>
 
                 {/* 장소 */}
-                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-xl bg-slate-50 border border-slate-100">
                   <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-white text-slate-900 shadow-sm border border-slate-100">
                     <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
@@ -351,7 +351,7 @@ export default async function EventDetailPage({
                 </div>
 
                 {/* 호스트 */}
-                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center gap-3 p-3 sm:p-5 rounded-xl sm:rounded-xl bg-slate-50 border border-slate-100">
                   <Avatar className="h-10 w-10 sm:h-11 sm:w-11 border border-slate-100 shrink-0">
                     <AvatarImage src={event.profiles?.avatar_url || undefined} />
                     <AvatarFallback className="bg-slate-900 text-white font-bold text-xs sm:text-sm">

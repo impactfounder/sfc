@@ -72,6 +72,7 @@ export default async function EventDetailContent({
   const attendees = attendeesData || [];
   const isRegistered = !!userRegistration;
   const currentCount = attendees.length; // 배열 길이로 참석자 수 계산 (추가 쿼리 불필요)
+
   const maxCount = event.max_participants;
   const isFull = maxCount && currentCount >= maxCount;
   const isCreator = user && event.created_by === user.id;
@@ -145,7 +146,7 @@ export default async function EventDetailContent({
                 <FileText className="w-5 h-5 text-slate-500" />
                 상세 내용
               </h3>
-              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
+              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
                 <CardContent className="p-8">
                   <div
                     className="prose max-w-none"
@@ -189,7 +190,7 @@ export default async function EventDetailContent({
                   {currentCount}명
                 </span>
               </div>
-              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
+              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
                 <CardContent className="p-6">
                   {attendees.length > 0 ? (
                     <div className="flex flex-wrap gap-3">
@@ -222,7 +223,7 @@ export default async function EventDetailContent({
         </div>
 
         {/* 후기 섹션 */}
-        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl">
+        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
              <div>
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -242,7 +243,7 @@ export default async function EventDetailContent({
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-3xl">💬</div>
                 <h3 className="text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
                 <p className="text-slate-500 max-w-sm mx-auto">모임이 끝난 후 첫 번째 후기를 남겨주세요!<br/>여러분의 경험 공유가 큰 힘이 됩니다.</p>

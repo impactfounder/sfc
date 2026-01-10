@@ -108,7 +108,7 @@ export function EventDetailHero(props: Props) {
 
         {/* 좌측: 이미지 (1:1 비율 고정) */}
         <div ref={imageContainerRef} className="w-full">
-          <div className="aspect-square relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+          <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
           {event.thumbnail_url ? (
             <img
               src={event.thumbnail_url}
@@ -149,7 +149,7 @@ export function EventDetailHero(props: Props) {
           className="w-full lg:aspect-square"
           style={imageHeight ? { height: `${imageHeight}px`, aspectRatio: 'unset' } : undefined}
         >
-          <Card className="h-full border-slate-200 bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden">
+          <Card className="h-full border-slate-200 bg-white rounded-xl shadow-sm flex flex-col overflow-hidden">
             <CardContent className="p-5 lg:p-6 flex flex-col h-full justify-between">
 
               {/* 상단 영역 */}
@@ -237,7 +237,7 @@ export function EventDetailHero(props: Props) {
       </div>
 
       {/* 하단: 호스트 정보 */}
-      <Card className="border-slate-200 shadow-sm bg-white rounded-2xl">
+      <Card className="border-slate-200 shadow-sm bg-white rounded-xl">
         <CardContent className="p-4 flex items-center gap-3">
           {hostProfile?.id ? (
             <ProfilePopover profile={hostProfile}>

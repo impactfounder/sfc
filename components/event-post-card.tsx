@@ -36,7 +36,7 @@ export function EventPostCard({ event, href = `/events/${event.id}`, className }
 
   return (
     <Card className={cn("border-0 bg-white shadow-md shadow-slate-900/5 ring-1 ring-slate-900/[0.04] hover:shadow-xl hover:shadow-slate-900/10 hover:ring-slate-900/[0.08] transition-all duration-300", className)}>
-      <div className="w-full aspect-[16/10] bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden rounded-t-2xl">
+      <div className="w-full aspect-[16/10] bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden rounded-t-xl">
         {event.thumbnail_url ? (
           <img
             src={event.thumbnail_url}

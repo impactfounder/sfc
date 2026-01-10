@@ -876,13 +876,13 @@ export function NewEventForm({
       {/* 상세 내용 에디터 */}
       <div className="space-y-3">
         <Label className="text-lg font-semibold text-slate-900">상세 내용</Label>
-        <div className="bg-white border-0 rounded-2xl overflow-hidden">
+        <div className="bg-white border-0 rounded-xl overflow-hidden">
           <RichTextEditor content={description} onChange={setDescription} />
         </div>
       </div>
 
       {/* 참가자 질문 섹션 */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 sm:p-6 space-y-4">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-lg font-semibold text-slate-900">참가자 질문</Label>

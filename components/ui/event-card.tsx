@@ -49,7 +49,7 @@ export default function EventCard({ event, href, className, layout = "card" }: P
   const content = (
     <div
       className={cn(
-        "group relative w-full overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
+        "group relative w-full overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
         className
       )}
     >
