@@ -85,7 +85,7 @@ export default async function BoardPostDetailPage({
   return (
     <div className="w-full">
       <Card className="border border-slate-200 rounded-xl shadow-sm bg-white overflow-hidden">
-        <CardContent className="px-6 md:px-8 pt-3 pb-6 md:pb-8">
+        <CardContent className="px-6 md:px-8 pt-2.5 pb-6 md:pb-8">
           {/* 헤더 - 뒤로가기 + 액션 버튼 */}
           <div className="flex items-center justify-between mb-6">
             <Link

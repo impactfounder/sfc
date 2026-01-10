@@ -4,8 +4,9 @@ import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { CommentNode, createComment } from "@/lib/actions/comments"
+import { CommentNode, createComment, deleteComment } from "@/lib/actions/comments"
 import { cn } from "@/lib/utils"
+import { Trash2 } from "lucide-react"
 
 type ThreadedCommentsProps = {
   postId: string
@@ -40,20 +41,33 @@ export function ThreadedComments({ postId, userId, comments }: ThreadedCommentsP
     }
   }
 
+  const handleDelete = async (commentId: string) => {
+    if (!confirm("댓글을 삭제하시겠습니까?")) return
+    setTree((prev) => removeNode(prev, commentId))
+    try {
+      await deleteComment(commentId)
+    } catch (e) {
+      console.error(e)
+      // 실패 시 페이지 새로고침
+      window.location.reload()
+    }
+  }
+
   return (
     <div className="space-y-4">
       <CommentForm postId={postId} userId={userId} onSubmit={(c) => handleAdd(c, null)} />
       <div className="space-y-4">
         {tree.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} depth={0} onReply={(c) => handleAdd(c, comment.id)} userId={userId} />
+          <CommentItem key={comment.id} comment={comment} depth={0} onReply={(c) => handleAdd(c, comment.id)} userId={userId} onDelete={handleDelete} />
         ))}
       </div>
     </div>
   )
 }
 
-function CommentItem({ comment, depth, onReply, userId }: { comment: CommentNode; depth: number; onReply: (content: string) => void; userId?: string }) {
+function CommentItem({ comment, depth, onReply, userId, onDelete }: { comment: CommentNode; depth: number; onReply: (content: string) => void; userId?: string; onDelete: (commentId: string) => void }) {
   const [showReply, setShowReply] = useState(false)
+  const isAuthor = userId && comment.author_id === userId
 
   return (
     <div className={cn("space-y-2", depth > 0 && "border-l border-slate-200 pl-4")}>
@@ -70,7 +84,7 @@ function CommentItem({ comment, depth, onReply, userId }: { comment: CommentNode
             <span>{new Date(comment.created_at).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
           </div>
           <p className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">{comment.content}</p>
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
@@ -79,6 +93,17 @@ function CommentItem({ comment, depth, onReply, userId }: { comment: CommentNode
             >
               답글 달기
             </Button>
+            {isAuthor && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-xs text-slate-400 hover:text-red-500"
+                onClick={() => onDelete(comment.id)}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                삭제
+              </Button>
+            )}
           </div>
           {showReply && (
             <div className="mt-2">
@@ -95,7 +120,7 @@ function CommentItem({ comment, depth, onReply, userId }: { comment: CommentNode
           {comment.children && comment.children.length > 0 && (
             <div className="mt-3 space-y-3">
               {comment.children.map((child) => (
-                <CommentItem key={child.id} comment={child} depth={depth + 1} onReply={(c) => onReply(c)} userId={userId} />
+                <CommentItem key={child.id} comment={child} depth={depth + 1} onReply={(c) => onReply(c)} userId={userId} onDelete={onDelete} />
               ))}
             </div>
           )}

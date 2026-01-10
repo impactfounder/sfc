@@ -66,6 +66,48 @@ export async function createComment({ postId, content, parentId = null }: Create
   return data as CommentNode
 }
 
+export async function deleteComment(commentId: string): Promise<void> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+
+  // 본인 댓글인지 확인
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("author_id")
+    .eq("id", commentId)
+    .single()
+
+  if (!comment || comment.author_id !== user.id) {
+    throw new Error("삭제 권한이 없습니다.")
+  }
+
+  // 대댓글도 함께 삭제
+  const { error: childError } = await supabase
+    .from("comments")
+    .delete()
+    .eq("parent_id", commentId)
+
+  if (childError) {
+    throw new Error(childError.message)
+  }
+
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
 export async function getComments(postId: string): Promise<CommentNode[]> {
   const supabase = await createClient()
 
