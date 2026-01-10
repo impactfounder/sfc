@@ -25,7 +25,6 @@ import type { VisibleBadge, Badge as BadgeType, UserBadgeWithBadge } from "@/lib
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { MapPin } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
 
 type TabType = "posts" | "created_events" | "participated_events"
 
@@ -397,7 +396,7 @@ export default function ProfileContent() {
         // Race!
         // getSession() 대신 getUser() 사용: 서버에 직접 검증 요청하여 로컬 스토리지 행(hang) 이슈 회피
         const result = await Promise.race([
-          freshSupabase.auth.getUser(),
+          authClient.auth.getUser(),
           timeoutPromise
         ]) as { data: { user: User | null }, error: any }
 
