@@ -100,65 +100,50 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       if (!isMounted) return
 
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        // Supabase 클라이언트를 사용하여 직접 쿼리
+        const { data: memberships, error: membershipsError } = await supabase
+          .from("community_members")
+          .select("community_id")
+          .eq("user_id", userId)
 
-        if (!supabaseUrl || !supabaseKey) return
-
-        const fetchUrl = `${supabaseUrl}/rest/v1/community_members?select=community_id&user_id=eq.${userId}`
-
-        const membershipsRes = await fetch(
-          fetchUrl,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-          }
-        )
-
-        if (!membershipsRes.ok) return
-
-        const memberships = await membershipsRes.json()
+        if (membershipsError) {
+          console.error("[Sidebar] memberships error:", membershipsError)
+          return
+        }
 
         if (!isMounted) return
 
         if (memberships && memberships.length > 0) {
-          const communityIds = memberships.map((m: any) => m.community_id)
+          const communityIds = memberships.map((m) => m.community_id)
 
           // communities 조회
-          const communitiesRes = await fetch(
-            `${supabaseUrl}/rest/v1/communities?select=id,name&id=in.(${communityIds.join(',')})`,
-            {
-              headers: {
-                'apikey': supabaseKey!,
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-            }
-          )
+          const { data: communities, error: communitiesError } = await supabase
+            .from("communities")
+            .select("id, name")
+            .in("id", communityIds)
 
-          const communities = await communitiesRes.json()
+          if (communitiesError) {
+            console.error("[Sidebar] communities error:", communitiesError)
+            return
+          }
 
           if (!isMounted) return
 
           if (communities && communities.length > 0) {
-            const communityNames = communities.map((c: any) => c.name)
+            const communityNames = communities.map((c) => c.name)
 
             // board_categories 조회
-            const categoriesRes = await fetch(
-              `${supabaseUrl}/rest/v1/board_categories?select=name,slug&name=in.(${communityNames.map((n: string) => `"${n}"`).join(',')})`,
-              {
-                headers: {
-                  'apikey': supabaseKey!,
-                  'Authorization': `Bearer ${supabaseKey}`,
-                },
-              }
-            )
+            const { data: categories, error: categoriesError } = await supabase
+              .from("board_categories")
+              .select("name, slug")
+              .in("name", communityNames)
 
-            const categories = await categoriesRes.json()
+            if (categoriesError) {
+              console.error("[Sidebar] categories error:", categoriesError)
+            }
 
-            const communityList: JoinedCommunity[] = communities.map((community: any) => {
-              const category = categories?.find((c: any) => c.name === community.name)
+            const communityList: JoinedCommunity[] = communities.map((community) => {
+              const category = categories?.find((c) => c.name === community.name)
               return {
                 id: community.id,
                 name: community.name,
@@ -173,7 +158,7 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
           }
         }
       } catch (error) {
-        // Silent fail
+        console.error("[Sidebar] loadCommunities error:", error)
       }
     }
 
