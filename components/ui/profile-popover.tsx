@@ -29,7 +29,7 @@ export function ProfilePopover({ children, profile, badges }: ProfilePopoverProp
   return (
     <Popover>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="start" sideOffset={8}>
+      <PopoverContent className="w-72 p-0 bg-white border-slate-200 shadow-lg" align="start" sideOffset={8}>
         {/* 헤더 배경 */}
         <div className="h-14 bg-gradient-to-r from-slate-100 to-slate-50 rounded-t-lg" />
 

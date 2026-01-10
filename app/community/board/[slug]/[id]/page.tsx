@@ -6,7 +6,6 @@ import { ThreadedComments } from "@/components/threaded-comments"
 import { PostActions } from "@/components/post-actions"
 import { EventShareButton } from "@/components/event-share-button"
 import Link from "next/link"
-import { UserBadges } from "@/components/user-badges"
 import { isMasterAdmin, isAdmin } from "@/lib/utils"
 import { getComments } from "@/lib/actions/comments"
 import { ClickableAvatar } from "@/components/ui/clickable-avatar"
@@ -50,16 +49,9 @@ export default async function BoardPostDetailPage({
 
   if (!post) notFound()
 
-  // Phase 2: 댓글, 뱃지, 유저 권한 모두 병렬 조회
-  const [commentsResult, badgesResult, profileResult] = await Promise.all([
+  // Phase 2: 댓글, 유저 권한 병렬 조회
+  const [commentsResult, profileResult] = await Promise.all([
     getComments(id),
-    post.author_id
-      ? supabase
-          .from("user_badges")
-          .select(`badges:badge_id (icon, name)`)
-          .eq("user_id", post.author_id)
-          .eq("is_visible", true)
-      : Promise.resolve({ data: null }),
     user
       ? supabase
           .from("profiles")
@@ -77,8 +69,6 @@ export default async function BoardPostDetailPage({
   const isAuthor = Boolean(user && post.author_id === user.id)
   const boardName = post.board_categories?.name || (slug === "announcements" ? "공지사항" : "게시판")
 
-  // 뱃지 데이터 가공
-  const authorVisibleBadges = badgesResult.data?.map((ub: any) => ub.badges).filter(Boolean) || []
   const comments = commentsResult || []
   const actualCommentsCount = countTree(comments)
 
@@ -117,15 +107,12 @@ export default async function BoardPostDetailPage({
 
           {/* 작성자 정보 */}
           <div className="mb-5 flex items-center gap-3">
-            <ClickableAvatar profile={post.profiles} badges={authorVisibleBadges} size="md" />
+            <ClickableAvatar profile={post.profiles} size="md" />
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-900 text-sm">
-                  {post.profiles?.full_name || "익명"}
-                </span>
-                {authorVisibleBadges.length > 0 && <UserBadges badges={authorVisibleBadges} />}
-              </div>
-              <span className="text-xs text-slate-500">
+              <span className="font-semibold text-slate-900 text-sm">
+                {post.profiles?.full_name || "익명"}
+              </span>
+              <span className="text-xs text-slate-500 block">
                 {new Date(post.created_at).toLocaleDateString("ko-KR", {
                   year: "numeric",
                   month: "long",
