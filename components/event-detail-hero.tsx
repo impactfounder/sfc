@@ -39,6 +39,8 @@ type Props = {
   eventId: string
   basePath: string
   userId?: string
+  registrationStatus?: "confirmed" | "waitlist"
+  waitlistPosition?: number | null
 }
 
 function InfoRow({ icon: Icon, value, href }: { icon: any, value: string, href?: string }) {
@@ -57,7 +59,8 @@ export function EventDetailHero(props: Props) {
   const {
     event, hostName, hostAvatar, hostProfile, dateStr, timeStr,
     currentCount, maxCount, isFull, isPastEvent, isCompleted,
-    isCreator, isRegistered, userRegistration, eventId, basePath, userId
+    isCreator, isRegistered, userRegistration, eventId, basePath, userId,
+    registrationStatus, waitlistPosition
   } = props
 
   const imageContainerRef = useRef<HTMLDivElement>(null)
@@ -146,6 +149,7 @@ export function EventDetailHero(props: Props) {
 
         {/* 우측: 정보 카드 (이미지와 동일한 높이) */}
         <div
+          id="register-card"
           className="w-full lg:aspect-square"
           style={imageHeight ? { height: `${imageHeight}px`, aspectRatio: 'unset' } : undefined}
         >
@@ -227,6 +231,8 @@ export function EventDetailHero(props: Props) {
                     paymentStatus={userRegistration?.payment_status}
                     isFull={isFull}
                     price={event.price || 0}
+                    registrationStatus={registrationStatus}
+                    waitlistPosition={waitlistPosition}
                   />
                 )}
               </div>

@@ -19,6 +19,8 @@ interface FloatingActionBarProps {
   dateStr: string;
   timeStr: string;
   location: string;
+  registrationStatus?: "confirmed" | "waitlist";
+  waitlistPosition?: number | null;
 }
 
 export function FloatingActionBar({
@@ -34,6 +36,8 @@ export function FloatingActionBar({
   dateStr,
   timeStr,
   location,
+  registrationStatus,
+  waitlistPosition,
 }: FloatingActionBarProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -94,6 +98,8 @@ export function FloatingActionBar({
               paymentStatus={paymentStatus}
               isFull={isFull}
               price={price}
+              registrationStatus={registrationStatus}
+              waitlistPosition={waitlistPosition}
             />
           )}
         </div>
@@ -101,4 +107,3 @@ export function FloatingActionBar({
     </div>
   );
 }
-

@@ -50,16 +50,17 @@ export default async function EventDetailContent({
     user
       ? supabase
         .from("event_registrations")
-        .select("id, payment_status")
+        .select("id, payment_status, status, waitlist_position")
         .eq("event_id", eventId)
         .eq("user_id", user.id)
         .maybeSingle()
       : Promise.resolve({ data: null }),
-    // 참석자 목록
+    // 참석자 목록 (confirmed 상태만)
     supabase
       .from("event_registrations")
-      .select(`id, user_id, guest_name, profiles:user_id (id, full_name, avatar_url)`)
-      .eq("event_id", eventId),
+      .select(`id, user_id, guest_name, status, profiles:user_id (id, full_name, avatar_url)`)
+      .eq("event_id", eventId)
+      .eq("status", "confirmed"),
     // 후기 목록
     getReviewsByEvent(supabase, eventId),
   ]);
@@ -71,7 +72,9 @@ export default async function EventDetailContent({
   // 3. 상태 계산
   const attendees = attendeesData || [];
   const isRegistered = !!userRegistration;
-  const currentCount = attendees.length; // 배열 길이로 참석자 수 계산 (추가 쿼리 불필요)
+  const registrationStatus = userRegistration?.status as "confirmed" | "waitlist" | undefined;
+  const waitlistPosition = userRegistration?.waitlist_position as number | null | undefined;
+  const currentCount = attendees.length; // 배열 길이로 참석자 수 계산 (confirmed만)
 
   const maxCount = event.max_participants;
   const isFull = maxCount && currentCount >= maxCount;
@@ -134,6 +137,8 @@ export default async function EventDetailContent({
           eventId={eventId}
           basePath={basePath}
           userId={user?.id}
+          registrationStatus={registrationStatus}
+          waitlistPosition={waitlistPosition}
         />
 
         {/* 상세 내용 & 참석자 */}
@@ -266,6 +271,8 @@ export default async function EventDetailContent({
         dateStr={dateStr}
         timeStr={timeStr}
         location={event.location || ""}
+        registrationStatus={registrationStatus}
+        waitlistPosition={waitlistPosition}
       />
     </div>
   );
