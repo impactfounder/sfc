@@ -178,19 +178,27 @@ export default function ProfileContent() {
     is_profile_public: false,
   })
 
+  // Debug State
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+  const addLog = (msg: string) => {
+    setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }
+
   // 클라이언트 마운트 확인
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // 로딩 상태 안전장치: 10초가 지나면 에러 메시지 표시
+  // 로딩 상태 안전장치: 15초가 지나면 에러 메시지 표시 (시간 연장)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loading && !user) {
-        setSessionError('로딩 시간이 너무 오래 걸립니다. 페이지를 새로고침해주세요.')
+        addLog("TIMEOUT: Loading took too long")
+        setSessionError('로딩 시간이 너무 오래 걸립니다.')
         setLoading(false)
       }
-    }, 10000)
+    }, 15000)
     return () => clearTimeout(timer)
   }, [loading, user])
 
@@ -198,10 +206,12 @@ export default function ProfileContent() {
   useEffect(() => {
     const supabase = createClient()
     let isMounted = true
+    addLog("Starting initProfile...")
 
     // 리스트 데이터 비동기 로딩 (Fire & Forget)
     // await를 쓰지 않고 .then()으로 처리하여 메인 스레드를 막지 않음
     const loadListData = (userId: string) => {
+      addLog("Starting loadListData...")
 
       // (1) 만든 이벤트
       supabase
@@ -211,7 +221,11 @@ export default function ProfileContent() {
         .order("created_at", { ascending: false })
         .limit(20)
         .then(({ data, error }) => {
-          if (!error && data && isMounted) {
+          if (!isMounted) return
+          if (error) addLog(`Events error: ${error.message}`)
+          else addLog(`Events loaded: ${data?.length}`)
+
+          if (!error && data) {
             setCreatedEvents(data.map((event) => ({
               id: event.id,
               title: event.title,
@@ -231,7 +245,11 @@ export default function ProfileContent() {
         .order("created_at", { ascending: false })
         .limit(20)
         .then(({ data, error }) => {
-          if (!error && data && isMounted) {
+          if (!isMounted) return
+          if (error) addLog(`Posts error: ${error.message}`)
+          else addLog(`Posts loaded: ${data?.length}`)
+
+          if (!error && data) {
             setUserPosts(data.map((post) => ({
               id: post.id,
               title: post.title,
@@ -243,7 +261,8 @@ export default function ProfileContent() {
           }
         })
 
-      // (3) 신청 내역
+      // (3) 신청 내역 (Log only)
+      addLog("Fetching registrations...")
       supabase
         .from("event_registrations")
         .select(`
@@ -256,7 +275,9 @@ export default function ProfileContent() {
         .order("registered_at", { ascending: false })
         .limit(20)
         .then(({ data, error }) => {
-          if (!error && data && isMounted) {
+          if (error) addLog(`Registrations error: ${error.message}`)
+          else if (isMounted && data) {
+            addLog(`Registrations loaded: ${data.length}`)
             const flattened: EventListItem[] = data
               .filter((reg: any) => reg.events)
               .map((reg: any) => ({
@@ -280,7 +301,8 @@ export default function ProfileContent() {
         .eq("is_visible", true)
         .limit(10)
         .then(({ data, error }) => {
-          if (!error && data && isMounted) {
+          if (error) addLog(`Badges error: ${error.message}`)
+          else if (isMounted && data) {
             const mappedBadges = data
               .filter((item: any) => item.badges && item.badges.is_active !== false)
               .map((item: any) => ({
@@ -291,7 +313,7 @@ export default function ProfileContent() {
           }
         })
 
-      // (5) 전체 뱃지 및 내 뱃지 상세 (편집 모달용)
+      // (5) 전체 뱃지 및 내 뱃지 상세
       supabase
         .from("user_badges")
         .select(`
@@ -308,15 +330,17 @@ export default function ProfileContent() {
     const initProfile = async () => {
       try {
         setLoading(true)
+        addLog("Calling getSession()...")
 
         // 1. 세션 확인 - getSession으로 빠르게 가져오기 (UI 렌더링 속도 최적화)
-        // getUser()는 서버 검증을 수행하여 느릴 수 있으므로, 초기 렌더링은 getSession()에 의존합니다.
-        // 데이터 보안은 어차피 RLS(Row Level Security)가 담당하므로 안전합니다.
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        addLog(`getSession result: session=${!!session}, error=${sessionError?.message}`)
 
         if (!isMounted) return
 
         if (sessionError || !session?.user) {
+          addLog("No session user found")
           console.log('No session found, redirecting to login')
           setLoading(false)
           router.push("/auth/login")
@@ -324,14 +348,18 @@ export default function ProfileContent() {
         }
 
         const currentUser = session.user
+        addLog(`User found: ${currentUser.id}`)
         setUser(currentUser)
 
         // 프로필 로드
-        const { data: profileData } = await supabase
+        addLog("Fetching 'profiles' table...")
+        const { data: profileData, error: profileFetchError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", currentUser.id)
           .single()
+
+        addLog(`Profiles fetch done. Data=${!!profileData}, Error=${profileFetchError?.message}`)
 
         if (profileData && isMounted) {
           setProfile(profileData as Profile)
@@ -350,18 +378,20 @@ export default function ProfileContent() {
                 : [],
             is_profile_public: profileData.is_profile_public || false,
           })
+          addLog("Profile state set.")
         }
 
         if (isMounted) {
           setLoading(false)
+          addLog("Loading set to false.")
         }
 
         loadListData(currentUser.id)
         return
 
-
       } catch (error) {
         console.error('Profile init error:', error)
+        addLog(`EXCEPTION: ${error}`)
         if (isMounted) setSessionError('데이터를 불러오는 중 오류가 발생했습니다.')
         if (isMounted) setLoading(false)
       }
@@ -370,9 +400,9 @@ export default function ProfileContent() {
     // 실행
     initProfile()
 
-    // Auth 상태 변경 감지 (로그아웃만 처리)
-    // 데이터 로딩은 initProfile에서 한 번만 수행하므로 경쟁 조건 해결
+    // Auth 상태 변경 감지
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // addLog(`Auth Change: ${event}`)
       if (event === 'SIGNED_OUT') {
         router.push("/auth/login")
       }
@@ -381,6 +411,7 @@ export default function ProfileContent() {
     return () => {
       isMounted = false
       subscription.unsubscribe()
+      addLog("Effects cleanup")
     }
   }, [router])
 
@@ -403,9 +434,14 @@ export default function ProfileContent() {
   // 서버/클라이언트 hydration 일치를 위해 mounted 전에는 로딩 UI 표시
   if (!mounted || loading) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50 flex-col gap-4">
         <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-        <span className="ml-2 text-sm text-slate-500">프로필 불러오는 중...</span>
+        <span className="text-sm text-slate-500">프로필 불러오는 중...</span>
+        {debugLogs.length > 0 && (
+          <div className="max-w-md w-full bg-slate-100 p-2 rounded text-xs text-slate-500 font-mono h-32 overflow-y-auto">
+            {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+          </div>
+        )}
       </div>
     )
   }
@@ -420,6 +456,14 @@ export default function ProfileContent() {
           </div>
           <h2 className="text-lg font-bold text-slate-900 mb-2">연결 지연</h2>
           <p className="text-slate-600 mb-6">{sessionError}</p>
+
+          <div className="mb-6 bg-slate-800 text-green-400 p-4 rounded text-left text-xs font-mono max-h-48 overflow-y-auto">
+            <div className="font-bold border-b border-slate-700 pb-1 mb-2 text-white">Debug Logs:</div>
+            {debugLogs.map((log, i) => (
+              <div key={i} className="whitespace-pre-wrap">{log}</div>
+            ))}
+          </div>
+
           <div className="flex gap-3 justify-center">
             <Button
               onClick={() => window.location.reload()}
