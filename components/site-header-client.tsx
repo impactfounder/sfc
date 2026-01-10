@@ -6,7 +6,6 @@ import { useState, useEffect } from "react"
 import {
     Bell,
     Plus,
-    Settings,
     LogOut,
     User,
     PenSquare,
@@ -38,7 +37,7 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
     const router = useRouter()
     const supabase = createClient()
     const [activeCreateItem, setActiveCreateItem] = useState<"post" | "event" | "community" | null>(null)
-    const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "settings" | "logout" | null>(null)
+    const [activeProfileItem, setActiveProfileItem] = useState<"profile" | "logout" | null>(null)
 
     const handleSignOut = () => {
         // 1. 쿠키 삭제
@@ -173,14 +172,6 @@ export function SiteHeaderClient({ user, profile, initialNotifications = [] }: S
                                 >
                                     <User className={`mr-2 h-4 w-4 ${activeProfileItem === "profile" ? "text-slate-900" : "text-slate-500"}`} />
                                     <span>내 프로필</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/settings")}
-                                    onMouseEnter={() => setActiveProfileItem("settings")}
-                                    className={activeProfileItem === "settings" ? "bg-slate-100 text-slate-900 font-semibold" : "text-slate-600"}
-                                >
-                                    <Settings className={`mr-2 h-4 w-4 ${activeProfileItem === "settings" ? "text-slate-900" : "text-slate-500"}`} />
-                                    <span>설정</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem

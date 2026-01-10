@@ -3,6 +3,36 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
+/**
+ * 일일 로그인 포인트 체크 (서버 액션)
+ */
+export async function checkDailyLoginPoints() {
+  try {
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    // RPC 함수 호출
+    const { error } = await supabase.rpc("check_daily_login_points")
+
+    if (error) {
+      console.error("Failed to check daily login points:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("checkDailyLoginPoints error:", error)
+    return { success: false, error: "Failed to check daily login points" }
+  }
+}
+
 export async function updateProfileAvatar(avatarUrl: string) {
   const supabase = await createClient()
 

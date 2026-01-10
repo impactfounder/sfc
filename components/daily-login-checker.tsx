@@ -1,27 +1,20 @@
 "use client"
 
-import { useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useEffect, useRef } from "react"
+import { checkDailyLoginPoints } from "@/lib/actions/user"
 
 export function DailyLoginChecker() {
+  const hasChecked = useRef(false)
+
   useEffect(() => {
-    const checkDailyLogin = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    // 중복 호출 방지
+    if (hasChecked.current) return
+    hasChecked.current = true
 
-      if (user) {
-        // 일일 로그인 포인트 체크 함수 호출
-        try {
-          await supabase.rpc("check_daily_login_points")
-        } catch (error) {
-          console.error("Failed to check daily login points:", error)
-        }
-      }
-    }
-
-    checkDailyLogin()
+    // 서버 액션을 통해 안전하게 일일 로그인 체크 수행
+    checkDailyLoginPoints().catch((error) => {
+      console.error("Failed to check daily login points:", error)
+    })
   }, [])
 
   return null

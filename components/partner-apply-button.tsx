@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowRight, Loader2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { submitPartnerApplication } from "@/lib/actions/partner-applications"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
@@ -32,7 +32,7 @@ export function PartnerApplyButton({ partnerId, partnerName, serviceTitle }: Par
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.companyName.trim() || !formData.contactEmail.trim() || !formData.serviceDescription.trim()) {
       toast({
         variant: "destructive",
@@ -43,36 +43,30 @@ export function PartnerApplyButton({ partnerId, partnerName, serviceTitle }: Par
     }
 
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        toast({
-          variant: "destructive",
-          title: "로그인 필요",
-          description: "신청하려면 로그인이 필요합니다.",
-        })
-        router.push("/auth/login")
-        return
+      const result = await submitPartnerApplication({
+        partnerId: partnerId || null,
+        partnerName,
+        companyName: formData.companyName,
+        contactEmail: formData.contactEmail,
+        contactPhone: formData.contactPhone || null,
+        serviceDescription: formData.serviceDescription,
+        currentUsage: formData.currentUsage || null,
+      })
+
+      if (!result.success) {
+        if (result.error === "로그인이 필요합니다.") {
+          toast({
+            variant: "destructive",
+            title: "로그인 필요",
+            description: "신청하려면 로그인이 필요합니다.",
+          })
+          router.push("/auth/login")
+          return
+        }
+        throw new Error(result.error)
       }
-
-      const { error } = await supabase
-        .from("partner_applications")
-        .insert({
-          user_id: user.id,
-          partner_id: partnerId || null,
-          partner_name: partnerName,
-          company_name: formData.companyName.trim(),
-          contact_email: formData.contactEmail.trim(),
-          contact_phone: formData.contactPhone.trim() || null,
-          service_description: formData.serviceDescription.trim(),
-          current_usage: formData.currentUsage.trim() || null,
-          status: "pending",
-        })
-
-      if (error) throw error
 
       toast({
         title: "신청 완료",
@@ -93,7 +87,7 @@ export function PartnerApplyButton({ partnerId, partnerName, serviceTitle }: Par
       toast({
         variant: "destructive",
         title: "신청 실패",
-        description: error instanceof Error ? error.message : "신청 중 오류가 발생했습니다.",
+        description: "신청 중 오류가 발생했습니다.",
       })
     } finally {
       setIsLoading(false)

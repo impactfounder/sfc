@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
-import { createClient } from "@/lib/supabase/client";
+import { createPost } from "@/lib/actions/posts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,6 @@ import { Loader2 } from 'lucide-react';
 
 export function NewAnnouncementForm() {
   const router = useRouter();
-  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -24,26 +23,20 @@ export function NewAnnouncementForm() {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        router.push("/auth/login");
-        return;
-      }
-
-      const { error } = await supabase.from("posts").insert({
+      await createPost({
         title: formData.title,
         content: formData.content,
         category: "announcement",
-        author_id: user.id,
       });
-
-      if (error) throw error;
 
       router.push("/community/announcements");
       router.refresh();
     } catch (error) {
       console.error("Error creating announcement:", error);
+      if (error instanceof Error && error.message === "Unauthorized") {
+        router.push("/auth/login");
+        return;
+      }
       alert("공지사항 작성에 실패했습니다");
     } finally {
       setLoading(false);

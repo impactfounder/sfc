@@ -58,11 +58,11 @@ export async function updateUserRole(userId: string, role: string) {
     
     // RLS 정책 문제 (42501: insufficient_privilege)
     if (error.code === '42501') {
-      throw new Error(`권한 부족: 역할 업데이트 권한이 없습니다. RLS 정책을 확인해주세요. (에러 코드: ${error.code})`)
+      throw new Error("권한 부족: 역할 업데이트 권한이 없습니다.")
     }
-    
+
     // 기타 에러
-    throw new Error(`역할 업데이트 실패: ${error.message} (에러 코드: ${error.code})`)
+    throw new Error("역할 업데이트에 실패했습니다.")
   }
   
   // 실제로 업데이트된 행이 있는지 확인
@@ -414,16 +414,16 @@ export async function toggleBadgeActive(badgeId: string, isActive: boolean) {
     
     // 컬럼이 없는 경우 (42703: undefined_column)
     if (error.code === '42703') {
-      throw new Error("is_active 컬럼이 데이터베이스에 없습니다. 마이그레이션 스크립트(034_add_badge_is_active.sql)를 실행해주세요.")
+      throw new Error("뱃지 활성화 기능을 사용할 수 없습니다. 관리자에게 문의하세요.")
     }
-    
+
     // RLS 정책 문제 (42501: insufficient_privilege)
     if (error.code === '42501') {
-      throw new Error(`권한 부족: 뱃지 업데이트 권한이 없습니다. 관리자 권한을 확인해주세요. (에러 코드: ${error.code})`)
+      throw new Error("권한 부족: 뱃지 업데이트 권한이 없습니다.")
     }
-    
+
     // 기타 에러
-    throw new Error(`뱃지 상태 변경 실패: ${error.message} (에러 코드: ${error.code})`)
+    throw new Error("뱃지 상태 변경에 실패했습니다.")
   }
   
   // 실제로 업데이트된 행이 있는지 확인
