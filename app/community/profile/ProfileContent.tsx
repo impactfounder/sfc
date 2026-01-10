@@ -395,24 +395,25 @@ export default function ProfileContent() {
 
       try {
         // Race!
+        // getSession() 대신 getUser() 사용: 서버에 직접 검증 요청하여 로컬 스토리지 행(hang) 이슈 회피
         const result = await Promise.race([
-          freshSupabase.auth.getSession(),
+          freshSupabase.auth.getUser(),
           timeoutPromise
-        ]) as { data: { session: any }, error: any }
+        ]) as { data: { user: User | null }, error: any }
 
-        const { data: { session }, error } = result
+        const { data: { user }, error } = result
 
         if (!isMounted) return
 
-        if (error || !session?.user) {
-          console.log("No valid session. Redirecting to login.")
+        if (error || !user) {
+          console.log("No valid user. Redirecting to login.")
           setLoading(false)
           router.push("/auth/login")
           return
         }
 
         // 성공!
-        await loadUserData(session.user)
+        await loadUserData(user)
 
       } catch (e) {
         // 타임아웃 또는 기타 에러
