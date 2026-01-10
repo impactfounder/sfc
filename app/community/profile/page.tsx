@@ -49,6 +49,7 @@ export default async function ProfilePage() {
       thumbnail_url: r.events.thumbnail_url,
       event_date: r.events.event_date,
       location: r.events.location,
+      created_at: r.events.event_date,
       registration_date: r.registered_at,
     }))
 
