@@ -306,72 +306,75 @@ export default function ProfileContent() {
         })
     }
 
-    // 통합된 인증 및 데이터 로딩 로직
+    // 통합된 인증 및 데이터 로딩 로직 (try-finally로 로딩 상태 안전 관리)
     const loadUserData = async (currentUser: User) => {
-      if (!isMounted) return
+      try {
+        if (!isMounted) return
 
+        setUser(currentUser)
 
-      setUser(currentUser)
+        // 프로필 로드
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", currentUser.id)
+          .single()
 
-      // 프로필 로드
-      const { data: profileData, error: profileFetchError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser.id)
-        .single()
+        if (profileData && isMounted) {
+          setProfile(profileData as Profile)
+          setEditForm({
+            full_name: profileData.full_name || "",
+            company: profileData.company || "",
+            position: profileData.position || "",
+            company_2: profileData.company_2 || "",
+            position_2: profileData.position_2 || "",
+            tagline: (profileData as any).tagline || "",
+            introduction: profileData.introduction || "",
+            member_type: Array.isArray((profileData as any).member_type)
+              ? (profileData as any).member_type
+              : (profileData as any).member_type
+                ? [(profileData as any).member_type]
+                : [],
+            is_profile_public: profileData.is_profile_public || false,
+          })
+        }
 
-
-
-      if (profileData && isMounted) {
-        setProfile(profileData as Profile)
-        setEditForm({
-          full_name: profileData.full_name || "",
-          company: profileData.company || "",
-          position: profileData.position || "",
-          company_2: profileData.company_2 || "",
-          position_2: profileData.position_2 || "",
-          tagline: (profileData as any).tagline || "",
-          introduction: profileData.introduction || "",
-          member_type: Array.isArray((profileData as any).member_type)
-            ? (profileData as any).member_type
-            : (profileData as any).member_type
-              ? [(profileData as any).member_type]
-              : [],
-          is_profile_public: profileData.is_profile_public || false,
-        })
-
+        // 리스트 데이터 로드는 비동기로 실행 (await 하지 않음)
+        loadListData(currentUser.id)
+      } catch (error) {
+        console.error("Error loading user data:", error)
+      } finally {
+        // 성공하든 실패하든 로딩 상태 해제
+        if (isMounted) setLoading(false)
       }
-
-      if (isMounted) {
-        setLoading(false)
-      }
-
-      loadListData(currentUser.id)
     }
 
-    // ★ 핵심 수정: Promise.race 및 타임아웃 제거, onAuthStateChange 활용
+    // ★ 핵심 수정: Promise.race 및 타임아웃 제거, getSession + getUser fallback
     const initAuth = async () => {
       try {
         // 1. 현재 세션 상태 확인 (가장 빠름)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-        if (sessionError) {
-          throw sessionError
-        }
+        const { data: { session } } = await supabase.auth.getSession()
 
         if (session?.user) {
           // 세션이 유효하면 바로 데이터 로드
           await loadUserData(session.user)
         } else {
-          // 세션이 없으면 로그인 페이지로 이동
-          if (isMounted) {
-            router.replace("/auth/login")
+          // 2. 세션이 없으면 getUser로 재확인 (fallback)
+          const { data: { user }, error } = await supabase.auth.getUser()
+
+          if (error || !user) {
+            console.log("No authenticated user, redirecting...")
+            if (isMounted) {
+              router.replace("/auth/login")
+            }
+          } else {
+            await loadUserData(user)
           }
         }
       } catch (error) {
         console.error("Auth initialization error:", error)
         if (isMounted) {
-          setSessionError("인증 정보를 불러오는 중 오류가 발생했습니다.")
+          setSessionError("인증 확인 중 오류가 발생했습니다.")
           setLoading(false)
         }
       }
@@ -385,6 +388,7 @@ export default function ProfileContent() {
       if (!isMounted) return
 
       if (event === 'SIGNED_IN' && session?.user) {
+        setLoading(true)
         await loadUserData(session.user)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
