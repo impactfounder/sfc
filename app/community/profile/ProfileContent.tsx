@@ -309,34 +309,58 @@ export default function ProfileContent() {
       try {
         setLoading(true)
 
-        // 1. 세션 확인 - 타임아웃 추가 (5초)
-        const sessionPromise = supabase.auth.getSession()
-        const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout')), 5000)
-        )
-
-        let session = null
-        try {
-          const result = await Promise.race([sessionPromise, timeoutPromise])
-          session = result.data.session
-        } catch (e) {
-          // 타임아웃 시 로그인 페이지로
-          if (!isMounted) return
-          setLoading(false)
-          router.push("/auth/login")
-          return
-        }
+        // 1. 세션 확인 - onAuthStateChange로 현재 사용자 가져오기 (더 안정적)
+        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
 
         if (!isMounted) return
 
-        if (!session?.user) {
-          setLoading(false)
-          router.push("/auth/login")
+        if (userError || !currentUser) {
+          // getUser 실패 시 getSession으로 재시도
+          const { data: { session } } = await supabase.auth.getSession()
+
+          if (!isMounted) return
+
+          if (!session?.user) {
+            setLoading(false)
+            router.push("/auth/login")
+            return
+          }
+
+          setUser(session.user)
+
+          // 프로필 로드
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single()
+
+          if (profileData && isMounted) {
+            setProfile(profileData as Profile)
+            setEditForm({
+              full_name: profileData.full_name || "",
+              company: profileData.company || "",
+              position: profileData.position || "",
+              company_2: profileData.company_2 || "",
+              position_2: profileData.position_2 || "",
+              tagline: (profileData as any).tagline || "",
+              introduction: profileData.introduction || "",
+              member_type: Array.isArray((profileData as any).member_type)
+                ? (profileData as any).member_type
+                : (profileData as any).member_type
+                  ? [(profileData as any).member_type]
+                  : [],
+              is_profile_public: profileData.is_profile_public || false,
+            })
+          }
+
+          if (isMounted) {
+            setLoading(false)
+          }
+
+          loadListData(session.user.id)
           return
         }
-
-        const currentUser = session.user
-        setUser(currentUser)
 
         // 2. 프로필 기본 정보만 "동기적"으로 로드 (필수 데이터)
         const { data: profileData, error: profileError } = await supabase

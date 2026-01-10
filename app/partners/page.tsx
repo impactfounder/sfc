@@ -143,7 +143,6 @@ export default async function PartnersPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {displayServices.map((service) => {
-          const isDummy = service.id?.startsWith("dummy-")
           const serviceCategory = service.category || "기타"
 
           const cardElement = (
@@ -151,9 +150,8 @@ export default async function PartnersPage() {
               className={cn(
                 "flex flex-col h-full overflow-hidden transition-all duration-300",
                 "rounded-2xl border-0 shadow-sm hover:shadow-xl hover:-translate-y-2",
-                "bg-white p-0",
-                service.is_verified && "bg-gradient-to-br from-blue-50/30 to-indigo-50/30",
-                !isDummy && "cursor-pointer"
+                "bg-white p-0 cursor-pointer",
+                service.is_verified && "bg-gradient-to-br from-blue-50/30 to-indigo-50/30"
               )}
             >
               {/* 상단: 썸네일 이미지 (Full Bleed) */}
@@ -226,11 +224,7 @@ export default async function PartnersPage() {
             </Card>
           )
 
-          return isDummy ? (
-            <div key={service.id}>
-              {cardElement}
-            </div>
-          ) : (
+          return (
             <Link
               key={service.id}
               href={`/partners/${service.id}`}

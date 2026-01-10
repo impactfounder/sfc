@@ -25,12 +25,112 @@ const getCategoryColor = (categoryName: string, categories: Array<{ name: string
   return index >= 0 ? colors[index % colors.length] : "bg-slate-100 text-slate-700"
 }
 
+// 더미 데이터 정의
+const dummyPartners: Record<string, any> = {
+  "dummy-1": {
+    id: "dummy-1",
+    title: "AWS 클라우드 서비스",
+    description: "엔터프라이즈급 클라우드 인프라와 AI 서비스를 제공합니다.",
+    content: `
+      <h3>서비스 소개</h3>
+      <p>AWS는 세계 최대의 클라우드 컴퓨팅 플랫폼으로, 스타트업부터 대기업까지 다양한 규모의 기업에 최적화된 클라우드 솔루션을 제공합니다.</p>
+      <h3>주요 혜택</h3>
+      <ul>
+        <li>첫 달 크레딧 $1,000 제공</li>
+        <li>전담 기술 지원</li>
+        <li>스타트업 전용 프로그램 참여 기회</li>
+      </ul>
+    `,
+    category: "개발",
+    price_range: "사용량 기반",
+    thumbnail_url: null,
+    is_verified: true,
+    contact_link: "https://aws.amazon.com",
+    created_at: new Date().toISOString(),
+    profiles: { id: null, full_name: "AWS", avatar_url: null, bio: "Amazon Web Services" },
+    benefit: "첫 달 무료"
+  },
+  "dummy-2": {
+    id: "dummy-2",
+    title: "노션 워크스페이스",
+    description: "팀 협업과 문서 관리를 위한 올인원 워크스페이스 솔루션입니다.",
+    content: `
+      <h3>서비스 소개</h3>
+      <p>노션은 문서, 위키, 프로젝트 관리를 하나로 통합한 협업 도구입니다. 팀의 모든 지식을 한 곳에서 관리하세요.</p>
+      <h3>주요 혜택</h3>
+      <ul>
+        <li>연간 플랜 20% 할인</li>
+        <li>무제한 게스트 초대</li>
+        <li>프리미엄 템플릿 제공</li>
+      </ul>
+    `,
+    category: "개발",
+    price_range: "월 $8부터",
+    thumbnail_url: null,
+    is_verified: true,
+    contact_link: "https://notion.so",
+    created_at: new Date().toISOString(),
+    profiles: { id: null, full_name: "Notion", avatar_url: null, bio: "All-in-one workspace" },
+    benefit: "연간 플랜 20% 할인"
+  },
+  "dummy-3": {
+    id: "dummy-3",
+    title: "세무법인 전문 상담",
+    description: "스타트업과 중소기업을 위한 세무 자문 및 신고 대행 서비스입니다.",
+    content: `
+      <h3>서비스 소개</h3>
+      <p>스타트업 전문 세무사가 여러분의 사업을 지원합니다. 법인 설립부터 세무 신고까지 원스톱 서비스를 제공합니다.</p>
+      <h3>주요 혜택</h3>
+      <ul>
+        <li>초기 상담 무료</li>
+        <li>월 기장료 20% 할인</li>
+        <li>긴급 세무 상담 우선 배정</li>
+      </ul>
+    `,
+    category: "회계",
+    price_range: "월 20만원부터",
+    thumbnail_url: null,
+    is_verified: false,
+    contact_link: null,
+    created_at: new Date().toISOString(),
+    profiles: { id: null, full_name: "세무법인", avatar_url: null, bio: "스타트업 전문 세무 서비스" },
+    benefit: "초기 상담 무료"
+  },
+  "dummy-4": {
+    id: "dummy-4",
+    title: "법무법인 법률 자문",
+    description: "기업법무, 계약 검토, 지적재산권 등 전문 법률 서비스를 제공합니다.",
+    content: `
+      <h3>서비스 소개</h3>
+      <p>스타트업과 중소기업을 위한 맞춤형 법률 서비스를 제공합니다. 계약서 검토부터 투자 유치까지 함께합니다.</p>
+      <h3>주요 혜택</h3>
+      <ul>
+        <li>첫 상담 50% 할인</li>
+        <li>계약서 검토 우선 처리</li>
+        <li>정기 법률 자문 패키지 할인</li>
+      </ul>
+    `,
+    category: "법률",
+    price_range: "상담 후 결정",
+    thumbnail_url: null,
+    is_verified: false,
+    contact_link: null,
+    created_at: new Date().toISOString(),
+    profiles: { id: null, full_name: "법무법인", avatar_url: null, bio: "기업 전문 법률 서비스" },
+    benefit: "첫 상담 50% 할인"
+  }
+}
+
 export default async function PartnerServiceDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   const supabase = await createClient()
+
+  // 더미 데이터 체크
+  const isDummy = id.startsWith("dummy-")
 
   // 파트너 카테고리 가져오기
   const { data: partnerCategories } = await supabase
@@ -47,20 +147,28 @@ export default async function PartnerServiceDetailPage({
     })
   }
 
-  // 서비스 상세 정보 가져오기
-  const { data: service } = await supabase
-    .from("partner_services")
-    .select(`
-      *,
-      profiles:provider_id (
-        id,
-        full_name,
-        avatar_url,
-        bio
-      )
-    `)
-    .eq("id", params.id)
-    .single()
+  let service: any = null
+
+  if (isDummy) {
+    // 더미 데이터 사용
+    service = dummyPartners[id]
+  } else {
+    // 실제 데이터베이스에서 조회
+    const { data } = await supabase
+      .from("partner_services")
+      .select(`
+        *,
+        profiles:provider_id (
+          id,
+          full_name,
+          avatar_url,
+          bio
+        )
+      `)
+      .eq("id", id)
+      .single()
+    service = data
+  }
 
   if (!service) {
     notFound()
@@ -129,11 +237,13 @@ export default async function PartnerServiceDetailPage({
                       </p>
                     )}
                   </div>
-                  <Link href={`/member/${service.profiles?.id}`}>
-                    <Button variant="outline" size="sm">
-                      프로필 보기
-                    </Button>
-                  </Link>
+                  {service.profiles?.id && (
+                    <Link href={`/member/${service.profiles.id}`}>
+                      <Button variant="outline" size="sm">
+                        프로필 보기
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -156,6 +266,20 @@ export default async function PartnerServiceDetailPage({
 
           {/* 사이드바 */}
           <div className="space-y-6">
+            {/* 제휴 혜택 */}
+            {service.benefit && (
+              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-bold text-blue-900 mb-3">
+                    🎁 제휴 혜택
+                  </h3>
+                  <div className="text-xl font-bold text-blue-700">
+                    {service.benefit}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* 가격 정보 */}
             <Card>
               <CardContent className="p-6">
