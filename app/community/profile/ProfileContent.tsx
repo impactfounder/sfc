@@ -65,73 +65,73 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function PostListItem({ post }: { post: PostListItem }) {
-    return (
-        <Link key={post.id} href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`} className="flex flex-col p-5 hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
-            <div className="flex items-center gap-2 mb-1.5">
-                <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
-                    {post.board_categories?.name || "게시판"}
-                </span>
-                <span className="text-xs text-slate-400" suppressHydrationWarning>
-                    {new Date(post.created_at).toLocaleDateString()}
-                </span>
-            </div>
-            <h3 className="text-base font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                {post.title}
-            </h3>
-            <div className="flex gap-3 mt-2 text-xs text-slate-500">
-                <span>좋아요 {post.likes_count || 0}</span>
-                <span>댓글 {post.comments_count || 0}</span>
-            </div>
-        </Link>
-    )
+  return (
+    <Link key={post.id} href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`} className="flex flex-col p-5 hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
+          {post.board_categories?.name || "게시판"}
+        </span>
+        <span className="text-xs text-slate-400" suppressHydrationWarning>
+          {new Date(post.created_at).toLocaleDateString()}
+        </span>
+      </div>
+      <h3 className="text-base font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+        {post.title}
+      </h3>
+      <div className="flex gap-3 mt-2 text-xs text-slate-500">
+        <span>좋아요 {post.likes_count || 0}</span>
+        <span>댓글 {post.comments_count || 0}</span>
+      </div>
+    </Link>
+  )
 }
 
 function EventListItem({ event }: { event: EventListItem }) {
-    // isPast 계산을 클라이언트에서만 수행하여 hydration 불일치 방지
-    const [isPast, setIsPast] = useState(false)
+  // isPast 계산을 클라이언트에서만 수행하여 hydration 불일치 방지
+  const [isPast, setIsPast] = useState(false)
 
-    useEffect(() => {
-        const eventDate = new Date(event.event_date)
-        setIsPast(eventDate < new Date())
-    }, [event.event_date])
+  useEffect(() => {
+    const eventDate = new Date(event.event_date)
+    setIsPast(eventDate < new Date())
+  }, [event.event_date])
 
-    let badgeText = "모집중"
-    let badgeStyle = "bg-blue-50 text-blue-700"
+  let badgeText = "모집중"
+  let badgeStyle = "bg-blue-50 text-blue-700"
 
-    if (event.registration_date) {
-        badgeText = "신청 완료"
-        badgeStyle = "bg-green-50 text-green-700"
-    } else if (isPast) {
-        badgeText = "종료"
-        badgeStyle = "bg-slate-100 text-slate-500"
-    } else if (event.status === 'cancelled') {
-        badgeText = "취소됨"
-        badgeStyle = "bg-red-50 text-red-700"
-    }
+  if (event.registration_date) {
+    badgeText = "신청 완료"
+    badgeStyle = "bg-green-50 text-green-700"
+  } else if (isPast) {
+    badgeText = "종료"
+    badgeStyle = "bg-slate-100 text-slate-500"
+  } else if (event.status === 'cancelled') {
+    badgeText = "취소됨"
+    badgeStyle = "bg-red-50 text-red-700"
+  }
 
-    return (
-        <Link key={event.id} href={`/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
-            <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
-                {event.thumbnail_url ? (
-                    <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-300"><Ticket className="h-6 w-6" /></div>
-                )}
-            </div>
-            <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">{event.title}</h3>
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1" suppressHydrationWarning><CalendarDays className="h-3 w-3" /> {new Date(event.event_date).toLocaleDateString()}</span>
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location || "장소 미정"}</span>
-                </div>
-                <div className="mt-2">
-                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium", badgeStyle)}>
-                        {badgeText}
-                    </span>
-                </div>
-            </div>
-        </Link>
-    )
+  return (
+    <Link key={event.id} href={`/events/${event.id}`} className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
+      <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
+        {event.thumbnail_url ? (
+          <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-slate-300"><Ticket className="h-6 w-6" /></div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">{event.title}</h3>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <span className="flex items-center gap-1" suppressHydrationWarning><CalendarDays className="h-3 w-3" /> {new Date(event.event_date).toLocaleDateString()}</span>
+          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location || "장소 미정"}</span>
+        </div>
+        <div className="mt-2">
+          <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium", badgeStyle)}>
+            {badgeText}
+          </span>
+        </div>
+      </div>
+    </Link>
+  )
 }
 
 export default function ProfileContent() {
@@ -154,17 +154,17 @@ export default function ProfileContent() {
   const [activeTab, setActiveTab] = useState<TabType>("posts")
   const [loading, setLoading] = useState(true)
   const [sessionError, setSessionError] = useState<string | null>(null)
-  const [showBadgeManager, setShowBadgeManager] = useState(false) 
-  const [isUploading, setIsUploading] = useState(false) 
-  const [showProfileEdit, setShowProfileEdit] = useState(false) 
-  const [isSaving, setIsSaving] = useState(false) 
-  const [isSigningOut, setIsSigningOut] = useState(false) 
-  const [selectedBadgeId, setSelectedBadgeId] = useState<string>("") 
-  const [addingBadge, setAddingBadge] = useState(false) 
-  const [showBadgeRequestDialog, setShowBadgeRequestDialog] = useState(false) 
-  const [badgeEvidence, setBadgeEvidence] = useState("") 
+  const [showBadgeManager, setShowBadgeManager] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [showProfileEdit, setShowProfileEdit] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string>("")
+  const [addingBadge, setAddingBadge] = useState(false)
+  const [showBadgeRequestDialog, setShowBadgeRequestDialog] = useState(false)
+  const [badgeEvidence, setBadgeEvidence] = useState("")
   const [badgeProofFile, setBadgeProofFile] = useState<File | null>(null)
-  
+
   // 프로필 편집 폼 상태
   const [editForm, setEditForm] = useState({
     full_name: "",
@@ -309,69 +309,29 @@ export default function ProfileContent() {
       try {
         setLoading(true)
 
-        // 1. 세션 확인 - onAuthStateChange로 현재 사용자 가져오기 (더 안정적)
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+        // 1. 세션 확인 - getSession으로 빠르게 가져오기 (UI 렌더링 속도 최적화)
+        // getUser()는 서버 검증을 수행하여 느릴 수 있으므로, 초기 렌더링은 getSession()에 의존합니다.
+        // 데이터 보안은 어차피 RLS(Row Level Security)가 담당하므로 안전합니다.
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (!isMounted) return
 
-        if (userError || !currentUser) {
-          // getUser 실패 시 getSession으로 재시도
-          const { data: { session } } = await supabase.auth.getSession()
-
-          if (!isMounted) return
-
-          if (!session?.user) {
-            setLoading(false)
-            router.push("/auth/login")
-            return
-          }
-
-          setUser(session.user)
-
-          // 프로필 로드
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single()
-
-          if (profileData && isMounted) {
-            setProfile(profileData as Profile)
-            setEditForm({
-              full_name: profileData.full_name || "",
-              company: profileData.company || "",
-              position: profileData.position || "",
-              company_2: profileData.company_2 || "",
-              position_2: profileData.position_2 || "",
-              tagline: (profileData as any).tagline || "",
-              introduction: profileData.introduction || "",
-              member_type: Array.isArray((profileData as any).member_type)
-                ? (profileData as any).member_type
-                : (profileData as any).member_type
-                  ? [(profileData as any).member_type]
-                  : [],
-              is_profile_public: profileData.is_profile_public || false,
-            })
-          }
-
-          if (isMounted) {
-            setLoading(false)
-          }
-
-          loadListData(session.user.id)
+        if (sessionError || !session?.user) {
+          console.log('No session found, redirecting to login')
+          setLoading(false)
+          router.push("/auth/login")
           return
         }
 
-        // 2. 프로필 기본 정보만 "동기적"으로 로드 (필수 데이터)
-        const { data: profileData, error: profileError } = await supabase
+        const currentUser = session.user
+        setUser(currentUser)
+
+        // 프로필 로드
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", currentUser.id)
           .single()
-
-        if (profileError) {
-          console.error('프로필 조회 에러:', profileError)
-        }
 
         if (profileData && isMounted) {
           setProfile(profileData as Profile)
@@ -392,14 +352,13 @@ export default function ProfileContent() {
           })
         }
 
-        // ✅ [핵심] 프로필 로드가 끝나면 즉시 화면을 보여줌!
-        // 리스트 데이터 로딩을 기다리지 않음
         if (isMounted) {
           setLoading(false)
         }
 
-        // 3. 나머지 무거운 데이터는 비동기로 요청 (Fire & Forget)
         loadListData(currentUser.id)
+        return
+
 
       } catch (error) {
         console.error('Profile init error:', error)
@@ -482,18 +441,18 @@ export default function ProfileContent() {
 
   if (!user) return null
 
-  const StatCard = ({ 
-    title, 
-    count, 
-    type, 
+  const StatCard = ({
+    title,
+    count,
+    type,
     icon: Icon,
-  }: { 
-    title: string, 
-    count: number, 
-    type: TabType, 
+  }: {
+    title: string,
+    count: number,
+    type: TabType,
     icon: LucideIcon,
   }) => (
-    <div 
+    <div
       onClick={() => setActiveTab(type)}
       className={cn(
         "relative overflow-hidden rounded-xl border p-5 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group bg-white",
@@ -533,7 +492,7 @@ export default function ProfileContent() {
       alert("이름을 입력해주세요.")
       return
     }
-    
+
     setIsSaving(true)
     try {
       const result = await updateProfileInfo({
@@ -547,12 +506,12 @@ export default function ProfileContent() {
         member_type: editForm.member_type,
         is_profile_public: editForm.is_profile_public,
       })
-      
+
       if (!result.success) {
         const errorMessage = result.error || "서버 저장 실패"
         throw new Error(errorMessage)
       }
-      
+
       setProfile((prev) => {
         if (!prev) return prev
         return {
@@ -560,15 +519,15 @@ export default function ProfileContent() {
           full_name: editForm.full_name,
           company: editForm.company,
           position: editForm.position,
-            company_2: editForm.company_2,
-            position_2: editForm.position_2,
-            tagline: editForm.tagline,
+          company_2: editForm.company_2,
+          position_2: editForm.position_2,
+          tagline: editForm.tagline,
           introduction: editForm.introduction,
           member_type: editForm.member_type,
           is_profile_public: editForm.is_profile_public,
         }
       })
-      
+
       setShowProfileEdit(false)
       alert("프로필이 저장되었습니다.")
     } catch (error) {
@@ -584,7 +543,7 @@ export default function ProfileContent() {
     try {
       const { updateProfileVisibility } = await import("@/lib/actions/user")
       await updateProfileVisibility(isPublic)
-      
+
       setProfile((prev) => {
         if (!prev) return prev
         return { ...prev, is_profile_public: isPublic }
@@ -598,12 +557,12 @@ export default function ProfileContent() {
   // 뱃지별 필요한 증빙서류 안내 함수
   const getRequiredDocuments = (badgeId: string | null): string[] => {
     if (!badgeId) return []
-    
+
     const badge = allBadges.find(b => b.id === badgeId)
     if (!badge) return []
-    
+
     const { name, category } = badge
-    
+
     // 카테고리별 기본 안내
     const categoryDocs: Record<string, string[]> = {
       corporate_revenue: ['손익계산서', '법인세 신고서', '재무제표', '사업자등록증'],
@@ -613,7 +572,7 @@ export default function ProfileContent() {
       professional: ['자격증 사본', '면허증 사본', '자격 인증서'],
       community: [] // 커뮤니티 뱃지는 자동 부여
     }
-    
+
     // 특정 뱃지에 대한 추가 안내
     const specificDocs: Record<string, string[]> = {
       '변호사': ['변호사 자격증', '변호사 등록증'],
@@ -626,12 +585,12 @@ export default function ProfileContent() {
       '수의사': ['수의사 면허증'],
       '약사': ['약사 면허증'],
     }
-    
+
     // 특정 뱃지에 대한 안내가 있으면 우선 사용
     if (specificDocs[name]) {
       return specificDocs[name]
     }
-    
+
     // 카테고리별 기본 안내 사용
     return categoryDocs[category] || []
   }
@@ -656,23 +615,23 @@ export default function ProfileContent() {
       if (badgeProofFile) {
         const formData = new FormData()
         formData.append("file", badgeProofFile)
-        
+
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         })
-        
+
         if (!uploadResponse.ok) {
           throw new Error("파일 업로드 실패")
         }
-        
+
         const uploadData = await uploadResponse.json()
         proofUrl = uploadData.url
       }
 
       const { requestBadge } = await import("@/lib/actions/badges")
       await requestBadge(user.id, selectedBadgeId, badgeEvidence, proofUrl)
-      
+
       const { data } = await supabase
         .from("user_badges")
         .select(`
@@ -705,7 +664,7 @@ export default function ProfileContent() {
           })
         setVisibleBadges(visible)
       }
-      
+
       setSelectedBadgeId("")
       setBadgeEvidence("")
       setBadgeProofFile(null)
@@ -805,7 +764,7 @@ export default function ProfileContent() {
 
       if (userBadgesResult.data) {
         // Filter out inactive badges from user's badges in edit mode
-        const activeUserBadges = userBadgesResult.data.filter((ub: any) => 
+        const activeUserBadges = userBadgesResult.data.filter((ub: any) =>
           !ub.badges || ub.badges.is_active !== false
         )
         setUserBadges(activeUserBadges as unknown as UserBadgeWithBadge[])
@@ -848,7 +807,7 @@ export default function ProfileContent() {
       }
 
       const uploadData = await uploadResponse.json()
-      
+
       if (!uploadData.url) {
         throw new Error("업로드된 이미지 URL을 받지 못했습니다.")
       }
@@ -862,7 +821,7 @@ export default function ProfileContent() {
           avatar_url: uploadData.url,
         }
       })
-      
+
       // 프로필 사진 업데이트 후 페이지 새로고침
       router.refresh()
     } catch (error) {
@@ -881,14 +840,14 @@ export default function ProfileContent() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-12">
-        
+
         {/* 1. 왼쪽 컬럼 (프로필 카드) */}
         <div className="md:col-span-5 lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
-          
+
           {/* 상단: 프로필 정보 카드 */}
           <Card className="border-slate-200 bg-white shadow-sm overflow-hidden h-fit">
             <CardContent className="p-8 flex flex-col items-center text-center bg-white">
-              
+
               <div className="mb-6 relative group">
                 <input
                   type="file"
@@ -947,7 +906,7 @@ export default function ProfileContent() {
                 <Mail className="h-3.5 w-3.5" />
                 {user.email}
               </p>
-              
+
               {(profile?.company || profile?.position || profile?.company_2 || profile?.position_2) && (
                 <div className="flex flex-col gap-1 items-center">
                   {(profile?.company || profile?.position) && (
@@ -966,7 +925,7 @@ export default function ProfileContent() {
                   )}
                 </div>
               )}
-              
+
               {profile?.roles && profile.roles.length > 0 && (
                 <div className="flex flex-wrap gap-2 justify-center mb-2">
                   {profile.roles.map((role: string) => (
@@ -979,7 +938,7 @@ export default function ProfileContent() {
                   ))}
                 </div>
               )}
-              
+
               {profile?.introduction && (
                 <p className="text-slate-600 text-sm mb-4 text-center whitespace-pre-line">
                   {profile.introduction}
@@ -987,7 +946,7 @@ export default function ProfileContent() {
               )}
 
               <Separator className="w-full mb-6" />
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -1003,7 +962,7 @@ export default function ProfileContent() {
                   <Medal className="h-4 w-4 text-slate-900" />
                   <span className="text-sm font-bold text-slate-900">내 뱃지</span>
                 </div>
-                
+
                 <div className="bg-white rounded-xl p-4 min-h-[80px] flex flex-wrap gap-2 justify-center md:justify-start border border-slate-200">
                   {renderBadges()}
                 </div>
@@ -1035,23 +994,23 @@ export default function ProfileContent() {
 
         {/* 2. 오른쪽 컬럼 (통계 및 리스트) */}
         <div className="md:col-span-7 lg:col-span-7 xl:col-span-8 space-y-6">
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <StatCard 
-              title="작성한 게시글" 
-              count={userPosts.length} 
+            <StatCard
+              title="작성한 게시글"
+              count={userPosts.length}
               type="posts"
               icon={Edit3}
             />
-            <StatCard 
-              title="만든 이벤트" 
-              count={createdEvents.length} 
+            <StatCard
+              title="만든 이벤트"
+              count={createdEvents.length}
               type="created_events"
               icon={CalendarDays}
             />
-            <StatCard 
-              title="참석 신청" 
-              count={registeredEvents.length} 
+            <StatCard
+              title="참석 신청"
+              count={registeredEvents.length}
               type="participated_events"
               icon={Ticket}
             />
@@ -1060,48 +1019,48 @@ export default function ProfileContent() {
           <Card className="border-slate-200 bg-white shadow-sm min-h-[400px]">
             <CardContent className="p-0">
               <div className="px-6 py-4 border-b border-slate-100">
-                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    {activeTab === "posts" && <><Edit3 className="h-5 w-5 text-indigo-600" /> 작성한 게시글</>}
-                    {activeTab === "created_events" && <><CalendarDays className="h-5 w-5 text-indigo-600" /> 만든 이벤트</>}
-                    {activeTab === "participated_events" && <><Ticket className="h-5 w-5 text-indigo-600" /> 참석 신청</>}
-                 </h2>
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  {activeTab === "posts" && <><Edit3 className="h-5 w-5 text-indigo-600" /> 작성한 게시글</>}
+                  {activeTab === "created_events" && <><CalendarDays className="h-5 w-5 text-indigo-600" /> 만든 이벤트</>}
+                  {activeTab === "participated_events" && <><Ticket className="h-5 w-5 text-indigo-600" /> 참석 신청</>}
+                </h2>
               </div>
-              
+
               <div className="min-h-[300px]">
                 {activeTab === "posts" && (
-                    <div className="flex flex-col">
+                  <div className="flex flex-col">
                     {userPosts.length > 0 ? (
-                        userPosts.map((post) => (
+                      userPosts.map((post) => (
                         <PostListItem post={post} key={post.id} />
-                        ))
+                      ))
                     ) : (
-                        <EmptyState message="작성한 게시글이 없습니다." />
+                      <EmptyState message="작성한 게시글이 없습니다." />
                     )}
-                    </div>
+                  </div>
                 )}
 
                 {activeTab === "created_events" && (
-                    <div className="flex flex-col">
+                  <div className="flex flex-col">
                     {createdEvents.length > 0 ? (
-                        createdEvents.map((event) => (
+                      createdEvents.map((event) => (
                         <EventListItem event={event} key={event.id} />
-                        ))
+                      ))
                     ) : (
-                        <EmptyState message="만든 이벤트가 없습니다." />
+                      <EmptyState message="만든 이벤트가 없습니다." />
                     )}
-                    </div>
+                  </div>
                 )}
 
                 {activeTab === "participated_events" && (
-                    <div className="flex flex-col">
+                  <div className="flex flex-col">
                     {registeredEvents.length > 0 ? (
-                        registeredEvents.map((event) => (
+                      registeredEvents.map((event) => (
                         <EventListItem event={event} key={event.id} />
-                        ))
+                      ))
                     ) : (
-                        <EmptyState message="참석 신청한 이벤트가 없습니다." />
+                      <EmptyState message="참석 신청한 이벤트가 없습니다." />
                     )}
-                    </div>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -1148,26 +1107,26 @@ export default function ProfileContent() {
                   const availableBadges = allBadges.filter(
                     (badge) => !userBadges.some((ub) => ub.badge_id === badge.id)
                   )
-                  
+
                   // 뱃지 이름에서 숫자 추출 함수
                   const extractNumber = (badgeName: string): number => {
                     // 유니콘은 가장 큰 숫자로 처리 (정렬 시 마지막에 오도록)
                     if (badgeName.includes('유니콘')) return Infinity
-                    
+
                     // 숫자와 단위(억, 만, 조 등) 추출
                     const match = badgeName.match(/(\d+(?:\.\d+)?)\s*(억|만|조|만\+|억\+|조\+)/)
                     if (!match) return 0
-                    
+
                     const num = parseFloat(match[1])
                     const unit = match[2]
-                    
+
                     // 단위를 숫자로 변환
                     if (unit.includes('조')) return num * 1000000000000
                     if (unit.includes('억')) return num * 100000000
                     if (unit.includes('만')) return num * 10000
                     return num
                   }
-                  
+
                   // 카테고리별로 그룹화하고 정렬
                   const groupedBadges = availableBadges.reduce((acc, badge) => {
                     const category = badge.category || '기타'
@@ -1177,7 +1136,7 @@ export default function ProfileContent() {
                     acc[category].push(badge)
                     return acc
                   }, {} as Record<string, typeof availableBadges>)
-                  
+
                   // 각 카테고리 내에서 숫자 순서로 정렬 (유니콘은 마지막)
                   Object.keys(groupedBadges).forEach(category => {
                     groupedBadges[category].sort((a, b) => {
@@ -1190,7 +1149,7 @@ export default function ProfileContent() {
                       return numA - numB
                     })
                   })
-                  
+
                   const categoryLabels: Record<string, string> = {
                     corporate_revenue: '기업 매출',
                     investment: '투자 규모',
@@ -1199,7 +1158,7 @@ export default function ProfileContent() {
                     professional: '전문직',
                     community: '커뮤니티',
                   }
-                  
+
                   if (availableBadges.length === 0) {
                     return (
                       <div className="text-center py-8 text-slate-500 text-sm">
@@ -1207,7 +1166,7 @@ export default function ProfileContent() {
                       </div>
                     )
                   }
-                  
+
                   return (
                     <div className="space-y-4">
                       {Object.entries(groupedBadges).map(([category, badges]) => (
@@ -1268,7 +1227,7 @@ export default function ProfileContent() {
                 </div>
               </div>
             )}
-            
+
             {/* 증빙 자료 입력 */}
             <div>
               <Label htmlFor="badge_evidence" className="mb-2 block text-slate-700">
@@ -1286,7 +1245,7 @@ export default function ProfileContent() {
                 rows={5}
                 className="bg-white border-slate-200 focus-visible:ring-slate-900 resize-none mb-3"
               />
-              
+
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <input
@@ -1316,7 +1275,7 @@ export default function ProfileContent() {
                       }
                     }}
                   />
-                  <Label 
+                  <Label
                     htmlFor="badge-proof-file"
                     className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-600"
                   >
@@ -1327,7 +1286,7 @@ export default function ProfileContent() {
                     <div className="flex items-center gap-2 text-sm text-slate-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
                       <FileText className="h-4 w-4 text-blue-600" />
                       <span className="truncate max-w-[200px]">{badgeProofFile.name}</span>
-                      <button 
+                      <button
                         onClick={() => setBadgeProofFile(null)}
                         className="ml-1 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
                       >
@@ -1342,8 +1301,8 @@ export default function ProfileContent() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowBadgeRequestDialog(false)
                   setBadgeEvidence("")
@@ -1353,8 +1312,8 @@ export default function ProfileContent() {
               >
                 취소
               </Button>
-              <Button 
-                onClick={handleRequestBadge} 
+              <Button
+                onClick={handleRequestBadge}
                 disabled={(!badgeEvidence.trim() && !badgeProofFile) || addingBadge}
                 className={cn(
                   "h-11 px-8 font-bold transition-all",
@@ -1456,7 +1415,7 @@ export default function ProfileContent() {
                 {(["사업가", "투자자", "크리에이터"] as const).map((type) => {
                   const isSelected = editForm.member_type.includes(type)
                   const canSelect = !isSelected && editForm.member_type.length < 2
-                  
+
                   return (
                     <Button
                       key={type}
@@ -1465,14 +1424,14 @@ export default function ProfileContent() {
                       onClick={() => {
                         if (isSelected) {
                           // 선택 해제
-                          setEditForm({ 
-                            ...editForm, 
+                          setEditForm({
+                            ...editForm,
                             member_type: editForm.member_type.filter(t => t !== type)
                           })
                         } else if (canSelect) {
                           // 선택 추가
-                          setEditForm({ 
-                            ...editForm, 
+                          setEditForm({
+                            ...editForm,
                             member_type: [...editForm.member_type, type]
                           })
                         }
@@ -1518,7 +1477,7 @@ export default function ProfileContent() {
 
             {/* 프로필 공개 설정 */}
             <div className="pt-2 border-t border-slate-100">
-              <div 
+              <div
                 className="flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white"
                 onClick={() => {
                   const newValue = !editForm.is_profile_public
@@ -1553,7 +1512,7 @@ export default function ProfileContent() {
               <p className="text-xs text-slate-500 mb-4">
                 나의 성과를 증명할 뱃지를 신청하세요. 증빙 자료 검토 후 승인되면 프로필에 노출됩니다.
               </p>
-              
+
               <Button
                 onClick={() => {
                   setSelectedBadgeId("")
@@ -1663,15 +1622,15 @@ export default function ProfileContent() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowProfileEdit(false)}
                 className="h-11 px-6"
               >
                 취소
               </Button>
-              <Button 
-                onClick={handleSaveProfile} 
+              <Button
+                onClick={handleSaveProfile}
                 disabled={isSaving}
                 className={cn(
                   "h-11 px-8 font-bold transition-all",
