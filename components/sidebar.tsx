@@ -348,14 +348,20 @@ export function Sidebar({ userRole: initialUserRole }: SidebarProps) {
       </nav>
 
       {/* 하단 푸터 영역 */}
-      <div className="p-4 border-t border-slate-100 bg-white">
-        <div className="text-[11px] leading-relaxed text-slate-400 font-medium px-2">
-          <p className="mb-1">© 2025 Seoul Founders Club</p>
-          <div className="flex flex-wrap gap-x-2 gap-y-1">
-            <Link href="/terms" className="hover:text-slate-600 transition-colors">이용약관</Link>
+      <div className="p-2 border-t border-slate-100 bg-white">
+        <div className="text-[9px] leading-tight text-slate-400 px-2">
+          <div className="flex flex-wrap gap-x-1 mb-1">
+            <Link href="/terms" className="hover:text-slate-600">이용약관</Link>
             <span className="text-slate-300">·</span>
-            <Link href="/privacy" className="hover:text-slate-600 transition-colors">개인정보처리방침</Link>
+            <Link href="/privacy" className="hover:text-slate-600">개인정보처리방침</Link>
+            <span className="text-slate-300">·</span>
+            <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=3518102526" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600">사업자정보확인</a>
           </div>
+          <p className="font-medium text-slate-500">Seoul Founders Club</p>
+          <p>도시혁신그룹 무브먼트(주) | 대표: 정재욱 | 351-81-02526</p>
+          <p>통신판매업: 제2024-서울강남-06954</p>
+          <p>서울시 강남구 역삼로 15길9, 2층</p>
+          <p>010-2504-2050 | master@mvmt.city</p>
         </div>
       </div>
     </div>

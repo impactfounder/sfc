@@ -33,8 +33,10 @@ export function ThreeColumnLayout({ children, rightSidebar, header, className }:
 
         {rightSidebar && (
           <aside className="hidden xl:block w-[312px] flex-shrink-0">
-            <div className="sticky top-24 flex flex-col gap-3">
-              {rightSidebar}
+            <div className="sticky top-24 flex flex-col gap-3 h-[calc(100vh-8rem)]">
+              <div className="flex flex-col h-full">
+                {rightSidebar}
+              </div>
             </div>
           </aside>
         )}
