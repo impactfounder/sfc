@@ -128,6 +128,7 @@ app/projects/layout.tsx
 app/projects/new/page.tsx
 app/projects/page.tsx
 app/providers.tsx
+app/reviews/page.tsx
 app/reviews/test/page.tsx
 app/robots.ts
 app/sitemap.ts
@@ -179,6 +180,8 @@ components/home/hero-section-static.tsx
 components/home/hero-section.tsx
 components/home/home-page-client.tsx
 components/home/latest-feed.tsx
+components/home/photo-reviews-container.tsx
+components/home/photo-reviews-section.tsx
 components/home/posts-section.tsx
 components/home/reviews-section.tsx
 components/layout/standard-layout.tsx
@@ -207,6 +210,8 @@ components/post-card.tsx
 components/register-button.tsx
 components/reviews/review-card.tsx
 components/reviews/review-modal.tsx
+components/reviews/reviews-masonry-grid.tsx
+components/reviews/reviews-page-content.tsx
 components/rich-text-editor.tsx
 components/role-manager.tsx
 components/scrollbar-fix.tsx
@@ -322,6 +327,7 @@ lib/queries/events.ts
 lib/queries/feed.ts
 lib/queries/posts.ts
 lib/queries/profiles.ts
+lib/queries/reviews.ts
 lib/supabase/admin.ts
 lib/supabase/client.ts
 lib/supabase/middleware.ts
@@ -12773,227 +12779,6 @@ export function PostCard({ post, href = `/community/board/${post.board_categorie
 }
 </file>
 
-<file path="components/reviews/review-card.tsx">
-"use client"
-
-import { useState } from "react"
-import { Star, ChevronDown, ChevronUp, Award, Calendar } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import type { ReviewForDisplay } from "@/lib/types/reviews"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
-
-interface ReviewCardProps {
-    review: ReviewForDisplay
-    className?: string
-}
-
-export function ReviewCard({ review, className }: ReviewCardProps) {
-    const [isExpanded, setIsExpanded] = useState(false)
-
-    const renderStars = (rating: number) => {
-        const stars = []
-        const fullStars = Math.floor(rating)
-        const hasHalfStar = rating % 1 !== 0
-
-        for (let i = 0; i < 5; i++) {
-            if (i < fullStars) {
-                stars.push(<Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />)
-            } else if (i === fullStars && hasHalfStar) {
-                stars.push(
-                    <div key={i} className="relative h-3.5 w-3.5">
-                        <Star className="h-3.5 w-3.5 fill-gray-200 text-gray-300 absolute" />
-                        <Star
-                            className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 absolute"
-                            style={{ clipPath: "polygon(0 0, 50% 0, 50% 100%, 0 100%)" }}
-                        />
-                    </div>
-                )
-            } else {
-                stars.push(<Star key={i} className="h-3.5 w-3.5 fill-gray-200 text-gray-300" />)
-            }
-        }
-        return stars
-    }
-
-    const getInitials = (name: string | null) => {
-        if (!name) return "?"
-        return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    }
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        })
-    }
-
-    return (
-        <Card
-            className={cn(
-                "group relative overflow-hidden",
-                "bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl",
-                "border border-slate-200/60 dark:border-slate-700/60",
-                "shadow-sm hover:shadow-lg transition-all duration-300",
-                "hover:border-primary/30",
-                className
-            )}
-        >
-            {/* 베스트 뱃지 */}
-            {review.is_best && (
-                <div className="absolute top-3 right-3 z-10">
-                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1 shadow-sm text-xs">
-                        <Award className="h-3 w-3" />
-                        BEST
-                    </Badge>
-                </div>
-            )}
-
-            {/* 가로 레이아웃 */}
-            <div className="flex flex-col sm:flex-row">
-                {/* 왼쪽: 날짜 & 사용자 정보 & 별점 - 중앙 정렬 적용 */}
-                <div className="sm:w-48 flex-shrink-0 p-5 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col items-center text-center space-y-4">
-                    <div className="w-full flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <Calendar className="h-3 w-3" />
-                        <time>{formatDate(review.created_at)}</time>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-3 w-full pt-1">
-                        <Avatar className="h-14 w-14 ring-4 ring-white dark:ring-slate-900 shadow-sm">
-                            <AvatarImage src={review.profiles?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
-                                {getInitials(review.profiles?.full_name ?? "")}
-                            </AvatarFallback>
-                        </Avatar>
-
-                        <div className="space-y-0.5">
-                            <div className="flex items-center justify-center gap-1.5">
-                                <h3 className="font-bold text-slate-900 dark:text-slate-50 text-[15px]">
-                                    {review.profiles?.full_name || "익명"}
-                                </h3>
-                                {review.profiles?.role === "admin" && (
-                                    <Badge variant="secondary" className="text-[10px] py-0 h-4 px-1">
-                                        운영진
-                                    </Badge>
-                                )}
-                            </div>
-                            {(review.profiles?.company || review.profiles?.position) && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[140px] mx-auto">
-                                    {review.profiles?.company && review.profiles?.position
-                                        ? `${review.profiles.company} · ${review.profiles.position}`
-                                        : review.profiles?.company || review.profiles?.position}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm mt-1">
-                            <div className="flex gap-0.5">{renderStars(review.rating)}</div>
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-0.5">
-                                {review.rating.toFixed(1)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 오른쪽: 리뷰 내용 */}
-                <div className="flex-1 p-5 space-y-3">
-                    {/* 행사명 + 날짜 (아이콘 제거됨) */}
-                    <Link href={`/events/${review.events.id}`} className="block group/event">
-                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary/20 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <Calendar className="h-4 w-4 text-primary shrink-0" />
-                                <div className="flex flex-col gap-0.5 min-w-0">
-                                    <h4 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate pr-1 group-hover/event:text-primary transition-colors">
-                                        {review.events.title}
-                                    </h4>
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                                        {formatDate(review.events.event_date)}
-                                    </span>
-                                </div>
-                            </div>
-                            {/* 공유 아이콘(ExternalLink) 제거됨 */}
-                        </div>
-                    </Link>
-
-                    {/* 키워드 */}
-                    {review.keywords.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                            {review.keywords.map((keyword, index) => (
-                                <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="bg-primary/5 border-primary/20 text-primary text-xs px-2.5 py-0.5 font-normal"
-                                >
-                                    {keyword}
-                                </Badge>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 한 줄 평 */}
-                    <blockquote className="relative pl-3 py-1 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-gradient-to-b before:from-primary before:to-primary/50 before:rounded-full">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 leading-relaxed line-clamp-2">
-                            "{review.one_liner}"
-                        </p>
-                    </blockquote>
-
-                    {/* 상세 내용 */}
-                    {review.detail_content && (
-                        <div className="space-y-2 pt-2 border-t border-slate-100/50 dark:border-slate-800/50">
-                            {isExpanded && (
-                                <div className="prose prose-sm dark:prose-invert max-w-none animate-in fade-in duration-300">
-                                    <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                                        {review.detail_content}
-                                    </p>
-                                </div>
-                            )}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                className="w-full justify-center gap-1 text-xs text-slate-500 hover:text-primary hover:bg-primary/5 h-8"
-                            >
-                                {isExpanded ? (
-                                    <>
-                                        접기 <ChevronUp className="h-3 w-3" />
-                                    </>
-                                ) : (
-                                    <>
-                                        더보기 <ChevronDown className="h-3 w-3" />
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* 이미지 */}
-                    {review.images && review.images.length > 0 && (
-                        <div className="grid grid-cols-4 gap-2 pt-1">
-                            {review.images.slice(0, 4).map((image, index) => (
-                                <div
-                                    key={index}
-                                    className="aspect-square rounded-md bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-sm"
-                                >
-                                    <img
-                                        src={image}
-                                        alt={`후기 이미지 ${index + 1}`}
-                                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </Card>
-    )
-}
-</file>
-
 <file path="components/reviews/review-modal.tsx">
 "use client"
 
@@ -13691,77 +13476,6 @@ export default async function SidebarProfile() {
       profile={userProfile?.profile || null} 
     />
   )
-}
-</file>
-
-<file path="components/skeletons.tsx">
-import { Skeleton } from "@/components/ui/skeleton"
-
-export function SidebarSkeleton() {
-    return (
-        <div className="h-full w-full flex flex-col bg-white border-r border-slate-100 shadow-sm p-4 space-y-6">
-            <div className="space-y-2">
-                <Skeleton className="h-8 w-3/4 rounded-xl" />
-                <Skeleton className="h-8 w-full rounded-xl" />
-                <Skeleton className="h-8 w-5/6 rounded-xl" />
-            </div>
-            <div className="space-y-2">
-                <Skeleton className="h-4 w-1/2 rounded-md" />
-                <Skeleton className="h-8 w-full rounded-xl" />
-                <Skeleton className="h-8 w-full rounded-xl" />
-            </div>
-        </div>
-    )
-}
-
-export function HeroSkeleton() {
-    return (
-        <div className="mb-6 rounded-2xl bg-slate-900 h-[140px] w-full animate-pulse" />
-    )
-}
-
-export function EventsSkeleton() {
-    return (
-        <div className="w-full space-y-6">
-            <div className="flex justify-between items-center">
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-8 w-24 rounded-full" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-5 lg:gap-6">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="w-full aspect-[4/5] rounded-[20px] overflow-hidden">
-                        <Skeleton className="w-full h-full" />
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-}
-
-export function FeedSkeleton() {
-    return (
-        <div className="space-y-4">
-            <div className="flex gap-2">
-                <Skeleton className="h-10 w-16 rounded-full" />
-                <Skeleton className="h-10 w-16 rounded-full" />
-            </div>
-            <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-48 rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div className="space-y-1">
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-3 w-16" />
-                            </div>
-                        </div>
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-20 w-full" />
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
 }
 </file>
 
@@ -36340,331 +36054,6 @@ export default async function PostsPage() {
 }
 </file>
 
-<file path="app/community/profile/[id]/page.tsx">
-import { createClient } from "@/lib/supabase/server"
-import { notFound } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { Mail, Calendar, FileText, CalendarDays, Ticket, Medal, MapPin } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-
-export const revalidate = 60
-
-type PostItem = {
-  id: string
-  title: string
-  created_at: string
-  likes_count: number
-  comments_count: number
-  board_categories: { name: string; slug: string } | null
-}
-
-type EventItem = {
-  id: string
-  title: string
-  thumbnail_url: string | null
-  event_date: string
-  location: string | null
-}
-
-export default async function PublicProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
-  const supabase = await createClient()
-
-  // 프로필 조회
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .single()
-
-  if (error || !profile) {
-    notFound()
-  }
-
-  // 비공개 프로필인 경우 (본인이 아니면 제한된 정보만 표시)
-  const { data: { user } } = await supabase.auth.getUser()
-  const isOwnProfile = user?.id === id
-
-  // 뱃지 조회
-  const { data: badgesData } = await supabase
-    .from("user_badges")
-    .select(`badges:badge_id (icon, name, is_active)`)
-    .eq("user_id", id)
-    .eq("is_visible", true)
-    .eq("status", "approved")
-    .limit(10)
-
-  const visibleBadges = (badgesData || [])
-    .filter((item: any) => item.badges && item.badges.is_active !== false)
-    .map((item: any) => ({
-      icon: item.badges.icon,
-      name: item.badges.name,
-    }))
-
-  // 공개 프로필이거나 본인인 경우에만 활동 내역 조회
-  let userPosts: PostItem[] = []
-  let createdEvents: EventItem[] = []
-
-  if (profile.is_profile_public || isOwnProfile) {
-    // 작성 게시글
-    const { data: postsData } = await supabase
-      .from("posts")
-      .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
-      .eq("author_id", id)
-      .order("created_at", { ascending: false })
-      .limit(10)
-
-    userPosts = (postsData || []).map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      created_at: post.created_at,
-      likes_count: post.likes_count || 0,
-      comments_count: post.comments_count || 0,
-      board_categories: Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories,
-    }))
-
-    // 만든 이벤트
-    const { data: eventsData } = await supabase
-      .from("events")
-      .select(`id, title, thumbnail_url, event_date, location`)
-      .eq("created_by", id)
-      .order("created_at", { ascending: false })
-      .limit(10)
-
-    createdEvents = eventsData || []
-  }
-
-  return (
-    <div className="w-full">
-      <div className="grid gap-6 md:grid-cols-12">
-        {/* 프로필 카드 */}
-        <div className="md:col-span-5 lg:col-span-4">
-          <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
-            <CardContent className="p-8 flex flex-col items-center text-center">
-              {/* 아바타 */}
-              <div className="mb-6">
-                <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
-                  {profile.avatar_url ? (
-                    <Image
-                      src={profile.avatar_url}
-                      alt={profile.full_name || "Profile"}
-                      width={256}
-                      height={256}
-                      className="object-cover h-full w-full"
-                    />
-                  ) : (
-                    <Image
-                      src={`https://api.dicebear.com/9.x/notionists/svg?seed=${profile.full_name || id}`}
-                      alt={profile.full_name || "Profile"}
-                      width={256}
-                      height={256}
-                      className="object-cover h-full w-full bg-slate-50"
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* 이름 */}
-              <h1 className="text-2xl font-bold text-slate-900 mb-1">
-                {profile.full_name || "이름 없음"}
-              </h1>
-
-              {/* 이메일 (본인만 표시) */}
-              {isOwnProfile && profile.email && (
-                <p className="text-slate-500 text-sm mb-2 flex items-center justify-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" />
-                  {profile.email}
-                </p>
-              )}
-
-              {/* 소속/직책 */}
-              {(profile.company || profile.position || profile.company_2 || profile.position_2) && (
-                <div className="flex flex-col gap-1 items-center mb-4">
-                  {(profile.company || profile.position) && (
-                    <p className="text-slate-600 text-sm">
-                      {profile.company}
-                      {profile.company && profile.position && " · "}
-                      {profile.position}
-                    </p>
-                  )}
-                  {(profile.company_2 || profile.position_2) && (
-                    <p className="text-slate-600 text-sm">
-                      {profile.company_2}
-                      {profile.company_2 && profile.position_2 && " · "}
-                      {profile.position_2}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* 한 줄 소개 */}
-              {profile.tagline && (
-                <p className="text-slate-600 text-sm mb-4 italic">"{profile.tagline}"</p>
-              )}
-
-              {/* 자기소개 */}
-              {profile.introduction && (
-                <p className="text-slate-600 text-sm mb-4 text-center whitespace-pre-line">
-                  {profile.introduction}
-                </p>
-              )}
-
-              {/* 뱃지 */}
-              {visibleBadges.length > 0 && (
-                <div className="w-full mt-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-2 mb-3 justify-center">
-                    <Medal className="h-4 w-4 text-slate-700" />
-                    <span className="text-sm font-bold text-slate-900">뱃지</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {visibleBadges.map((badge: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-700"
-                      >
-                        <span className="text-lg">{badge.icon}</span>
-                        <span>{badge.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 가입일 */}
-              <div className="mt-6 text-xs text-slate-400 flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>가입일: {new Date(profile.created_at).toLocaleDateString("ko-KR")}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 활동 내역 */}
-        <div className="md:col-span-7 lg:col-span-8 space-y-6">
-          {profile.is_profile_public || isOwnProfile ? (
-            <>
-              {/* 작성 게시글 */}
-              <Card className="border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-0">
-                  <div className="px-6 py-4 border-b border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-slate-500" />
-                      작성한 게시글
-                    </h2>
-                  </div>
-                  {userPosts.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
-                      {userPosts.map((post) => (
-                        <Link
-                          key={post.id}
-                          href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`}
-                          className="flex flex-col p-5 hover:bg-slate-50 transition-colors group"
-                        >
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
-                              {post.board_categories?.name || "게시판"}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {new Date(post.created_at).toLocaleDateString("ko-KR")}
-                            </span>
-                          </div>
-                          <h3 className="text-base font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                            {post.title}
-                          </h3>
-                          <div className="flex gap-3 mt-2 text-xs text-slate-500">
-                            <span>좋아요 {post.likes_count}</span>
-                            <span>댓글 {post.comments_count}</span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                      <FileText className="h-8 w-8 mb-2 text-slate-300" />
-                      <p className="text-sm">작성한 게시글이 없습니다.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* 만든 이벤트 */}
-              <Card className="border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-0">
-                  <div className="px-6 py-4 border-b border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <CalendarDays className="h-5 w-5 text-slate-500" />
-                      만든 이벤트
-                    </h2>
-                  </div>
-                  {createdEvents.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
-                      {createdEvents.map((event) => (
-                        <Link
-                          key={event.id}
-                          href={`/events/${event.id}`}
-                          className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group"
-                        >
-                          <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
-                            {event.thumbnail_url ? (
-                              <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-slate-300">
-                                <Ticket className="h-6 w-6" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">
-                              {event.title}
-                            </h3>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <CalendarDays className="h-3 w-3" />
-                                {new Date(event.event_date).toLocaleDateString("ko-KR")}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {event.location || "장소 미정"}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                      <CalendarDays className="h-8 w-8 mb-2 text-slate-300" />
-                      <p className="text-sm">만든 이벤트가 없습니다.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card className="border-slate-200 bg-white shadow-sm">
-              <CardContent className="p-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-                  <FileText className="h-8 w-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">비공개 프로필</h3>
-                <p className="text-slate-500 text-sm">
-                  이 사용자는 프로필을 비공개로 설정했습니다.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-</file>
-
 <file path="app/community/profile/layout.tsx">
 import type { ReactNode } from "react"
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
@@ -37984,6 +37373,61 @@ import { StandardLayout } from "@/components/layout/standard-layout"
 
 export default function PartnersLayout({ children }: { children: ReactNode }) {
   return <StandardLayout>{children}</StandardLayout>
+}
+</file>
+
+<file path="app/reviews/page.tsx">
+import type { Metadata } from "next"
+import { Suspense } from "react"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
+import { MobileHeader } from "@/components/mobile-header"
+import { ReviewsPageContent } from "@/components/reviews/reviews-page-content"
+import { ReviewsPageSkeleton } from "@/components/skeletons"
+import { getCachedUserProfile } from "@/lib/queries/cached"
+
+export const revalidate = 60
+
+export const metadata: Metadata = {
+  title: "참가자 후기 | Seoul Founders Club",
+  description: "서울 파운더스 클럽 이벤트 참가자들의 생생한 후기를 확인해보세요.",
+  openGraph: {
+    title: "참가자 후기 | Seoul Founders Club",
+    description: "서울 파운더스 클럽 이벤트 참가자들의 생생한 후기를 확인해보세요.",
+    url: "https://seoulfounders.club/reviews",
+    siteName: "Seoul Founders Club",
+    images: [
+      {
+        url: "https://seoulfounders.club/images/logo-circle.png",
+        width: 1200,
+        height: 630,
+        alt: "Seoul Founders Club Reviews",
+      },
+    ],
+    locale: "ko_KR",
+    type: "website",
+  },
+}
+
+export default async function ReviewsPage() {
+  const userProfile = await getCachedUserProfile()
+  const userRole = userProfile?.profile?.role ?? null
+
+  return (
+    <DashboardLayout
+      header={<SiteHeader />}
+      userRole={userRole}
+      mobileHeader={<MobileHeader userRole={userRole} />}
+    >
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
+        <Suspense fallback={<ReviewsPageSkeleton />}>
+          <ReviewsPageContent />
+        </Suspense>
+      </ThreeColumnLayout>
+    </DashboardLayout>
+  )
 }
 </file>
 
@@ -39969,44 +39413,6 @@ export function FloatingActionBar({
 }
 </file>
 
-<file path="components/google-map-embed.tsx">
-/**
- * components/google-map-embed.tsx
- * 구글 맵 임베드 컴포넌트 (주소를 받아 지도를 표시)
- */
-"use client";
-
-interface GoogleMapEmbedProps {
-  location: string;
-  apiKey: string;
-}
-
-export function GoogleMapEmbed({ location, apiKey }: GoogleMapEmbedProps) {
-  if (!location) return null;
-
-  // 주소를 URL 인코딩
-  const encodedLocation = encodeURIComponent(location);
-
-  // Google Maps Embed API URL
-  const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedLocation}&language=ko`;
-
-  return (
-    <div className="w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
-      <iframe
-        width="100%"
-        height="100%"
-        style={{ border: 0, minHeight: "300px" }}
-        loading="lazy"
-        allowFullScreen
-        referrerPolicy="no-referrer-when-downgrade"
-        src={mapSrc}
-        title="Google Map"
-      />
-    </div>
-  );
-}
-</file>
-
 <file path="components/home/featured-events.tsx">
 "use client"
 
@@ -40052,6 +39458,85 @@ export function FeaturedEvents({ events }: FeaturedEventsProps) {
       )}
     </section>
   )
+}
+</file>
+
+<file path="components/home/hero-section-static.tsx">
+"use client"
+
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { HeroSection } from "./hero-section"
+
+export function HeroSectionStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function checkAuth() {
+            try {
+                // 1. 로컬 세션 확인
+                let { data: { session } } = await supabase.auth.getSession()
+
+                // 2. Fallback: 쿠키는 있는데 세션이 안 잡히면 getUser()로 강제 검증
+                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
+                    const { data: { user }, error } = await supabase.auth.getUser()
+                    if (user && !error) {
+                        const sessionResult = await supabase.auth.getSession()
+                        session = sessionResult.data.session
+                    }
+                }
+
+                if (!session?.user) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
+
+                setUser(session.user)
+
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("[HeroSection] Auth check failed:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        checkAuth()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    if (isLoading) {
+        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
+    }
+
+    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
 }
 </file>
 
@@ -40179,6 +39664,192 @@ export function HeroSection({ user, profile, loginHref = "/auth/login", onLogin 
 
       </div>
     </div>
+  )
+}
+</file>
+
+<file path="components/home/photo-reviews-container.tsx">
+import { createClient } from "@/lib/supabase/server"
+import { getLatestReviews } from "@/lib/queries/posts"
+import { PhotoReviewsSection } from "./photo-reviews-section"
+
+export async function PhotoReviewsContainer() {
+  const supabase = await createClient()
+  const reviews = await getLatestReviews(supabase, 20)
+
+  // 이미지가 있는 후기만 필터링
+  const photoReviews = reviews.filter(r => r.images && r.images.length > 0)
+
+  if (photoReviews.length === 0) {
+    return null
+  }
+
+  return <PhotoReviewsSection reviews={photoReviews} />
+}
+</file>
+
+<file path="components/home/photo-reviews-section.tsx">
+"use client"
+
+import { useRef } from "react"
+import { Swiper, SwiperSlide } from "swiper/react"
+import { Navigation, Autoplay } from "swiper/modules"
+import type { Swiper as SwiperType } from "swiper"
+import Image from "next/image"
+import Link from "next/link"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+import type { ReviewForDisplay } from "@/lib/types/reviews"
+
+import "swiper/css"
+import "swiper/css/navigation"
+
+interface PhotoReviewsSectionProps {
+  reviews: ReviewForDisplay[]
+}
+
+export function PhotoReviewsSection({ reviews }: PhotoReviewsSectionProps) {
+  const swiperRef = useRef<SwiperType | null>(null)
+
+  // 이미지가 있는 후기만 필터링
+  const photoReviews = reviews.filter(r => r.images && r.images.length > 0)
+
+  if (photoReviews.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="w-full">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">
+          👀 생생한 현장 분위기
+        </h2>
+        <Link
+          href="/reviews"
+          className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          전체 보기 →
+        </Link>
+      </div>
+
+      {/* Swiper 컨테이너 */}
+      <div className="relative group">
+        {/* 네비게이션 버튼 (데스크탑) */}
+        <button
+          onClick={() => swiperRef.current?.slidePrev()}
+          className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+        >
+          <ChevronLeft className="w-5 h-5 text-slate-700" />
+        </button>
+        <button
+          onClick={() => swiperRef.current?.slideNext()}
+          className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+        >
+          <ChevronRight className="w-5 h-5 text-slate-700" />
+        </button>
+
+        {/* Swiper */}
+        <div className="-mx-4 px-4 md:mx-0 md:px-0">
+          <Swiper
+            modules={[Navigation, Autoplay]}
+            onSwiper={(swiper) => (swiperRef.current = swiper)}
+            spaceBetween={12}
+            slidesPerView={1.4}
+            centeredSlides={false}
+            autoplay={{
+              delay: 4000,
+              disableOnInteraction: true,
+              pauseOnMouseEnter: true,
+            }}
+            breakpoints={{
+              480: { slidesPerView: 1.8, spaceBetween: 12 },
+              640: { slidesPerView: 2.2, spaceBetween: 14 },
+              768: { slidesPerView: 2.8, spaceBetween: 16 },
+              1024: { slidesPerView: 3.2, spaceBetween: 16 },
+              1280: { slidesPerView: 4.2, spaceBetween: 16 },
+            }}
+            className="!pb-2"
+          >
+            {photoReviews.map((review) => (
+              <SwiperSlide key={review.id}>
+                <PhotoReviewCard review={review} />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function PhotoReviewCard({ review }: { review: ReviewForDisplay }) {
+  const mainImage = review.images[0]
+
+  return (
+    <Link
+      href={`/e/${review.event_id}`}
+      className="block group relative aspect-[4/5] rounded-2xl overflow-hidden bg-slate-100 shadow-sm hover:shadow-lg transition-all duration-300"
+    >
+      {/* 메인 이미지 */}
+      <Image
+        src={mainImage}
+        alt={review.one_liner}
+        fill
+        sizes="(max-width: 480px) 70vw, (max-width: 768px) 45vw, (max-width: 1024px) 30vw, 25vw"
+        className="object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+
+      {/* 그라데이션 오버레이 */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+      {/* 하단 정보 */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+        {/* 이벤트 제목 */}
+        <p className="text-xs font-medium opacity-80 mb-1 truncate">
+          {review.events.title}
+        </p>
+        {/* 한줄평 */}
+        <p className="text-sm font-bold line-clamp-2 leading-snug">
+          "{review.one_liner}"
+        </p>
+        {/* 작성자 */}
+        <div className="flex items-center gap-2 mt-2">
+          <div className="w-6 h-6 rounded-full bg-white/20 overflow-hidden flex-shrink-0">
+            {review.profiles?.avatar_url ? (
+              <Image
+                src={review.profiles.avatar_url}
+                alt=""
+                width={24}
+                height={24}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] font-medium">
+                {review.profiles?.full_name?.[0] || "?"}
+              </div>
+            )}
+          </div>
+          <span className="text-xs opacity-80 truncate">
+            {review.profiles?.full_name || "익명"}
+          </span>
+        </div>
+      </div>
+
+      {/* 이미지 개수 뱃지 */}
+      {review.images.length > 1 && (
+        <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full text-white text-xs font-medium">
+          +{review.images.length - 1}
+        </div>
+      )}
+
+      {/* 베스트 뱃지 */}
+      {review.is_best && (
+        <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-bold">
+          BEST
+        </div>
+      )}
+    </Link>
   )
 }
 </file>
@@ -40799,6 +40470,570 @@ export function PartnerApplyButton({ partnerId, partnerName, serviceTitle }: Par
 }
 </file>
 
+<file path="components/reviews/review-card.tsx">
+"use client"
+
+import { useState } from "react"
+import { Star, ChevronDown, ChevronUp, Award, Calendar } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import type { ReviewForDisplay } from "@/lib/types/reviews"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+
+interface ReviewCardProps {
+    review: ReviewForDisplay
+    className?: string
+}
+
+export function ReviewCard({ review, className }: ReviewCardProps) {
+    const [isExpanded, setIsExpanded] = useState(false)
+
+    const handleExpandClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsExpanded(!isExpanded)
+    }
+
+    const renderStars = (rating: number) => {
+        const stars = []
+        const fullStars = Math.floor(rating)
+        const hasHalfStar = rating % 1 !== 0
+
+        for (let i = 0; i < 5; i++) {
+            if (i < fullStars) {
+                stars.push(<Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />)
+            } else if (i === fullStars && hasHalfStar) {
+                stars.push(
+                    <div key={i} className="relative h-3.5 w-3.5">
+                        <Star className="h-3.5 w-3.5 fill-gray-200 text-gray-300 absolute" />
+                        <Star
+                            className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 absolute"
+                            style={{ clipPath: "polygon(0 0, 50% 0, 50% 100%, 0 100%)" }}
+                        />
+                    </div>
+                )
+            } else {
+                stars.push(<Star key={i} className="h-3.5 w-3.5 fill-gray-200 text-gray-300" />)
+            }
+        }
+        return stars
+    }
+
+    const getInitials = (name: string | null) => {
+        if (!name) return "?"
+        return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    }
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        })
+    }
+
+    return (
+        <Link href={`/events/${review.event_id}`} className="block">
+        <Card
+            className={cn(
+                "group relative overflow-hidden cursor-pointer",
+                "bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl",
+                "border border-slate-200/60 dark:border-slate-700/60",
+                "shadow-sm hover:shadow-lg transition-all duration-300",
+                "hover:border-primary/30",
+                className
+            )}
+        >
+            {/* 베스트 뱃지 */}
+            {review.is_best && (
+                <div className="absolute top-3 right-3 z-10">
+                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1 shadow-sm text-xs">
+                        <Award className="h-3 w-3" />
+                        BEST
+                    </Badge>
+                </div>
+            )}
+
+            {/* 가로 레이아웃 */}
+            <div className="flex flex-col sm:flex-row">
+                {/* 왼쪽: 날짜 & 사용자 정보 & 별점 - 중앙 정렬 적용 */}
+                <div className="sm:w-48 flex-shrink-0 p-5 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col items-center text-center space-y-4">
+                    <div className="w-full flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <Calendar className="h-3 w-3" />
+                        <time>{formatDate(review.created_at)}</time>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-3 w-full pt-1">
+                        <Avatar className="h-14 w-14 ring-4 ring-white dark:ring-slate-900 shadow-sm">
+                            <AvatarImage src={review.profiles?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+                                {getInitials(review.profiles?.full_name ?? "")}
+                            </AvatarFallback>
+                        </Avatar>
+
+                        <div className="space-y-0.5">
+                            <div className="flex items-center justify-center gap-1.5">
+                                <h3 className="font-bold text-slate-900 dark:text-slate-50 text-[15px]">
+                                    {review.profiles?.full_name || "익명"}
+                                </h3>
+                                {review.profiles?.role === "admin" && (
+                                    <Badge variant="secondary" className="text-[10px] py-0 h-4 px-1">
+                                        운영진
+                                    </Badge>
+                                )}
+                            </div>
+                            {(review.profiles?.company || review.profiles?.position) && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[140px] mx-auto">
+                                    {review.profiles?.company && review.profiles?.position
+                                        ? `${review.profiles.company} · ${review.profiles.position}`
+                                        : review.profiles?.company || review.profiles?.position}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm mt-1">
+                            <div className="flex gap-0.5">{renderStars(review.rating)}</div>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-0.5">
+                                {review.rating.toFixed(1)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 오른쪽: 리뷰 내용 */}
+                <div className="flex-1 p-5 space-y-3">
+                    {/* 행사명 + 날짜 */}
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 group-hover:border-primary/20 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-all duration-300">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Calendar className="h-4 w-4 text-primary shrink-0" />
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h4 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate pr-1 group-hover:text-primary transition-colors">
+                                    {review.events.title}
+                                </h4>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    {formatDate(review.events.event_date)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 키워드 */}
+                    {review.keywords.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {review.keywords.map((keyword, index) => (
+                                <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="bg-primary/5 border-primary/20 text-primary text-xs px-2.5 py-0.5 font-normal"
+                                >
+                                    {keyword}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 한 줄 평 */}
+                    <blockquote className="relative pl-3 py-1 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-gradient-to-b before:from-primary before:to-primary/50 before:rounded-full">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 leading-relaxed line-clamp-2">
+                            "{review.one_liner}"
+                        </p>
+                    </blockquote>
+
+                    {/* 상세 내용 */}
+                    {review.detail_content && (
+                        <div className="space-y-2 pt-2 border-t border-slate-100/50 dark:border-slate-800/50">
+                            {isExpanded && (
+                                <div className="prose prose-sm dark:prose-invert max-w-none animate-in fade-in duration-300">
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                        {review.detail_content}
+                                    </p>
+                                </div>
+                            )}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleExpandClick}
+                                className="w-full justify-center gap-1 text-xs text-slate-500 hover:text-primary hover:bg-primary/5 h-8"
+                            >
+                                {isExpanded ? (
+                                    <>
+                                        접기 <ChevronUp className="h-3 w-3" />
+                                    </>
+                                ) : (
+                                    <>
+                                        더보기 <ChevronDown className="h-3 w-3" />
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* 이미지 */}
+                    {review.images && review.images.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2 pt-1">
+                            {review.images.slice(0, 4).map((image, index) => (
+                                <div
+                                    key={index}
+                                    className="aspect-square rounded-md bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-sm"
+                                >
+                                    <img
+                                        src={image}
+                                        alt={`후기 이미지 ${index + 1}`}
+                                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </Card>
+        </Link>
+    )
+}
+</file>
+
+<file path="components/reviews/reviews-masonry-grid.tsx">
+"use client"
+
+import { useState, useMemo } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
+import { Camera, Star, Calendar, ChevronRight } from "lucide-react"
+import type { ReviewForDisplay } from "@/lib/types/reviews"
+
+type FilterType = "all" | "photo"
+type SortType = "recent" | "popular"
+
+interface ReviewsMasonryGridProps {
+  initialReviews: ReviewForDisplay[]
+}
+
+export function ReviewsMasonryGrid({ initialReviews }: ReviewsMasonryGridProps) {
+  const [filter, setFilter] = useState<FilterType>("all")
+  const [sort, setSort] = useState<SortType>("recent")
+
+  const filteredReviews = useMemo(() => {
+    let result = [...initialReviews]
+
+    // 필터 적용
+    if (filter === "photo") {
+      result = result.filter((r) => r.images && r.images.length > 0)
+    }
+
+    // 정렬 적용 (인기순은 rating 기준, 최신순은 created_at 기준)
+    if (sort === "popular") {
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    } else {
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    }
+
+    return result
+  }, [initialReviews, filter, sort])
+
+  return (
+    <div className="space-y-6">
+      {/* 필터 & 정렬 */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* 필터 버튼 */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilter("all")}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+              filter === "all"
+                ? "bg-slate-900 text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            )}
+          >
+            전체
+          </button>
+          <button
+            onClick={() => setFilter("photo")}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5",
+              filter === "photo"
+                ? "bg-slate-900 text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            )}
+          >
+            <Camera className="w-4 h-4" />
+            포토 후기
+          </button>
+        </div>
+
+        {/* 구분선 */}
+        <div className="w-px h-6 bg-slate-200" />
+
+        {/* 정렬 버튼 */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSort("recent")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+              sort === "recent"
+                ? "bg-slate-100 text-slate-900"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            최신순
+          </button>
+          <button
+            onClick={() => setSort("popular")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+              sort === "popular"
+                ? "bg-slate-100 text-slate-900"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            인기순
+          </button>
+        </div>
+
+        {/* 결과 수 */}
+        <span className="ml-auto text-sm text-slate-400">
+          {filteredReviews.length}개의 후기
+        </span>
+      </div>
+
+      {/* Masonry Grid */}
+      {filteredReviews.length > 0 ? (
+        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+          {filteredReviews.map((review) => (
+            <MasonryCard key={review.id} review={review} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-3xl">
+            💬
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-1">
+            {filter === "photo" ? "포토 후기가 없습니다" : "후기가 없습니다"}
+          </h3>
+          <p className="text-slate-500">
+            이벤트에 참여하고 첫 번째 후기를 남겨보세요!
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MasonryCard({ review }: { review: ReviewForDisplay }) {
+  const hasImage = review.images && review.images.length > 0
+  const firstImage = hasImage ? review.images![0] : null
+
+  if (hasImage && firstImage) {
+    return <PhotoMasonryCard review={review} imageUrl={firstImage} />
+  }
+
+  return <TextMasonryCard review={review} />
+}
+
+function PhotoMasonryCard({
+  review,
+  imageUrl,
+}: {
+  review: ReviewForDisplay
+  imageUrl: string
+}) {
+  const authorName = review.profiles?.full_name || "익명"
+  const authorAvatar = review.profiles?.avatar_url
+  const eventTitle = review.events?.title || "이벤트"
+
+  return (
+    <Link
+      href={`/events/${review.event_id}`}
+      className="block break-inside-avoid mb-4 group"
+    >
+      <div className="relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-lg transition-all">
+        {/* 이미지 */}
+        <div className="relative aspect-[4/5]">
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          {/* 그라데이션 오버레이 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+          {/* 다중 이미지 표시 */}
+          {review.images && review.images.length > 1 && (
+            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-full">
+              +{review.images.length - 1}
+            </div>
+          )}
+
+          {/* 하단 컨텐츠 */}
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            {/* 별점 */}
+            {review.rating && (
+              <div className="flex items-center gap-0.5 mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "w-3.5 h-3.5",
+                      i < review.rating! ? "fill-yellow-400 text-yellow-400" : "text-white/30"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* 후기 내용 */}
+            <p className="text-white text-sm line-clamp-3 mb-3">
+              {review.one_liner || review.detail_content || ""}
+            </p>
+
+            {/* 작성자 정보 */}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-white/20">
+                {authorAvatar ? (
+                  <Image
+                    src={authorAvatar}
+                    alt={authorName}
+                    width={24}
+                    height={24}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <Image
+                    src={`https://api.dicebear.com/9.x/notionists/svg?seed=${authorName}`}
+                    alt={authorName}
+                    width={24}
+                    height={24}
+                    className="object-cover w-full h-full"
+                  />
+                )}
+              </div>
+              <span className="text-white/90 text-xs font-medium">{authorName}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 이벤트 정보 (이미지 아래) */}
+        <div className="p-3 bg-white border-t border-slate-100">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Calendar className="w-3 h-3" />
+            <span className="truncate flex-1">{eventTitle}</span>
+            <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function TextMasonryCard({ review }: { review: ReviewForDisplay }) {
+  const authorName = review.profiles?.full_name || "익명"
+  const authorAvatar = review.profiles?.avatar_url
+  const eventTitle = review.events?.title || "이벤트"
+
+  return (
+    <Link
+      href={`/events/${review.event_id}`}
+      className="block break-inside-avoid mb-4 group"
+    >
+      <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-lg transition-all p-5">
+        {/* 작성자 정보 */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+            {authorAvatar ? (
+              <Image
+                src={authorAvatar}
+                alt={authorName}
+                width={40}
+                height={40}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <Image
+                src={`https://api.dicebear.com/9.x/notionists/svg?seed=${authorName}`}
+                alt={authorName}
+                width={40}
+                height={40}
+                className="object-cover w-full h-full"
+              />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-900">{authorName}</p>
+            <p className="text-xs text-slate-400">
+              {new Date(review.created_at).toLocaleDateString("ko-KR")}
+            </p>
+          </div>
+        </div>
+
+        {/* 별점 */}
+        {review.rating && (
+          <div className="flex items-center gap-0.5 mb-3">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={cn(
+                  "w-4 h-4",
+                  i < review.rating! ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                )}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* 후기 내용 */}
+        <p className="text-slate-700 text-sm leading-relaxed mb-4">
+          {review.one_liner || review.detail_content || ""}
+        </p>
+
+        {/* 이벤트 정보 */}
+        <div className="flex items-center gap-2 pt-3 border-t border-slate-100 text-xs text-slate-500">
+          <Calendar className="w-3 h-3" />
+          <span className="truncate flex-1">{eventTitle}</span>
+          <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+        </div>
+      </div>
+    </Link>
+  )
+}
+</file>
+
+<file path="components/reviews/reviews-page-content.tsx">
+import { createClient } from "@/lib/supabase/server"
+import { getAllReviewsWithFilters } from "@/lib/queries/reviews"
+import { ReviewsMasonryGrid } from "./reviews-masonry-grid"
+
+export async function ReviewsPageContent() {
+  const supabase = await createClient()
+  const reviews = await getAllReviewsWithFilters(supabase, {
+    limit: 100,
+    sortBy: "latest",
+  })
+
+  return (
+    <div className="w-full space-y-6">
+      {/* 헤더 */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-slate-900">참가자 후기</h1>
+        <p className="text-slate-500">
+          서울 파운더스 클럽 이벤트에 참가한 멤버들의 생생한 후기를 확인해보세요.
+        </p>
+      </div>
+
+      {/* Masonry Grid */}
+      <ReviewsMasonryGrid initialReviews={reviews} />
+    </div>
+  )
+}
+</file>
+
 <file path="components/rich-text-editor.tsx">
 "use client"
 
@@ -41038,6 +41273,108 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
 }
 </file>
 
+<file path="components/site-header-static.tsx">
+"use client"
+
+import Link from "next/link"
+import Image from "next/image"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { SiteHeaderClient } from "./site-header-client"
+
+export function SiteHeaderStatic() {
+    const [user, setUser] = useState<any>(null)
+    const [profile, setProfile] = useState<any>(null)
+    const [isLoaded, setIsLoaded] = useState(false)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function checkAuth() {
+            try {
+                // 1. 빠른 확인: 로컬 세션 먼저 시도
+                let { data: { session } } = await supabase.auth.getSession()
+
+                // 2. Fallback: 세션이 없지만 쿠키는 있는 경우 (새로고침/리다이렉트 직후)
+                // getUser()를 호출하여 서버에서 강제로 세션을 복구
+                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
+                    const { data: { user }, error } = await supabase.auth.getUser()
+                    if (user && !error) {
+                        // 유저가 확인되면 세션 객체도 다시 가져옴
+                        const sessionResult = await supabase.auth.getSession()
+                        session = sessionResult.data.session
+                    }
+                }
+
+                if (!session?.user) {
+                    setUser(null)
+                    setProfile(null)
+                    return
+                }
+
+                setUser(session.user)
+
+                const { data: profileData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+
+                setProfile(profileData)
+            } catch (error) {
+                console.error("[SiteHeader] Auth check failed:", error)
+            } finally {
+                setIsLoaded(true)
+            }
+        }
+
+        checkAuth()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                setUser(session.user)
+                supabase
+                    .from("profiles")
+                    .select("id, full_name, avatar_url, role, points")
+                    .eq("id", session.user.id)
+                    .single()
+                    .then(({ data }) => setProfile(data))
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setProfile(null)
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    return (
+        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
+            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
+                <div className="ml-1 mr-4 flex items-center">
+                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
+                        <Image
+                            src="/images/logo-text.png"
+                            alt="Seoul Founders Club"
+                            width={580}
+                            height={51}
+                            className="h-8 w-auto max-w-56 object-contain"
+                            priority
+                        />
+                    </Link>
+                </div>
+
+                <SiteHeaderClient
+                    user={isLoaded ? user : null}
+                    profile={isLoaded ? profile : null}
+                    initialNotifications={[]}
+                />
+            </div>
+        </header>
+    )
+}
+</file>
+
 <file path="components/site-header.tsx">
 import Link from "next/link"
 import Image from "next/image"
@@ -41078,6 +41415,120 @@ export async function SiteHeader({ user, profile }: SiteHeaderProps = {}) {
                 <SiteHeaderClient user={user} profile={profile} initialNotifications={[]} />
             </div>
         </header>
+    )
+}
+</file>
+
+<file path="components/skeletons.tsx">
+import { Skeleton } from "@/components/ui/skeleton"
+
+export function SidebarSkeleton() {
+    return (
+        <div className="h-full w-full flex flex-col bg-white border-r border-slate-100 shadow-sm p-4 space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-3/4 rounded-xl" />
+                <Skeleton className="h-8 w-full rounded-xl" />
+                <Skeleton className="h-8 w-5/6 rounded-xl" />
+            </div>
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-1/2 rounded-md" />
+                <Skeleton className="h-8 w-full rounded-xl" />
+                <Skeleton className="h-8 w-full rounded-xl" />
+            </div>
+        </div>
+    )
+}
+
+export function HeroSkeleton() {
+    return (
+        <div className="mb-6 rounded-2xl bg-slate-900 h-[140px] w-full animate-pulse" />
+    )
+}
+
+export function EventsSkeleton() {
+    return (
+        <div className="w-full space-y-6">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-8 w-24 rounded-full" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-5 lg:gap-6">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-full aspect-[4/5] rounded-[20px] overflow-hidden">
+                        <Skeleton className="w-full h-full" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export function FeedSkeleton() {
+    return (
+        <div className="space-y-4">
+            <div className="flex gap-2">
+                <Skeleton className="h-10 w-16 rounded-full" />
+                <Skeleton className="h-10 w-16 rounded-full" />
+            </div>
+            <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-48 rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="space-y-1">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-16" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-20 w-full" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export function PhotoReviewsSkeleton() {
+    return (
+        <div className="w-full space-y-5">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-5 w-20" />
+            </div>
+            <div className="flex gap-3 overflow-hidden -mx-4 px-4 md:mx-0 md:px-0">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex-shrink-0 w-[70%] sm:w-[45%] md:w-[35%] lg:w-[30%] xl:w-[24%]">
+                        <Skeleton className="w-full aspect-[4/5] rounded-2xl" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export function ReviewsPageSkeleton() {
+    return (
+        <div className="w-full space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-5 w-72" />
+            </div>
+            <div className="flex gap-2 mb-6">
+                <Skeleton className="h-10 w-20 rounded-full" />
+                <Skeleton className="h-10 w-28 rounded-full" />
+            </div>
+            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div key={i} className="break-inside-avoid mb-4">
+                        <Skeleton
+                            className="w-full rounded-2xl"
+                            style={{ height: `${200 + (i % 3) * 80}px` }}
+                        />
+                    </div>
+                ))}
+            </div>
+        </div>
     )
 }
 </file>
@@ -43162,6 +43613,244 @@ export async function getReviewsByEvent(
 }
 </file>
 
+<file path="lib/queries/reviews.ts">
+import { SupabaseClient } from "@supabase/supabase-js"
+import type { ReviewForDisplay } from "@/lib/types/reviews"
+
+/**
+ * 호스트(이벤트 생성자)가 받은 모든 후기 조회
+ * @param supabase Supabase 클라이언트
+ * @param hostId 호스트 사용자 ID
+ * @param limit 최대 조회 개수 (기본값: 50)
+ */
+export async function getReviewsForHost(
+  supabase: SupabaseClient,
+  hostId: string,
+  limit: number = 50
+): Promise<ReviewForDisplay[]> {
+  try {
+    // 1. 호스트가 만든 이벤트 ID들 조회
+    const { data: events, error: eventsError } = await supabase
+      .from("events")
+      .select("id")
+      .eq("created_by", hostId)
+
+    if (eventsError) {
+      console.error("🚨 [getReviewsForHost] Events query error:", eventsError)
+      return []
+    }
+
+    if (!events || events.length === 0) {
+      return []
+    }
+
+    const eventIds = events.map(e => e.id)
+
+    // 2. 해당 이벤트들의 공개 후기 조회
+    const { data: reviews, error: reviewsError } = await supabase
+      .from("reviews")
+      .select("*")
+      .in("event_id", eventIds)
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(limit)
+
+    if (reviewsError) {
+      console.error("🚨 [getReviewsForHost] Reviews query error:", reviewsError)
+      return []
+    }
+
+    if (!reviews || reviews.length === 0) {
+      return []
+    }
+
+    // 3. Profiles & Events 매핑 (N+1 방지용 배치 조회)
+    const userIds = [...new Set(reviews.map(r => r.user_id).filter(Boolean))]
+    const eventIdsForReviews = [...new Set(reviews.map(r => r.event_id).filter(Boolean))]
+
+    const [profilesResult, eventsDataResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, company, position")
+        .in("id", userIds),
+      supabase
+        .from("events")
+        .select("id, title, event_date, thumbnail_url")
+        .in("id", eventIdsForReviews)
+    ])
+
+    const profileMap = new Map(
+      (profilesResult.data || []).map(p => [p.id, p])
+    )
+    const eventMap = new Map(
+      (eventsDataResult.data || []).map(e => [e.id, e])
+    )
+
+    // 4. 데이터 조합
+    return reviews
+      .map((review): ReviewForDisplay | null => {
+        const event = eventMap.get(review.event_id)
+        if (!event) return null
+
+        const profile = profileMap.get(review.user_id)
+
+        return {
+          id: review.id,
+          user_id: review.user_id,
+          event_id: review.event_id,
+          rating: review.rating,
+          keywords: review.keywords || [],
+          one_liner: review.one_liner,
+          detail_content: review.detail_content,
+          images: review.images || [],
+          is_best: review.is_best,
+          is_public: review.is_public,
+          created_at: review.created_at,
+          updated_at: review.updated_at,
+          profiles: profile ? {
+            id: profile.id,
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+            role: profile.role,
+            company: profile.company,
+            position: profile.position
+          } : null,
+          events: {
+            id: event.id,
+            title: event.title,
+            event_date: event.event_date,
+            thumbnail_url: event.thumbnail_url
+          }
+        }
+      })
+      .filter((item): item is ReviewForDisplay => item !== null)
+
+  } catch (error) {
+    console.error("🚨 [getReviewsForHost] Unexpected error:", error)
+    return []
+  }
+}
+
+/**
+ * 전체 공개 후기 조회 (필터/정렬 지원)
+ * @param supabase Supabase 클라이언트
+ * @param options 옵션 (정렬, 필터, 페이징)
+ */
+export async function getAllReviewsWithFilters(
+  supabase: SupabaseClient,
+  options: {
+    sortBy?: "latest" | "popular"
+    photoOnly?: boolean
+    limit?: number
+    offset?: number
+  } = {}
+): Promise<ReviewForDisplay[]> {
+  const { sortBy = "latest", photoOnly = false, limit = 30, offset = 0 } = options
+
+  try {
+    // 1. Reviews 조회
+    let query = supabase
+      .from("reviews")
+      .select("*")
+      .eq("is_public", true)
+
+    // 포토 후기만 필터링
+    if (photoOnly) {
+      // images 배열이 비어있지 않은 후기만
+      query = query.not("images", "eq", "{}")
+    }
+
+    // 정렬
+    if (sortBy === "latest") {
+      query = query.order("created_at", { ascending: false })
+    } else {
+      // popular: is_best 우선, 그 다음 created_at
+      query = query
+        .order("is_best", { ascending: false })
+        .order("created_at", { ascending: false })
+    }
+
+    query = query.range(offset, offset + limit - 1)
+
+    const { data: reviews, error } = await query
+
+    if (error) {
+      console.error("🚨 [getAllReviewsWithFilters] Query error:", error)
+      return []
+    }
+
+    if (!reviews || reviews.length === 0) {
+      return []
+    }
+
+    // 2. Profiles & Events 배치 조회
+    const userIds = [...new Set(reviews.map(r => r.user_id).filter(Boolean))]
+    const eventIds = [...new Set(reviews.map(r => r.event_id).filter(Boolean))]
+
+    const [profilesResult, eventsResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role, company, position")
+        .in("id", userIds),
+      supabase
+        .from("events")
+        .select("id, title, event_date, thumbnail_url")
+        .in("id", eventIds)
+    ])
+
+    const profileMap = new Map(
+      (profilesResult.data || []).map(p => [p.id, p])
+    )
+    const eventMap = new Map(
+      (eventsResult.data || []).map(e => [e.id, e])
+    )
+
+    // 3. 데이터 조합
+    return reviews
+      .map((review): ReviewForDisplay | null => {
+        const event = eventMap.get(review.event_id)
+        if (!event) return null
+
+        const profile = profileMap.get(review.user_id)
+
+        return {
+          id: review.id,
+          user_id: review.user_id,
+          event_id: review.event_id,
+          rating: review.rating,
+          keywords: review.keywords || [],
+          one_liner: review.one_liner,
+          detail_content: review.detail_content,
+          images: review.images || [],
+          is_best: review.is_best,
+          is_public: review.is_public,
+          created_at: review.created_at,
+          updated_at: review.updated_at,
+          profiles: profile ? {
+            id: profile.id,
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+            role: profile.role,
+            company: profile.company,
+            position: profile.position
+          } : null,
+          events: {
+            id: event.id,
+            title: event.title,
+            event_date: event.event_date,
+            thumbnail_url: event.thumbnail_url
+          }
+        }
+      })
+      .filter((item): item is ReviewForDisplay => item !== null)
+
+  } catch (error) {
+    console.error("🚨 [getAllReviewsWithFilters] Unexpected error:", error)
+    return []
+  }
+}
+</file>
+
 <file path="lib/supabase/client.ts">
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -43863,6 +44552,385 @@ buckets-objects-grants-postgres
 
 <file path="supabase/.temp/storage-version">
 v1.33.0
+</file>
+
+<file path="app/community/profile/[id]/page.tsx">
+import { createClient } from "@/lib/supabase/server"
+import { notFound } from "next/navigation"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Mail, Calendar, FileText, CalendarDays, Ticket, Medal, MapPin, MessageSquare } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { getReviewsForHost } from "@/lib/queries/reviews"
+import { ReviewCard } from "@/components/reviews/review-card"
+import type { ReviewForDisplay } from "@/lib/types/reviews"
+
+export const revalidate = 60
+
+type PostItem = {
+  id: string
+  title: string
+  created_at: string
+  likes_count: number
+  comments_count: number
+  board_categories: { name: string; slug: string } | null
+}
+
+type EventItem = {
+  id: string
+  title: string
+  thumbnail_url: string | null
+  event_date: string
+  location: string | null
+}
+
+export default async function PublicProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const supabase = await createClient()
+
+  // 프로필 조회
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .single()
+
+  if (error || !profile) {
+    notFound()
+  }
+
+  // 비공개 프로필인 경우 (본인이 아니면 제한된 정보만 표시)
+  const { data: { user } } = await supabase.auth.getUser()
+  const isOwnProfile = user?.id === id
+
+  // 뱃지 조회
+  const { data: badgesData } = await supabase
+    .from("user_badges")
+    .select(`badges:badge_id (icon, name, is_active)`)
+    .eq("user_id", id)
+    .eq("is_visible", true)
+    .eq("status", "approved")
+    .limit(10)
+
+  const visibleBadges = (badgesData || [])
+    .filter((item: any) => item.badges && item.badges.is_active !== false)
+    .map((item: any) => ({
+      icon: item.badges.icon,
+      name: item.badges.name,
+    }))
+
+  // 공개 프로필이거나 본인인 경우에만 활동 내역 조회
+  let userPosts: PostItem[] = []
+  let createdEvents: EventItem[] = []
+  let hostReviews: ReviewForDisplay[] = []
+
+  if (profile.is_profile_public || isOwnProfile) {
+    // 작성 게시글
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select(`id, title, created_at, likes_count, comments_count, board_categories (name, slug)`)
+      .eq("author_id", id)
+      .order("created_at", { ascending: false })
+      .limit(10)
+
+    userPosts = (postsData || []).map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      created_at: post.created_at,
+      likes_count: post.likes_count || 0,
+      comments_count: post.comments_count || 0,
+      board_categories: Array.isArray(post.board_categories) ? post.board_categories[0] : post.board_categories,
+    }))
+
+    // 만든 이벤트
+    const { data: eventsData } = await supabase
+      .from("events")
+      .select(`id, title, thumbnail_url, event_date, location`)
+      .eq("created_by", id)
+      .order("created_at", { ascending: false })
+      .limit(10)
+
+    createdEvents = eventsData || []
+
+    // 호스트로서 받은 후기 조회
+    hostReviews = await getReviewsForHost(supabase, id, 20)
+  }
+
+  return (
+    <div className="w-full">
+      <div className="grid gap-6 md:grid-cols-12">
+        {/* 프로필 카드 */}
+        <div className="md:col-span-5 lg:col-span-4">
+          <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+            <CardContent className="p-8 flex flex-col items-center text-center">
+              {/* 아바타 */}
+              <div className="mb-6">
+                <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
+                  {profile.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt={profile.full_name || "Profile"}
+                      width={256}
+                      height={256}
+                      className="object-cover h-full w-full"
+                    />
+                  ) : (
+                    <Image
+                      src={`https://api.dicebear.com/9.x/notionists/svg?seed=${profile.full_name || id}`}
+                      alt={profile.full_name || "Profile"}
+                      width={256}
+                      height={256}
+                      className="object-cover h-full w-full bg-slate-50"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* 이름 */}
+              <h1 className="text-2xl font-bold text-slate-900 mb-1">
+                {profile.full_name || "이름 없음"}
+              </h1>
+
+              {/* 이메일 (본인만 표시) */}
+              {isOwnProfile && profile.email && (
+                <p className="text-slate-500 text-sm mb-2 flex items-center justify-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  {profile.email}
+                </p>
+              )}
+
+              {/* 소속/직책 */}
+              {(profile.company || profile.position || profile.company_2 || profile.position_2) && (
+                <div className="flex flex-col gap-1 items-center mb-4">
+                  {(profile.company || profile.position) && (
+                    <p className="text-slate-600 text-sm">
+                      {profile.company}
+                      {profile.company && profile.position && " · "}
+                      {profile.position}
+                    </p>
+                  )}
+                  {(profile.company_2 || profile.position_2) && (
+                    <p className="text-slate-600 text-sm">
+                      {profile.company_2}
+                      {profile.company_2 && profile.position_2 && " · "}
+                      {profile.position_2}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* 한 줄 소개 */}
+              {profile.tagline && (
+                <p className="text-slate-600 text-sm mb-4 italic">"{profile.tagline}"</p>
+              )}
+
+              {/* 자기소개 */}
+              {profile.introduction && (
+                <p className="text-slate-600 text-sm mb-4 text-center whitespace-pre-line">
+                  {profile.introduction}
+                </p>
+              )}
+
+              {/* 뱃지 */}
+              {visibleBadges.length > 0 && (
+                <div className="w-full mt-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2 mb-3 justify-center">
+                    <Medal className="h-4 w-4 text-slate-700" />
+                    <span className="text-sm font-bold text-slate-900">뱃지</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {visibleBadges.map((badge: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-700"
+                      >
+                        <span className="text-lg">{badge.icon}</span>
+                        <span>{badge.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 가입일 */}
+              <div className="mt-6 text-xs text-slate-400 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>가입일: {new Date(profile.created_at).toLocaleDateString("ko-KR")}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 활동 내역 */}
+        <div className="md:col-span-7 lg:col-span-8 space-y-6">
+          {profile.is_profile_public || isOwnProfile ? (
+            <Tabs defaultValue="posts" className="w-full">
+              <TabsList className="w-full justify-start bg-white border border-slate-200 rounded-xl p-1 mb-6">
+                <TabsTrigger value="posts" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg px-4 py-2">
+                  <FileText className="h-4 w-4" />
+                  작성한 글
+                  {userPosts.length > 0 && (
+                    <span className="ml-1 text-xs bg-slate-100 data-[state=active]:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                      {userPosts.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="events" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg px-4 py-2">
+                  <CalendarDays className="h-4 w-4" />
+                  만든 이벤트
+                  {createdEvents.length > 0 && (
+                    <span className="ml-1 text-xs bg-slate-100 data-[state=active]:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                      {createdEvents.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="reviews" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg px-4 py-2">
+                  <MessageSquare className="h-4 w-4" />
+                  받은 후기
+                  {hostReviews.length > 0 && (
+                    <span className="ml-1 text-xs bg-slate-100 data-[state=active]:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                      {hostReviews.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* 작성 게시글 탭 */}
+              <TabsContent value="posts">
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-0">
+                    {userPosts.length > 0 ? (
+                      <div className="divide-y divide-slate-100">
+                        {userPosts.map((post) => (
+                          <Link
+                            key={post.id}
+                            href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`}
+                            className="flex flex-col p-5 hover:bg-slate-50 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
+                                {post.board_categories?.name || "게시판"}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                {new Date(post.created_at).toLocaleDateString("ko-KR")}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                              {post.title}
+                            </h3>
+                            <div className="flex gap-3 mt-2 text-xs text-slate-500">
+                              <span>좋아요 {post.likes_count}</span>
+                              <span>댓글 {post.comments_count}</span>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <FileText className="h-8 w-8 mb-2 text-slate-300" />
+                        <p className="text-sm">작성한 게시글이 없습니다.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 만든 이벤트 탭 */}
+              <TabsContent value="events">
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-0">
+                    {createdEvents.length > 0 ? (
+                      <div className="divide-y divide-slate-100">
+                        {createdEvents.map((event) => (
+                          <Link
+                            key={event.id}
+                            href={`/events/${event.id}`}
+                            className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group"
+                          >
+                            <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
+                              {event.thumbnail_url ? (
+                                <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-slate-300">
+                                  <Ticket className="h-6 w-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">
+                                {event.title}
+                              </h3>
+                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <CalendarDays className="h-3 w-3" />
+                                  {new Date(event.event_date).toLocaleDateString("ko-KR")}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location || "장소 미정"}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <CalendarDays className="h-8 w-8 mb-2 text-slate-300" />
+                        <p className="text-sm">만든 이벤트가 없습니다.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 받은 후기 탭 */}
+              <TabsContent value="reviews">
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-6">
+                    {hostReviews.length > 0 ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {hostReviews.map((review) => (
+                          <ReviewCard
+                            key={review.id}
+                            review={review}
+                            className="h-full border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <MessageSquare className="h-8 w-8 mb-2 text-slate-300" />
+                        <p className="text-sm">받은 후기가 없습니다.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <Card className="border-slate-200 bg-white shadow-sm">
+              <CardContent className="p-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                  <FileText className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">비공개 프로필</h3>
+                <p className="text-slate-500 text-sm">
+                  이 사용자는 프로필을 비공개로 설정했습니다.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 </file>
 
 <file path="app/community/profile/ProfileClient.tsx">
@@ -45329,80 +46397,6 @@ export default async function EditEventPage({
 }
 </file>
 
-<file path="app/page.tsx">
-import type { Metadata } from "next"
-import { Suspense } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { StandardRightSidebar } from "@/components/standard-right-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
-import { MobileHeader } from "@/components/mobile-header"
-import { HeroSectionContainer } from "@/components/home/hero-section-container"
-import { EventsSectionContainer } from "@/components/home/events-section-container"
-import { FeedSectionContainer } from "@/components/home/feed-section-container"
-import { EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
-import { getCachedUserProfile } from "@/lib/queries/cached"
-
-// ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
-export const revalidate = 60
-
-export const metadata: Metadata = {
-  title: "Seoul Founders Club",
-  description: "서울 파운더스 클럽",
-  openGraph: {
-    title: "Seoul Founders Club",
-    description: "서울 파운더스 클럽",
-    url: "https://seoulfounders.club",
-    siteName: "Seoul Founders Club",
-    images: [
-      {
-        url: "https://seoulfounders.club/images/logo-circle.png",
-        width: 1200,
-        height: 630,
-        alt: "Seoul Founders Club",
-      },
-    ],
-    locale: "ko_KR",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Seoul Founders Club",
-    description: "서울 파운더스 클럽",
-    images: ["https://seoulfounders.club/images/logo-circle.png"],
-  },
-}
-
-export default async function HomePage() {
-  const userProfile = await getCachedUserProfile()
-  const userRole = userProfile?.profile?.role ?? null
-
-  return (
-    <DashboardLayout
-      header={<SiteHeader />}
-      userRole={userRole}
-      mobileHeader={<MobileHeader userRole={userRole} />}
-    >
-      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
-        <div className="flex flex-col gap-10 w-full">
-          <HeroSectionContainer />
-
-          <Suspense fallback={<EventsSkeleton />}>
-            <EventsSectionContainer />
-          </Suspense>
-
-          <div className="h-px bg-slate-200" />
-
-          <Suspense fallback={<FeedSkeleton />}>
-            <FeedSectionContainer />
-          </Suspense>
-        </div>
-      </ThreeColumnLayout>
-    </DashboardLayout>
-  )
-}
-</file>
-
 <file path="components/community/community-mobile-bar.tsx">
 "use client"
 
@@ -45674,6 +46668,45 @@ export function CommunityMobileBar({
 }
 </file>
 
+<file path="components/google-map-embed.tsx">
+/**
+ * components/google-map-embed.tsx
+ * 구글 맵 임베드 컴포넌트 (주소를 받아 지도를 표시)
+ */
+"use client";
+
+interface GoogleMapEmbedProps {
+  location: string;
+  apiKey: string;
+  className?: string;
+}
+
+export function GoogleMapEmbed({ location, apiKey, className }: GoogleMapEmbedProps) {
+  if (!location) return null;
+
+  // 주소를 URL 인코딩
+  const encodedLocation = encodeURIComponent(location);
+
+  // Google Maps Embed API URL
+  const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedLocation}&language=ko`;
+
+  return (
+    <div className={`w-full h-full min-h-[300px] rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-50 ${className || ""}`}>
+      <iframe
+        width="100%"
+        height="100%"
+        style={{ border: 0, minHeight: "300px" }}
+        loading="lazy"
+        allowFullScreen
+        referrerPolicy="no-referrer-when-downgrade"
+        src={mapSrc}
+        title="Google Map"
+      />
+    </div>
+  );
+}
+</file>
+
 <file path="components/home/feed-section.tsx">
 "use client"
 
@@ -45777,85 +46810,6 @@ export function FeedSection({ initialPosts }: FeedSectionProps) {
       {isFetchingNextPage && <div className="text-xs text-slate-500">불러오는 중...</div>}
     </section>
   )
-}
-</file>
-
-<file path="components/home/hero-section-static.tsx">
-"use client"
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { HeroSection } from "./hero-section"
-
-export function HeroSectionStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                // 1. 로컬 세션 확인
-                let { data: { session } } = await supabase.auth.getSession()
-
-                // 2. Fallback: 쿠키는 있는데 세션이 안 잡히면 getUser()로 강제 검증
-                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
-                    const { data: { user }, error } = await supabase.auth.getUser()
-                    if (user && !error) {
-                        const sessionResult = await supabase.auth.getSession()
-                        session = sessionResult.data.session
-                    }
-                }
-
-                if (!session?.user) {
-                    setUser(null)
-                    setProfile(null)
-                    return
-                }
-
-                setUser(session.user)
-
-                const { data: profileData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-
-                setProfile(profileData)
-            } catch (error) {
-                console.error("[HeroSection] Auth check failed:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        checkAuth()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    if (isLoading) {
-        return <HeroSection user={null} profile={null} loginHref="/auth/login" />
-    }
-
-    return <HeroSection user={user} profile={profile} loginHref="/auth/login" />
 }
 </file>
 
@@ -48031,108 +48985,6 @@ export function RegisterButton({
 }
 </file>
 
-<file path="components/site-header-static.tsx">
-"use client"
-
-import Link from "next/link"
-import Image from "next/image"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { SiteHeaderClient } from "./site-header-client"
-
-export function SiteHeaderStatic() {
-    const [user, setUser] = useState<any>(null)
-    const [profile, setProfile] = useState<any>(null)
-    const [isLoaded, setIsLoaded] = useState(false)
-
-    useEffect(() => {
-        const supabase = createClient()
-
-        async function checkAuth() {
-            try {
-                // 1. 빠른 확인: 로컬 세션 먼저 시도
-                let { data: { session } } = await supabase.auth.getSession()
-
-                // 2. Fallback: 세션이 없지만 쿠키는 있는 경우 (새로고침/리다이렉트 직후)
-                // getUser()를 호출하여 서버에서 강제로 세션을 복구
-                if (!session?.user && typeof document !== 'undefined' && document.cookie.includes('sb-')) {
-                    const { data: { user }, error } = await supabase.auth.getUser()
-                    if (user && !error) {
-                        // 유저가 확인되면 세션 객체도 다시 가져옴
-                        const sessionResult = await supabase.auth.getSession()
-                        session = sessionResult.data.session
-                    }
-                }
-
-                if (!session?.user) {
-                    setUser(null)
-                    setProfile(null)
-                    return
-                }
-
-                setUser(session.user)
-
-                const { data: profileData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-
-                setProfile(profileData)
-            } catch (error) {
-                console.error("[SiteHeader] Auth check failed:", error)
-            } finally {
-                setIsLoaded(true)
-            }
-        }
-
-        checkAuth()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session?.user) {
-                setUser(session.user)
-                supabase
-                    .from("profiles")
-                    .select("id, full_name, avatar_url, role, points")
-                    .eq("id", session.user.id)
-                    .single()
-                    .then(({ data }) => setProfile(data))
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setProfile(null)
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [])
-
-    return (
-        <header className="fixed inset-x-0 top-0 z-50 h-16 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 shadow-sm shadow-slate-900/5">
-            <div className="flex h-16 w-full items-center px-4 lg:px-[27px]">
-                <div className="ml-1 mr-4 flex items-center">
-                    <Link href="/" className="flex items-center hover:opacity-85 transition-opacity">
-                        <Image
-                            src="/images/logo-text.png"
-                            alt="Seoul Founders Club"
-                            width={580}
-                            height={51}
-                            className="h-8 w-auto max-w-56 object-contain"
-                            priority
-                        />
-                    </Link>
-                </div>
-
-                <SiteHeaderClient
-                    user={isLoaded ? user : null}
-                    profile={isLoaded ? profile : null}
-                    initialNotifications={[]}
-                />
-            </div>
-        </header>
-    )
-}
-</file>
-
 <file path="components/threaded-comments.tsx">
 "use client"
 
@@ -49158,6 +50010,86 @@ export default async function CommunityDashboardPage() {
         <CommunityGrid communities={mergedCommunities} />
       </div>
     </ThreeColumnLayout>
+  )
+}
+</file>
+
+<file path="app/page.tsx">
+import type { Metadata } from "next"
+import { Suspense } from "react"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { StandardRightSidebar } from "@/components/standard-right-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import { ThreeColumnLayout } from "@/components/layout/three-column-layout"
+import { MobileHeader } from "@/components/mobile-header"
+import { HeroSectionContainer } from "@/components/home/hero-section-container"
+import { EventsSectionContainer } from "@/components/home/events-section-container"
+import { FeedSectionContainer } from "@/components/home/feed-section-container"
+import { PhotoReviewsContainer } from "@/components/home/photo-reviews-container"
+import { EventsSkeleton, FeedSkeleton, PhotoReviewsSkeleton } from "@/components/skeletons"
+import { getCachedUserProfile } from "@/lib/queries/cached"
+
+// ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
+export const revalidate = 60
+
+export const metadata: Metadata = {
+  title: "Seoul Founders Club",
+  description: "서울 파운더스 클럽",
+  openGraph: {
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    url: "https://seoulfounders.club",
+    siteName: "Seoul Founders Club",
+    images: [
+      {
+        url: "https://seoulfounders.club/images/logo-circle.png",
+        width: 1200,
+        height: 630,
+        alt: "Seoul Founders Club",
+      },
+    ],
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seoul Founders Club",
+    description: "서울 파운더스 클럽",
+    images: ["https://seoulfounders.club/images/logo-circle.png"],
+  },
+}
+
+export default async function HomePage() {
+  const userProfile = await getCachedUserProfile()
+  const userRole = userProfile?.profile?.role ?? null
+
+  return (
+    <DashboardLayout
+      header={<SiteHeader />}
+      userRole={userRole}
+      mobileHeader={<MobileHeader userRole={userRole} />}
+    >
+      <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
+        <div className="flex flex-col gap-10 w-full">
+          <HeroSectionContainer />
+
+          {/* 사진 후기 섹션 - Hero 바로 아래 */}
+          <Suspense fallback={<PhotoReviewsSkeleton />}>
+            <PhotoReviewsContainer />
+          </Suspense>
+
+          <Suspense fallback={<EventsSkeleton />}>
+            <EventsSectionContainer />
+          </Suspense>
+
+          <div className="h-px bg-slate-200" />
+
+          <Suspense fallback={<FeedSkeleton />}>
+            <FeedSectionContainer />
+          </Suspense>
+        </div>
+      </ThreeColumnLayout>
+    </DashboardLayout>
   )
 }
 </file>
@@ -52579,6 +53511,55 @@ export function CommunitySettingsModal({
 }
 </file>
 
+<file path="components/layout/three-column-layout.tsx">
+import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
+
+interface ThreeColumnLayoutProps {
+  children: ReactNode
+  rightSidebar?: ReactNode
+  header?: ReactNode  // 전체 너비 헤더 (배너 등)
+  className?: string
+}
+
+/**
+ * Reddit 스타일 레이아웃
+ * - 최대 폭: 1280px
+ * - 사이드바: 고정 312px
+ * - 메인: 나머지 공간
+ * - header: 전체 너비로 표시되는 상단 영역 (커뮤니티 배너 등)
+ */
+export function ThreeColumnLayout({ children, rightSidebar, header, className }: ThreeColumnLayoutProps) {
+  return (
+    <div className={cn("w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-6", className)}>
+      {/* 전체 너비 헤더 (배너) */}
+      {header && (
+        <div className="mb-6">
+          {header}
+        </div>
+      )}
+
+      {/* 메인 + 사이드바 */}
+      <div className="flex gap-6 items-start">
+        <main className="min-w-0 flex-1">
+          {children}
+        </main>
+
+        {rightSidebar && (
+          <aside className="hidden xl:block w-[312px] flex-shrink-0">
+            <div className="sticky top-24 flex flex-col gap-3 h-[calc(100vh-8rem)]">
+              <div className="flex flex-col h-full">
+                {rightSidebar}
+              </div>
+            </div>
+          </aside>
+        )}
+      </div>
+    </div>
+  )
+}
+</file>
+
 <file path="components/event-detail-hero.tsx">
 "use client"
 
@@ -52693,7 +53674,7 @@ export function EventDetailHero(props: Props) {
 
         {/* 좌측: 이미지 (1:1 비율 고정) */}
         <div ref={imageContainerRef} className="w-full">
-          <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+          <div className="aspect-square relative rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
           {event.thumbnail_url ? (
             <img
               src={event.thumbnail_url}
@@ -52735,7 +53716,7 @@ export function EventDetailHero(props: Props) {
           className="w-full lg:aspect-square"
           style={imageHeight ? { height: `${imageHeight}px`, aspectRatio: 'unset' } : undefined}
         >
-          <Card className="h-full border-slate-200 bg-white rounded-xl shadow-sm flex flex-col overflow-hidden">
+          <Card className="h-full border-slate-200 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
             <CardContent className="p-5 lg:p-6 flex flex-col h-full justify-between">
 
               {/* 상단 영역 */}
@@ -52789,19 +53770,19 @@ export function EventDetailHero(props: Props) {
                     )}
                     <div className="grid grid-cols-2 gap-2">
                       <Link href={`${basePath}/${eventId}/manage`} className="w-full">
-                        <Button variant="outline" className="w-full h-10 text-sm font-semibold rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700">
+                        <Button variant="outline" className="w-full h-10 text-sm font-semibold rounded-lg border-slate-200 hover:bg-slate-50 text-slate-700">
                           <Users className="mr-1.5 h-4 w-4" /> 참석자 관리
                         </Button>
                       </Link>
                       <Link href={`${basePath}/${eventId}/edit`} className="w-full">
-                        <Button className="w-full h-10 text-sm font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white">
+                        <Button className="w-full h-10 text-sm font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white">
                           <Edit className="mr-1.5 h-4 w-4" /> 수정하기
                         </Button>
                       </Link>
                     </div>
                   </div>
                 ) : isPastEvent || isCompleted ? (
-                  <Button className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
+                  <Button className="w-full h-10 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
                     <AlertCircle className="mr-1.5 h-4 w-4 shrink-0" />
                     <span className="truncate">이벤트가 종료되었습니다</span>
                   </Button>
@@ -52825,7 +53806,7 @@ export function EventDetailHero(props: Props) {
       </div>
 
       {/* 하단: 호스트 정보 */}
-      <Card className="border-slate-200 shadow-sm bg-white rounded-xl">
+      <Card className="border-slate-200 shadow-sm bg-white rounded-lg">
         <CardContent className="p-4 flex items-center gap-3">
           {hostProfile?.id ? (
             <ProfilePopover profile={hostProfile}>
@@ -52860,337 +53841,6 @@ export function EventDetailHero(props: Props) {
       </Card>
     </div>
   )
-}
-</file>
-
-<file path="components/layout/three-column-layout.tsx">
-import type { ReactNode } from "react"
-import { cn } from "@/lib/utils"
-
-interface ThreeColumnLayoutProps {
-  children: ReactNode
-  rightSidebar?: ReactNode
-  header?: ReactNode  // 전체 너비 헤더 (배너 등)
-  className?: string
-}
-
-/**
- * Reddit 스타일 레이아웃
- * - 최대 폭: 1280px
- * - 사이드바: 고정 312px
- * - 메인: 나머지 공간
- * - header: 전체 너비로 표시되는 상단 영역 (커뮤니티 배너 등)
- */
-export function ThreeColumnLayout({ children, rightSidebar, header, className }: ThreeColumnLayoutProps) {
-  return (
-    <div className={cn("w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-6", className)}>
-      {/* 전체 너비 헤더 (배너) */}
-      {header && (
-        <div className="mb-6">
-          {header}
-        </div>
-      )}
-
-      {/* 메인 + 사이드바 */}
-      <div className="flex gap-6 items-start">
-        <main className="min-w-0 flex-1">
-          {children}
-        </main>
-
-        {rightSidebar && (
-          <aside className="hidden xl:block w-[312px] flex-shrink-0">
-            <div className="sticky top-24 flex flex-col gap-3 h-[calc(100vh-8rem)]">
-              <div className="flex flex-col h-full">
-                {rightSidebar}
-              </div>
-            </div>
-          </aside>
-        )}
-      </div>
-    </div>
-  )
-}
-</file>
-
-<file path="components/event-detail-content.tsx">
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, ChevronLeft, ExternalLink, FileText, Users } from 'lucide-react';
-import Link from "next/link";
-import { FloatingActionBar } from "@/components/floating-action-bar";
-import { getReviewsByEvent } from "@/lib/queries/posts";
-import { ReviewModal } from "@/components/reviews/review-modal";
-import { ReviewCard } from "@/components/reviews/review-card";
-import { GoogleMapEmbed } from "@/components/google-map-embed";
-import { EventDetailHero } from "@/components/event-detail-hero";
-import { ClickableAvatar } from "@/components/ui/clickable-avatar";
-
-export default async function EventDetailContent({
-  eventId,
-  basePath = '/events'
-}: {
-  eventId: string;
-  basePath?: string;
-}) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // 1. 이벤트 정보 조회
-  let event;
-  try {
-    const { data, error } = await supabase
-      .from("events")
-      .select(`
-        *,
-        profiles:created_by (
-          id,
-          full_name,
-          avatar_url,
-          email,
-          bio,
-          tagline
-        )
-      `)
-      .eq("id", eventId)
-      .single();
-
-    if (error || !data) notFound();
-    event = data;
-  } catch (error) { notFound(); }
-
-  // 2. 관련 정보 병렬 조회 (등록 여부, 참석자, 후기)
-  const [userRegResult, attendeesResult, reviewsResult] = await Promise.all([
-    // 사용자 등록 여부 (로그인한 경우에만)
-    user
-      ? supabase
-        .from("event_registrations")
-        .select("id, payment_status, status, waitlist_position")
-        .eq("event_id", eventId)
-        .eq("user_id", user.id)
-        .maybeSingle()
-      : Promise.resolve({ data: null }),
-    // 참석자 목록 (confirmed 상태만)
-    supabase
-      .from("event_registrations")
-      .select(`id, user_id, guest_name, status, profiles:user_id (id, full_name, avatar_url)`)
-      .eq("event_id", eventId)
-      .eq("status", "confirmed"),
-    // 후기 목록
-    getReviewsByEvent(supabase, eventId),
-  ]);
-
-  const userRegistration = userRegResult.data;
-  const attendeesData = attendeesResult.data;
-  const reviews = reviewsResult;
-
-  // 3. 상태 계산
-  const attendees = attendeesData || [];
-  const isRegistered = !!userRegistration;
-  const registrationStatus = userRegistration?.status as "confirmed" | "waitlist" | undefined;
-  const waitlistPosition = userRegistration?.waitlist_position as number | null | undefined;
-  const currentCount = attendees.length; // 배열 길이로 참석자 수 계산 (confirmed만)
-
-  const maxCount = event.max_participants;
-  const isFull = maxCount && currentCount >= maxCount;
-  const isCreator = user && event.created_by === user.id;
-
-  // 종료 여부 판단: end_date가 있으면 그것을 기준, 없으면 start_date + 3시간을 종료 시점으로 간주
-  const now = new Date();
-  const eventStartDate = new Date(event.event_date);
-  const eventEndDate = event.end_date
-    ? new Date(event.end_date)
-    : new Date(eventStartDate.getTime() + 3 * 60 * 60 * 1000); // 기본 3시간
-
-  const isPastEvent = eventEndDate < now;
-  const isCompleted = event.status === 'completed'; // 수동 종료 상태
-
-  // 날짜 포맷팅
-  const dateStr = eventStartDate.toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' });
-  const timeStr = eventStartDate.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: 'Asia/Seoul' });
-
-  // 프로필 처리 (배열/객체 호환)
-  const hostProfile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
-  const hostName = hostProfile?.full_name || "알 수 없음";
-  const hostAvatar = hostProfile?.avatar_url;
-
-  // 구글 맵 URL 및 키
-  const googleMapUrl = event.location
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
-    : undefined;
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-
-  return (
-    <div className="w-full">
-      {/* 상단 네비게이션 */}
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/e" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
-          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
-            <ChevronLeft className="h-4 w-4" />
-          </div>
-          이벤트 목록
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-10">
-        {/* Hero 섹션 - 클라이언트 컴포넌트로 높이 동기화 */}
-        <EventDetailHero
-          event={event}
-          hostName={hostName}
-          hostAvatar={hostAvatar}
-          hostProfile={hostProfile}
-          dateStr={dateStr}
-          timeStr={timeStr}
-          currentCount={currentCount}
-          maxCount={maxCount}
-          isFull={!!isFull}
-          isPastEvent={isPastEvent}
-          isCompleted={isCompleted}
-          isCreator={!!isCreator}
-          isRegistered={isRegistered}
-          userRegistration={userRegistration}
-          eventId={eventId}
-          basePath={basePath}
-          userId={user?.id}
-          registrationStatus={registrationStatus}
-          waitlistPosition={waitlistPosition}
-        />
-
-        {/* 상세 내용 & 참석자 */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-8">
-
-            {/* 상세 내용 (헤더 분리) */}
-            <div className="mb-8">
-              <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-slate-500" />
-                상세 내용
-              </h3>
-              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
-                <CardContent className="p-8">
-                  <div
-                    className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: event.description || "" }}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 위치 안내 */}
-            {event.location && googleMapsApiKey && (
-              <div className="mb-8">
-                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-slate-500" />
-                  위치 안내
-                </h3>
-                <GoogleMapEmbed location={event.location} apiKey={googleMapsApiKey} />
-                <div className="mt-2 text-right">
-                  <a
-                    href={googleMapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-blue-600 hover:underline inline-flex items-center gap-1"
-                  >
-                    Google 지도에서 보기 <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 참석자 (헤더 분리) */}
-          <div className="lg:col-span-4 space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-slate-500" />
-                  참석자
-                </h2>
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                  {currentCount}명
-                </span>
-              </div>
-              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
-                <CardContent className="p-6">
-                  {attendees.length > 0 ? (
-                    <div className="flex flex-wrap gap-3">
-                      {attendees.map((attendee: any, index: number) => {
-                        const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
-                        const name = profile?.full_name || attendee.guest_name || "익명";
-                        return (
-                          <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14">
-                            <ClickableAvatar
-                              profile={profile ? { ...profile, full_name: name } : null}
-                              size="xl"
-                              showName
-                              className="flex-col"
-                              nameClassName="text-xs text-slate-600 truncate w-full text-center font-medium"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="py-10 text-center text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                      아직 참석자가 없습니다.
-                      <br />첫 번째 멤버가 되어보세요!
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-
-        {/* 후기 섹션 */}
-        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-xl">
-          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                참가자 후기
-                <span className="text-sm text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">
-                  {reviews ? reviews.length : 0}
-                </span>
-              </h2>
-            </div>
-            {user && <ReviewModal userId={user.id} eventId={eventId} />}
-          </div>
-          <CardContent className="p-8">
-            {reviews && reviews.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {reviews.map((review: any) => (
-                  <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm hover:shadow-md transition-all" />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-3xl">💬</div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">모임이 끝난 후 첫 번째 후기를 남겨주세요!<br />여러분의 경험 공유가 큰 힘이 됩니다.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <FloatingActionBar
-        eventId={eventId}
-        userId={user?.id}
-        isRegistered={isRegistered}
-        paymentStatus={userRegistration?.payment_status}
-        isFull={!!isFull}
-        price={event.price || 0}
-        isPastEvent={isPastEvent}
-        isCreator={!!isCreator}
-        eventTitle={event.title}
-        dateStr={dateStr}
-        timeStr={timeStr}
-        location={event.location || ""}
-        registrationStatus={registrationStatus}
-        waitlistPosition={waitlistPosition}
-      />
-    </div>
-  );
 }
 </file>
 
@@ -53306,6 +53956,375 @@ export default async function CommunityBoardLayout({
       {children}
     </ThreeColumnLayout>
   )
+}
+</file>
+
+<file path="components/event-detail-content.tsx">
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from 'next/navigation';
+import { Card, CardContent } from "@/components/ui/card";
+import { MapPin, ChevronLeft, ExternalLink, FileText, Users, Info, ChevronRight } from 'lucide-react';
+import Link from "next/link";
+import { FloatingActionBar } from "@/components/floating-action-bar";
+import { getReviewsByEvent } from "@/lib/queries/posts";
+import { getReviewsForHost } from "@/lib/queries/reviews";
+import { ReviewModal } from "@/components/reviews/review-modal";
+import { ReviewCard } from "@/components/reviews/review-card";
+import { GoogleMapEmbed } from "@/components/google-map-embed";
+import { EventDetailHero } from "@/components/event-detail-hero";
+import { ClickableAvatar } from "@/components/ui/clickable-avatar";
+
+export default async function EventDetailContent({
+  eventId,
+  basePath = '/events'
+}: {
+  eventId: string;
+  basePath?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 1. 이벤트 정보 조회
+  let event;
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select(`
+        *,
+        profiles:created_by (
+          id,
+          full_name,
+          avatar_url,
+          email,
+          bio,
+          tagline
+        )
+      `)
+      .eq("id", eventId)
+      .single();
+
+    if (error || !data) notFound();
+    event = data;
+  } catch (error) { notFound(); }
+
+  // 2. 관련 정보 병렬 조회 (등록 여부, 참석자, 후기, 호스트의 다른 후기)
+  const [userRegResult, attendeesResult, reviewsResult, hostReviewsResult] = await Promise.all([
+    // 사용자 등록 여부 (로그인한 경우에만)
+    user
+      ? supabase
+        .from("event_registrations")
+        .select("id, payment_status, status, waitlist_position")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .maybeSingle()
+      : Promise.resolve({ data: null }),
+    // 참석자 목록 (confirmed 상태만)
+    supabase
+      .from("event_registrations")
+      .select(`id, user_id, guest_name, status, profiles:user_id (id, full_name, avatar_url)`)
+      .eq("event_id", eventId)
+      .eq("status", "confirmed"),
+    // 후기 목록
+    getReviewsByEvent(supabase, eventId),
+    // 호스트의 다른 이벤트 후기 (신뢰도 전이용)
+    getReviewsForHost(supabase, event.created_by, 10),
+  ]);
+
+  const userRegistration = userRegResult.data;
+  const attendeesData = attendeesResult.data;
+  const reviews = reviewsResult;
+  // 현재 이벤트의 후기는 제외하고 호스트의 다른 이벤트 후기만 필터링
+  const hostOtherReviews = hostReviewsResult.filter(r => r.event_id !== eventId);
+
+  // 3. 상태 계산
+  const attendees = attendeesData || [];
+  const isRegistered = !!userRegistration;
+  const registrationStatus = userRegistration?.status as "confirmed" | "waitlist" | undefined;
+  const waitlistPosition = userRegistration?.waitlist_position as number | null | undefined;
+  const currentCount = attendees.length; // 배열 길이로 참석자 수 계산 (confirmed만)
+
+  const maxCount = event.max_participants;
+  const isFull = maxCount && currentCount >= maxCount;
+  const isCreator = user && event.created_by === user.id;
+
+  // 종료 여부 판단: end_date가 있으면 그것을 기준, 없으면 start_date + 3시간을 종료 시점으로 간주
+  const now = new Date();
+  const eventStartDate = new Date(event.event_date);
+  const eventEndDate = event.end_date
+    ? new Date(event.end_date)
+    : new Date(eventStartDate.getTime() + 3 * 60 * 60 * 1000); // 기본 3시간
+
+  const isPastEvent = eventEndDate < now;
+  const isCompleted = event.status === 'completed'; // 수동 종료 상태
+
+  // 날짜 포맷팅
+  const dateStr = eventStartDate.toLocaleDateString("ko-KR", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' });
+  const timeStr = eventStartDate.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: 'Asia/Seoul' });
+
+  // 프로필 처리 (배열/객체 호환)
+  const hostProfile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
+  const hostName = hostProfile?.full_name || "알 수 없음";
+  const hostAvatar = hostProfile?.avatar_url;
+
+  // 구글 맵 URL 및 키
+  const googleMapUrl = event.location
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
+    : undefined;
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
+  return (
+    <div className="w-full">
+      {/* 상단 네비게이션 */}
+      <div className="mb-6 flex items-center justify-between">
+        <Link href="/e" className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 group-hover:border-slate-300 shadow-sm transition-all">
+            <ChevronLeft className="h-4 w-4" />
+          </div>
+          이벤트 목록
+        </Link>
+      </div>
+
+      <div className="flex flex-col gap-10">
+        {/* Hero 섹션 - 클라이언트 컴포넌트로 높이 동기화 */}
+        <EventDetailHero
+          event={event}
+          hostName={hostName}
+          hostAvatar={hostAvatar}
+          hostProfile={hostProfile}
+          dateStr={dateStr}
+          timeStr={timeStr}
+          currentCount={currentCount}
+          maxCount={maxCount}
+          isFull={!!isFull}
+          isPastEvent={isPastEvent}
+          isCompleted={isCompleted}
+          isCreator={!!isCreator}
+          isRegistered={isRegistered}
+          userRegistration={userRegistration}
+          eventId={eventId}
+          basePath={basePath}
+          userId={user?.id}
+          registrationStatus={registrationStatus}
+          waitlistPosition={waitlistPosition}
+        />
+
+        {/* 이벤트 내용 - 전체 너비 */}
+        <div className="w-full">
+          <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-slate-500" />
+            이벤트 내용
+          </h3>
+          <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-lg">
+            <CardContent className="p-8">
+              <div
+                className="prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: event.description || "" }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 위치 안내 + 참석자 */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          {/* 위치 안내 */}
+          <div className={event.location && googleMapsApiKey ? "lg:col-span-8 flex flex-col" : "lg:col-span-12"}>
+            {event.location && googleMapsApiKey ? (
+              <>
+                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-slate-500" />
+                  위치 안내
+                </h3>
+                <div className="flex-1 flex flex-col">
+                  <GoogleMapEmbed location={event.location} apiKey={googleMapsApiKey} className="flex-1" />
+                  <div className="mt-2 text-right">
+                    <a
+                      href={googleMapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-blue-600 hover:underline inline-flex items-center gap-1"
+                    >
+                      Google 지도에서 보기 <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* 위치 정보가 없으면 참석자를 전체 너비로 표시 */
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-slate-500" />
+                    참석자
+                  </h2>
+                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                    {currentCount}명
+                  </span>
+                </div>
+                <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-lg">
+                  <CardContent className="p-6">
+                    {attendees.length > 0 ? (
+                      <div className="flex flex-wrap gap-3">
+                        {attendees.map((attendee: any, index: number) => {
+                          const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
+                          const name = profile?.full_name || attendee.guest_name || "익명";
+                          return (
+                            <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14">
+                              <ClickableAvatar
+                                profile={profile ? { ...profile, full_name: name } : null}
+                                size="xl"
+                                showName
+                                className="flex-col"
+                                nameClassName="text-xs text-slate-600 truncate w-full text-center font-medium"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-10 text-center text-slate-400 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                        아직 참석자가 없습니다.
+                        <br />첫 번째 멤버가 되어보세요!
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* 참석자 - 위치 정보가 있을 때만 우측에 표시 */}
+          {event.location && googleMapsApiKey && (
+            <div className="lg:col-span-4 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-slate-500" />
+                  참석자
+                </h2>
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                  {currentCount}명
+                </span>
+              </div>
+              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-lg flex-1">
+                <CardContent className="p-6 h-full">
+                  {attendees.length > 0 ? (
+                    <div className="flex flex-wrap gap-3">
+                      {attendees.map((attendee: any, index: number) => {
+                        const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
+                        const name = profile?.full_name || attendee.guest_name || "익명";
+                        return (
+                          <div key={attendee.id || index} className="flex flex-col items-center gap-1.5 w-14">
+                            <ClickableAvatar
+                              profile={profile ? { ...profile, full_name: name } : null}
+                              size="xl"
+                              showName
+                              className="flex-col"
+                              nameClassName="text-xs text-slate-600 truncate w-full text-center font-medium"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-10 text-center text-slate-400 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      아직 참석자가 없습니다.
+                      <br />첫 번째 멤버가 되어보세요!
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+
+        {/* 후기 섹션 */}
+        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-lg">
+          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                참가자 후기
+                <span className="text-sm text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                  {reviews ? reviews.length : 0}
+                </span>
+              </h2>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* 호스트의 다른 후기 보기 링크 */}
+              {hostOtherReviews.length > 0 && (
+                <Link
+                  href={`/community/profile/${event.created_by}?tab=reviews`}
+                  className="text-sm font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1 transition-colors"
+                >
+                  이 호스트의 다른 후기
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              )}
+              {user && <ReviewModal userId={user.id} eventId={eventId} />}
+            </div>
+          </div>
+          <CardContent className="p-8">
+            {reviews && reviews.length > 0 ? (
+              /* 이 이벤트 후기가 있을 때 */
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {reviews.map((review: any) => (
+                  <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm hover:shadow-md transition-all" />
+                ))}
+              </div>
+            ) : hostOtherReviews.length > 0 ? (
+              /* 이 이벤트 후기는 없지만 호스트의 다른 후기가 있을 때 (신뢰도 전이) */
+              <div className="space-y-6">
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-blue-800">
+                    이 모임의 후기는 아직 없지만, <strong>{hostName}</strong> 호스트가 진행한 다른 모임의 후기를 확인해보세요.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {hostOtherReviews.slice(0, 4).map((review: any) => (
+                    <ReviewCard key={review.id} review={review} className="h-full border border-slate-100 shadow-sm hover:shadow-md transition-all" />
+                  ))}
+                </div>
+                {hostOtherReviews.length > 4 && (
+                  <div className="text-center pt-2">
+                    <Link
+                      href={`/community/profile/${event.created_by}?tab=reviews`}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                    >
+                      더 많은 후기 보기
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* 후기가 전혀 없을 때 */
+              <div className="flex flex-col items-center justify-center py-16 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-3xl">💬</div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">아직 작성된 후기가 없어요</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">모임이 끝난 후 첫 번째 후기를 남겨주세요!<br />여러분의 경험 공유가 큰 힘이 됩니다.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <FloatingActionBar
+        eventId={eventId}
+        userId={user?.id}
+        isRegistered={isRegistered}
+        paymentStatus={userRegistration?.payment_status}
+        isFull={!!isFull}
+        price={event.price || 0}
+        isPastEvent={isPastEvent}
+        isCreator={!!isCreator}
+        eventTitle={event.title}
+        dateStr={dateStr}
+        timeStr={timeStr}
+        location={event.location || ""}
+        registrationStatus={registrationStatus}
+        waitlistPosition={waitlistPosition}
+      />
+    </div>
+  );
 }
 </file>
 
