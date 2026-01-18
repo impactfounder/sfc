@@ -56,7 +56,7 @@ type BadgeQueryResult = {
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-      <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+      <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mb-3">
         <FileText className="h-5 w-5 text-slate-300" />
       </div>
       <p className="text-sm">{message}</p>
@@ -444,7 +444,7 @@ export default function ProfileContent() {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="text-center p-8 max-w-md">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-amber-100 flex items-center justify-center">
             <Info className="h-8 w-8 text-amber-600" />
           </div>
           <h2 className="text-lg font-bold text-slate-900 mb-2">연결 지연</h2>
@@ -497,7 +497,7 @@ export default function ProfileContent() {
     >
       <div className="flex justify-between items-start mb-2">
         <h3 className="text-sm font-medium text-slate-500">{title}</h3>
-        <div className={cn("p-2 rounded-full bg-slate-50 text-slate-400 group-hover:text-indigo-600 transition-colors", activeTab === type && "bg-indigo-50 text-indigo-600")}>
+        <div className={cn("p-2 rounded-lg bg-slate-50 text-slate-400 group-hover:text-indigo-600 transition-colors", activeTab === type && "bg-indigo-50 text-indigo-600")}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
@@ -897,7 +897,7 @@ export default function ProfileContent() {
                   htmlFor="avatar-upload"
                   className="cursor-pointer block relative"
                 >
-                  <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100 relative">
+                  <div className="h-32 w-32 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-slate-100 relative">
                     {profile?.avatar_url ? (
                       <Image
                         src={profile.avatar_url}
@@ -930,7 +930,7 @@ export default function ProfileContent() {
                     </div>
                   </div>
                 </label>
-                <div className="absolute bottom-0 right-0 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-full border-2 border-white shadow-sm">
+                <div className="absolute bottom-0 right-0 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg border-2 border-white shadow-sm">
                   {profile?.role?.toUpperCase() || "MEMBER"}
                 </div>
               </div>
@@ -967,7 +967,7 @@ export default function ProfileContent() {
                   {profile.roles.map((role: string) => (
                     <span
                       key={role}
-                      className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                      className="px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium"
                     >
                       {role}
                     </span>
@@ -999,7 +999,7 @@ export default function ProfileContent() {
                   <span className="text-sm font-bold text-slate-900">내 뱃지</span>
                 </div>
 
-                <div className="bg-white rounded-xl p-4 min-h-[80px] flex flex-wrap gap-2 justify-center md:justify-start border border-slate-200">
+                <div className="bg-white rounded-lg p-4 min-h-[80px] flex flex-wrap gap-2 justify-center md:justify-start border border-slate-200">
                   {renderBadges()}
                 </div>
               </div>
@@ -1324,7 +1324,7 @@ export default function ProfileContent() {
                       <span className="truncate max-w-[200px]">{badgeProofFile.name}</span>
                       <button
                         onClick={() => setBadgeProofFile(null)}
-                        className="ml-1 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
+                        className="ml-1 p-0.5 hover:bg-blue-100 rounded transition-colors"
                       >
                         <X className="h-3 w-3 text-slate-400 hover:text-red-500" />
                       </button>
@@ -1577,13 +1577,13 @@ export default function ProfileContent() {
                           return (
                             <div
                               key={userBadge.id}
-                              className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-slate-200 shadow-sm"
+                              className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium border border-slate-200 shadow-sm"
                             >
                               <span className="text-base">{badge.icon}</span>
                               <span>{badge.name}</span>
                               <button
                                 onClick={() => handleRemoveBadge(userBadge.id)}
-                                className="ml-1 hover:bg-red-50 rounded-full p-0.5 transition-colors"
+                                className="ml-1 hover:bg-red-50 rounded p-0.5 transition-colors"
                                 aria-label="뱃지 삭제"
                               >
                                 <X className="h-3.5 w-3.5 text-slate-400 hover:text-red-600" />
@@ -1607,7 +1607,7 @@ export default function ProfileContent() {
                           return (
                             <div
                               key={userBadge.id}
-                              className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-amber-300 shadow-sm"
+                              className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium border border-amber-300 shadow-sm"
                             >
                               <span className="text-base">{badge.icon}</span>
                               <span>{badge.name}</span>
@@ -1633,7 +1633,7 @@ export default function ProfileContent() {
                           return (
                             <div
                               key={userBadge.id}
-                              className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium border border-red-300 shadow-sm opacity-60"
+                              className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium border border-red-300 shadow-sm opacity-60"
                             >
                               <span className="text-base">{badge.icon}</span>
                               <span>{badge.name}</span>

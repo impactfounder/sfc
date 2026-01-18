@@ -125,7 +125,9 @@ export function EventDetailHero(props: Props) {
                   </Avatar>
                   <div>
                     <span className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors block">{hostName}</span>
-                    <span className="text-xs text-slate-500">{hostProfile.tagline || hostProfile.company || "SFC 호스트"}</span>
+                    {(hostProfile.tagline || hostProfile.company) && (
+                      <span className="text-xs text-slate-500">{hostProfile.tagline || hostProfile.company}</span>
+                    )}
                   </div>
                 </button>
               </ProfilePopover>
