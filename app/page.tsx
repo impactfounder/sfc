@@ -8,7 +8,8 @@ import { MobileHeader } from "@/components/mobile-header"
 import { HeroSectionContainer } from "@/components/home/hero-section-container"
 import { EventsSectionContainer } from "@/components/home/events-section-container"
 import { FeedSectionContainer } from "@/components/home/feed-section-container"
-import { EventsSkeleton, FeedSkeleton } from "@/components/skeletons"
+import { PhotoReviewsContainer } from "@/components/home/photo-reviews-container"
+import { EventsSkeleton, FeedSkeleton, PhotoReviewsSkeleton } from "@/components/skeletons"
 import { getCachedUserProfile } from "@/lib/queries/cached"
 
 // ISR: 60초마다 백그라운드 재생성 (Cold Start 해결)
@@ -54,6 +55,11 @@ export default async function HomePage() {
       <ThreeColumnLayout rightSidebar={<StandardRightSidebar />}>
         <div className="flex flex-col gap-10 w-full">
           <HeroSectionContainer />
+
+          {/* 사진 후기 섹션 - Hero 바로 아래 */}
+          <Suspense fallback={<PhotoReviewsSkeleton />}>
+            <PhotoReviewsContainer />
+          </Suspense>
 
           <Suspense fallback={<EventsSkeleton />}>
             <EventsSectionContainer />

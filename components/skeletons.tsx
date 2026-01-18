@@ -66,3 +66,46 @@ export function FeedSkeleton() {
         </div>
     )
 }
+
+export function PhotoReviewsSkeleton() {
+    return (
+        <div className="w-full space-y-5">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-5 w-20" />
+            </div>
+            <div className="flex gap-3 overflow-hidden -mx-4 px-4 md:mx-0 md:px-0">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex-shrink-0 w-[70%] sm:w-[45%] md:w-[35%] lg:w-[30%] xl:w-[24%]">
+                        <Skeleton className="w-full aspect-[4/5] rounded-2xl" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export function ReviewsPageSkeleton() {
+    return (
+        <div className="w-full space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-5 w-72" />
+            </div>
+            <div className="flex gap-2 mb-6">
+                <Skeleton className="h-10 w-20 rounded-full" />
+                <Skeleton className="h-10 w-28 rounded-full" />
+            </div>
+            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div key={i} className="break-inside-avoid mb-4">
+                        <Skeleton
+                            className="w-full rounded-2xl"
+                            style={{ height: `${200 + (i % 3) * 80}px` }}
+                        />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}

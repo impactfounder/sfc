@@ -1,9 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { Mail, Calendar, FileText, CalendarDays, Ticket, Medal, MapPin } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Mail, Calendar, FileText, CalendarDays, Ticket, Medal, MapPin, MessageSquare } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { getReviewsForHost } from "@/lib/queries/reviews"
+import { ReviewCard } from "@/components/reviews/review-card"
+import type { ReviewForDisplay } from "@/lib/types/reviews"
 
 export const revalidate = 60
 
@@ -66,6 +70,7 @@ export default async function PublicProfilePage({
   // 공개 프로필이거나 본인인 경우에만 활동 내역 조회
   let userPosts: PostItem[] = []
   let createdEvents: EventItem[] = []
+  let hostReviews: ReviewForDisplay[] = []
 
   if (profile.is_profile_public || isOwnProfile) {
     // 작성 게시글
@@ -94,6 +99,9 @@ export default async function PublicProfilePage({
       .limit(10)
 
     createdEvents = eventsData || []
+
+    // 호스트로서 받은 후기 조회
+    hostReviews = await getReviewsForHost(supabase, id, 20)
   }
 
   return (
@@ -204,104 +212,150 @@ export default async function PublicProfilePage({
         {/* 활동 내역 */}
         <div className="md:col-span-7 lg:col-span-8 space-y-6">
           {profile.is_profile_public || isOwnProfile ? (
-            <>
-              {/* 작성 게시글 */}
-              <Card className="border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-0">
-                  <div className="px-6 py-4 border-b border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-slate-500" />
-                      작성한 게시글
-                    </h2>
-                  </div>
-                  {userPosts.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
-                      {userPosts.map((post) => (
-                        <Link
-                          key={post.id}
-                          href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`}
-                          className="flex flex-col p-5 hover:bg-slate-50 transition-colors group"
-                        >
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
-                              {post.board_categories?.name || "게시판"}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {new Date(post.created_at).toLocaleDateString("ko-KR")}
-                            </span>
-                          </div>
-                          <h3 className="text-base font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                            {post.title}
-                          </h3>
-                          <div className="flex gap-3 mt-2 text-xs text-slate-500">
-                            <span>좋아요 {post.likes_count}</span>
-                            <span>댓글 {post.comments_count}</span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                      <FileText className="h-8 w-8 mb-2 text-slate-300" />
-                      <p className="text-sm">작성한 게시글이 없습니다.</p>
-                    </div>
+            <Tabs defaultValue="posts" className="w-full">
+              <TabsList className="w-full justify-start bg-white border border-slate-200 rounded-xl p-1 mb-6">
+                <TabsTrigger value="posts" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg px-4 py-2">
+                  <FileText className="h-4 w-4" />
+                  작성한 글
+                  {userPosts.length > 0 && (
+                    <span className="ml-1 text-xs bg-slate-100 data-[state=active]:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                      {userPosts.length}
+                    </span>
                   )}
-                </CardContent>
-              </Card>
+                </TabsTrigger>
+                <TabsTrigger value="events" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg px-4 py-2">
+                  <CalendarDays className="h-4 w-4" />
+                  만든 이벤트
+                  {createdEvents.length > 0 && (
+                    <span className="ml-1 text-xs bg-slate-100 data-[state=active]:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                      {createdEvents.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="reviews" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg px-4 py-2">
+                  <MessageSquare className="h-4 w-4" />
+                  받은 후기
+                  {hostReviews.length > 0 && (
+                    <span className="ml-1 text-xs bg-slate-100 data-[state=active]:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                      {hostReviews.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
-              {/* 만든 이벤트 */}
-              <Card className="border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-0">
-                  <div className="px-6 py-4 border-b border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <CalendarDays className="h-5 w-5 text-slate-500" />
-                      만든 이벤트
-                    </h2>
-                  </div>
-                  {createdEvents.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
-                      {createdEvents.map((event) => (
-                        <Link
-                          key={event.id}
-                          href={`/events/${event.id}`}
-                          className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group"
-                        >
-                          <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
-                            {event.thumbnail_url ? (
-                              <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-slate-300">
-                                <Ticket className="h-6 w-6" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">
-                              {event.title}
-                            </h3>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <CalendarDays className="h-3 w-3" />
-                                {new Date(event.event_date).toLocaleDateString("ko-KR")}
+              {/* 작성 게시글 탭 */}
+              <TabsContent value="posts">
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-0">
+                    {userPosts.length > 0 ? (
+                      <div className="divide-y divide-slate-100">
+                        {userPosts.map((post) => (
+                          <Link
+                            key={post.id}
+                            href={`/community/board/${post.board_categories?.slug || "free"}/${post.id}`}
+                            className="flex flex-col p-5 hover:bg-slate-50 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-600">
+                                {post.board_categories?.name || "게시판"}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {event.location || "장소 미정"}
+                              <span className="text-xs text-slate-400">
+                                {new Date(post.created_at).toLocaleDateString("ko-KR")}
                               </span>
                             </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                      <CalendarDays className="h-8 w-8 mb-2 text-slate-300" />
-                      <p className="text-sm">만든 이벤트가 없습니다.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
+                            <h3 className="text-base font-medium text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                              {post.title}
+                            </h3>
+                            <div className="flex gap-3 mt-2 text-xs text-slate-500">
+                              <span>좋아요 {post.likes_count}</span>
+                              <span>댓글 {post.comments_count}</span>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <FileText className="h-8 w-8 mb-2 text-slate-300" />
+                        <p className="text-sm">작성한 게시글이 없습니다.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 만든 이벤트 탭 */}
+              <TabsContent value="events">
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-0">
+                    {createdEvents.length > 0 ? (
+                      <div className="divide-y divide-slate-100">
+                        {createdEvents.map((event) => (
+                          <Link
+                            key={event.id}
+                            href={`/events/${event.id}`}
+                            className="flex gap-4 p-5 hover:bg-slate-50 transition-colors group"
+                          >
+                            <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-200">
+                              {event.thumbnail_url ? (
+                                <Image src={event.thumbnail_url} alt="" fill sizes="64px" className="object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-slate-300">
+                                  <Ticket className="h-6 w-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">
+                                {event.title}
+                              </h3>
+                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <CalendarDays className="h-3 w-3" />
+                                  {new Date(event.event_date).toLocaleDateString("ko-KR")}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location || "장소 미정"}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <CalendarDays className="h-8 w-8 mb-2 text-slate-300" />
+                        <p className="text-sm">만든 이벤트가 없습니다.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 받은 후기 탭 */}
+              <TabsContent value="reviews">
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-6">
+                    {hostReviews.length > 0 ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {hostReviews.map((review) => (
+                          <ReviewCard
+                            key={review.id}
+                            review={review}
+                            className="h-full border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <MessageSquare className="h-8 w-8 mb-2 text-slate-300" />
+                        <p className="text-sm">받은 후기가 없습니다.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           ) : (
             <Card className="border-slate-200 bg-white shadow-sm">
               <CardContent className="p-12 text-center">

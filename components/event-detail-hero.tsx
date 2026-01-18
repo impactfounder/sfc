@@ -111,7 +111,7 @@ export function EventDetailHero(props: Props) {
 
         {/* 좌측: 이미지 (1:1 비율 고정) */}
         <div ref={imageContainerRef} className="w-full">
-          <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+          <div className="aspect-square relative rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
           {event.thumbnail_url ? (
             <img
               src={event.thumbnail_url}
@@ -153,7 +153,7 @@ export function EventDetailHero(props: Props) {
           className="w-full lg:aspect-square"
           style={imageHeight ? { height: `${imageHeight}px`, aspectRatio: 'unset' } : undefined}
         >
-          <Card className="h-full border-slate-200 bg-white rounded-xl shadow-sm flex flex-col overflow-hidden">
+          <Card className="h-full border-slate-200 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
             <CardContent className="p-5 lg:p-6 flex flex-col h-full justify-between">
 
               {/* 상단 영역 */}
@@ -207,19 +207,19 @@ export function EventDetailHero(props: Props) {
                     )}
                     <div className="grid grid-cols-2 gap-2">
                       <Link href={`${basePath}/${eventId}/manage`} className="w-full">
-                        <Button variant="outline" className="w-full h-10 text-sm font-semibold rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700">
+                        <Button variant="outline" className="w-full h-10 text-sm font-semibold rounded-lg border-slate-200 hover:bg-slate-50 text-slate-700">
                           <Users className="mr-1.5 h-4 w-4" /> 참석자 관리
                         </Button>
                       </Link>
                       <Link href={`${basePath}/${eventId}/edit`} className="w-full">
-                        <Button className="w-full h-10 text-sm font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white">
+                        <Button className="w-full h-10 text-sm font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white">
                           <Edit className="mr-1.5 h-4 w-4" /> 수정하기
                         </Button>
                       </Link>
                     </div>
                   </div>
                 ) : isPastEvent || isCompleted ? (
-                  <Button className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
+                  <Button className="w-full h-10 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed text-sm" disabled>
                     <AlertCircle className="mr-1.5 h-4 w-4 shrink-0" />
                     <span className="truncate">이벤트가 종료되었습니다</span>
                   </Button>
@@ -243,7 +243,7 @@ export function EventDetailHero(props: Props) {
       </div>
 
       {/* 하단: 호스트 정보 */}
-      <Card className="border-slate-200 shadow-sm bg-white rounded-xl">
+      <Card className="border-slate-200 shadow-sm bg-white rounded-lg">
         <CardContent className="p-4 flex items-center gap-3">
           {hostProfile?.id ? (
             <ProfilePopover profile={hostProfile}>

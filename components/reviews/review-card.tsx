@@ -18,6 +18,12 @@ interface ReviewCardProps {
 export function ReviewCard({ review, className }: ReviewCardProps) {
     const [isExpanded, setIsExpanded] = useState(false)
 
+    const handleExpandClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsExpanded(!isExpanded)
+    }
+
     const renderStars = (rating: number) => {
         const stars = []
         const fullStars = Math.floor(rating)
@@ -57,9 +63,10 @@ export function ReviewCard({ review, className }: ReviewCardProps) {
     }
 
     return (
+        <Link href={`/events/${review.event_id}`} className="block">
         <Card
             className={cn(
-                "group relative overflow-hidden",
+                "group relative overflow-hidden cursor-pointer",
                 "bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl",
                 "border border-slate-200/60 dark:border-slate-700/60",
                 "shadow-sm hover:shadow-lg transition-all duration-300",
@@ -125,23 +132,20 @@ export function ReviewCard({ review, className }: ReviewCardProps) {
 
                 {/* 오른쪽: 리뷰 내용 */}
                 <div className="flex-1 p-5 space-y-3">
-                    {/* 행사명 + 날짜 (아이콘 제거됨) */}
-                    <Link href={`/events/${review.events.id}`} className="block group/event">
-                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary/20 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <Calendar className="h-4 w-4 text-primary shrink-0" />
-                                <div className="flex flex-col gap-0.5 min-w-0">
-                                    <h4 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate pr-1 group-hover/event:text-primary transition-colors">
-                                        {review.events.title}
-                                    </h4>
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                                        {formatDate(review.events.event_date)}
-                                    </span>
-                                </div>
+                    {/* 행사명 + 날짜 */}
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 group-hover:border-primary/20 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-all duration-300">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Calendar className="h-4 w-4 text-primary shrink-0" />
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h4 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate pr-1 group-hover:text-primary transition-colors">
+                                    {review.events.title}
+                                </h4>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    {formatDate(review.events.event_date)}
+                                </span>
                             </div>
-                            {/* 공유 아이콘(ExternalLink) 제거됨 */}
                         </div>
-                    </Link>
+                    </div>
 
                     {/* 키워드 */}
                     {review.keywords.length > 0 && (
@@ -178,7 +182,7 @@ export function ReviewCard({ review, className }: ReviewCardProps) {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setIsExpanded(!isExpanded)}
+                                onClick={handleExpandClick}
                                 className="w-full justify-center gap-1 text-xs text-slate-500 hover:text-primary hover:bg-primary/5 h-8"
                             >
                                 {isExpanded ? (
@@ -214,5 +218,6 @@ export function ReviewCard({ review, className }: ReviewCardProps) {
                 </div>
             </div>
         </Card>
+        </Link>
     )
 }

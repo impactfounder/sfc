@@ -7,9 +7,10 @@
 interface GoogleMapEmbedProps {
   location: string;
   apiKey: string;
+  className?: string;
 }
 
-export function GoogleMapEmbed({ location, apiKey }: GoogleMapEmbedProps) {
+export function GoogleMapEmbed({ location, apiKey, className }: GoogleMapEmbedProps) {
   if (!location) return null;
 
   // 주소를 URL 인코딩
@@ -19,7 +20,7 @@ export function GoogleMapEmbed({ location, apiKey }: GoogleMapEmbedProps) {
   const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedLocation}&language=ko`;
 
   return (
-    <div className="w-full h-full min-h-[300px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+    <div className={`w-full h-full min-h-[300px] rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-50 ${className || ""}`}>
       <iframe
         width="100%"
         height="100%"
